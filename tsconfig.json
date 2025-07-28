@@ -1,0 +1,21 @@
+{
+  "extends": "@tsconfig/react-native/tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "checkJs": false,
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "importHelpers": true,
+    "esModuleInterop": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["es6"],
+    "moduleResolution": "node"
+  },
+  "include": ["src"]
+}
