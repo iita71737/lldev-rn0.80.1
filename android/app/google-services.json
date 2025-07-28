@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "606844696768",
+    "project_id": "ll-esgoal",
+    "storage_bucket": "ll-esgoal.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:606844696768:android:c559fdb261b0c72dbf9525",
+        "android_client_info": {
+          "package_name": "com.esgoaldev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "606844696768-gag22djigmmid7c7t4hi2ic6rjv5otnh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuDc15YYH9f8gcI6pf6CJohvl_-LSvZvc"
+        }
+      ]
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:606844696768:android:c9148226f2988ae9bf9525",
+        "android_client_info": {
+          "package_name": "com.esgoalprd"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "606844696768-gag22djigmmid7c7t4hi2ic6rjv5otnh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuDc15YYH9f8gcI6pf6CJohvl_-LSvZvc"
+        }
+      ]
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:606844696768:android:edfa2f07ea79fb71bf9525",
+        "android_client_info": {
+          "package_name": "com.esgoaldev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "606844696768-gag22djigmmid7c7t4hi2ic6rjv5otnh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuDc15YYH9f8gcI6pf6CJohvl_-LSvZvc"
+        }
+      ]
+    }
+  ],
+  "configuration_version": "1"
+}

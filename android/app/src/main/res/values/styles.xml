@@ -1,0 +1,18 @@
+<resources>
+    <!-- <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar"> -->
+    <style name="AppTheme" parent="Theme.EdgeToEdge.Light">
+        <!-- … -->
+        <!-- disable the contrasting background of the navigation bar (optional) -->
+        <item name="enforceNavigationBarContrast">false</item>
+        
+        <!-- Customize your theme here. -->
+        <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+    </style>
+
+    <style name="BootTheme" parent="Theme.BootSplash">
+        <item name="bootSplashBackground">@color/bootsplash_background</item>
+        <item name="bootSplashLogo">@drawable/bootsplash_logo</item>
+        <item name="postBootSplashTheme">@style/AppTheme</item>
+    </style>
+
+</resources>
