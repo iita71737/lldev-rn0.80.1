@@ -211,22 +211,14 @@ const ChangeIndex: React.FC = (props) => {
 
   return (
     <>
-      {/* <WsPage
-        title={t('變動計畫列表')}
-        // iconRight="md-add" //HIDE_FOR_CREATE
-        rightOnPress={() => {
-          $_createChange()
-        }}
-      > */}
         {tabItems && !loading && (
           <WsTabView
             index={tabIndex}
-            scrollEnabled={true}
             setIndex={settabIndex}
             items={tabItems}
+            isAutoWidth={true}
           />
         )}
-      {/* </WsPage> */}
     </>
   )
 }

@@ -18,7 +18,6 @@ import moment from 'moment'
 import S_Article from '@/services/api/v1/article'
 import S_ArticleVersion from '@/services/api/v1/article_version'
 import $color from '@/__reactnative_stone/global/color'
-import { WebView } from 'react-native-webview'
 import { useTranslation } from 'react-i18next'
 
 const ArticleHistory = ({ route, navigation }) => {

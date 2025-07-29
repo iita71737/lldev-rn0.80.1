@@ -3,7 +3,7 @@ import {
   StatusBar,
   Text,
   Alert,
-  SafeAreaView,
+  // SafeAreaView,
   View,
   Modal,
   Platform,
@@ -27,7 +27,6 @@ import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/
 import { createStackNavigator } from '@react-navigation/stack'
 import $color from '@/__reactnative_stone/global/color'
 import $theme from '@/__reactnative_stone/global/theme'
-import { SafeAreaProvider } from 'react-native-safe-area-context'
 import $config from '@/__config'
 import { useTranslation } from 'react-i18next'
 import S_API_Auth from '@/__reactnative_stone/services/api/v1/auth'
@@ -88,6 +87,7 @@ import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native
 import AndroidOpenSettings from 'react-native-android-open-settings'
 import { getLocation, getGeocode } from '@/__reactnative_stone/global/location'
 import { getDistance } from 'geolib';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 
 const RoutesMain = ({ navigation }) => {
   const { t, i18n } = useTranslation()
@@ -645,12 +645,13 @@ const RoutesMain = ({ navigation }) => {
           )}
         </Modal>
       ) : (
-        <SafeAreaProvider>
-          <StatusBar
-            barStyle="dark-content"
-            backgroundColor="white"
-            translucent={false}
-          />
+        <View
+          style={{
+            flex: 1,
+            paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+            backgroundColor: $color.primary
+          }}
+        >
           <NavigationContainer
             theme={scheme === 'light' ? MyThemes.light : MyThemes.dark}
             linking={{
@@ -727,28 +728,7 @@ const RoutesMain = ({ navigation }) => {
               )}
             </Stack.Navigator>
           </NavigationContainer>
-          {$config.app.env.showVersion && (
-            <View
-              style={{
-                zIndex: 99,
-                position: 'absolute',
-                bottom: 10,
-                left: 16,
-                backgroundColor: $color.primary11l,
-                paddingLeft: 8,
-                flex: 0
-              }}>
-              <Text
-                style={{
-                  fontWeight: '600',
-                  textAlign: 'center',
-                  includeFontPadding: false
-                }}>
-                {axios.defaults?.baseURL}
-              </Text>
-            </View>
-          )}
-        </SafeAreaProvider>
+        </View>
       )}
     </>
   )

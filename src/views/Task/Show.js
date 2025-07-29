@@ -883,6 +883,7 @@ const TaskShow = ({ navigation, route }) => {
                                   return (
                                     <>
                                       <View
+                                        key={index}
                                         style={{
                                           marginTop: 8
                                         }}
@@ -1315,7 +1316,6 @@ const TaskShow = ({ navigation, route }) => {
                               {t('相關資料')}
                             </WsText>
                           </View>
-
                           {currentSubtask.links &&
                             currentSubtask.links.length > 0 && (
                               <>
@@ -1327,6 +1327,7 @@ const TaskShow = ({ navigation, route }) => {
                                       return (
                                         <>
                                           <View
+                                            key={index}
                                             style={{
                                               marginTop: 8
                                             }}

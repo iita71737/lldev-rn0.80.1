@@ -133,10 +133,8 @@ const CheckListAssignment = ({ route }) => {
         items={tabItems}
         index={tabIndex}
         setIndex={settabIndex}
-        scrollEnabled={true}
         isAutoWidth={true}
-        fixedTabWidth={100}
-        marginBottom={0}
+        fixedTabWidth={130}
         swipeEnabled={false}
         animationEnabled={false}
         pointerVisible={true}

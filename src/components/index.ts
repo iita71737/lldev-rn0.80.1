@@ -213,6 +213,7 @@ import WsStateModelsUserScopes from '@/__reactnative_stone/components/WsStateMod
 import WsFilterScopes from '@/__reactnative_stone/components/WsFilterScopes'
 import WsInfiniteScrollPagination from '@/__reactnative_stone/components/WsInfiniteScrollPagination'
 import WsTextHighlight from '@/__reactnative_stone/components/WsTextHighlight'
+import WsStatusBar from '@/__reactnative_stone/components/WsStatusBar'
 
 import LlFileStoreStateFormView from './LlFileStoreStateFormView'
 import LlMySubtaskTaskCard from './LlMySubtaskTaskCard'
@@ -588,6 +589,7 @@ export {
   WsFilterScopes,
   WsInfiniteScrollPagination,
   WsTextHighlight,
+  WsStatusBar,
 
   LlFileStoreStateFormView,
   LlFileFolderCard,

@@ -182,6 +182,7 @@ const My = ({ route }) => {
       },
     ]
     setMainMenu(_menu)
+    setRefreshing(false)
   }
 
   // Services
@@ -375,6 +376,7 @@ const My = ({ route }) => {
             ) : (
               <WsSkeleton></WsSkeleton>
             )}
+
           </ScrollView>
         </SafeAreaView>
     </>

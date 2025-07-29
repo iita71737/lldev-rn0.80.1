@@ -18,18 +18,9 @@ const WsPassageCollapse = props => {
   // Props
   const { passage, type = 'text', children } = props
 
-  const fadeAnim = React.useRef(new Animated.Value(1)).current
-
   // States
   const [isCollapsed, setIsCollapsed] = React.useState(true)
   const [shouldShowToggle, setShouldShowToggle] = React.useState(false)
-
-  // Enable LayoutAnimation on Android
-  useEffect(() => {
-    if (Platform.OS === 'android') {
-      UIManager.setLayoutAnimationEnabledExperimental?.(true)
-    }
-  }, [])
 
   const toggleCollapse = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
@@ -46,7 +37,6 @@ const WsPassageCollapse = props => {
             numberOfLines={isCollapsed ? 3 : undefined}
             style={{ lineHeight: 20 }}
             onTextLayout={(e) => {
-              // console.log(e,'e--');
               if (e.nativeEvent.lines.length >= 3) {
                 setShouldShowToggle(true)
               }
@@ -54,7 +44,6 @@ const WsPassageCollapse = props => {
           >
             {passage}
           </WsText>
-
           {shouldShowToggle && (
             <TouchableOpacity onPress={toggleCollapse}>
               <WsFlex justifyContent="center" style={{ marginTop: 16 }}>
@@ -67,33 +56,32 @@ const WsPassageCollapse = props => {
           )}
         </>
       )}
-      {type == 'array' && (
-        <>
-          {isCollapsed ? (
-            <WsCollapsible isCollapsed={!isCollapsed}>
-              <>{children.slice(0, 6)}</>
-            </WsCollapsible>
-          ) : (
-            <WsCollapsible isCollapsed={isCollapsed}>
-              {children}
-            </WsCollapsible>
-          )}
-          {children.length > 6 &&
-            children.length != 6 && (
-              <TouchableOpacity
-                onPress={() => {
-                  setIsCollapsed(!isCollapsed)
-                }}>
-                <WsFlex
-                  style={{
-                    marginTop: 16,
-                  }}>
-                  <WsText
-                    color={$color.primary}
-                    size={14}
-                    style={{
-                      marginRight: 8
-                    }}>
+
+      {type === 'array' && (() => {
+        const childrenArray = React.Children.toArray(children)
+        if (!childrenArray || childrenArray.length === 0) return null
+
+        const hasExtra = childrenArray.length > 6
+        const alwaysVisible = childrenArray.slice(0, 6)
+        const collapsiblePart = childrenArray.slice(6)
+
+        return (
+          <>
+            {/* 永遠顯示前 6 筆 */}
+            {alwaysVisible}
+
+            {/* 超過部分收合 */}
+            {hasExtra && (
+              <WsCollapsible isCollapsed={isCollapsed}>
+                {collapsiblePart}
+              </WsCollapsible>
+            )}
+
+            {/* 展開/收起按鈕 */}
+            {hasExtra && (
+              <TouchableOpacity onPress={toggleCollapse}>
+                <WsFlex style={{ marginTop: 16 }}>
+                  <WsText color={$color.primary} size={14} style={{ marginRight: 8 }}>
                     {isCollapsed ? t('展開') : t('收起')}
                   </WsText>
                   <WsIcon
@@ -103,8 +91,11 @@ const WsPassageCollapse = props => {
                 </WsFlex>
               </TouchableOpacity>
             )}
-        </>
-      )}
+          </>
+        )
+      })()}
+
+
     </>
   )
 }

@@ -17,7 +17,7 @@ import {
 } from '@/components'
 import S_Keychain from '@/__reactnative_stone/services/app/keychain'
 import axios from 'axios'
-// import { Tabs } from 'react-native-collapsible-tab-view'
+
 import {
   BottomSheetFlatList,
 } from '@gorhom/bottom-sheet';
