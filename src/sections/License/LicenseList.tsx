@@ -265,9 +265,9 @@ const LicenseList: React.FC<LicenseListProps> = (props) => {
       {tabItems && !loading && (
         <WsTabView
           index={tabIndex}
-          scrollEnabled={true}
           setIndex={settabIndex}
           items={tabItems}
+          isAutoWidth={true}
         />
       )}
 

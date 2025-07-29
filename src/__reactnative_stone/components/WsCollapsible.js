@@ -3,7 +3,7 @@ import Collapsible from 'react-native-collapsible'
 
 const WsCollapsible = props => {
   // Props
-  const { isCollapsed, children } = props
+  const { isCollapsed = false, children } = props
 
   // Render
   return (

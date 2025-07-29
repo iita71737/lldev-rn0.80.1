@@ -29,7 +29,8 @@ import {
   WsGlobalOfflineAlert,
   WsPopup,
   WsGradientButton,
-  WsFlex
+  WsFlex,
+  WsStatusBar
 } from '@/components'
 import moment from 'moment-timezone';
 import $color from '@/__reactnative_stone/global/color'
@@ -49,7 +50,6 @@ import SpInAppUpdates, {
 import BootSplash from "react-native-bootsplash";
 import VersionCheck from 'react-native-version-check';
 G_i18n.i18nInit()
-
 if (!__DEV__) {
   LogBox.ignoreAllLogs(true);
   Sentry.init({
@@ -206,98 +206,92 @@ function App(): JSX.Element {
 
   return (
     <>
-      <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-
-          <WsPopup
-            active={stopUsingAlertVisible}
-            onClose={() => {
-            }}>
-            <View
+      <WsPopup
+        active={stopUsingAlertVisible}
+        onClose={() => {
+        }}>
+        <View
+          style={{
+            width: width * 0.9,
+            height: 256,
+            backgroundColor: $color.white,
+            borderRadius: 10,
+            zIndex: 1000,
+          }}>
+          <WsText
+            size={24}
+            color={$color.black}
+            style={{
+              padding: 16
+            }}
+          >{t('版本訊息')}
+          </WsText>
+          <WsText
+            size={18}
+            color={$color.black}
+            style={{
+              paddingHorizontal: 16
+            }}
+          >{t('已有新版本，請更新最新版本後使用。')}
+          </WsText>
+          <WsFlex
+            style={{
+              position: 'absolute',
+              right: 16,
+              bottom: 16,
+            }}
+          >
+            <WsGradientButton
               style={{
-                width: width * 0.9,
-                height: 256,
-                backgroundColor: $color.white,
-                borderRadius: 10,
-                zIndex: 1000,
-              }}>
-              <WsText
-                size={24}
-                color={$color.black}
-                style={{
-                  padding: 16
-                }}
-              >{t('版本訊息')}
-              </WsText>
-              <WsText
-                size={18}
-                color={$color.black}
-                style={{
-                  paddingHorizontal: 16
-                }}
-              >{t('已有新版本，請更新最新版本後使用。')}
-              </WsText>
-              <WsFlex
-                style={{
-                  position: 'absolute',
-                  right: 16,
-                  bottom: 16,
-                }}
-              >
-                <WsGradientButton
-                  style={{
-                    width: 108,
-                  }}
-                  onPress={async () => {
-                    await checkForUpdate()
-                  }}>
-                  {t('檢查更新')}
-                </WsGradientButton>
-              </WsFlex>
-            </View>
-          </WsPopup>
-
-          {isLoading && (
-            <View
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                alignItems: 'center',
-                padding: 10,
-                position: 'absolute',
-                width: '100%',
-                height: '100%',
-                top: 0,
-                left: 0,
-                zIndex: 100,
-                backgroundColor: $color.black
+                width: 108,
               }}
-            >
-              <WsLoading
-                style={{
-                  zIndex: 2
-                }}
-              />
-              <WsDes
-                style={{
-                  marginTop: 100
-                }}
-              >{des} {downloadProgress}%</WsDes>
-            </View>
-          )}
+              onPress={async () => {
+                await checkForUpdate()
+              }}>
+              {t('檢查更新')}
+            </WsGradientButton>
+          </WsFlex>
+        </View>
+      </WsPopup>
 
-          {isLoading === false && (
-            <Provider store={store}>
-              {Config.ENV === 'development' && (
-                <WsGlobalOfflineAlert></WsGlobalOfflineAlert>
-              )}
-              <WsSnackBar></WsSnackBar>
-              <RoutesMain />
-            </Provider>
-          )}
+      {isLoading && (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: 'center',
+            padding: 10,
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            top: 0,
+            left: 0,
+            zIndex: 100,
+            backgroundColor: $color.black
+          }}
+        >
+          <WsLoading
+            style={{
+              zIndex: 2
+            }}
+          />
+          <WsDes
+            style={{
+              marginTop: 100
+            }}
+          >{des} {downloadProgress}%</WsDes>
+        </View>
+      )}
 
-        </SafeAreaView>
-      </SafeAreaProvider>
+      {isLoading === false && (
+        <Provider store={store}>
+          {Config.ENV === 'development' && (
+            <WsGlobalOfflineAlert></WsGlobalOfflineAlert>
+          )}
+          <WsSnackBar></WsSnackBar>
+          <RoutesMain />
+        </Provider>
+      )}
     </>
   )
 }

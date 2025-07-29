@@ -22,7 +22,6 @@ import $color from '@/__reactnative_stone/global/color'
 import S_url from '__reactnative_stone/services/app/url'
 import { useTranslation } from 'react-i18next'
 import Video from 'react-native-video';
-import { WebView } from 'react-native-webview'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 const WsModalPreview = props => {

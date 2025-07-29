@@ -16,7 +16,6 @@ import {
 import LlToggleTabBar001 from '@/components/LlToggleTabBar001'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
-import { WebView } from 'react-native-webview'
 import { useTranslation } from 'react-i18next'
 import S_GuidelineArticleVersion from '@/services/api/v1/guideline_article_version'
 import S_GuidelineArticleVersionAdmin from '@/services/api/v1/guideline_article_version_admin'

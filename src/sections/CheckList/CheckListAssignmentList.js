@@ -160,8 +160,6 @@ const CheckListAssignmentList = props => {
     <>
       <WsTabView
         isAutoWidth={true}
-        scrollEnabled={true}
-        fixedTabWidth={92}
         items={tabItems}
         index={tabIndex}
         setIndex={settabIndex}

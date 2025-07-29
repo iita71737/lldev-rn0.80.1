@@ -58,6 +58,7 @@ const WsTabView = props => {
       <View
         style={{
           marginTop: 60,
+          // borderWidth:1,
           flexDirection: 'row',
           justifyContent: 'space-between',
         }}>
@@ -163,11 +164,16 @@ const WsTabView = props => {
   const [isMounted, setIsMounted] = React.useState(false)
   const [C_index, C_setIndex] = React.useState(index)
 
+  const $_onLayout = $event => {
+    // console.log($event, '$event');
+  }
 
   // Variable
   const renderScene = useCallback(({ route }) => {
     const itemIndex = items.findIndex(e => e.value == route.key);
-    if (itemIndex === -1) return null;
+    if (itemIndex === -1 || itemIndex !== index) {
+      return null; // 注意返回 null 而不是 undefined，确保返回值的一致性
+    }
     const item = items[itemIndex];
     const _view = itemsViews ? itemsViews[itemIndex].view : item.view;
 
@@ -226,10 +232,10 @@ const WsTabView = props => {
   // Render
   return (
     <View
+      onLayout={$_onLayout}
       style={{
         flex: 1,
-      }}
-    >
+      }}>
       {isMounted && (
         <TabView
           animationEnabled={animationEnabled}
@@ -244,7 +250,7 @@ const WsTabView = props => {
             tabStyle
           ]
           }
-          navigationState={{ index, routes }}
+          navigationState={{ index, routes, items }}
           onIndexChange={$event => {
             if ($event == 9223372036854776000) {
               console.log($event, '$event');
@@ -266,7 +272,7 @@ const WsTabView = props => {
                   <TouchableOpacity
                     style={{
                       position: 'absolute',
-                      left: -8,
+                      left: -4,
                       zIndex: !isAtStart ? 999 : -999,
                     }}
                     onPress={() =>
@@ -275,20 +281,15 @@ const WsTabView = props => {
                   >
                     <View
                       style={{
-                        backgroundColor: $color.white,
-                        paddingVertical: PixelRatio.getFontScale() !== 1 ? 24 : 12,
-
-                        // height: 48,               // 固定高度
-                        // justifyContent: 'center', // 垂直置中
-                        // alignItems: 'center',     // 水平置中
-                        // backgroundColor: 'transparent',
-                        // borderRadius: 18,         // 圓角
-                        // marginHorizontal: 4
+                        paddingVertical: fixedTabWidth ? 12 : PixelRatio.getFontScale() !== 1 ? 24 : 12,
                       }}
                     >
                       <WsIcon
                         name={"md-chevron-left"}
                         size={24}
+                        style={{
+                          backgroundColor: $color.white,
+                        }}
                       >
                       </WsIcon>
                     </View>
@@ -296,9 +297,6 @@ const WsTabView = props => {
                 )}
                 {TabBarRender ? (
                   <ScrollView
-                    contentContainerStyle={{
-                      // paddingHorizontal: pointerVisible ? 16 : 0 // 根據左右箭頭寬度來設定
-                    }}
                     testID="TabBarScrollView"
                     horizontal
                     ref={scrollViewRef}
@@ -322,9 +320,8 @@ const WsTabView = props => {
                       inactiveColor={inactiveColor}
                       activeColor={activeColor}
                       pressColor={$color.primary11l}
-                      scrollEnabled={scrollEnabled}
                       tabStyle={[
-                        isAutoWidth && fixedTabWidth
+                        fixedTabWidth
                           ? {
                             width: fixedTabWidth
                           }
@@ -334,15 +331,7 @@ const WsTabView = props => {
                             }
                             : {
                               width: 'auto',
-                            },
-                        scrollEnabled == false
-                          ? {
-                            // width: width / items.length,
-                            width: 'auto',
-                          }
-                          : {
-                            width: 'auto',
-                          },
+                            }
                       ]}
                       indicatorStyle={{
                         backgroundColor: $color.primary5l
@@ -378,12 +367,8 @@ const WsTabView = props => {
                               <WsFlex
                                 justifyContent={'center'}
                                 style={{
-                                  // 你之所以在不同的 fontScale 下会看起来“偏上”，
-                                  // 是因为你把文字的 lineHeight 设成了一个跟字体大小（12pt）有关的值，而这个值会根据系统的 fontScale 拉伸；但是你的容器高度是固定的 24px，两者就不对齐了。
-                                  // 最保险、跨 Android/iOS 都能垂直居中的做法是——不要再给文字本身定高度或 lineHeight，
-                                  // 而是把文字放在一个刚好 24×24 的 View 容器里，容器做 justifyContent: 'center', alignItems: 'center'。文字就会被真正地「包裹」并且居中。
                                   marginLeft: 4,
-                                  borderRadius: 12,        // 半径 = 宽高/2
+                                  borderRadius: 12,
                                   backgroundColor: $color.primary,
                                   width: 24,
                                   height: 24,
@@ -413,29 +398,27 @@ const WsTabView = props => {
                 {pointerVisible && (
                   <TouchableOpacity
                     testID={'right_pointer'}
-                    style={{
-                      position: 'absolute',
-                      right: -8,
-                      zIndex: !isAtEnd ? 999 : -999,
-                    }}
+                    style={[
+                      {
+                        position: 'absolute',
+                        right: 0,
+                        zIndex: !isAtEnd ? 999 : -999,
+                      },
+                    ]}
                     onPress={() =>
                       scrollViewRef.current.scrollToEnd({ animated: true })
                     }>
                     <View
                       style={{
-                        backgroundColor: $color.white,
-                        paddingVertical: PixelRatio.getFontScale() !== 1 ? 24 : 12,
-                        // height: 48,               // 固定高度
-                        // justifyContent: 'center', // 垂直置中
-                        // alignItems: 'center',     // 水平置中
-                        // backgroundColor: 'transparent',
-                        // borderRadius: 18,         // 圓角
-                        // marginHorizontal: 4
+                        paddingVertical: fixedTabWidth ? 12 : PixelRatio.getFontScale() !== 1 ? 24 : 12,
                       }}
                     >
                       <WsIcon
                         name={"md-chevron-right"}
                         size={24}
+                        style={{
+                          backgroundColor: $color.white,
+                        }}
                       >
                       </WsIcon>
                     </View>

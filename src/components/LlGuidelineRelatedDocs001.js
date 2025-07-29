@@ -85,7 +85,6 @@ import { setCurrentAct } from '@/store/data'
 import S_FactoryTag from '@/services/api/v1/factory_tag'
 import AsyncStorage from '@react-native-community/async-storage'
 import S_ActVersion from '@/services/api/v1/act_version'
-import { WebView } from "react-native-webview";
 import S_Guideline from '@/services/api/v1/guideline'
 import S_GuidelineVersion from '@/services/api/v1/guideline_version'
 import S_GuidelineArticleVersion from '@/services/api/v1/guideline_article_version'
