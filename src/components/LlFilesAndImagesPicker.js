@@ -312,28 +312,27 @@ const LlFilesAndImagesPicker = props => {
 
   return (
     <>
-      {visible && (
-        <LlFilesAndImagesPickerModal
-          modelName={modelName}
-          oneFile={oneFile}
-          limitFileExtension={limitFileExtension}
-          value={formatFileItems(value)}
-          loadingProgress={loadingProgress}
-          isVisible={visible}
-          onClose={() => {
-            setVisible(false)
-          }}
-          onUploadFromFileStoreComplete={(files, relatedVersion) => {
-            onUploadFromFileStoreComplete(files, relatedVersion)
-          }}
-          onUploadFromLocalComplete={(url) => {
-            onUploadFromLocalComplete(url)
-          }}
-          onUploadFromOtherFileStoreComplete={(files, relatedVersion) => {
-            onUploadFromOtherFileStoreComplete(files, relatedVersion)
-          }}
-        ></LlFilesAndImagesPickerModal>
-      )}
+
+      <LlFilesAndImagesPickerModal
+        modelName={modelName}
+        oneFile={oneFile}
+        limitFileExtension={limitFileExtension}
+        value={formatFileItems(value)}
+        loadingProgress={loadingProgress}
+        isVisible={visible}
+        onClose={() => {
+          setVisible(false)
+        }}
+        onUploadFromFileStoreComplete={(files, relatedVersion) => {
+          onUploadFromFileStoreComplete(files, relatedVersion)
+        }}
+        onUploadFromLocalComplete={(url) => {
+          onUploadFromLocalComplete(url)
+        }}
+        onUploadFromOtherFileStoreComplete={(files, relatedVersion) => {
+          onUploadFromOtherFileStoreComplete(files, relatedVersion)
+        }}
+      ></LlFilesAndImagesPickerModal>
 
       {value != '' && value != null && (
         <WsGrid

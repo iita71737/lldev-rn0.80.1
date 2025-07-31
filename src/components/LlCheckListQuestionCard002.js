@@ -354,48 +354,50 @@ const LlCheckListQuestionCard002 = props => {
           </WsFlex>
 
 
-          {answer?.latLng && (
-            <View
-              style={{
-                marginTop: 8
-              }}
-            >
-              <WsInfo
+          {answer?.latLng &&
+            answer?.latLng?.latitude &&
+            answer?.latLng?.longitude && (
+              <View
                 style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap'
+                  marginTop: 8
                 }}
-                type="link"
-                label={t('答題位置')}
-                value={`${answer?.latLng?.latitude}, ${answer?.latLng?.longitude}`}
-                onPress={() => {
-                  // GOOGLE MAP
-                  const url = `https://www.google.com/maps/search/?api=1&query=${answer?.latLng?.latitude},${answer?.latLng?.longitude}`;
-                  Linking.openURL(url);
-
-                  if (currentFactory?.map_url) {
-                    if (currentFactory?.map_url === 'google') {
-                      // GOOGLE MAP
-                      const url = `https://www.google.com/maps/search/?api=1&query=${answer?.lat},${answer?.lng}`;
-                      Linking.openURL(url);
-                    } else if (currentFactory?.map_url === 'google') {
-                      // AMAP
-                      const url1 = `https://uri.amap.com/marker?position=${answer?.latLng?.longitude},${answer?.latLng?.latitude}`;
-                      Linking.openURL(url1);
-                    } else if (currentFactory?.map_url === 'google') {
-                      // NAVER MAP
-                      const url2 = `https://map.naver.com/v5/?c=126.982814,37.563843,17,0,0,0,d`;
-                      Linking.openURL(url2);
-                    }
-                  } else {
+              >
+                <WsInfo
+                  style={{
+                    flexDirection: 'row',
+                    flexWrap: 'wrap'
+                  }}
+                  type="link"
+                  label={t('答題位置')}
+                  value={`${answer?.latLng?.latitude}, ${answer?.latLng?.longitude}`}
+                  onPress={() => {
                     // GOOGLE MAP
                     const url = `https://www.google.com/maps/search/?api=1&query=${answer?.latLng?.latitude},${answer?.latLng?.longitude}`;
                     Linking.openURL(url);
-                  }
-                }}
-              />
-            </View>
-          )}
+
+                    if (currentFactory?.map_url) {
+                      if (currentFactory?.map_url === 'google') {
+                        // GOOGLE MAP
+                        const url = `https://www.google.com/maps/search/?api=1&query=${answer?.latLng?.latitude},${answer?.latLng?.longitude}`;
+                        Linking.openURL(url);
+                      } else if (currentFactory?.map_url === 'gaode') {
+                        // AMAP
+                        const url1 = `https://uri.amap.com/marker?position=${answer?.latLng?.longitude},${answer?.latLng?.latitude}`;
+                        Linking.openURL(url1);
+                      } else if (currentFactory?.map_url === 'naver') {
+                        // NAVER MAP
+                        const url2 = `https://map.naver.com/v5/?c=126.982814,37.563843,17,0,0,0,d`;
+                        Linking.openURL(url2);
+                      }
+                    } else {
+                      // GOOGLE MAP
+                      const url = `https://www.google.com/maps/search/?api=1&query=${answer?.latLng?.latitude},${answer?.latLng?.longitude}`;
+                      Linking.openURL(url);
+                    }
+                  }}
+                />
+              </View>
+            )}
 
 
           <WsFlex

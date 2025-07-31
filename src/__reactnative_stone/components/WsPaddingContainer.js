@@ -1,5 +1,5 @@
 import React from 'react'
-import { View } from 'react-native'
+import { Platform, View } from 'react-native'
 import $color from '@/__reactnative_stone/global/color'
 
 const WsPaddingContainer = props => {
@@ -23,7 +23,7 @@ const WsPaddingContainer = props => {
           alignItems: alignItems,
           padding: padding,
           borderColor: borderColor,
-          backgroundColor: backgroundColor
+          backgroundColor: backgroundColor,
         },
         style
       ]}>

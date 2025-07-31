@@ -339,7 +339,7 @@ const RoutesEvent = ({ navigation }) => {
   // 新增事件
   const submitEventCreate = async (data, navigation) => {
     const _data = await S_Event.getFormattedData(data, currentUser)
-    console.log(_data, '_data--');
+    // console.log(_data, '_data--');
     try {
       const res = await S_Event.create({
         data: _data

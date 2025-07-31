@@ -92,6 +92,7 @@ const WsFilterSystemSubclass = props => {
             paddingBottom:16,
             borderBottomWidth: 0.5,
             borderBottomColor: $color.gray2l,
+            paddingTop:16,
           }}>
           <WsText
             color={$color.black}

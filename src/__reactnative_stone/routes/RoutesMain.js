@@ -88,6 +88,7 @@ import AndroidOpenSettings from 'react-native-android-open-settings'
 import { getLocation, getGeocode } from '@/__reactnative_stone/global/location'
 import { getDistance } from 'geolib';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
+import S_factoryHelper from '@/helpers/factory'
 
 const RoutesMain = ({ navigation }) => {
   const { t, i18n } = useTranslation()
@@ -204,9 +205,17 @@ const RoutesMain = ({ navigation }) => {
         const _factory = initOrganization.child_factories[0]
         store.dispatch(setCurrentFactory(_factory))
       }
-    } else if (currentUser && currentUser?.current_factory && currentUser?.current_factory?.id) {
-      $_checkoutFactory(currentUser.current_factory)
-    } else {
+    }
+    else if (currentUser && currentUser?.current_factory && currentUser?.current_factory?.id) {
+      // 確認使用者上次登入的單位現在是否有權限-250731-issue
+      const hasMatch2 = _allScopesUnit.some(unit => unit.factory?.id === currentUser?.current_factory?.id) //250731-issue
+      if (hasMatch2) {
+        $_checkoutFactory(currentUser?.current_factory)
+      } else {
+        $_checkoutFactory(_allScopesUnit[0]?.factory)
+      }
+    }
+    else {
       const hasCommonFactory = currentUser.factories.find(factory => s_user_factory_scopes.some(scope => factory.id == scope.factory.id && scope.scopes.includes('app-apply')));
       if (hasCommonFactory) {
         store.dispatch(setCurrentFactory(hasCommonFactory))
@@ -243,24 +252,37 @@ const RoutesMain = ({ navigation }) => {
       permission = PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
     }
     const result = await check(permission);
-    console.log('權限檢查結果:', result);
-    if (result === RESULTS.GRANTED) {
-      return true;
-    }
+    if (result === RESULTS.GRANTED) return true;
+
     if (result === RESULTS.DENIED || result === RESULTS.LIMITED) {
       const requestResult = await request(permission);
-      console.log('權限請求結果:', requestResult);
       return requestResult === RESULTS.GRANTED;
     }
+
     if (result === RESULTS.BLOCKED) {
-      if (Platform.OS === 'android') {
-        AndroidOpenSettings.locationSourceSettings(); // ✅ 跳轉至定位(GPS)頁面
+      if (!hasPromptedOpenSettings) {
+        setHasPromptedOpenSettings(true)
+        Alert.alert(
+          t('需要定位權限'),
+          t('請選擇「位置」\n> 選擇「使用App期間」。'),
+          [
+            { text: t('取消'), style: 'cancel' },
+            {
+              text: t('前往設定'),
+              onPress: () => {
+                Platform.OS === 'android'
+                  ? AndroidOpenSettings.locationSourceSettings()
+                  : openSettings()
+              }
+            }
+          ]
+        );
       }
       return false;
     }
-    // unavailable 或其他情況
     return false;
-  };
+  }
+
   const $_getLocation = async () => {
     const granted = await $_requestLocationPermission();
     if (!granted) {

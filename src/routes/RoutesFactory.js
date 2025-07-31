@@ -229,7 +229,6 @@ const RoutesFactory = ({ navigation, route }) => {
             'RoutesChange',
             'RoutesContractors',
             'Menu',
-            // 'RoutesAlert'
           ].includes(route.name)
             ? () => {
               return null;

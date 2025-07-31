@@ -35,6 +35,7 @@ import AsyncStorage from '@react-native-community/async-storage'
 import DeviceInfo from 'react-native-device-info';
 import { getLocation, getGeocode } from '@/__reactnative_stone/global/location'
 import axios from 'axios'
+// import MarkdownDisplay from 'react-native-markdown-display'
 import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
 import * as Sentry from "@sentry/react-native";
 import { getDistance } from 'geolib';
@@ -264,7 +265,7 @@ const ViewDeviceInfo = ({ navigation }) => {
             <WsInfo
               style={{}}
               label={t('目前位置')}
-              value={`lat: ${latLng?.latitude} , \nlng: ${latLng?.longitude} , \n距離單位：約 ${unitDistant} 公尺`}
+              value={`lat: ${latLng?.latitude} , \nlng: ${latLng?.longitude} , ${unitDistant ? `\n距離單位：約 ${unitDistant} 公尺` : ''}`}
             />
           </WsPaddingContainer>
         )}

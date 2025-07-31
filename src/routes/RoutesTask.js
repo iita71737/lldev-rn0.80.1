@@ -880,7 +880,11 @@ const RoutesTask = ({ navigation }) => {
         modelId: modelId,
         data: _data
       })
-      Alert.alert(t('送出成功'))
+      if (_data.status === '2') {
+        Alert.alert(t('任務已派發'))
+      } else {
+        Alert.alert(t('送出成功'))
+      }
       navigation.reset({
         index: 1,
         routes: [
@@ -933,7 +937,10 @@ const RoutesTask = ({ navigation }) => {
           ],
           key: null
         })
-        Alert.alert(t('草稿已暫存，您可以至「看板頁面」的「我的任務」>「草稿」中查看或編輯。'))
+        Alert.alert(
+          t('草稿已暫存'),
+          t('您可以至「看板頁面」的「我的任務」\n>「草稿」中查看或編輯。')
+        )
       } else {
         const res = await S_Task.storeDraft({
           data: _data
@@ -947,7 +954,11 @@ const RoutesTask = ({ navigation }) => {
           ],
           key: null
         })
-        Alert.alert(t('草稿已暫存，您可以至「看板頁面」的「我的任務」>「草稿」中查看或編輯。'))
+        Alert.alert(
+          t('草稿已暫存'),
+          t('您可以至「看板頁面」的「我的任務」\n>「草稿」中查看或編輯。')
+        )
+
       }
     } catch (e) {
       console.error(e.message, 'TaskCreate error')

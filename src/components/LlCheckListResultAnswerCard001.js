@@ -361,11 +361,11 @@ const LlCheckListResultAnswerCard001 = props => {
                         // GOOGLE MAP
                         const url = `https://www.google.com/maps/search/?api=1&query=${answer?.lat},${answer?.lng}`;
                         Linking.openURL(url);
-                      } else if (currentFactory?.map_url === 'google') {
+                      } else if (currentFactory?.map_url === 'gaode') {
                         // AMAP
-                        const url1 = `https://uri.amap.com/marker?position=${answer?.latLng?.longitude},${answer?.latLng?.latitude}`;
+                        const url1 = `https://uri.amap.com/marker?position=${answer?.lng},${answer?.lat}`;
                         Linking.openURL(url1);
-                      } else if (currentFactory?.map_url === 'google') {
+                      } else if (currentFactory?.map_url === 'navar') {
                         // NAVER MAP
                         const url2 = `https://map.naver.com/v5/?c=126.982814,37.563843,17,0,0,0,d`;
                         Linking.openURL(url2);

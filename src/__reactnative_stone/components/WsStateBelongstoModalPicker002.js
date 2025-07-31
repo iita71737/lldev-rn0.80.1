@@ -337,6 +337,8 @@ const WsStateBelongstoModalPicker002 = props => {
           : (
             <>
               <WsInfiniteScroll
+                style={{
+                }}
                 hasMeta={hasMeta}
                 getAll={getAll}
                 service={Services[modelName]}
@@ -427,6 +429,7 @@ const WsStateBelongstoModalPicker002 = props => {
                 style={{
                   paddingHorizontal: 16,
                   borderTopWidth: 0.3,
+                  paddingBottom:16,
                 }}
               >
                 <TouchableOpacity

@@ -24,7 +24,7 @@ const WsPage = props => {
   return (
     <View
       style={{
-        flex: 1
+        flex: 1,
       }}>
       <SafeAreaView
         style={{

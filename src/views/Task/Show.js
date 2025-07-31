@@ -253,7 +253,9 @@ const TaskShow = ({ navigation, route }) => {
         $_setDone(subTaskId)
         $_fetchTask()
         setStateModalForReplySubtask(false)
-        setStateModalSubtask(false)
+        setTimeout(() => {
+          setStateModalSubtask(false);
+        }, 300);
       })
     }
   }
@@ -883,7 +885,6 @@ const TaskShow = ({ navigation, route }) => {
                                   return (
                                     <>
                                       <View
-                                        key={index}
                                         style={{
                                           marginTop: 8
                                         }}
@@ -936,11 +937,9 @@ const TaskShow = ({ navigation, route }) => {
                                                     }}
                                                   >
                                                     <WsInfo
-                                                      // label={t('關聯連結')}
                                                       type="link"
-                                                      value={`${subItem.name} (${moment(subItem.created_at).format('YYYY-MM-DD HH:mm:ss')}) `}
+                                                      value={`[${t('結果')}] ${subItem.name} (${moment(subItem.created_at).format('YYYY-MM-DD HH:mm:ss')}) `}
                                                       style={{
-                                                        // maxWidth: width * 0.8,
                                                         flexWrap: 'wrap',
                                                       }}
                                                       onPress={() => {
@@ -982,9 +981,7 @@ const TaskShow = ({ navigation, route }) => {
                       name="ws-filled-check-circle"
                       size={18}
                       color={$color.gray}
-                      style={{
-                        marginRight: 4,
-                      }}
+                      style={{ marginRight: 4 }}
                     />
                     {task.sub_tasks && (
                       <WsText size={12} color={$color.gray}>
@@ -1033,6 +1030,8 @@ const TaskShow = ({ navigation, route }) => {
                             if (currentUser &&
                               ((currentUser.id === task.taker.id) || (currentUser.id === subTask.taker.id))
                             ) {
+                              console.log('bbbb');
+                              // console.log(currentSubtask,'currentSubtask');
                               $_subTaskCardOnChange(subTask)
                             }
                             else if (task.done_at && task.checked_at) {
@@ -1316,6 +1315,7 @@ const TaskShow = ({ navigation, route }) => {
                               {t('相關資料')}
                             </WsText>
                           </View>
+
                           {currentSubtask.links &&
                             currentSubtask.links.length > 0 && (
                               <>
@@ -1327,7 +1327,6 @@ const TaskShow = ({ navigation, route }) => {
                                       return (
                                         <>
                                           <View
-                                            key={index}
                                             style={{
                                               marginTop: 8
                                             }}
@@ -1380,11 +1379,9 @@ const TaskShow = ({ navigation, route }) => {
                                                         }}
                                                       >
                                                         <WsInfo
-                                                          // label={t('關聯連結')}
                                                           type="link"
-                                                          value={`${subItem.name} (${moment(subItem.created_at).format('YYYY-MM-DD HH:mm:ss')}) `}
+                                                          value={`[${t('結果')}] ${subItem.name} (${moment(subItem.created_at).format('YYYY-MM-DD HH:mm:ss')}) `}
                                                           style={{
-                                                            // maxWidth: width * 0.8,
                                                             flexWrap: 'wrap',
                                                           }}
                                                           onPress={() => {
@@ -1686,6 +1683,21 @@ const TaskShow = ({ navigation, route }) => {
               </View>
             )} */}
         </View>
+
+        {task &&
+          currentUser &&
+          task.taker &&
+          (task.taker.id === currentUser.id) &&
+          !task.checked_at &&
+          $_setProgress(task) == '100' &&
+          currentUserScope.includes('task-check-taker') && (
+            <View
+              style={{
+                height: 50
+              }}
+            >
+            </View>
+          )}
 
         <WsBottomSheet
           isActive={isBottomSheetActive}

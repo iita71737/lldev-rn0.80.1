@@ -85,7 +85,7 @@ android {
         applicationId "com.esgoaldev"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1 //版本碼(版本大號) 打包至google play console前要手動更新
+        versionCode 2 //版本碼(版本大號) 打包至google play console前要手動更新
         versionName "5.0.1"
     }
     signingConfigs {

@@ -442,7 +442,7 @@ const LlStateRelatedTags = props => {
         )}
         <WsInfiniteScroll
           style={{
-            height: height * 0.55
+            height: Platform.OS === 'android' ? height - (height * 0.44) : height - (height * 0.425),
           }}
           hasMeta={hasMeta}
           service={Services[modelName]}

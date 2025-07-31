@@ -52,7 +52,7 @@ const initialState = {
   currentSelectedGuidelineId: null,
   currentLocales: null,
   currentLatLng: null,
-  version: 'v0.80.1.1.3'
+  version: 'v0.80.1.1.4'
 }
 
 //action constants

@@ -254,7 +254,8 @@ export default {
         )
         : [],
       factory_tags: _postData?.factory_tags?.map(_ => _.id) ?? [],
-      links: _postData?.related_module ? this.getFormattedLinksObject(_postData.related_module) : undefined
+      links: _postData?.related_module ? this.getFormattedLinksObject(_postData.related_module) : undefined,
+      status: _postData?.status,
     }
     return _data
   },

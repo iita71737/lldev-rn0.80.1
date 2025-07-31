@@ -166,7 +166,6 @@ const RoutesApp = ({ navigation, route }) => {
               'RoutesCheckList',
               'RoutesAudit',
               'RoutesContractorEnter',
-              // 'RoutesTask',
               'RoutesTraining',
               'RoutesLicense',
               'RoutesEvent',

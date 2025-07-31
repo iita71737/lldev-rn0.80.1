@@ -414,7 +414,7 @@ const LlRelatedGuidelineModalPicker = props => {
 
         <View
           style={{
-            height: height * 0.75, // affect inside filter
+            height: height * 0.775, // affect inside filter
             // borderWidth: 3,
           }}
         >
@@ -460,7 +460,6 @@ const LlRelatedGuidelineModalPicker = props => {
           >
           </WsPageIndex>
         </View>
-
       </WsModal>
 
       <LlRelatedGuidelineModalPickerStep2

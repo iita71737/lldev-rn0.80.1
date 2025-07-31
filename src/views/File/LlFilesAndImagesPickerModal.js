@@ -96,7 +96,6 @@ const LlFilesAndImagesPickerModal = props => {
   }
 
   React.useEffect(() => {
-    console.log('useEffect');
     $_setTabItems()
   }, [value])
 

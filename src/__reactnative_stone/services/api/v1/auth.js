@@ -8,7 +8,7 @@ import base from '@/__reactnative_stone/services/wasaapi/v1/__base'
 import Config from "react-native-config";
 axios.defaults.baseURL = Config.API_URL
 
-console.log(Config.API_URL,'Config.API_URL---');
+console.log(Config.API_URL, 'Config.API_URL---');
 
 export default {
   login({ email, password, key, captcha }) {
@@ -75,6 +75,7 @@ export default {
         config.auth.user && config.auth.user.url
           ? config.auth.user.url
           : '/auth/v2/user_app'
+          // : '/auth/v2/user'
       const userKey =
         config.auth.user && config.auth.user.userKey
           ? config.auth.user.userKey
@@ -102,7 +103,7 @@ export default {
   logout() {
     return new Promise((resolve, reject) => {
       const route = '/auth/signout'
-      console.log(`${axios.defaults.baseURL}${route}`,'`${axios.defaults.baseURL}${route}`');
+      console.log(`${axios.defaults.baseURL}${route}`, '`${axios.defaults.baseURL}${route}`');
       axios
         .post(`${axios.defaults.baseURL}${route}`)
         .then(res => {
