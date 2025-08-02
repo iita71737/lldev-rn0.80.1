@@ -120,7 +120,7 @@ const WsModalDownloadProcess = props => {
         if (typeof source === 'string') {
           _source = source
         } else if (typeof source === 'object') {
-          _source = source.file?.source_url
+          _source = source.file_version?.source_url ? source.file_version?.source_url : source.file?.source_url
         }
         try {
           const ext = _source.split('.').pop()?.split('?')[0]; // 安全地取得副檔名
@@ -129,19 +129,23 @@ const WsModalDownloadProcess = props => {
             appendExt: ext,
           }).fetch('GET', _source);
           const localPath = res.path();
-          console.log(localPath, 'localPath--AAA');
+          console.log(localPath, 'localPath--RNBlobUtil');
           // 保存至相册
           CameraRoll.save(localPath, { type: "photo", album: "ESGoal-Dev" })
             .then(uri => {
               console.log(uri, 'CameraRoll.save uri');
+
+              setSavedVisible(true)
+              setTimeout(() => {
+                onComplete();
+                setSavedVisible(false);
+              }, 1000);
             })
-          setTimeout(() => {
-            setSavedVisible(true)
-          }, 100);
-          setTimeout(() => {
-            onComplete();
-            setSavedVisible(false);
-          }, 1000);
+          // setSavedVisible(true)
+          // setTimeout(() => {
+          //   onComplete();
+          //   setSavedVisible(false);
+          // }, 1000);
         } catch (error) {
           console.error('儲存失敗:', error);
           setTimeout(() => {
@@ -242,7 +246,6 @@ const WsModalDownloadProcess = props => {
 
       // DOWNLOAD TO TEMP FOLDER
       const tempVideoPath = `${albumDirectory}/${fullFileName}`;
-
       const downloadResult = await RNFS.downloadFile({
         fromUrl: url,
         toFile: tempVideoPath,
@@ -254,13 +257,7 @@ const WsModalDownloadProcess = props => {
             CameraRoll.save(`file://${tempVideoPath}`, { type: 'video' })
               .then(uri => {
                 console.log(uri, 'CameraRoll.save-uri-video');
-                // Alert.alert(t('下載成功'))
               })
-            setSavedVisible(true)
-            setTimeout(() => {
-              onComplete()
-              setSavedVisible(false)
-            }, 500)
             // DELETE TEMP RNFS
             const fileExists = await RNFS.exists(tempVideoPath);
             if (fileExists) {
@@ -268,24 +265,22 @@ const WsModalDownloadProcess = props => {
             } else {
               console.log(`File ${tempVideoPath} does not exist.`);
             }
+          } catch (error) {
+            console.log(error.message, 'error.messageQAQ');
+          } finally {
             setSavedVisible(true)
             setTimeout(() => {
               onComplete()
               setSavedVisible(false)
             }, 500)
-          } catch (error) {
-            console.log(error.message, 'error.messageQAQ');
-          } finally {
-            setTimeout(() => {
-              onComplete()
-              setSavedVisible(false)
-            }, 500)
+            if (Platform.OS === 'ios') {
+              Alert.alert(t('已儲存'))
+            }
           }
         }).catch((error) => {
           console.log('Download error:', error.message);
         });
     } catch (error) {
-      console.log('22222');
       Alert.alert('影像儲存失敗', error.message);
       setTimeout(() => {
         onComplete()

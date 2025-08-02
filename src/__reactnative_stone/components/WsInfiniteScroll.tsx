@@ -76,6 +76,7 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
   } = props
 
   const flatListRef = React.useRef(null);
+  const isFetchedRef = useRef<boolean>(false) // 標記是否成功抓完資料
 
   // Ref Methods
   React.useImperativeHandle(ref, () => ({
@@ -201,6 +202,7 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
         }
       })
       setModels([...models, ..._models])
+      isFetchedRef.current = true // 資料抓完設為 true
     } catch (error) {
       console.error(error);
       setHasError(true)
@@ -398,11 +400,16 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
     useCallback(() => {
       const controller = new AbortController();
       controllerRef.current = controller;
+      isFetchedRef.current = false
       $_fetchModels() // 250725-testFetch-when-goBack
 
       return () => {
-        controller.abort(); // 取消API请求
-        console.log('aborted');
+        if (!isFetchedRef.current) {
+          controller.abort()
+          console.log('Aborted')
+        } else {
+          console.log('No need to abort')
+        }
       };
     }, [])
   );
@@ -483,8 +490,6 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
         }}
         onRefresh={$_onRefresh}
         refreshing={isRefreshing}
-        // ListHeaderComponent 需要的是一個 React Component，不是 JSX。
-        // 如果你寫 <ListHeaderComponent={ <View>...</View> } /> 就會報錯，因為你傳的是一個 element，而不是 component。
         ListHeaderComponent={memoizedHeader}
         stickyHeaderIndices={stickyHeaderIndices}
         onEndReached={$_onEndReached}
@@ -506,12 +511,10 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
                 <View
                   style={{
                     padding: 12,
-                    // paddingBottom: 50,
                     paddingBottom: listBottomPaddingVisible ? 100 : undefined,
                     alignItems: "center",
                   }}
                 >
-                  {/* <WsText testID={'沒有更多了'} size={12}>沒有更多了</WsText> */}
                 </View>
               )}
             {

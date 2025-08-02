@@ -2908,7 +2908,7 @@ PODS:
     - Yoga
   - RNCAsyncStorage (1.12.1):
     - React-Core
-  - RNCCheckbox (0.5.16):
+  - RNCCheckbox (0.5.20):
     - BEMCheckBox (~> 1.4)
     - React-Core
   - RNCMaskedView (0.3.2):
@@ -3933,7 +3933,7 @@ SPEC CHECKSUMS:
   ReactCommon: 96684b90b235d6ae340d126141edd4563b7a446a
   RNBootSplash: 07805bcd3aaecb26115e56fa39237fbb88a442a8
   RNCAsyncStorage: b03032fdbdb725bea0bd9e5ec5a7272865ae7398
-  RNCCheckbox: 75255b03e604bbcc26411eb31c4cbe3e3865f538
+  RNCCheckbox: 471ebdc33884c084f362615c1ef3507496cc07f1
   RNCMaskedView: aac38cf7e947ff80e483996d1acd43c5ad4ab610
   RNCPicker: 26b69a32728b3ef1e791755c15e3a95f2f58d23e
   RNCPushNotificationIOS: 64218f3c776c03d7408284a819b2abfda1834bc8
@@ -3945,7 +3945,7 @@ SPEC CHECKSUMS:
   RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
   RNGestureHandler: c202f13fa95347076d8aca4ccb61739b067396cb
   RNKeychain: f75b8c8b2f17d3b2aa1f25b4a0ac5b83d947ff8f
-  RNPermissions: 6108efcf92bec08880a3c52c4d0320df2e022857
+  RNPermissions: 57c7df2f2c092f3e99abb80cfd55583b6c6721cf
   RNReanimated: 2010262133feb53009f16faaa404042eed7da018
   RNScreens: 75074e642b69b086813a943bdf63da7085fb2166
   RNSentry: a133608906bd6aa8810987ed5bf15ddd9a60cd97
@@ -3961,6 +3961,6 @@ SPEC CHECKSUMS:
   VisionCamera: 0ecfede218b2d989be3d504270b71f3d2384d95d
   Yoga: daa1e4de4b971b977b23bc842aaa3e135324f1f3
 
-PODFILE CHECKSUM: 0c3e4f16ca984e9537048a6b8527aa5ee2d48eea
+PODFILE CHECKSUM: bc063d12af579aa985bb78ca04e09ad7967c3c3e
 
 COCOAPODS: 1.16.2

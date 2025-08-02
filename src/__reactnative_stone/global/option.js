@@ -20,11 +20,11 @@ const CustomBackButton = () => {
 
 const option = {
   headerOption: {
-    // headerBackImage: () => <CustomBackButton />,
     headerStyle: {
       borderBottomWidth: 0,
       elevation: 0,
-      backgroundColor: $color.primary
+      backgroundColor: $color.primary,
+      shadowColor: 'transparent',  
     },
     headerTitleStyle: {
       fontSize: 17,
@@ -32,6 +32,8 @@ const option = {
     },
     headerTitleAlign: 'center',
     headerTintColor: '#fff',
+    headerTransparent: false,
+
     // 231228-Navigation BUG
     // transitionSpec: {
     //   open: {

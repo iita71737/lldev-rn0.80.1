@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   View,
   useWindowDimensions,
@@ -15,6 +15,7 @@ import { TabView, TabBar, SceneMap } from 'react-native-tab-view'
 import { WsIcon, WsText, WsFlex, WsBtn, WsIconBtn } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 const WsTabView = props => {
   const { t, i18n } = useTranslation()
@@ -164,10 +165,6 @@ const WsTabView = props => {
   const [isMounted, setIsMounted] = React.useState(false)
   const [C_index, C_setIndex] = React.useState(index)
 
-  const $_onLayout = $event => {
-    // console.log($event, '$event');
-  }
-
   // Variable
   const renderScene = useCallback(({ route }) => {
     const itemIndex = items.findIndex(e => e.value == route.key);
@@ -232,10 +229,10 @@ const WsTabView = props => {
   // Render
   return (
     <View
-      onLayout={$_onLayout}
       style={{
         flex: 1,
-      }}>
+      }}
+    >
       {isMounted && (
         <TabView
           animationEnabled={animationEnabled}
@@ -245,12 +242,18 @@ const WsTabView = props => {
           style={[
             {
               // FIX LIBRARY BUG
-              height: fixedContainerHeight ? fixedContainerHeight : layout && layout.height && Platform.OS === 'ios' ? layout.height - 256 : layout.height * 1.25,
+              // height: fixedContainerHeight ? fixedContainerHeight : layout && layout.height && Platform.OS === 'ios' ? layout.height - 256 : layout.height * 1.25,
+              flex: 1,
+              // backgroundColor:'pink'
             },
             tabStyle
           ]
           }
-          navigationState={{ index, routes, items }}
+          initialLayout={{
+            width: Dimensions.get('window').width,
+          }}
+
+          navigationState={{ index, routes }}
           onIndexChange={$event => {
             if ($event == 9223372036854776000) {
               console.log($event, '$event');
@@ -260,9 +263,6 @@ const WsTabView = props => {
             setIndex($event)
           }}
           renderScene={renderScene}
-          initialLayout={{
-            width: Dimensions.get('window').width,
-          }}
           activeColor="yellow"
           renderTabBar={props => {
             const { routes, index } = props.navigationState
@@ -297,6 +297,7 @@ const WsTabView = props => {
                 )}
                 {TabBarRender ? (
                   <ScrollView
+                    contentContainerStyle={{ flexGrow: 1 }}
                     testID="TabBarScrollView"
                     horizontal
                     ref={scrollViewRef}
@@ -434,9 +435,3 @@ const WsTabView = props => {
 }
 
 export default WsTabView
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flexGrow: 0 // Important to make ScrollView scrollable
-  },
-});

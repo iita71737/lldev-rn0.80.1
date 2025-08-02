@@ -280,34 +280,6 @@ const RetrainingTimeRecordList = (props) => {
 
   return (
     <>
-      <WsPageIndex
-        modelName={'retraining_time_record'}
-        serviceIndexKey={'index'}
-        params={_params}
-        filterVisible={filterVisible}
-        renderItem={({ item, index }: { item: TrainingItem, index: number }) => (
-          <>
-            <LlRetrainingRecordCard001
-              style={{
-                marginTop: 16
-              }}
-              item={item}
-              onPress={() => {
-              }}
-              onPressEdit={(item) => {
-                setEditId(item.id)
-                setHours(item.hours)
-                setTrainAt(item.train_at)
-                setAttaches(item.attaches)
-                setModalActive(true)
-              }}
-              editable={editable}
-            ></LlRetrainingRecordCard001>
-          </>
-        )}
-      >
-      </WsPageIndex>
-
       <WsModal
         visible={modalActive}
         onBackButtonPress={() => {
@@ -398,6 +370,8 @@ const RetrainingTimeRecordList = (props) => {
                 borderWidth: 1,
                 borderColor: $color.gray,
                 borderRadius: 25,
+                justifyContent: 'center',
+                alignItems: 'center'
               }}
               onPress={() => {
                 setPopupActive(false)
@@ -405,7 +379,6 @@ const RetrainingTimeRecordList = (props) => {
               <WsText
                 style={{
                   width: 60,
-
                 }}
                 textAlign={'center'}
                 size={14}
@@ -426,6 +399,33 @@ const RetrainingTimeRecordList = (props) => {
         </View>
       </WsPopup>
 
+      <WsPageIndex
+        modelName={'retraining_time_record'}
+        serviceIndexKey={'index'}
+        params={_params}
+        filterVisible={filterVisible}
+        renderItem={({ item, index }: { item: TrainingItem, index: number }) => (
+          <>
+            <LlRetrainingRecordCard001
+              style={{
+                marginTop: 16
+              }}
+              item={item}
+              onPress={() => {
+              }}
+              onPressEdit={(item) => {
+                setEditId(item.id)
+                setHours(item.hours)
+                setTrainAt(item.train_at)
+                setAttaches(item.attaches)
+                setModalActive(true)
+              }}
+              editable={editable}
+            ></LlRetrainingRecordCard001>
+          </>
+        )}
+      >
+      </WsPageIndex>
     </>
   )
 }

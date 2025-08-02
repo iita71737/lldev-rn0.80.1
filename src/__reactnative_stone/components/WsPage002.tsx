@@ -11,8 +11,8 @@ import store from '@/store'
 import {
   setIdleCounter
 } from '@/store/data'
-import { useFocusEffect } from '@react-navigation/native'
 import { NavigationProp, useNavigation } from '@react-navigation/native'
+import { useFocusEffect } from '@react-navigation/native'
 interface TabItem {
   value: number;
   view: React.ComponentType<any>;
@@ -52,6 +52,7 @@ const WsPage002: React.FC<WsPage002Props> = props => {
 
   // REDUX
   const currentIdleCounter = useSelector(state => state.data.idleCounter)
+  
   // DETECT IDLE
   const handleDetectIdle = () => {
     store.dispatch(setIdleCounter(currentIdleCounter + 1))

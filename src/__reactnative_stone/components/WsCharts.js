@@ -246,8 +246,8 @@ const WsCharts = props => {
                     index={tabIndex}
                     fixedTabWidth={(width * 0.85) / 2}
                     fixedContainerHeight={60}
-                    scrollEnabled={tabItems.length <= 2 ? false : true}
-                    isAutoWidth={tabItems.length > 2 ? false : true}
+                    // scrollEnabled={tabItems.length <= 2 ? false : true}
+                    // isAutoWidth={tabItems.length > 2 ? false : true}
                     setIndex={$event => {
                       settabIndex($event)
                       onTabChange($event)

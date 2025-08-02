@@ -394,6 +394,7 @@ const RoutesApp = ({ navigation, route }) => {
             component={scopeFilterScreen('system-file-read', ViewFileStore)}
             options={({ navigation }) => ({
               title: t('文件檔案庫'),
+              headerShown: true,
               ...gOption.headerOption,
               headerTitleAlign: 'center',
               animationEnabled: false,
@@ -417,7 +418,8 @@ const RoutesApp = ({ navigation, route }) => {
             name="FileStoreSubLayer"
             component={scopeFilterScreen('system-file-read', ViewFileStoreSubLayer)}
             options={({ navigation, route }) => ({
-              title: route.params.name,
+              headerShown: true,
+              title: route.params.name || 'so4u,',
               ...gOption.headerOption,
               headerTitleAlign: 'center',
               animationEnabled: false,
@@ -437,8 +439,6 @@ const RoutesApp = ({ navigation, route }) => {
               ),
             })}
           />
-
-
 
         </StackSetting.Navigator>
       </UserInactivity>

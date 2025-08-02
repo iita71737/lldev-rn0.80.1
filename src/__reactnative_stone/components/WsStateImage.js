@@ -21,8 +21,6 @@ import { useTranslation } from 'react-i18next'
 
 import RNBlobUtil from 'react-native-blob-util'
 import * as ImagePicker from 'react-native-image-picker'
-// import DocumentPicker from 'react-native-document-picker'
-import DocumentPicker from '@react-native-documents/picker'
 import { launchImageLibrary } from 'react-native-image-picker'
 import { PermissionsAndroid } from 'react-native'
 import axios from 'axios'

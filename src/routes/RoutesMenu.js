@@ -124,7 +124,7 @@ const RoutesMenu = () => {
                       )
                       e.preventDefault();
                     } else if (scopePermission('sos-create', currentUserScope)) {
-                      navigation.navigate('SOS')
+                      navigation.push('SOS')
                     }
                   }}
                 />

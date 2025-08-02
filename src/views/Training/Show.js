@@ -27,6 +27,7 @@ import { useSelector } from 'react-redux'
 import store from '@/store'
 import TrainingOverview from '@/sections/Training/TrainingOverview'
 import TrainingRecordList from '@/sections/Training/TrainingRecordList'
+import { useFocusEffect } from '@react-navigation/native'
 
 const TrainingShow = ({ route, navigation }) => {
   const { t, i18n } = useTranslation()
@@ -34,6 +35,7 @@ const TrainingShow = ({ route, navigation }) => {
 
   // Params
   const { id } = route.params
+  const refreshKey = route?.params?.refreshKey || null;
 
   // States
   const [index, setIndex] = React.useState(0)
@@ -43,7 +45,7 @@ const TrainingShow = ({ route, navigation }) => {
       label: t('總覽'),
       view: TrainingOverview,
       props: {
-        id: id
+        id: id,
       }
     },
     {
@@ -51,10 +53,11 @@ const TrainingShow = ({ route, navigation }) => {
       label: t('記錄列表'),
       view: TrainingRecordList,
       props: {
-        tabIndex: index
+        tabIndex: index,
       }
     },
-  ])
+  ]
+  )
 
   const $_setTabItems = () => {
     setTabItems([
@@ -63,7 +66,8 @@ const TrainingShow = ({ route, navigation }) => {
         label: t('總覽'),
         view: TrainingOverview,
         props: {
-          id: id
+          id: id,
+          refreshKey: refreshKey
         }
       },
       {
@@ -78,9 +82,9 @@ const TrainingShow = ({ route, navigation }) => {
     ])
   }
 
-   React.useEffect(() => {
-        $_setTabItems()
-    }, [index])
+  React.useEffect(() => {
+    $_setTabItems()
+  }, [index, refreshKey])
 
   return (
     <>

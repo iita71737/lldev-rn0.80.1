@@ -12,6 +12,8 @@
 		1749E40D460B423CA6C8703D /* BootSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 5B2FAEEC0E59438590B99BB1 /* BootSplash.storyboard */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		B2064B392E3CBA25002381F9 /* batchArticleExample.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = B2064B372E3CBA25002381F9 /* batchArticleExample.xlsx */; };
+		B2064B3A2E3CBA25002381F9 /* example.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = B2064B382E3CBA25002381F9 /* example.xlsx */; };
 		B2B652902E2F6310005CD26E /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = B2B6528F2E2F630F005CD26E /* GoogleService-Info.plist */; };
 		B2B652932E2F81B4005CD26E /* icomoon.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B2B652922E2F81B4005CD26E /* icomoon.ttf */; };
 		CE722CD424A6138990867DEB /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
@@ -30,6 +32,8 @@
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = esgoaldev/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		9CE4135AF1B04726AF2B45C1 /* Colors.xcassets */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = folder.assetcatalog; name = Colors.xcassets; path = esgoaldev/Colors.xcassets; sourceTree = "<group>"; };
 		9E31BCD6A6E0E3BB74BAC517 /* Pods-esgoaldev.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-esgoaldev.debug.xcconfig"; path = "Target Support Files/Pods-esgoaldev/Pods-esgoaldev.debug.xcconfig"; sourceTree = "<group>"; };
+		B2064B372E3CBA25002381F9 /* batchArticleExample.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = batchArticleExample.xlsx; sourceTree = "<group>"; };
+		B2064B382E3CBA25002381F9 /* example.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = example.xlsx; sourceTree = "<group>"; };
 		B2B6528F2E2F630F005CD26E /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		B2B652912E2F6396005CD26E /* esgoaldev.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = esgoaldev.entitlements; path = esgoaldev/esgoaldev.entitlements; sourceTree = "<group>"; };
 		B2B652922E2F81B4005CD26E /* icomoon.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = icomoon.ttf; sourceTree = "<group>"; };
@@ -60,6 +64,8 @@
 				5B2FAEEC0E59438590B99BB1 /* BootSplash.storyboard */,
 				9CE4135AF1B04726AF2B45C1 /* Colors.xcassets */,
 				B2B652922E2F81B4005CD26E /* icomoon.ttf */,
+				B2064B372E3CBA25002381F9 /* batchArticleExample.xlsx */,
+				B2064B382E3CBA25002381F9 /* example.xlsx */,
 			);
 			name = esgoaldev;
 			sourceTree = "<group>";
@@ -177,6 +183,8 @@
 				B2B652932E2F81B4005CD26E /* icomoon.ttf in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				CE722CD424A6138990867DEB /* PrivacyInfo.xcprivacy in Resources */,
+				B2064B392E3CBA25002381F9 /* batchArticleExample.xlsx in Resources */,
+				B2064B3A2E3CBA25002381F9 /* example.xlsx in Resources */,
 				1749E40D460B423CA6C8703D /* BootSplash.storyboard in Resources */,
 				08E0082D9C5F44079676C89A /* Colors.xcassets in Resources */,
 				B2B652902E2F6310005CD26E /* GoogleService-Info.plist in Resources */,

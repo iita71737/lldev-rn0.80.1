@@ -247,13 +247,16 @@ const LlFileFolderCard = ({
               Alert.alert(t('您無此權限'))
               return
             }
-            navigation.push('FileStoreSubLayer', {
-              file_folder: item.id,
-              name: item.name,
-              folder_path: item.folder_path,
-              folder_uuid_path: item.folder_uuid_path,
-              tab: tab,
-              folderScope: tab === 'tab1' ? _folderScope : undefined
+            console.log('11111');
+            navigation.push('RoutesApp', {
+              screen: 'FileStoreSubLayer',
+              params: {
+                file_folder: item.id,
+                name: item.name,
+                folder_path: item.folder_path,
+                folder_uuid_path: item.folder_uuid_path,
+                tab: tab,
+              }
             })
           } else if (item.type === 'file_folder' && tab === 'tab4') {
             const _folderScope = await $_checkFolderUserScope(item.id)
@@ -271,17 +274,24 @@ const LlFileFolderCard = ({
               )
               return
             }
-            navigation.push('FileStoreSubLayer', {
-              file_folder: item.id,
-              name: item.name,
-              folder_path: item.folder_path,
-              folder_uuid_path: item.folder_uuid_path,
-              tab: tab,
-              folderScope: _folderScope ? _folderScope : undefined
+            navigation.push('RoutesApp', {
+              screen: 'FileStoreSubLayer',
+              params: {
+                file_folder: item.id,
+                name: item.name,
+                folder_path: item.folder_path,
+                folder_uuid_path: item.folder_uuid_path,
+                tab: tab,
+                folderScope: _folderScope ? _folderScope : undefined
+              }
             })
           } else {
-            navigation.push('FileStoreShow', {
-              id: item.id
+            console.log('33333');
+            navigation.push('RoutesApp', {
+              screen: 'FileStoreShow',
+              params: {
+                id: item.id
+              }
             })
           }
         }}
@@ -516,7 +526,7 @@ const LlFileFolderCard = ({
           />
 
         </WsCard>
-      </TouchableOpacity>
+      </TouchableOpacity >
 
       <WsPopup
         active={visible}

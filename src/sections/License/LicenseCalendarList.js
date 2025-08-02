@@ -146,7 +146,8 @@ const LicenseCalendarList = (props) => {
 
   // Function
   const $_fetchPopupData = async $event => {
-    let id = $event.id
+    let id = $event?.id
+    console.log($event, '$event');
     if ($event.type == 'license') {
       try {
         const res = await S_License.show({ modelId: id })
@@ -156,7 +157,8 @@ const LicenseCalendarList = (props) => {
       }
     } else if ($event.type == 'remind') {
       try {
-        const res = await S_LicenseVersion.show({ modelId: $event?.payload[0]?.last_version?.id })
+        const res = await S_License.show({ modelId: id })
+        // const res = await S_LicenseVersion.show({ modelId: $event?.payload[0]?.last_version?.id })
         return res
       } catch (e) {
         console.error(e.message, '===extension err===')
@@ -197,19 +199,20 @@ const LicenseCalendarList = (props) => {
     // console.log(_res, '$_fetchPopupData');
     _content = {
       ..._content,
-      ..._res
+      ..._res.last_version, // 250801-issue-fix
+      ..._res,
     }
+    // console.log(_content,'_content--');
     setPopupContentType($event?.type ? $event?.type : 'content')
     setPopupContent(_content)
     setLoading(false)
   }
   const $_routeToPage = $event => {
     if ($event?.preText && $event?.preText?.includes(t('回訓提醒'))) {
-      console.log('1111');
       navigation.navigate('RoutesLicense', {
         screen: 'LicenseShow',
         params: {
-          id: $event.payload[0]?.id,
+          id: $event?.id,
           type: {
             name: t('人員證照（須回訓者）')
           }
@@ -220,7 +223,7 @@ const LicenseCalendarList = (props) => {
       navigation.navigate('RoutesLicense', {
         screen: 'LicenseShow',
         params: {
-          id:  $event.payload[0]?.id,
+          id: $event.payload[0]?.id,
         }
       })
     }
@@ -378,6 +381,77 @@ const LicenseCalendarList = (props) => {
                               }}
                             />
                           </View>
+
+                          {popupContent.processing_at && (
+                            <View
+                              style={{
+                                marginTop: 4
+                              }}
+                            >
+                              <WsInfo
+                                labelWidth={80}
+                                label={t('辦理日期')}
+                                value={
+                                  popupContent.processing_at
+                                    ? moment(popupContent.processing_at).format('YYYY-MM-DD')
+                                    : t('無')
+                                }
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                }}
+                              />
+                            </View>
+                          )}
+
+                          {popupContent.retraining_at && (
+                            <View
+                              style={{
+                                marginTop: 8
+                              }}
+                            >
+                              <WsInfo
+                                labelWidth={80}
+                                label={t('回訓起算日')}
+                                value={
+                                  popupContent.retraining_at
+                                    ? moment(popupContent.retraining_at).format('YYYY-MM-DD')
+                                    : t('無')
+                                }
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                }}
+                              />
+                            </View>
+                          )}
+
+                          {popupContent.retraining_remind_date && (
+                            <View
+                              style={{
+                                marginTop: 8
+                              }}
+                            >
+                              <WsInfo
+                                labelWidth={80}
+                                label={t('回訓提醒日')}
+                                icon={'ws-outline-reminder'}
+                                color={$color.primary3l}
+                                textColor={$color.primary}
+                                value={
+                                  popupContent.retraining_remind_date
+                                    ? moment(popupContent.retraining_remind_date).format('YYYY-MM-DD')
+                                    : t('無')
+                                }
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                }}
+                              />
+                            </View>
+                          )}
+
+
                         </WsPaddingContainer>
                       </>
                     )}
