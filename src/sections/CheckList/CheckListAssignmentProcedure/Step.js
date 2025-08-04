@@ -536,7 +536,7 @@ const CheckListAssignmentStep = props => {
               </WsPaddingContainer>
 
               <WsDialog
-                contentHeight={300}
+                contentHeight={256}
                 dialogVisible={visible}
                 setDialogVisible={() => {
                   setVisible(false)

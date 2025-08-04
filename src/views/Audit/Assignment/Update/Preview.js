@@ -182,18 +182,22 @@ const Preview = ({ navigation, route }) => {
 
   // Function
   const $_onHeaderRightPress = () => {
-    $_putApi()
-    navigation.reset({
-      index: 0,
-      routes: [
-        {
-          name: 'AuditAssignment',
-          params: {
+    if (remark != undefined && remark.trim() !== '' && !btnRightDisable) {
+      $_putApi()
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'AuditAssignment',
+            params: {
+            }
           }
-        }
-      ],
-      key: null
-    })
+        ],
+        key: null
+      })
+    } else {
+      settabIndex(0)
+    }
   }
 
   // 儲存稽核草稿
@@ -432,7 +436,7 @@ const Preview = ({ navigation, route }) => {
               $_saveDraft()
             }}
             btnRightText={t('送出')}
-            btnRightDisable={btnRightDisable}
+            // btnRightDisable={btnRightDisable}
             btnRightOnPress={() => {
               $_onHeaderRightPress()
             }}

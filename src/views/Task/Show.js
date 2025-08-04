@@ -910,7 +910,8 @@ const TaskShow = ({ navigation, route }) => {
                                               style={{
                                                 // borderWidth: 1,
                                                 backgroundColor: $color.primary11l,
-                                                padding: 8,
+                                                paddingHorizontal: 16,
+                                                paddingVertical:8,
                                                 borderRadius: 10,
                                               }}
                                             >
@@ -933,7 +934,6 @@ const TaskShow = ({ navigation, route }) => {
                                                 item.record_links.map((subItem, subIndex) => (
                                                   <View
                                                     style={{
-                                                      marginTop: 8
                                                     }}
                                                   >
                                                     <WsInfo

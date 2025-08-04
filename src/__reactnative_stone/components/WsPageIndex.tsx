@@ -107,7 +107,6 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
 
   // FUNC
   const $_onFilterSubmit = ($event: any) => {
-    // console.log($event,'$event--');
     setLoading(true)
     setModalVisible(false)
     setFiltersValue($event)
@@ -171,7 +170,6 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
             position: 'absolute',
             bottom: 16,
             right: 16,
-            // borderWidth:2
           }}
           onPress={() => {
             setModalVisible(true)

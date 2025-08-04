@@ -169,7 +169,10 @@ const WsFilter002: React.FC<WsFilter002Props> = (props) => {
       onSubmit(_value)
     } else if (searchVisible && !searchValue) {
       let _value = JSON.parse(JSON.stringify(value))
-      delete _value.search
+      _value.search = searchValue
+      if (_value.search === "") {
+        delete _value.search
+      }
       onSubmit(_value)
     } else {
       if (value.search && value.search_type) {

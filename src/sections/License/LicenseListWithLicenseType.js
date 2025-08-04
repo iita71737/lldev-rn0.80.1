@@ -10,6 +10,7 @@ import {
   WsPaddingContainer,
   LlLicenseListCard001,
   LlBtn002,
+  WsSkeleton
 } from '@/components'
 import S_License from '@/services/api/v1/license'
 import S_LicenseTemplate from '@/services/api/v1/license_templates'
@@ -21,34 +22,51 @@ const LicenseListWithLicenseType = (props) => {
     type,
     navigation,
     systemSubclass,
+    typeName
   } = props
 
   const currentFactory = useSelector(state => state.data.currentFactory)
 
   // States
+  const [loading, setLoading] = React.useState(true)
   const [licenseWithTemplate, setLicenseWithTemplate] = React.useState()
 
   // Services
   const $_fetchLicenseWithTemplate = async () => {
     const _res = await S_License.indexAll({})
-    const templates = await S_LicenseTemplate.index({
-      parentId: currentFactory.id,
-      params: {
-        system_subclasses: systemSubclass,
-        license_type: type
-      }
-    })
-    const res = S_License.getLicenseNumWithTemplate(templates.data, _res.data)
+    const _params = {
+      system_subclasses: systemSubclass,
+      license_type: type
+    }
+    const _templates = await S_LicenseTemplate.index({ params: _params })
+    const res = S_License.getLicenseNumWithTemplate(_templates.data, _res.data, typeName)
     setLicenseWithTemplate(res)
+    setLoading(false)
+  }
+
+  const $_fetchLicense = async () => {
+    const _res = await S_License.indexAll({})
+    const _params = {
+      system_subclasses: systemSubclass,
+      license_type: type
+    }
+    const _templates = await S_License.index({ params: _params })
+    const res = S_License.getLicenseNumWithTemplate(_templates.data, _res.data, typeName)
+    setLicenseWithTemplate(res)
+    setLoading(false)
   }
 
   React.useEffect(() => {
-    $_fetchLicenseWithTemplate()
+    if (typeName === '其他') {
+      $_fetchLicense()
+    } else {
+      $_fetchLicenseWithTemplate()
+    }
   }, [])
 
   return (
     <ScrollView>
-      {licenseWithTemplate && (
+      {licenseWithTemplate && !loading ? (
         <>
           <FlatList
             data={licenseWithTemplate}
@@ -67,7 +85,15 @@ const LicenseListWithLicenseType = (props) => {
                       marginTop: 8,
                     }}
                     onPress={() => {
-                      navigation.push('IndexWithTemplate',{
+                      if (typeName === '其他') {
+                        navigation.push('RoutesLicense', {
+                          screen: 'LicenseShow',
+                          params: {
+                            id: template.id
+                          }
+                        })
+                      } else {
+                        navigation.push('IndexWithTemplate', {
                           templateId: template.id,
                           name: template.name,
                           systemSubclass: systemSubclass,
@@ -76,7 +102,8 @@ const LicenseListWithLicenseType = (props) => {
                           licenseConduct: template.licenseConduct,
                           licenseUsing: template.licenseUsing,
                           licensePause: template.licensePause,
-                      })
+                        })
+                      }
                     }}
                   ></LlLicenseListCard001>
                 </WsPaddingContainer>
@@ -84,6 +111,8 @@ const LicenseListWithLicenseType = (props) => {
             }}
           />
         </>
+      ) : (
+        <WsSkeleton></WsSkeleton>
       )}
     </ScrollView>
   )

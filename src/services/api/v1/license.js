@@ -147,18 +147,32 @@ export default {
     })
   },
 
-  getLicenseNumWithTemplate(templates, licenses) {
-    const _licenseWithTemplate = []
-    templates.forEach(template => {
-      const _template = { ...template }
-      _template.licenseNum = this.getNumWithTemplate(template, licenses)
-      _template.licenseDelay = this.getDelayNumWithTemplate(template, licenses)
-      _template.licenseConduct = this.getConductNumWithTemplate(template, licenses)
-      _template.licenseUsing = this.getUsingNumWithTemplate(template, licenses)
-      _template.licensePause = this.getPauseNumWithTemplate(template, licenses)
-      _licenseWithTemplate.push(_template)
-    })
-    return _licenseWithTemplate
+  getLicenseNumWithTemplate(templates, licenses, typeName) {
+    if (typeName === '其他') {
+      const _licenseWithTemplate = []
+      templates.forEach(template => {
+        const _template = { ...template }
+        _template.licenseNum = 1
+        _template.licenseDelay = _template.last_version.using_status !== 0 && this.$_adjustOverdue(_template.last_version.valid_end_date) ? 1 : 0
+        _template.licenseConduct = _template.last_version.license_status_number == 0 && _template.last_version.using_status !== 0 ? 1 : 0
+        _template.licenseUsing = _template.last_version?.using_status === 1 ? 1 : 0
+        _template.licensePause = _template.last_version.using_status === 0 ? 1 : 0
+        _licenseWithTemplate.push(_template)
+      })
+      return _licenseWithTemplate
+    } else {
+      const _licenseWithTemplate = []
+      templates.forEach(template => {
+        const _template = { ...template }
+        _template.licenseNum = this.getNumWithTemplate(template, licenses)
+        _template.licenseDelay = this.getDelayNumWithTemplate(template, licenses)
+        _template.licenseConduct = this.getConductNumWithTemplate(template, licenses)
+        _template.licenseUsing = this.getUsingNumWithTemplate(template, licenses)
+        _template.licensePause = this.getPauseNumWithTemplate(template, licenses)
+        _licenseWithTemplate.push(_template)
+      })
+      return _licenseWithTemplate
+    }
   },
 
   getLicenseNumWithSystemSubclasses(systemClasses, licenses) {

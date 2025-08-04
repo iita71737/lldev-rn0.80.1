@@ -27,7 +27,6 @@ interface TaskItem {
 const TaskStatus: React.FC<TaskStatusProps> = props => {
   const { t } = useTranslation()
   const navigation = useNavigation<any>()
-  const isFocused = useIsFocused();
 
   // Props
   const {
@@ -46,24 +45,22 @@ const TaskStatus: React.FC<TaskStatusProps> = props => {
 
   // MEMO
   const __params = React.useMemo(() => {
-    if (isFocused) {
-      const _params =
-        sortValue == 1 ?
-          {
-            ...params,
-            order_way: "desc",
-            order_by: "created_at"
-          } : sortValue == 2 ? {
-            ...params,
-            order_way: 'asc',
-            order_by: 'expired_at',
-          } : sortValue == 3 ? {
-            ...params,
-            order_way: 'asc',
-            order_by: 'completion_degree',
-          } : {}
-      return _params
-    }
+    const _params =
+      sortValue == 1 ?
+        {
+          ...params,
+          order_way: "desc",
+          order_by: "created_at"
+        } : sortValue == 2 ? {
+          ...params,
+          order_way: 'asc',
+          order_by: 'expired_at',
+        } : sortValue == 3 ? {
+          ...params,
+          order_way: 'asc',
+          order_by: 'completion_degree',
+        } : {}
+    return _params
   }, [sortValue, status, currentRefreshCounter]);
 
   return (
