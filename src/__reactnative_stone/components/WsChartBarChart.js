@@ -2,14 +2,14 @@ import React from 'react'
 import { View, TouchableHighlight, Dimensions } from 'react-native'
 import { WsText } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
-import {
-  LineChart,
-  BarChart,
-  PieChart,
-  ProgressChart,
-  ContributionGraph,
-  StackedBarChart
-} from 'react-native-chart-kit'
+// import {
+//   LineChart,
+//   BarChart,
+//   PieChart,
+//   ProgressChart,
+//   ContributionGraph,
+//   StackedBarChart
+// } from 'react-native-chart-kit'
 import layouts from '@/__reactnative_stone/global/layout'
 import { useTranslation } from 'react-i18next'
 
@@ -168,7 +168,7 @@ const WsChartBarChart = props => {
             {t(yAxisTitle)}
           </WsText>
         )}
-        <BarChart
+        {/* <BarChart
           data={C_data}
           chartConfig={chartConfig}
           width={width}
@@ -181,7 +181,7 @@ const WsChartBarChart = props => {
           segments={6}
           blurOpacity={0.3}
           hideLegend={true}
-        />
+        /> */}
       </View>
     </TouchableHighlight>
   )

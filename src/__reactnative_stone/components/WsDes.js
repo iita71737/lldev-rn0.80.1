@@ -6,7 +6,11 @@ const WsDes = ({ children, color = $color.gray, style, size = 12 }) => {
 
   // Render
   return (
-    <WsText color={color} size={size} style={[style]}>
+    <WsText
+      color={color}
+      size={size}
+      style={[style]}
+    >
       {children}
     </WsText>
   )

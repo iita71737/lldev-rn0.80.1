@@ -44,7 +44,9 @@ import {
   LlRelatedGuidelineModalPicker,
   LlRelatedGuidelineBindArticleModalPicker,
   WsStateModelsUserScopes,
-  LlRelatedModuleModalPicker
+  LlRelatedModuleModalPicker,
+  WsStateRadioWithInput,
+  WsFormulaBuilder
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import $theme from '@/__reactnative_stone/global/theme'
@@ -448,6 +450,13 @@ const WsState = React.forwardRef((props, ref) => {
           disabled={disabled}
           style={style}
           testID={testID}
+        />
+      )}
+      {type == 'radio_group' && (
+        <WsStateRadioWithInput
+          value={value}
+          items={items}
+          onChange={onChange}
         />
       )}
       {type == 'checkbox' && (
@@ -985,6 +994,20 @@ const WsState = React.forwardRef((props, ref) => {
           />
         </>
       )}
+
+      {type == 'formula' && (
+        <>
+          <WsFormulaBuilder
+            placeholder={placeholder}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            isError={isError}
+            params={params}
+          />
+        </>
+      )}
+
       {errorMessage && (
         <>
           {errorMessage.map(errorMessageItem => (

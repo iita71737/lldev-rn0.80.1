@@ -242,7 +242,7 @@ const WsTabView = props => {
           style={[
             {
               // FIX LIBRARY BUG
-              // height: fixedContainerHeight ? fixedContainerHeight : layout && layout.height && Platform.OS === 'ios' ? layout.height - 256 : layout.height * 1.25,
+              height: fixedContainerHeight ? fixedContainerHeight : layout && layout.height && Platform.OS === 'ios' ? layout.height - 256 : layout.height * 1.25, //checklist-issue
               flex: 1,
               // backgroundColor:'pink'
             },

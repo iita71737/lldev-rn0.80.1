@@ -52,6 +52,7 @@
     "intl-pluralrules": "2.0.1",
     "lodash": "4.17.21",
     "material-design-icons": "^3.0.1",
+    "mathjs": "14.6.0",
     "moment": "^2.29.1",
     "moment-timezone": "0.5.43",
     "patch-package": "8.0.0",

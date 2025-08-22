@@ -61,6 +61,7 @@ import UserInactivity from "react-native-user-inactivity";
 import { scopeFilterScreen } from '@/__reactnative_stone/global/scopes'
 import ViewFileStore from '@/views/File/FileStore'
 import ViewFileStoreSubLayer from '@/views/File/FileStoreSubLayer'
+import RoutesStatistics from '@/routes/RoutesStatistics'
 
 const RoutesApp = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
@@ -438,6 +439,17 @@ const RoutesApp = ({ navigation, route }) => {
                 />
               ),
             })}
+          />
+
+          {/* 15 */}
+          <StackSetting.Screen
+            name="RoutesStatistics"
+            component={RoutesStatistics}
+            options={{
+              ...$option.headerOption,
+              gestureEnabled: false,
+              headerShown: false
+            }}
           />
 
         </StackSetting.Navigator>

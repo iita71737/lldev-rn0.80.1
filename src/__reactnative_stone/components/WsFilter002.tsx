@@ -496,6 +496,7 @@ const WsFilter002: React.FC<WsFilter002Props> = (props) => {
                     placeholder={field.placeholder ? field.placeholder : t('選擇')}
                     hasMeta={field.hasMeta}
                     params={field.params}
+                    customizedNameKey={field.customizedNameKey}
                     style={{
                       borderRadius: 25,
                       paddingHorizontal: 16
