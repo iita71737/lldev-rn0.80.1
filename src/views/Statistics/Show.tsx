@@ -653,20 +653,6 @@ const Show = () => {
         <ScrollView>
           <WsPaddingContainer>
             <WsState
-              type="text"
-              style={{
-                marginVertical: 8
-              }}
-              label={t('公式​名稱')}
-              value={chartInfo?.name}
-              onChange={(name: string) => {
-                setChartInfo((prev) => ({ ...prev, name }))
-              }}
-              rules={'required'}
-              placeholder={t('輸入')}
-            />
-
-            <WsState
               type="formula"
               style={{
                 marginVertical: 8
@@ -681,7 +667,6 @@ const Show = () => {
               ]}
               onChange={(p) => console.log(p)}
             />
-
           </WsPaddingContainer>
         </ScrollView>
       </WsModal>

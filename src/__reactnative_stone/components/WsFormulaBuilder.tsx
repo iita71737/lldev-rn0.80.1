@@ -2,11 +2,20 @@
 import React from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, useColorScheme, Modal, TextInput,
-  KeyboardAvoidingView, Platform, StyleProp, ViewStyle, TextStyle
+  KeyboardAvoidingView, Platform, StyleProp, ViewStyle, TextStyle, Dimensions
 } from 'react-native';
 import { create, all } from 'mathjs';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets, SafeAreaProvider } from 'react-native-safe-area-context';
 import $color from '@/__reactnative_stone/global/color';
+import {
+  WsLoading,
+  WsPopup,
+  WsText,
+  WsGradientButton,
+  WsFlex
+} from '@/components'
+import { useTranslation } from 'react-i18next'
+
 
 // ============== 1) mathjs 實例與可用函數 ==============
 const math = create(all, { number: 'number' });
@@ -32,15 +41,22 @@ export type FormulaParam = {
   label?: string;  // （可選）顯示文字
 };
 
-// 單位推斷（如需可擴充）
-function inferUnit(_tokens: Token[]): string {
-  return '';
-}
+export type FormulaChangePayload = {
+  expression: string;
+  value: number;
+  displayText: string;
+  name?: string;
+  unit?: string;
+};
 
-// ============== 3) Token 定義與工具 ==============
+// 單位推斷（如需可擴充：可依 key 規則或 tokens 判斷）
 type TokType = 'name' | 'number' | 'op' | 'lparen' | 'rparen' | 'comma' | 'func';
 type Token = { type: TokType; text: string };
+function inferUnit(_tokens: Token[]): string {
+  return ''; // 需要時可改為依 tokens 判斷
+}
 
+// ============== 3) Token 工具 ==============
 const tokensToFormula = (toks: Token[]) => toks.map(t => t.text).join('');
 const parenBalance = (toks: Token[]) =>
   toks.reduce((acc, t) => (t.type === 'lparen' ? acc + 1 : t.type === 'rparen' ? acc - 1 : acc), 0);
@@ -79,21 +95,31 @@ export default function WsFormulaInput({
   params = [],
 }: {
   placeholder?: string;
-  onChange?: (payload: { expression: string; value: number; displayText: string }) => void;
+  onChange?: (payload: FormulaChangePayload) => void;
   params?: FormulaParam[];
 }) {
+    const { t, i18n } = useTranslation()
+  const { width, height } = Dimensions.get('window')
   const insets = useSafeAreaInsets();
   const isDark = useColorScheme() === 'dark';
   const [visible, setVisible] = React.useState(false);
-  const [displayText, setDisplayText] = React.useState(''); // 輸入框顯示
+
+  // 外層顯示所需：名稱 / 公式 / 結果 / 單位
+  const [formulaName, setFormulaName] = React.useState<string>(''); // 名稱
+  const [expression, setExpression] = React.useState<string>('');   // 公式字串
+  const [resultNum, setResultNum] = React.useState<number | null>(null); // 結果
+  const [unit, setUnit] = React.useState<string>('');               // 單位
+
+  const hasValue = expression && resultNum !== null;
+
+  // Modal 內：公式建構狀態
+  const [popupActive, setPopupActive] = React.useState(false)
+  const [toks, setToks] = React.useState<Token[]>([]);
+  const [preview, setPreview] = React.useState<string>('-');
+  const [err, setErr] = React.useState<string>('');
 
   const openModal = () => setVisible(true);
   const closeModal = () => setVisible(false);
-
-  // ====== Modal 內部：公式建構狀態 ======
-  const [toks, setToks] = React.useState<Token[]>([]);
-  const [result, setResult] = React.useState<string>('-');
-  const [err, setErr] = React.useState<string>('');
 
   const last = toks[toks.length - 1];
   const bal = parenBalance(toks);
@@ -119,7 +145,7 @@ export default function WsFormulaInput({
       return prev.slice(0, -1);
     });
   };
-  const clear = () => setToks([]);
+  const clearTokens = () => setToks([]);
   const insertFunc = (fn: string) => { if (canAdd.func) { push({ type: 'func', text: fn }); push({ type: 'lparen', text: '(' }); } };
   const insertName = (name: string) => { if (canAdd.name) push({ type: 'name', text: name }); };
   const insertNumber = (n: string) => {
@@ -155,17 +181,17 @@ export default function WsFormulaInput({
       if (parenBalance(closed) !== 0) throw new Error('括號未配對');
       const expr = tokensToFormula(closed);
       const val = math.evaluate(expr, buildScope(params));
-      const unit = inferUnit(closed);
+      const u = inferUnit(closed);
       if (typeof val === 'number' && isFinite(val)) {
         setErr('');
-        setResult(`${val.toFixed(3)}${unit ? ` ${unit}` : ''}`);
+        setPreview(`${val.toFixed(3)}${u ? ` ${u}` : ''}`);
       } else {
         setErr('');
-        setResult(String(val));
+        setPreview(String(val));
       }
     } catch (e: any) {
       setErr(e?.message ?? '公式錯誤');
-      setResult('-');
+      setPreview('-');
     }
   };
 
@@ -173,19 +199,36 @@ export default function WsFormulaInput({
     try {
       const closed = autoCloseParens(toks);
       if (parenBalance(closed) !== 0) throw new Error('括號未配對');
-      const expression = tokensToFormula(closed);
-      const rawVal = math.evaluate(expression, buildScope(params));
+      const expr = tokensToFormula(closed);
+      const rawVal = math.evaluate(expr, buildScope(params));
       const num = Number(rawVal);
       if (!Number.isFinite(num)) throw new Error('結果非數值');
-      const unit = inferUnit(closed);
-      const display = `${expression} = ${num.toFixed(3)}${unit ? ` ${unit}` : ''}`;
-      setDisplayText(display);
-      onChange?.({ expression, value: num, displayText: display });
+      const u = inferUnit(closed);
+
+      // set outer display states
+      setExpression(expr);
+      setResultNum(num);
+      setUnit(u);
+
+      // callback
+      const display = `${expr} = ${num.toFixed(3)}${u ? ` ${u}` : ''}`;
+      onChange?.({ expression: expr, value: num, displayText: display, name: formulaName || undefined, unit: u || undefined });
+
       setErr('');
       setVisible(false);
     } catch (e: any) {
       setErr(e?.message ?? '計算錯誤');
     }
+  };
+
+  const resetAll = () => {
+    setExpression('');
+    setResultNum(null);
+    setUnit('');
+    setFormulaName('');
+    setToks([]);
+    setPreview('-');
+    setErr('');
   };
 
   // ====== 外層輸入框樣式 ======
@@ -204,160 +247,275 @@ export default function WsFormulaInput({
 
   return (
     <>
-      {/* 只讀輸入框（點擊開 Modal） */}
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={openModal}
-        style={[
-          styles.inputBox,
-          {
-            borderColor: border,
-            backgroundColor: cardBg
-          }
-        ]}
-      >
-        <TextInput
-          editable={false}
-          placeholder={placeholder}
-          placeholderTextColor={'rgba(0,0,0,0.35)'}
-          value={displayText}
-          style={[styles.input, { color: fg }]}
-        />
-        <Text style={{ color: sub }}>✎</Text>
-      </TouchableOpacity>
+      <WsPopup
+        active={popupActive}
+        onClose={() => {
+          setPopupActive(false)
+        }}>
+        <View
+          style={{
+            width: width * 0.9,
+            height: height * 0.2,
+            backgroundColor: $color.white,
+            borderRadius: 10,
+            flexDirection: 'row',
+          }}>
+          <WsText
+            size={18}
+            color={$color.black}
+            style={{
+              padding: 16,
+            }}
+          >{t('確定捨棄嗎？')}
+          </WsText>
+          <WsFlex
+            style={{
+              position: 'absolute',
+              right: 16,
+              bottom: 16,
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 9,
+                borderColor: $color.gray,
+                borderRadius: 25,
+                borderWidth: 1,
+                width: 110,
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 48
+              }}
+              onPress={() => {
+                setPopupActive(false)
+              }}>
+              <WsText
+                style={{
+                }}
+                size={14}
+                color={$color.gray}
+              >{t('取消')}
+              </WsText>
+            </TouchableOpacity>
+            <WsGradientButton
+              style={{
+                width: 110,
+              }}
+              onPress={() => {
+                setPopupActive(false)
+              }}>
+              {t('確定')}
+            </WsGradientButton>
+          </WsFlex>
+        </View>
+      </WsPopup>
 
-      {/* Modal */}
+      {/* ===== 外層顯示區：未輸入 → 單一輸入框；已輸入 → 四列摘要卡 ===== */}
+      {!hasValue ? (
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={openModal}
+          style={[
+            styles.inputBox,
+            { borderColor: border, backgroundColor: cardBg }
+          ]}
+        >
+          <TextInput
+            editable={false}
+            placeholder={placeholder}
+            placeholderTextColor={'rgba(0,0,0,0.35)'}
+            value={''}
+            style={[styles.input, { color: fg }]}
+          />
+          <Text style={{ color: sub }}>✎</Text>
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.summaryCard}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.summaryTitle}>公式摘要</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity onPress={openModal} style={styles.summaryActionBtn}>
+                <Text style={styles.summaryActionTxt}>編輯</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={resetAll} style={[styles.summaryActionBtn, { backgroundColor: $color.danger }]}>
+                <Text style={[styles.summaryActionTxt, { color: '#fff' }]}>清除</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.kvRow}>
+            <Text style={styles.kvLabel}>公式名稱</Text>
+            <Text style={styles.kvValue}>{formulaName || '—'}</Text>
+          </View>
+          <View style={styles.kvRow}>
+            <Text style={styles.kvLabel}>公式</Text>
+            <Text style={styles.kvValue} numberOfLines={2} ellipsizeMode="tail">{expression}</Text>
+          </View>
+          <View style={styles.kvRow}>
+            <Text style={styles.kvLabel}>結果</Text>
+            <Text style={styles.kvValueStrong}>{resultNum?.toFixed(3) ?? '—'}</Text>
+          </View>
+          <View style={styles.kvRow}>
+            <Text style={styles.kvLabel}>單位</Text>
+            <Text style={styles.kvValue}>{unit || '—'}</Text>
+          </View>
+        </View>
+      )}
+
+      {/* ===== Modal 編輯器 ===== */}
       <Modal
         visible={visible}
         animationType="slide"
-        presentationStyle="overFullScreen"
+        presentationStyle="fullScreen"
+        statusBarTranslucent
         transparent={false}
         onRequestClose={closeModal}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1, backgroundColor: '#fff' }}
-          keyboardVerticalOffset={insets.top}
-        >
+        <SafeAreaProvider>
           <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
-            {/* Header：標題 + 關閉 */}
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>公式編輯器</Text>
-              <TouchableOpacity onPress={closeModal} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={styles.headerAction}>關閉</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              contentContainerStyle={[styles.wrap, { backgroundColor: '#fff', paddingBottom: 16 + insets.bottom }]}
-              contentInsetAdjustmentBehavior="automatic"
-              keyboardShouldPersistTaps="handled"
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              style={{ flex: 1, backgroundColor: '#fff' }}
+              keyboardVerticalOffset={0}
             >
-              {/* 可用參數（由外層傳入） */}
-              <Text style={[styles.h3, { color: '#111' }]}>可用參數</Text>
-              <View style={styles.rowWrap}>
-                {params.length === 0 ? (
-                  <Text style={{ color: '#777' }}>（目前沒有可用參數）</Text>
-                ) : (
-                  params.map(p => (
-                    <Btn
-                      key={p.key}
-                      label={p.label ? `${p.key} (${p.label})` : p.key}
-                      onPress={() => insertName(p.key)}
-                    />
-                  ))
-                )}
+
+              {/* Header：標題 + 關閉 */}
+              <View style={styles.header}>
+                <Text style={styles.headerTitle}>公式編輯器</Text>
+                <TouchableOpacity onPress={closeModal} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Text style={styles.headerAction}>關閉</Text>
+                </TouchableOpacity>
               </View>
 
-              {/* 公式顯示（醒目卡片） */}
-              <Text style={[styles.h2, { color: '#111' }]}>公式</Text>
-              <View style={styles.formulaCard}>
-                {/* Header */}
-                <View style={styles.formulaHeader}>
-                  <View style={styles.accentBar} />
-                  <Text style={styles.formulaTitle}>目前公式</Text>
-                  {bal > 0 ? <Text style={styles.parenHint}>將自動補上 {bal} 個「)」</Text> : null}
-                </View>
-
-                {/* Token 區（彩色語法 + 可水平捲動） */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tokenRow}>
-                  {toks.length === 0 ? (
-                    <Text style={[styles.tokenPlaceholder, { width: '100%', textAlign: 'center' }]}>尚未建立公式，請從按鈕插入</Text>
-                  ) : (
-                    toks.map((t, i) => {
-                      const pal = tokenPalette(t);
-                      return (
-                        <Badge
-                          key={i}
-                          text={t.text}
-                          border={pal.border}
-                          fg={pal.fg}
-                          bg={pal.bg}
-                        />
-                      );
-                    })
-                  )}
-                </ScrollView>
-
-                {/* 操作列 */}
-                <View style={styles.row}>
-                  <Btn label="計算" onPress={compute} primary />
-                  <Btn label="套用並關閉" onPress={applyAndClose} />
-                  <Btn label="刪除一格" onPress={pop} />
-                  <Btn label="清空" onPress={clear} />
-                  <Btn label="關閉" onPress={closeModal} style={{ backgroundColor: $color.danger }} textStyle={{ color: $color.white }} />
-                </View>
-
-                {/* 結果 / 狀態 */}
-                <View style={[styles.resultCard, !!err ? styles.resultCardError : styles.resultCardOk]}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                    <Text style={[styles.resultLabel, !!err ? styles.resultLabelError : styles.resultLabelOk]}>
-                      {err ? '計算錯誤' : '試算結果'}
-                    </Text>
-                    {!err && <UnitChip text={inferUnit(toks)} />}
-                  </View>
-                  <Text style={[styles.resultText, !!err ? styles.resultTextError : styles.resultTextOk]}>
-                    {err ? `❌ ${err}` : result}
-                  </Text>
-                </View>
-              </View>
-
-              {/* 函數 */}
-              <Text style={[styles.h3, { color: '#111' }]}>函數</Text>
-              <View style={styles.rowWrap}>
-                {['SUM', 'ROUND', 'IF', 'AVERAGE'].map(fn => (
-                  <Btn
-                    key={fn}
-                    label={`${fn}(`}
-                    onPress={() => insertFunc(fn)}
-                    disabled={!(!toks.length || ['op', 'lparen', 'comma'].includes((toks[toks.length - 1] || {} as any).type))}
+              <ScrollView
+                contentContainerStyle={[styles.wrap, { backgroundColor: '#fff', paddingBottom: 16 + insets.bottom }]}
+                contentInsetAdjustmentBehavior="never"
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* 名稱輸入框 */}
+                <Text style={[styles.h3, { color: '#111' }]}>公式名稱</Text>
+                <View style={styles.nameBox}>
+                  <TextInput
+                    placeholder="輸入公式名稱（可空白）"
+                    placeholderTextColor="#aaa"
+                    value={formulaName}
+                    onChangeText={setFormulaName}
+                    style={styles.nameInput}
                   />
-                ))}
-              </View>
+                </View>
 
-              {/* 運算子 / 括號 / 逗號 */}
-              <Text style={[styles.h3, { color: '#111' }]}>運算子 / 括號 / 逗號</Text>
-              <View style={styles.rowWrap}>
-                <Btn label="+" onPress={() => insertOp('+')} disabled={!(['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')))} />
-                <Btn label="-" onPress={() => insertOp('-')} disabled={!(['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')))} />
-                <Btn label="*" onPress={() => insertOp('*')} disabled={!(['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')))} />
-                <Btn label="/" onPress={() => insertOp('/')} disabled={!(['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')))} />
-                <Btn label="(" onPress={insertLParen} disabled={!(!toks.length || ['op', 'lparen', 'comma', 'func'].includes((toks[toks.length - 1]?.type || '')))} />
-                <Btn label=")" onPress={insertRParen} disabled={!(parenBalance(toks) > 0 && ['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')))} />
-                <Btn label="," onPress={insertComma} disabled={!(['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')) && parenBalance(toks) > 0)} />
-              </View>
+                {/* 可用參數（由外層傳入） */}
+                <Text style={[styles.h3, { color: '#111' }]}>可用參數</Text>
+                <View style={styles.rowWrap}>
+                  {params.length === 0 ? (
+                    <Text style={{ color: '#777' }}>（目前沒有可用參數）</Text>
+                  ) : (
+                    params.map(p => (
+                      <Btn
+                        key={p.key}
+                        label={p.label ? `${p.key} (${p.label})` : p.key}
+                        onPress={() => insertName(p.key)}
+                      />
+                    ))
+                  )}
+                </View>
 
-              {/* 數字鍵盤 */}
-              <Text style={[styles.h3, { color: '#111' }]}>數字鍵盤</Text>
-              <View style={styles.rowWrap}>
-                {[...'1234567890'].map(n => (
-                  <Btn key={n} label={n} onPress={() => insertNumber(n)} disabled={!canTapDigit} />
-                ))}
-                <Btn label="." onPress={() => insertNumber('.')} disabled={!canTapDot} />
-              </View>
-            </ScrollView>
+                {/* 公式顯示（醒目卡片） */}
+                <Text style={[styles.h2, { color: '#111' }]}>公式</Text>
+                <View style={styles.formulaCard}>
+                  {/* Header */}
+                  <View style={styles.formulaHeader}>
+                    <View style={styles.accentBar} />
+                    <Text style={styles.formulaTitle}>目前公式</Text>
+                    {bal > 0 ? <Text style={styles.parenHint}>將自動補上 {bal} 個「)」</Text> : null}
+                  </View>
+
+                  {/* Token 區（彩色語法 + 可水平捲動） */}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tokenRow}>
+                    {toks.length === 0 ? (
+                      <View style={styles.tokenPlaceholderBox}>
+                        <Text style={[styles.tokenPlaceholder, { textAlign: 'center' }]}>
+                          尚未建立公式，請從按鈕插入參數 / 函數 / 數字
+                        </Text>
+                      </View>
+                    ) : (
+                      toks.map((t, i) => {
+                        const pal = tokenPalette(t);
+                        return (
+                          <Badge
+                            key={i}
+                            text={t.text}
+                            border={pal.border}
+                            fg={pal.fg}
+                            bg={pal.bg}
+                          />
+                        );
+                      })
+                    )}
+                  </ScrollView>
+
+                  {/* 操作列 */}
+                  <View style={styles.row}>
+                    <Btn label="計算" onPress={compute} primary />
+                    <Btn label="套用並關閉" onPress={applyAndClose} />
+                    <Btn label="刪除一格" onPress={pop} />
+                    <Btn label="清空" onPress={clearTokens} />
+                    <Btn label="關閉" onPress={closeModal} style={{ backgroundColor: $color.danger }} textStyle={{ color: $color.white }} />
+                  </View>
+
+                  {/* 結果 / 狀態（預覽） */}
+                  <View style={[styles.resultCard, !!err ? styles.resultCardError : styles.resultCardOk]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                      <Text style={[styles.resultLabel, !!err ? styles.resultLabelError : styles.resultLabelOk]}>
+                        {err ? '計算錯誤' : '試算結果'}
+                      </Text>
+                      {!err && <UnitChip text={inferUnit(toks)} />}
+                    </View>
+                    <Text style={[styles.resultText, !!err ? styles.resultTextError : styles.resultTextOk]}>
+                      {err ? `❌ ${err}` : preview}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* 函數 */}
+                <Text style={[styles.h3, { color: '#111' }]}>函數</Text>
+                <View style={styles.rowWrap}>
+                  {['SUM', 'ROUND', 'IF', 'AVERAGE'].map(fn => (
+                    <Btn
+                      key={fn}
+                      label={`${fn}(`}
+                      onPress={() => insertFunc(fn)}
+                      disabled={!(!toks.length || ['op', 'lparen', 'comma'].includes((toks[toks.length - 1] || {} as any).type))}
+                    />
+                  ))}
+                </View>
+
+                {/* 運算子 / 括號 / 逗號 */}
+                <Text style={[styles.h3, { color: '#111' }]}>運算子 / 括號 / 逗號</Text>
+                <View style={styles.rowWrap}>
+                  <Btn label="+" onPress={() => insertOp('+')} disabled={!(['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')))} />
+                  <Btn label="-" onPress={() => insertOp('-')} disabled={!(['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')))} />
+                  <Btn label="*" onPress={() => insertOp('*')} disabled={!(['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')))} />
+                  <Btn label="/" onPress={() => insertOp('/')} disabled={!(['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')))} />
+                  <Btn label="(" onPress={insertLParen} disabled={!(!toks.length || ['op', 'lparen', 'comma', 'func'].includes((toks[toks.length - 1]?.type || '')))} />
+                  <Btn label=")" onPress={insertRParen} disabled={!(parenBalance(toks) > 0 && ['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')))} />
+                  <Btn label="," onPress={insertComma} disabled={!(['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')) && parenBalance(toks) > 0)} />
+                </View>
+
+                {/* 數字鍵盤 */}
+                <Text style={[styles.h3, { color: '#111' }]}>數字鍵盤</Text>
+                <View style={styles.rowWrap}>
+                  {[...'1234567890'].map(n => (
+                    <Btn key={n} label={n} onPress={() => insertNumber(n)} disabled={!canTapDigit} />
+                  ))}
+                  <Btn label="." onPress={() => insertNumber('.')} disabled={!canTapDot} />
+                </View>
+              </ScrollView>
+
+            </KeyboardAvoidingView>
           </SafeAreaView>
-        </KeyboardAvoidingView>
+        </SafeAreaProvider>
       </Modal>
     </>
   );
@@ -369,8 +527,8 @@ type BtnProps = {
   onPress: () => void;
   disabled?: boolean;
   primary?: boolean;
-  style?: StyleProp<ViewStyle>;      // ✅ 個別覆寫容器樣式
-  textStyle?: StyleProp<TextStyle>;  // ✅ 個別覆寫文字樣式
+  style?: StyleProp<ViewStyle>;      // 個別覆寫容器樣式
+  textStyle?: StyleProp<TextStyle>;  // 個別覆寫文字樣式
 };
 
 function Btn({ label, onPress, disabled, primary, style, textStyle }: BtnProps) {
@@ -382,7 +540,7 @@ function Btn({ label, onPress, disabled, primary, style, textStyle }: BtnProps) 
         styles.btn,
         primary && { backgroundColor: '#3f51b5', borderColor: '#3f51b5' },
         disabled && { opacity: 0.35 },
-        style, // ✅ 放在最後，呼叫端能覆寫前面的樣式
+        style,
       ]}
     >
       <Text style={[styles.btnText, primary && { color: '#fff' }, textStyle]}>
@@ -414,6 +572,35 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, padding: 0, margin: 0 },
 
+  // 摘要卡
+  summaryCard: {
+    borderWidth: 1,
+    borderColor: '#e6e6ea',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
+  },
+  summaryTitle: { fontSize: 14, fontWeight: '700', color: '#111' },
+  summaryActionBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#d9d9de',
+    backgroundColor: '#f6f7fa',
+  },
+  summaryActionTxt: { fontSize: 12, color: '#3f51b5', fontWeight: '700' },
+  kvRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  kvLabel: { color: '#666', width: 80 },
+  kvValue: { flex: 1, textAlign: 'right', color: '#111' },
+  kvValueStrong: { flex: 1, textAlign: 'right', color: '#0b5aaa', fontWeight: '800' },
+
   // Header
   header: {
     paddingHorizontal: 16,
@@ -434,6 +621,21 @@ const styles = StyleSheet.create({
   h3: { fontSize: 14, fontWeight: '600', marginTop: 8 },
   row: { flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' },
   rowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+
+  // 名稱輸入
+  nameBox: {
+    borderWidth: 1,
+    borderColor: '#e6e6ea',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+  },
+  nameInput: {
+    color: '#111',
+    padding: 0,
+    margin: 0,
+  },
 
   btn: {
     paddingVertical: 8,
@@ -475,7 +677,8 @@ const styles = StyleSheet.create({
   parenHint: { fontSize: 12, color: '#8a8a8a', marginLeft: 6, flex: 1 },
 
   tokenRow: { paddingVertical: 6, gap: 6 },
-  tokenPlaceholder: { color: '#999', fontStyle: 'italic' },
+  tokenPlaceholderBox: { width: '100%', paddingVertical: 8, paddingHorizontal: 6 },
+  tokenPlaceholder: { color: '#999', fontStyle: 'italic', lineHeight: 18 },
 
   resultCard: {
     marginTop: 10,
