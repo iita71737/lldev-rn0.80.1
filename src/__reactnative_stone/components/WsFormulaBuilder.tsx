@@ -2,10 +2,11 @@
 import React from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, useColorScheme, Modal, TextInput,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, StyleProp, ViewStyle, TextStyle
 } from 'react-native';
 import { create, all } from 'mathjs';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import $color from '@/__reactnative_stone/global/color';
 
 // ============== 1) mathjs 實例與可用函數 ==============
 const math = create(all, { number: 'number' });
@@ -51,14 +52,14 @@ const buildScope = (params: FormulaParam[]) =>
 // ============== 4) Formula UI helpers ==============
 function tokenPalette(t: Token) {
   switch (t.type) {
-    case 'func':   return { fg: '#5b33aa', bg: '#efe7ff', border: '#d9c8ff' }; // 函數：紫
-    case 'name':   return { fg: '#0b5aaa', bg: '#e6f0ff', border: '#cfe2ff' }; // 變數：藍
+    case 'func': return { fg: '#5b33aa', bg: '#efe7ff', border: '#d9c8ff' }; // 函數：紫
+    case 'name': return { fg: '#0b5aaa', bg: '#e6f0ff', border: '#cfe2ff' }; // 變數：藍
     case 'number': return { fg: '#0a6640', bg: '#e9f7ef', border: '#cdeede' }; // 數字：綠
-    case 'op':     return { fg: '#8a6d3b', bg: '#fff6e5', border: '#ffe2b8' }; // 運算子：橘
+    case 'op': return { fg: '#8a6d3b', bg: '#fff6e5', border: '#ffe2b8' }; // 運算子：橘
     case 'lparen':
     case 'rparen':
-    case 'comma':  return { fg: '#5f5f5f', bg: '#f3f3f5', border: '#e1e1e6' }; // 括號/逗號：灰
-    default:       return { fg: '#111',    bg: '#f4f4f6', border: '#ddd' };
+    case 'comma': return { fg: '#5f5f5f', bg: '#f3f3f5', border: '#e1e1e6' }; // 括號/逗號：灰
+    default: return { fg: '#111', bg: '#f4f4f6', border: '#ddd' };
   }
 }
 
@@ -191,7 +192,7 @@ export default function WsFormulaInput({
   const fg = isDark ? '#111' : '#111';
   const sub = '#555';
   const cardBg = '#fff';
-  const border = '#ddd';
+  const border = $color.gray;
 
   // 數字鍵盤可按規則
   const lastTok = toks[toks.length - 1];
@@ -207,7 +208,13 @@ export default function WsFormulaInput({
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={openModal}
-        style={[styles.inputBox, { borderColor: border, backgroundColor: cardBg }]}
+        style={[
+          styles.inputBox,
+          {
+            borderColor: border,
+            backgroundColor: cardBg
+          }
+        ]}
       >
         <TextInput
           editable={false}
@@ -275,7 +282,7 @@ export default function WsFormulaInput({
                 {/* Token 區（彩色語法 + 可水平捲動） */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tokenRow}>
                   {toks.length === 0 ? (
-                    <Text style={styles.tokenPlaceholder}>尚未建立公式，請從按鈕插入參數/函數/數字</Text>
+                    <Text style={[styles.tokenPlaceholder, { width: '100%', textAlign: 'center' }]}>尚未建立公式，請從按鈕插入</Text>
                   ) : (
                     toks.map((t, i) => {
                       const pal = tokenPalette(t);
@@ -298,7 +305,7 @@ export default function WsFormulaInput({
                   <Btn label="套用並關閉" onPress={applyAndClose} />
                   <Btn label="刪除一格" onPress={pop} />
                   <Btn label="清空" onPress={clear} />
-                  <Btn label="關閉" onPress={closeModal} />
+                  <Btn label="關閉" onPress={closeModal} style={{ backgroundColor: $color.danger }} textStyle={{ color: $color.white }} />
                 </View>
 
                 {/* 結果 / 狀態 */}
@@ -357,7 +364,16 @@ export default function WsFormulaInput({
 }
 
 // ============== 小元件/樣式 ==============
-function Btn({ label, onPress, disabled, primary }: { label: string; onPress: () => void; disabled?: boolean; primary?: boolean }) {
+type BtnProps = {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  primary?: boolean;
+  style?: StyleProp<ViewStyle>;      // ✅ 個別覆寫容器樣式
+  textStyle?: StyleProp<TextStyle>;  // ✅ 個別覆寫文字樣式
+};
+
+function Btn({ label, onPress, disabled, primary, style, textStyle }: BtnProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -365,10 +381,13 @@ function Btn({ label, onPress, disabled, primary }: { label: string; onPress: ()
       style={[
         styles.btn,
         primary && { backgroundColor: '#3f51b5', borderColor: '#3f51b5' },
-        disabled ? { opacity: 0.35 } : {},
+        disabled && { opacity: 0.35 },
+        style, // ✅ 放在最後，呼叫端能覆寫前面的樣式
       ]}
     >
-      <Text style={[styles.btnText, primary && { color: '#fff' }]}>{label}</Text>
+      <Text style={[styles.btnText, primary && { color: '#fff' }, textStyle]}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -385,9 +404,9 @@ const styles = StyleSheet.create({
   // 外層輸入框
   inputBox: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 5,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

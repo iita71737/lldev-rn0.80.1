@@ -68,8 +68,13 @@ const Show = () => {
     tooltip: { trigger: 'axis', transitionDuration: 0 },
     legend: { data: ['A', 'B'] },
 
-    // ⬅️ 下緣拉大，給 x 軸標籤與 dataZoom 足夠空間
-    grid: { left: 30, right: 40, top: 40, bottom: 90 },
+    // ✅ 讓 grid 自動包含軸標籤，並適度增加 top/bottom
+    grid: {
+      left: 44,
+      right: 40,
+      top: 28,
+      bottom: 90,
+    },
 
     xAxis: {
       type: 'category',
@@ -89,7 +94,7 @@ const Show = () => {
     },
     // ⬅️ 用百分比讓初始視窗涵蓋 100% 資料，而不是 endValue: 5
     dataZoom: [
-      { type: 'inside', start: 0, end: 100, moveOnMouseMove: true, zoomOnMouseWheel: false, throttle: 50 },
+      // { type: 'inside', start: 0, end: 100, moveOnMouseMove: true, zoomOnMouseWheel: false, throttle: 50 },
       {
         type: 'slider',
         start: 0,
@@ -387,7 +392,7 @@ const Show = () => {
           >
             <WsDes
               style={{
-                fontStyle: 'italic'
+                fontStyle: 'italic',
               }}
             >
               {t('更新​時間：​YY​YY-MM-DD HH:mm:ss')}
@@ -605,7 +610,7 @@ const Show = () => {
               type="belongstomany"
               modelName={'act_status'}
               nameKey={'name'}
-              label={t('狀態')}
+              label={t('資料集')}
               searchBarVisible={true}
               placeholder={'select...'}
               value={[]}
