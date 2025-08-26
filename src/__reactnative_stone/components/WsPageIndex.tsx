@@ -155,9 +155,26 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
     _setParams({ ...params });
   }, [params])
 
+  // WsIconBtn延遲顯示
+  const delayMs = 1200; // 想延遲的毫秒數
+  const [showFilterBtn, setShowFilterBtn] = React.useState(false);
+  React.useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | null = null;
+
+    if (filterVisible) {
+      t = setTimeout(() => setShowFilterBtn(true), delayMs);
+    } else {
+      setShowFilterBtn(false); // 立刻隱藏
+    }
+
+    return () => {
+      if (t) clearTimeout(t);  // 清理避免競態
+    };
+  }, [filterVisible, delayMs]);
+
   return (
     <>
-      {filterVisible && (
+      {showFilterBtn && (
         <WsIconBtn
           testID={'WsFilter002'}
           name="bih-filter"

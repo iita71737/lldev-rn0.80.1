@@ -2,7 +2,7 @@
 import React from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, useColorScheme, Modal, TextInput,
-  KeyboardAvoidingView, Platform, StyleProp, ViewStyle, TextStyle, Dimensions
+  KeyboardAvoidingView, Platform, StyleProp, ViewStyle, TextStyle, Dimensions, InteractionManager
 } from 'react-native';
 import { create, all } from 'mathjs';
 import { SafeAreaView, useSafeAreaInsets, SafeAreaProvider } from 'react-native-safe-area-context';
@@ -98,7 +98,7 @@ export default function WsFormulaInput({
   onChange?: (payload: FormulaChangePayload) => void;
   params?: FormulaParam[];
 }) {
-    const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { width, height } = Dimensions.get('window')
   const insets = useSafeAreaInsets();
   const isDark = useColorScheme() === 'dark';
@@ -113,13 +113,14 @@ export default function WsFormulaInput({
   const hasValue = expression && resultNum !== null;
 
   // Modal 內：公式建構狀態
+  const [pendingClose, setPendingClose] = React.useState(false);
   const [popupActive, setPopupActive] = React.useState(false)
+
   const [toks, setToks] = React.useState<Token[]>([]);
   const [preview, setPreview] = React.useState<string>('-');
   const [err, setErr] = React.useState<string>('');
 
   const openModal = () => setVisible(true);
-  const closeModal = () => setVisible(false);
 
   const last = toks[toks.length - 1];
   const bal = parenBalance(toks);
@@ -245,72 +246,35 @@ export default function WsFormulaInput({
     ['op', 'lparen', 'comma'].includes(lastTok?.type) ||
     (lastTok?.type === 'number' && !lastTok.text.includes('.'));
 
+  // 取代直接關閉：先詢問
+  const requestCloseModal = () => {
+    setPopupActive(true)
+  }
+
+  // Popup「取消」→ 關掉 Popup（不關 Modal）
+  const cancelCloseModal = () => setPopupActive(false);
+
+  // Popup「確定」→ 關掉 Popup + 關掉 Modal
+  const confirmCloseModal = () => {
+    setPendingClose(true);   // 先標記要關外層
+    setPopupActive(false);   // 先關內層 WsPopup
+  };
+
+  React.useEffect(() => {
+    // 當我們想關外層，且 popup 已經關閉時，才真的關外層
+    if (pendingClose && !popupActive) {
+      const raf = requestAnimationFrame(() => {
+        InteractionManager.runAfterInteractions(() => {
+          setVisible(false);        // 這裡才關外層 Modal
+          setPendingClose(false);   // 重置旗標
+        });
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [pendingClose, popupActive]);
+
   return (
     <>
-      <WsPopup
-        active={popupActive}
-        onClose={() => {
-          setPopupActive(false)
-        }}>
-        <View
-          style={{
-            width: width * 0.9,
-            height: height * 0.2,
-            backgroundColor: $color.white,
-            borderRadius: 10,
-            flexDirection: 'row',
-          }}>
-          <WsText
-            size={18}
-            color={$color.black}
-            style={{
-              padding: 16,
-            }}
-          >{t('確定捨棄嗎？')}
-          </WsText>
-          <WsFlex
-            style={{
-              position: 'absolute',
-              right: 16,
-              bottom: 16,
-            }}
-          >
-            <TouchableOpacity
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 9,
-                borderColor: $color.gray,
-                borderRadius: 25,
-                borderWidth: 1,
-                width: 110,
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: 48
-              }}
-              onPress={() => {
-                setPopupActive(false)
-              }}>
-              <WsText
-                style={{
-                }}
-                size={14}
-                color={$color.gray}
-              >{t('取消')}
-              </WsText>
-            </TouchableOpacity>
-            <WsGradientButton
-              style={{
-                width: 110,
-              }}
-              onPress={() => {
-                setPopupActive(false)
-              }}>
-              {t('確定')}
-            </WsGradientButton>
-          </WsFlex>
-        </View>
-      </WsPopup>
-
       {/* ===== 外層顯示區：未輸入 → 單一輸入框；已輸入 → 四列摘要卡 ===== */}
       {!hasValue ? (
         <TouchableOpacity
@@ -369,8 +333,9 @@ export default function WsFormulaInput({
         animationType="slide"
         presentationStyle="fullScreen"
         statusBarTranslucent
+        hardwareAccelerated
         transparent={false}
-        onRequestClose={closeModal}
+        onRequestClose={requestCloseModal}
       >
         <SafeAreaProvider>
           <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
@@ -383,7 +348,7 @@ export default function WsFormulaInput({
               {/* Header：標題 + 關閉 */}
               <View style={styles.header}>
                 <Text style={styles.headerTitle}>公式編輯器</Text>
-                <TouchableOpacity onPress={closeModal} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <TouchableOpacity onPress={requestCloseModal} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                   <Text style={styles.headerAction}>關閉</Text>
                 </TouchableOpacity>
               </View>
@@ -461,7 +426,7 @@ export default function WsFormulaInput({
                     <Btn label="套用並關閉" onPress={applyAndClose} />
                     <Btn label="刪除一格" onPress={pop} />
                     <Btn label="清空" onPress={clearTokens} />
-                    <Btn label="關閉" onPress={closeModal} style={{ backgroundColor: $color.danger }} textStyle={{ color: $color.white }} />
+                    <Btn label="關閉" onPress={requestCloseModal} style={{ backgroundColor: $color.danger }} textStyle={{ color: $color.white }} />
                   </View>
 
                   {/* 結果 / 狀態（預覽） */}
@@ -516,6 +481,68 @@ export default function WsFormulaInput({
             </KeyboardAvoidingView>
           </SafeAreaView>
         </SafeAreaProvider>
+
+        <WsPopup
+          active={popupActive}
+          onClose={() => {
+            setPopupActive(false)
+          }}>
+          <View
+            style={{
+              width: width * 0.9,
+              height: height * 0.2,
+              backgroundColor: $color.white,
+              borderRadius: 10,
+              flexDirection: 'row',
+            }}>
+            <WsText
+              size={18}
+              color={$color.black}
+              style={{
+                padding: 16,
+              }}
+            >{t('確定捨棄嗎？')}
+            </WsText>
+            <WsFlex
+              style={{
+                position: 'absolute',
+                right: 16,
+                bottom: 16,
+              }}
+            >
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 9,
+                  borderColor: $color.gray,
+                  borderRadius: 25,
+                  borderWidth: 1,
+                  width: 110,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: 48
+                }}
+                onPress={cancelCloseModal}
+              >
+                <WsText
+                  style={{
+                  }}
+                  size={14}
+                  color={$color.gray}
+                >{t('取消')}
+                </WsText>
+              </TouchableOpacity>
+              <WsGradientButton
+                style={{
+                  width: 110,
+                }}
+                onPress={confirmCloseModal}
+              >
+                {t('確定')}
+              </WsGradientButton>
+            </WsFlex>
+          </View>
+        </WsPopup>
       </Modal>
     </>
   );

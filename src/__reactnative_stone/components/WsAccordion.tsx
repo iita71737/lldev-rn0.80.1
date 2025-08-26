@@ -1,14 +1,20 @@
 // Accordion.tsx
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
-import Animated, { useSharedValue, withTiming, useAnimatedStyle, Easing } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  withTiming,
+  useAnimatedStyle,
+  Easing,
+  LinearTransition,
+} from 'react-native-reanimated';
 import { WsText, WsIcon } from '@/components';
 import $color from '@/__reactnative_stone/global/color';
 
 type SectionProps = {
-  title: React.ReactNode;          // 可放字串或自定義 JSX（例如「表3 名稱 / 公式名稱」）
+  title: React.ReactNode;
   defaultOpen?: boolean;
-  rightActions?: React.ReactNode;  // 右側操作區：編輯按鈕、警示角標等
+  rightActions?: React.ReactNode;
   disabled?: boolean;
   children?: React.ReactNode;
   style?: any;
@@ -24,7 +30,6 @@ export const WsAccordion: React.FC<SectionProps> = ({
   style,
   contentStyle,
 }) => {
-  const [measuredH, setMeasuredH] = React.useState(0);
   const [open, setOpen] = React.useState(defaultOpen);
   const progress = useSharedValue(defaultOpen ? 1 : 0);
 
@@ -32,13 +37,13 @@ export const WsAccordion: React.FC<SectionProps> = ({
     progress.value = withTiming(open ? 1 : 0, { duration: 220, easing: Easing.out(Easing.cubic) });
   }, [open]);
 
-  const contentAnimated = useAnimatedStyle(() => ({
-    height: measuredH * progress.value,
-    opacity: progress.value === 0 ? 0 : progress.value, // 展開時淡入
+  // 只做透明度/箭頭旋轉的補間；高度交給 Layout 動畫處理
+  const contentFade = useAnimatedStyle(() => ({
+    opacity: progress.value === 0 ? 0 : progress.value,
   }));
 
   const arrowAnimated = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${progress.value * 180}deg` }], // 0→180
+    transform: [{ rotate: `${progress.value * 180}deg` }],
   }));
 
   return (
@@ -57,20 +62,26 @@ export const WsAccordion: React.FC<SectionProps> = ({
 
         {!!rightActions && <View style={{ marginRight: 8 }}>{rightActions}</View>}
 
-        <Animated.View style={[arrowAnimated]}>
+        <Animated.View style={arrowAnimated}>
           <WsIcon name="md-chevron-down" size={16} color={$color.gray} />
         </Animated.View>
       </Pressable>
 
-      {/* 量測內容高度（只量一次） */}
-      <Animated.View style={[styles.contentContainer, contentAnimated, contentStyle]}>
+      {/* 高度用 Layout 動畫；關閉時給 height:0，開啟時移除 height 限制 */}
+      <Animated.View
+        layout={LinearTransition.duration(220).easing(Easing.out(Easing.cubic))}
+        style={[
+          styles.contentContainer,
+          !open && styles.collapsed,  // 關閉時 height: 0（會動畫）
+          contentFade,
+          contentStyle,
+        ]}
+      >
+        {/* 內容一直存在，關閉時用高度裁切 + 停用觸控 */}
         <View
           style={styles.contentInner}
-          onLayout={e => {
-            const h = e.nativeEvent.layout.height;
-            if (h !== measuredH) setMeasuredH(h);
-          }}
           pointerEvents={open ? 'auto' : 'none'}
+          collapsable={false}
         >
           {children}
         </View>
@@ -81,11 +92,12 @@ export const WsAccordion: React.FC<SectionProps> = ({
 
 const styles = StyleSheet.create({
   section: {
+    marginTop: 8,
     borderWidth: 1,
     borderColor: $color.graydd,
     borderRadius: 10,
     backgroundColor: $color.white,
-    overflow: 'hidden',
+    overflow: 'hidden', // 需要保留：收合時裁切內容
   },
   header: {
     minHeight: 44,
@@ -97,11 +109,14 @@ const styles = StyleSheet.create({
   contentContainer: {
     overflow: 'hidden',
   },
+  collapsed: {
+    height: 0, // 交給 Layout 動畫從 0 ↔ 自然高度
+  },
   contentInner: {
     paddingHorizontal: 12,
     paddingBottom: 12,
     paddingTop: 8,
-    backgroundColor: $color.white2d
+    backgroundColor: $color.white2d,
   },
 });
 

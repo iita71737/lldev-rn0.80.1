@@ -33,6 +33,7 @@ import ViewDashboardEvent from '@/views/DashboardFactory/Event'
 import ViewDashboardEventList from '@/views/DashboardFactory/DashboardEventListTab'
 const StackSetting = createStackNavigator()
 import StatisticsShow from '@/views/Statistics/Show'
+import StatisticsRecordCreate from '@/views/Statistics/Create/StatisticsRecordCreate'
 
 const RoutesStatistics = ({ navigation }) => {
   // i18n
@@ -449,6 +450,27 @@ const RoutesStatistics = ({ navigation }) => {
           component={scopeFilterScreen('event-read', StatisticsShow)}
           options={({ navigation }) => ({
             title: t('數量統計內頁'),
+            ...$option.headerOption,
+            headerLeft: () => (
+              <WsIconBtn
+                testID="backButton"
+                name="md-chevron-left"
+                color={$color.white}
+                size={32}
+                style={{
+                }}
+                onPress={() => {
+                  navigation.goBack()
+                }}
+              />
+            ),
+          })}
+        />
+        <StackSetting.Screen
+          name="StatisticsRecordCreate"
+          component={scopeFilterScreen('event-read', StatisticsRecordCreate)}
+          options={({ navigation }) => ({
+            title: t('選表選題頁'),
             ...$option.headerOption,
             headerLeft: () => (
               <WsIconBtn

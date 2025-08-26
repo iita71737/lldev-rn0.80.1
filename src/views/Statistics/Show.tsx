@@ -6,7 +6,9 @@ import {
   SafeAreaView,
   Text,
   useWindowDimensions,
-  TouchableOpacity
+  TouchableOpacity,
+  StyleSheet,
+  TextInput
 } from 'react-native'
 import {
   WsIconBtn,
@@ -29,14 +31,16 @@ import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
 import AsyncStorage from '@react-native-community/async-storage'
 import { useTranslation } from 'react-i18next'
-
 import * as echarts from 'echarts/core';
 import { LineChart as ELineChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent } from 'echarts/components';
 import { SkiaRenderer, SkiaChart } from '@wuba/react-native-echarts'; // ✅ 重點：用 SkiaChart 或 SvgChart
+import { WsGradientButton } from 'components'
+import PickType from '@/views/Statistics/Create/PickType'
+import SingleChart from './SingleChart'
+
 // ✅ 註冊 Renderer + 圖表 + 元件
 echarts.use([SkiaRenderer, ELineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent]);
-
 
 const Show = () => {
   const { t, i18n } = useTranslation()
@@ -44,15 +48,16 @@ const Show = () => {
   const instRef = useRef<echarts.EChartsType | null>(null);
   const { width } = useWindowDimensions();
 
-
   const [chartInfo, setChartInfo] = useState({
     name: '',
     chartType: 0,
     yAxisLabel: 'label',
     remark: ''
   });
-  const [modalActive, setModalActive] = React.useState(false)
+  const [modalAddChartForm, setModalAddChartForm] = React.useState(false)
   const [modalActiveFormula, setModalActiveFormula] = React.useState(false)
+  const [modalAddRecord, setModalAddRecord] = React.useState(false)
+  const [modalChart, setModalChart] = React.useState(false)
 
   const labels = useMemo(
     () => ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
@@ -127,6 +132,48 @@ const Show = () => {
   useEffect(() => {
     instRef.current?.resize({ width, height: 300 });
   }, [width]);
+
+  // chips
+  const [uChips, setUChips] = React.useState<ChipItem[]>([
+    { key: 'A', label: '作廠版本測試', withInput: true },
+    { key: 'B', label: 'ISO 14001', withInput: true },
+    { key: 'C', label: '7.1 to 1mb', withInput: true },
+    { key: 'D', label: 'wmv' },
+    { key: 'E', label: 'webm', withInput: true },
+  ]);
+  function Chip({
+    prefix,
+    label,
+    onRemove,
+    withInput,
+    onInputChange,
+  }: {
+    prefix?: string;
+    label: string;
+    withInput?: boolean;
+    onRemove?: () => void;
+    onInputChange?: (v: string) => void;
+  }) {
+    return (
+      <View style={styles.chip}>
+        {!!prefix && (
+          <View style={styles.chipPrefix}>
+            <Text style={styles.chipPrefixTxt}>{prefix}</Text>
+          </View>
+        )}
+        <Text style={styles.chipLabel} numberOfLines={1}>{label}</Text>
+        {withInput && (
+          <View style={styles.chipSmallInput}>
+            <TextInput
+              style={styles.chipSmallInputTxt}
+              placeholder=""
+              onChangeText={onInputChange}
+            />
+          </View>
+        )}
+      </View>
+    );
+  }
 
   return (
     <>
@@ -240,21 +287,6 @@ const Show = () => {
               }}
             />
           </View>
-          <View
-            style={{
-              marginTop: 8
-            }}
-          >
-            <WsInfo
-              labelWidth={100}
-              label={t('題目類型')}
-              value={'Question Type'}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            />
-          </View>
         </WsPaddingContainer>
 
 
@@ -266,7 +298,7 @@ const Show = () => {
             alignSelf: 'flex-end',
           }}
           onPress={() => {
-            setModalActive(true)
+            setModalAddChartForm(true)
           }}>
           <WsTag
             backgroundColor={$color.white}
@@ -401,6 +433,17 @@ const Show = () => {
         </WsPaddingContainer>
 
         <View style={{ padding: 16, gap: 12 }}>
+          <WsGradientButton
+            style={{
+              width: 108,
+              alignSelf: 'flex-end',
+            }}
+            onPress={() => {
+              setModalAddRecord(true)
+            }}>
+            {t('新增記錄')}
+          </WsGradientButton>
+
           <WsAccordion
             title="表 1"
             rightActions={
@@ -438,7 +481,7 @@ const Show = () => {
           </WsAccordion>
 
           <WsAccordion
-            title={<WsText weight="700">表 3 名稱 / 公式名稱</WsText>}
+            title={<WsText weight="700">表 3</WsText>}
             rightActions={
               <TouchableOpacity
                 style={{
@@ -458,7 +501,7 @@ const Show = () => {
               <WsFlex
                 flexWrap="wrap"
               >
-                <WsText>{'單位時間內的關係公式 sum(result)'}</WsText>
+                <WsText color={$color.gray}>{'公式 sum(result)'}</WsText>
                 <TouchableOpacity
                   style={{
                     marginLeft: 8,
@@ -474,7 +517,9 @@ const Show = () => {
                 <TouchableOpacity
                   style={{
                   }}
-                  onPress={() => { }}>
+                  onPress={() => {
+                    setModalChart(true)
+                  }}>
                   <WsTag
                     style={{
                     }}>
@@ -486,7 +531,7 @@ const Show = () => {
               <WsFlex
                 flexWrap="wrap"
               >
-                <WsText>{'單位時間內的關係公式 sum(result)'}</WsText>
+                <WsText color={$color.gray}>{'公式 sum(result)'}</WsText>
                 <TouchableOpacity
                   style={{
                     marginLeft: 8,
@@ -502,7 +547,9 @@ const Show = () => {
                 <TouchableOpacity
                   style={{
                   }}
-                  onPress={() => { }}>
+                  onPress={() => {
+                    setModalChart(true)
+                  }}>
                   <WsTag
                     style={{
                     }}>
@@ -526,8 +573,21 @@ const Show = () => {
                 title="版本 3"
                 defaultOpen
               >
-                <WsText>{'題目之間的關係公式 (A - B) + (C - D) + E'}</WsText>
-                <WsText>{'題目之間的關係公式 A + E'}</WsText>
+                <View>
+                  <WsText size={12} color={$color.gray}>{'題目之間的關係公式 (A - B) + (C - D) + E'}</WsText>
+                  <WsText size={12} color={$color.gray}>{'題目之間的關係公式 A + E'}</WsText>
+
+                  {uChips.map((c, idx) => (
+                    <Chip
+                      key={c.key}
+                      prefix={String.fromCharCode(65 + idx)} // A/B/C...
+                      label={c.label}
+                      withInput={c.withInput}
+                      onRemove={() => removeChip(c.key)}
+                      onInputChange={(v) => onChipInputChange?.(c.key, v)}
+                    />
+                  ))}
+                </View>
               </WsAccordion>
             </View>
           </WsAccordion>
@@ -537,16 +597,16 @@ const Show = () => {
 
       {/* 新增與編輯上方圖表 */}
       <WsModal
-        visible={modalActive}
+        visible={modalAddChartForm}
         onBackButtonPress={() => {
-          setModalActive(false)
+          setModalAddChartForm(false)
         }}
         headerLeftOnPress={() => {
-          setModalActive(false)
+          setModalAddChartForm(false)
         }}
         headerRightOnPress={() => {
           // $_submit()
-          setModalActive(false)
+          setModalAddChartForm(false)
         }}
         // RightOnPressIsDisabled={$_validation()}
         headerRightText={t('送出')}
@@ -671,9 +731,72 @@ const Show = () => {
         </ScrollView>
       </WsModal>
 
-    </>
+      {/* 新增流程 */}
+      <WsModal
+        animationType={'none'}
+        visible={modalAddRecord}
+        onBackButtonPress={() => {
+          setModalAddRecord(false)
+        }}
+        headerLeftOnPress={() => {
+          setModalAddRecord(false)
+        }}
+        title={t('新增記錄')}
+      >
+        <PickType
+          title={t('點檢表')}
+          setModalAddRecord={setModalAddRecord}
+        ></PickType>
+      </WsModal>
 
+      {/* 公式圖表Modal */}
+      <WsModal
+        animationType={'none'}
+        visible={modalChart}
+        onBackButtonPress={() => {
+          setModalChart(false)
+        }}
+        headerLeftOnPress={() => {
+          setModalChart(false)
+        }}
+        title={t('Chart Demo')}
+      >
+        <SingleChart></SingleChart>
+      </WsModal>
+
+    </>
   )
 }
 
 export default Show
+
+
+/* ===== 樣式 ===== */
+const styles = StyleSheet.create({
+  /* Chips */
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  chip: {
+    marginTop: 4,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#f7f9fb', borderWidth: 1, borderColor: '#d9dbe2',
+    borderRadius: 999, paddingHorizontal: 8, paddingVertical: 6,
+  },
+  chipPrefix: {
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: '#e6eef6', alignItems: 'center', justifyContent: 'center',
+    marginRight: 6,
+  },
+  chipPrefixTxt: { color: '#0b5aaa', fontSize: 12 },
+  chipLabel: { color: '#111', maxWidth: 160 },
+  chipSmallInput: {
+    marginLeft: 6, borderWidth: 1, borderColor: '#d9dbe2',
+    borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, minWidth: 40, backgroundColor: '#fff',
+  },
+  chipSmallInputTxt: { padding: 0, margin: 0, minWidth: 32, color: '#111' },
+  chipClose: {
+    marginLeft: 6, width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#e9edf2', alignItems: 'center', justifyContent: 'center',
+  },
+  chipCloseTxt: { color: '#111', fontSize: 14, lineHeight: 18 },
+
+});
