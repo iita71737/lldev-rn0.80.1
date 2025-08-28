@@ -45,7 +45,7 @@ import {
   LlRelatedGuidelineBindArticleModalPicker,
   WsStateModelsUserScopes,
   LlRelatedModuleModalPicker,
-  WsStateRadioWithInput,
+  WsTimeRangePicker,
   WsFormulaBuilder
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
@@ -453,10 +453,12 @@ const WsState = React.forwardRef((props, ref) => {
         />
       )}
       {type == 'radio_group' && (
-        <WsStateRadioWithInput
+        <WsTimeRangePicker
+          {...props}
           value={value}
           items={items}
           onChange={onChange}
+          rules={rules}
         />
       )}
       {type == 'checkbox' && (

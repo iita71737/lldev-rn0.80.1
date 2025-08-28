@@ -188,7 +188,7 @@ const WsStatebelongstoModalPicker = props => {
         headerLeftOnPress={() => {
           setStateModal(false)
         }}
-        animationType="slide"
+        animationType="fade"
       >
         {_renderCustomizedCom ? (
           <>

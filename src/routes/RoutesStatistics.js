@@ -90,7 +90,7 @@ const RoutesStatistics = ({ navigation }) => {
       type: 'radio',
       items: [
         { label: t('固定'), value: 2 },
-        { label: t('最新'), value: 1 },
+        { label: t('最近'), value: 1 },
       ],
       rules: 'required',
       updateValueOnCheckboxChange: ($event, value, fields) => {
@@ -118,7 +118,7 @@ const RoutesStatistics = ({ navigation }) => {
       }
     },
     start_time: {
-      label: t('開始時間'),
+      label: t('開始日期'),
       type: 'date',
       rules: 'required',
       displayCheck(fieldsValue) {
@@ -130,7 +130,7 @@ const RoutesStatistics = ({ navigation }) => {
       }
     },
     end_time: {
-      label: t('結束時間'),
+      label: t('結束日期'),
       type: 'date',
       rules: 'required',
       displayCheck(fieldsValue) {
@@ -366,35 +366,36 @@ const RoutesStatistics = ({ navigation }) => {
   }
 
   // 編輯事件
-  const submitEventEdit = async (data, modelId, versionId, navigation) => {
-    const _data = await S_Event.getFormattedData(data, currentUser)
-    try {
-      await S_Event.update({
-        data: _data,
-        modelId: modelId
-      })
-        .then(() => {
-          Alert.alert('事件編輯成功')
-        })
-    } catch (e) {
-      console.error(e);
-      const _offlineTempMsg = {
-        service: `event`,
-        method: `update`,
-        modelId: modelId,
-        data: _data
-      };
-      offlineMsg.push(_offlineTempMsg);
-      storeData(offlineMsg);
-      store.dispatch(setOfflineMsg(offlineMsg));
-    } finally {
-      navigation.navigate({
-        name: 'EventShow',
-        params: {
-          id: modelId
-        }
-      })
-    }
+  const submitStatisticsEdit = async (data, modelId, versionId, navigation) => {
+    console.log('submitStatisticsEdit');
+    // const _data = await S_Event.getFormattedData(data, currentUser)
+    // try {
+    //   await S_Event.update({
+    //     data: _data,
+    //     modelId: modelId
+    //   })
+    //     .then(() => {
+    //       Alert.alert('事件編輯成功')
+    //     })
+    // } catch (e) {
+    //   console.error(e);
+    //   const _offlineTempMsg = {
+    //     service: `event`,
+    //     method: `update`,
+    //     modelId: modelId,
+    //     data: _data
+    //   };
+    //   offlineMsg.push(_offlineTempMsg);
+    //   storeData(offlineMsg);
+    //   store.dispatch(setOfflineMsg(offlineMsg));
+    // } finally {
+    //   navigation.navigate({
+    //     name: 'EventShow',
+    //     params: {
+    //       id: modelId
+    //     }
+    //   })
+    // }
   }
 
   return (
@@ -441,8 +442,25 @@ const RoutesStatistics = ({ navigation }) => {
             fields: fields,
             stepSettings: stepSettings,
             afterFinishingTo: 'StatisticsIndex',
-            parentId: factory && factory.id ? factory.id : null,
             submitFunction: submitStatisticsCreate
+          }}
+        />
+        <StackSetting.Screen
+          name="StatisticsEdit"
+          component={scopeFilterScreen('event-create', WsStepRoutesUpdate)}
+          options={{
+            title: t('編輯數量統計'),
+            headerShown: false,
+            ...$option.headerOption
+          }}
+          initialParams={{
+            name: 'StatisticsEdit',
+            title: t('編輯數量統計'),
+            modelName: 'event',
+            fields: fields,
+            stepSettings: stepSettings,
+            afterFinishingTo: 'StatisticsIndex',
+            submitFunction: submitStatisticsEdit
           }}
         />
         <StackSetting.Screen

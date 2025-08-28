@@ -1,4 +1,4 @@
-// WsFormulaInput.tsx
+// WsFormulaBuilder.tsx
 import React from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, useColorScheme, Modal, TextInput,
@@ -7,29 +7,17 @@ import {
 import { create, all } from 'mathjs';
 import { SafeAreaView, useSafeAreaInsets, SafeAreaProvider } from 'react-native-safe-area-context';
 import $color from '@/__reactnative_stone/global/color';
-import {
-  WsLoading,
-  WsPopup,
-  WsText,
-  WsGradientButton,
-  WsFlex
-} from '@/components'
-import { useTranslation } from 'react-i18next'
+import { WsPopup, WsText, WsGradientButton, WsFlex } from '@/components';
+import { useTranslation } from 'react-i18next';
 
-
-// ============== 1) mathjs 實例與可用函數 ==============
+// ============== 1) mathjs 實例與可用函數（只保留：SUM / MAX / MIN / AVERAGE） ==============
 const math = create(all, { number: 'number' });
 math.import(
   {
     SUM: (...args: number[]) => math.sum(args as any),
+    MAX: (...args: number[]) => math.max(args as any),
+    MIN: (...args: number[]) => math.min(args as any),
     AVERAGE: (...args: number[]) => math.mean(args as any),
-    ROUND: (x: number, n?: number) =>
-      typeof n === 'number' ? math.round(x, n) : math.round(x),
-    IF: (cond: any, a: any, b: any) => (cond ? a : b),
-
-    // 時間差輔助（以小時為單位）
-    HOURS_DIFF: (later: number, earlier: number) => later - earlier,
-    MINUTES_DIFF: (later: number, earlier: number) => (later - earlier) * 60,
   },
   { override: true }
 );
@@ -45,7 +33,6 @@ export type FormulaChangePayload = {
   expression: string;
   value: number;
   displayText: string;
-  name?: string;
   unit?: string;
 };
 
@@ -53,7 +40,7 @@ export type FormulaChangePayload = {
 type TokType = 'name' | 'number' | 'op' | 'lparen' | 'rparen' | 'comma' | 'func';
 type Token = { type: TokType; text: string };
 function inferUnit(_tokens: Token[]): string {
-  return ''; // 需要時可改為依 tokens 判斷
+  return '';
 }
 
 // ============== 3) Token 工具 ==============
@@ -65,7 +52,7 @@ const parenBalance = (toks: Token[]) =>
 const buildScope = (params: FormulaParam[]) =>
   Object.fromEntries(params.map(p => [p.key, p.value]));
 
-// ============== 4) Formula UI helpers ==============
+// ============== 4) UI helpers ==============
 function tokenPalette(t: Token) {
   switch (t.type) {
     case 'func': return { fg: '#5b33aa', bg: '#efe7ff', border: '#d9c8ff' }; // 函數：紫
@@ -88,8 +75,8 @@ function UnitChip({ text }: { text: string }) {
   );
 }
 
-// ============== 5) 封裝：輸入框 + Modal 編輯器 ==============
-export default function WsFormulaInput({
+// ============== 5) 主組件：單一輸入匡 + Modal 編輯器 ==============
+export default function WsFormulaBuilder({
   placeholder = '點擊以建立/編輯公式…',
   onChange,
   params = [],
@@ -98,32 +85,53 @@ export default function WsFormulaInput({
   onChange?: (payload: FormulaChangePayload) => void;
   params?: FormulaParam[];
 }) {
-  const { t, i18n } = useTranslation()
-  const { width, height } = Dimensions.get('window')
+  const { t } = useTranslation();
+  const { width, height } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
   const isDark = useColorScheme() === 'dark';
   const [visible, setVisible] = React.useState(false);
 
-  // 外層顯示所需：名稱 / 公式 / 結果 / 單位
-  const [formulaName, setFormulaName] = React.useState<string>(''); // 名稱
+  // 外層顯示：只需要公式字串
   const [expression, setExpression] = React.useState<string>('');   // 公式字串
-  const [resultNum, setResultNum] = React.useState<number | null>(null); // 結果
-  const [unit, setUnit] = React.useState<string>('');               // 單位
-
-  const hasValue = expression && resultNum !== null;
+  const [resultNum, setResultNum] = React.useState<number | null>(null); // 結果（提供 onChange 用）
+  const [unit, setUnit] = React.useState<string>('');               // 單位（如需）
 
   // Modal 內：公式建構狀態
   const [pendingClose, setPendingClose] = React.useState(false);
-  const [popupActive, setPopupActive] = React.useState(false)
+  const [popupActive, setPopupActive] = React.useState(false);
 
   const [toks, setToks] = React.useState<Token[]>([]);
   const [preview, setPreview] = React.useState<string>('-');
   const [err, setErr] = React.useState<string>('');
 
+  // 只顯示四個函數（加總 / 最大值 / 最小值 / 平均值）
+  const fnDefs = React.useMemo(
+    () => [
+      { key: 'SUM', label: t('加總') },
+      { key: 'MAX', label: t('最大值') },
+      { key: 'MIN', label: t('最小值') },
+      { key: 'AVERAGE', label: t('平均值') },
+    ],
+    [t]
+  );
+
   const openModal = () => setVisible(true);
 
   const last = toks[toks.length - 1];
   const bal = parenBalance(toks);
+  // 公式是否可計算（避免空字串、以運算子/左括號/逗號結尾、只有 "SUM(" 這種）
+  const isExpressionReady = React.useMemo(() => {
+    if (!toks.length) return false;
+
+    const lastTok = toks[toks.length - 1];
+    if (!['name', 'number', 'rparen'].includes(lastTok.type)) return false;
+
+    // 只有「函數 + 左括號」視為不完整，例如 ["func:SUM","("]
+    if (toks.length === 2 && toks[0].type === 'func' && toks[1].type === 'lparen') return false;
+
+    return true;
+  }, [toks]);
+
   const canAdd = {
     name: !last || ['op', 'lparen', 'comma'].includes(last.type),
     number: !last || ['op', 'lparen', 'comma'].includes(last.type) || last.type === 'number',
@@ -177,9 +185,13 @@ export default function WsFormulaInput({
   };
 
   const compute = () => {
+    if (!isExpressionReady) {
+      setErr('請先建立完整公式');
+      setPreview('-');
+      return;
+    }
     try {
       const closed = autoCloseParens(toks);
-      if (parenBalance(closed) !== 0) throw new Error('括號未配對');
       const expr = tokensToFormula(closed);
       const val = math.evaluate(expr, buildScope(params));
       const u = inferUnit(closed);
@@ -187,8 +199,8 @@ export default function WsFormulaInput({
         setErr('');
         setPreview(`${val.toFixed(3)}${u ? ` ${u}` : ''}`);
       } else {
-        setErr('');
-        setPreview(String(val));
+        // 非數值或 undefined 一律當作錯誤處理
+        throw new Error('公式不完整或結果非數值');
       }
     } catch (e: any) {
       setErr(e?.message ?? '公式錯誤');
@@ -197,24 +209,27 @@ export default function WsFormulaInput({
   };
 
   const applyAndClose = () => {
+    if (!isExpressionReady) {
+      setErr('請先建立完整公式');
+      return;
+    }
     try {
       const closed = autoCloseParens(toks);
-      if (parenBalance(closed) !== 0) throw new Error('括號未配對');
       const expr = tokensToFormula(closed);
       const rawVal = math.evaluate(expr, buildScope(params));
       const num = Number(rawVal);
       if (!Number.isFinite(num)) throw new Error('結果非數值');
-      const u = inferUnit(closed);
 
-      // set outer display states
+      const u = inferUnit(closed);
       setExpression(expr);
       setResultNum(num);
       setUnit(u);
-
-      // callback
-      const display = `${expr} = ${num.toFixed(3)}${u ? ` ${u}` : ''}`;
-      onChange?.({ expression: expr, value: num, displayText: display, name: formulaName || undefined, unit: u || undefined });
-
+      onChange?.({
+        expression: expr,
+        value: num,
+        displayText: `${expr} = ${num.toFixed(3)}${u ? ` ${u}` : ''}`,
+        unit: u || undefined,
+      });
       setErr('');
       setVisible(false);
     } catch (e: any) {
@@ -226,7 +241,6 @@ export default function WsFormulaInput({
     setExpression('');
     setResultNum(null);
     setUnit('');
-    setFormulaName('');
     setToks([]);
     setPreview('-');
     setErr('');
@@ -246,27 +260,16 @@ export default function WsFormulaInput({
     ['op', 'lparen', 'comma'].includes(lastTok?.type) ||
     (lastTok?.type === 'number' && !lastTok.text.includes('.'));
 
-  // 取代直接關閉：先詢問
-  const requestCloseModal = () => {
-    setPopupActive(true)
-  }
-
-  // Popup「取消」→ 關掉 Popup（不關 Modal）
+  // 關閉流程（多一步確認）
+  const requestCloseModal = () => setPopupActive(true);
   const cancelCloseModal = () => setPopupActive(false);
-
-  // Popup「確定」→ 關掉 Popup + 關掉 Modal
-  const confirmCloseModal = () => {
-    setPendingClose(true);   // 先標記要關外層
-    setPopupActive(false);   // 先關內層 WsPopup
-  };
-
+  const confirmCloseModal = () => { setPendingClose(true); setPopupActive(false); };
   React.useEffect(() => {
-    // 當我們想關外層，且 popup 已經關閉時，才真的關外層
     if (pendingClose && !popupActive) {
       const raf = requestAnimationFrame(() => {
         InteractionManager.runAfterInteractions(() => {
-          setVisible(false);        // 這裡才關外層 Modal
-          setPendingClose(false);   // 重置旗標
+          setVisible(false);
+          setPendingClose(false);
         });
       });
       return () => cancelAnimationFrame(raf);
@@ -275,57 +278,23 @@ export default function WsFormulaInput({
 
   return (
     <>
-      {/* ===== 外層顯示區：未輸入 → 單一輸入框；已輸入 → 四列摘要卡 ===== */}
-      {!hasValue ? (
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={openModal}
-          style={[
-            styles.inputBox,
-            { borderColor: border, backgroundColor: cardBg }
-          ]}
-        >
-          <TextInput
-            editable={false}
-            placeholder={placeholder}
-            placeholderTextColor={'rgba(0,0,0,0.35)'}
-            value={''}
-            style={[styles.input, { color: fg }]}
-          />
-          <Text style={{ color: sub }}>✎</Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.summaryCard}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.summaryTitle}>公式摘要</Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity onPress={openModal} style={styles.summaryActionBtn}>
-                <Text style={styles.summaryActionTxt}>編輯</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={resetAll} style={[styles.summaryActionBtn, { backgroundColor: $color.danger }]}>
-                <Text style={[styles.summaryActionTxt, { color: '#fff' }]}>清除</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>公式名稱</Text>
-            <Text style={styles.kvValue}>{formulaName || '—'}</Text>
-          </View>
-          <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>公式</Text>
-            <Text style={styles.kvValue} numberOfLines={2} ellipsizeMode="tail">{expression}</Text>
-          </View>
-          <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>結果</Text>
-            <Text style={styles.kvValueStrong}>{resultNum?.toFixed(3) ?? '—'}</Text>
-          </View>
-          <View style={styles.kvRow}>
-            <Text style={styles.kvLabel}>單位</Text>
-            <Text style={styles.kvValue}>{unit || '—'}</Text>
-          </View>
-        </View>
-      )}
+      {/* ===== 外層顯示：單一輸入匡（顯示已設定的公式） ===== */}
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={openModal}
+        style={[styles.inputBox, { borderColor: border, backgroundColor: cardBg }]}
+      >
+        <TextInput
+          editable={false}
+          placeholder={placeholder}
+          placeholderTextColor={'rgba(0,0,0,0.35)'}
+          value={expression}
+          style={[styles.input, { color: fg }]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        />
+        <Text style={{ color: sub }}>✎</Text>
+      </TouchableOpacity>
 
       {/* ===== Modal 編輯器 ===== */}
       <Modal
@@ -342,14 +311,12 @@ export default function WsFormulaInput({
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
               style={{ flex: 1, backgroundColor: '#fff' }}
-              keyboardVerticalOffset={0}
             >
-
               {/* Header：標題 + 關閉 */}
               <View style={styles.header}>
-                <Text style={styles.headerTitle}>公式編輯器</Text>
+                <Text style={styles.headerTitle}>{t('公式編輯器')}</Text>
                 <TouchableOpacity onPress={requestCloseModal} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <Text style={styles.headerAction}>關閉</Text>
+                  <Text style={styles.headerAction}>{t('關閉')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -358,23 +325,11 @@ export default function WsFormulaInput({
                 contentInsetAdjustmentBehavior="never"
                 keyboardShouldPersistTaps="handled"
               >
-                {/* 名稱輸入框 */}
-                <Text style={[styles.h3, { color: '#111' }]}>公式名稱</Text>
-                <View style={styles.nameBox}>
-                  <TextInput
-                    placeholder="輸入公式名稱（可空白）"
-                    placeholderTextColor="#aaa"
-                    value={formulaName}
-                    onChangeText={setFormulaName}
-                    style={styles.nameInput}
-                  />
-                </View>
-
                 {/* 可用參數（由外層傳入） */}
-                <Text style={[styles.h3, { color: '#111' }]}>可用參數</Text>
+                <Text style={[styles.h3, { color: '#111' }]}>{t('可用參數')}</Text>
                 <View style={styles.rowWrap}>
                   {params.length === 0 ? (
-                    <Text style={{ color: '#777' }}>（目前沒有可用參數）</Text>
+                    <Text style={{ color: '#777' }}>（{t('目前沒有可用參數')}）</Text>
                   ) : (
                     params.map(p => (
                       <Btn
@@ -387,13 +342,12 @@ export default function WsFormulaInput({
                 </View>
 
                 {/* 公式顯示（醒目卡片） */}
-                <Text style={[styles.h2, { color: '#111' }]}>公式</Text>
+                <Text style={[styles.h2, { color: '#111' }]}>{t('公式')}</Text>
                 <View style={styles.formulaCard}>
-                  {/* Header */}
                   <View style={styles.formulaHeader}>
                     <View style={styles.accentBar} />
-                    <Text style={styles.formulaTitle}>目前公式</Text>
-                    {bal > 0 ? <Text style={styles.parenHint}>將自動補上 {bal} 個「)」</Text> : null}
+                    <Text style={styles.formulaTitle}>{t('目前公式')}</Text>
+                    {bal > 0 ? <Text style={styles.parenHint}>{t('將自動補上')} {bal} {t('個「)」')}</Text> : null}
                   </View>
 
                   {/* Token 區（彩色語法 + 可水平捲動） */}
@@ -401,39 +355,33 @@ export default function WsFormulaInput({
                     {toks.length === 0 ? (
                       <View style={styles.tokenPlaceholderBox}>
                         <Text style={[styles.tokenPlaceholder, { textAlign: 'center' }]}>
-                          尚未建立公式，請從按鈕插入參數 / 函數 / 數字
+                          {t('尚未建立公式，請從按鈕插入參數 / 函數 / 數字')}
                         </Text>
                       </View>
                     ) : (
-                      toks.map((t, i) => {
-                        const pal = tokenPalette(t);
-                        return (
-                          <Badge
-                            key={i}
-                            text={t.text}
-                            border={pal.border}
-                            fg={pal.fg}
-                            bg={pal.bg}
-                          />
-                        );
+                      toks.map((tk, i) => {
+                        const pal = tokenPalette(tk);
+                        return <Badge key={i} text={tk.text} border={pal.border} fg={pal.fg} bg={pal.bg} />;
                       })
                     )}
                   </ScrollView>
 
                   {/* 操作列 */}
                   <View style={styles.row}>
-                    <Btn label="計算" onPress={compute} primary />
-                    <Btn label="套用並關閉" onPress={applyAndClose} />
-                    <Btn label="刪除一格" onPress={pop} />
-                    <Btn label="清空" onPress={clearTokens} />
-                    <Btn label="關閉" onPress={requestCloseModal} style={{ backgroundColor: $color.danger }} textStyle={{ color: $color.white }} />
+                    <Btn label={t('計算')} onPress={compute} primary disabled={!isExpressionReady} />
+                    <Btn label={t('套用並關閉')} onPress={applyAndClose} disabled={!isExpressionReady} />
+                    <Btn label={t('刪除一格')} onPress={pop} />
+                    <Btn label={t('清空')} onPress={clearTokens} />
+                    <Btn label={t('關閉')} onPress={requestCloseModal}
+                      style={{ backgroundColor: $color.danger }} textStyle={{ color: $color.white }} />
                   </View>
+
 
                   {/* 結果 / 狀態（預覽） */}
                   <View style={[styles.resultCard, !!err ? styles.resultCardError : styles.resultCardOk]}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
                       <Text style={[styles.resultLabel, !!err ? styles.resultLabelError : styles.resultLabelOk]}>
-                        {err ? '計算錯誤' : '試算結果'}
+                        {err ? t('計算錯誤') : t('試算結果')}
                       </Text>
                       {!err && <UnitChip text={inferUnit(toks)} />}
                     </View>
@@ -443,21 +391,21 @@ export default function WsFormulaInput({
                   </View>
                 </View>
 
-                {/* 函數 */}
-                <Text style={[styles.h3, { color: '#111' }]}>函數</Text>
+                {/* ✅ 函數（只顯示四個） */}
+                <Text style={[styles.h3, { color: '#111' }]}>{t('函數')}</Text>
                 <View style={styles.rowWrap}>
-                  {['SUM', 'ROUND', 'IF', 'AVERAGE'].map(fn => (
+                  {fnDefs.map(def => (
                     <Btn
-                      key={fn}
-                      label={`${fn}(`}
-                      onPress={() => insertFunc(fn)}
+                      key={def.key}
+                      label={`${def.label} ${def.key}(`}   // 例如「加總 SUM(」
+                      onPress={() => insertFunc(def.key)}
                       disabled={!(!toks.length || ['op', 'lparen', 'comma'].includes((toks[toks.length - 1] || {} as any).type))}
                     />
                   ))}
                 </View>
 
                 {/* 運算子 / 括號 / 逗號 */}
-                <Text style={[styles.h3, { color: '#111' }]}>運算子 / 括號 / 逗號</Text>
+                <Text style={[styles.h3, { color: '#111' }]}>{t('運算子 / 括號 / 逗號')}</Text>
                 <View style={styles.rowWrap}>
                   <Btn label="+" onPress={() => insertOp('+')} disabled={!(['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')))} />
                   <Btn label="-" onPress={() => insertOp('-')} disabled={!(['name', 'number', 'rparen'].includes((toks[toks.length - 1]?.type || '')))} />
@@ -469,7 +417,7 @@ export default function WsFormulaInput({
                 </View>
 
                 {/* 數字鍵盤 */}
-                <Text style={[styles.h3, { color: '#111' }]}>數字鍵盤</Text>
+                <Text style={[styles.h3, { color: '#111' }]}>{t('數字鍵盤')}</Text>
                 <View style={styles.rowWrap}>
                   {[...'1234567890'].map(n => (
                     <Btn key={n} label={n} onPress={() => insertNumber(n)} disabled={!canTapDigit} />
@@ -477,16 +425,12 @@ export default function WsFormulaInput({
                   <Btn label="." onPress={() => insertNumber('.')} disabled={!canTapDot} />
                 </View>
               </ScrollView>
-
             </KeyboardAvoidingView>
           </SafeAreaView>
         </SafeAreaProvider>
 
-        <WsPopup
-          active={popupActive}
-          onClose={() => {
-            setPopupActive(false)
-          }}>
+        {/* 關閉確認 */}
+        <WsPopup active={popupActive} onClose={() => setPopupActive(false)}>
           <View
             style={{
               width: width * 0.9,
@@ -494,22 +438,12 @@ export default function WsFormulaInput({
               backgroundColor: $color.white,
               borderRadius: 10,
               flexDirection: 'row',
-            }}>
-            <WsText
-              size={18}
-              color={$color.black}
-              style={{
-                padding: 16,
-              }}
-            >{t('確定捨棄嗎？')}
+            }}
+          >
+            <WsText size={18} color={$color.black} style={{ padding: 16 }}>
+              {t('確定捨棄嗎？')}
             </WsText>
-            <WsFlex
-              style={{
-                position: 'absolute',
-                right: 16,
-                bottom: 16,
-              }}
-            >
+            <WsFlex style={{ position: 'absolute', right: 16, bottom: 16 }}>
               <TouchableOpacity
                 style={{
                   paddingHorizontal: 16,
@@ -524,20 +458,9 @@ export default function WsFormulaInput({
                 }}
                 onPress={cancelCloseModal}
               >
-                <WsText
-                  style={{
-                  }}
-                  size={14}
-                  color={$color.gray}
-                >{t('取消')}
-                </WsText>
+                <WsText size={14} color={$color.gray}>{t('取消')}</WsText>
               </TouchableOpacity>
-              <WsGradientButton
-                style={{
-                  width: 110,
-                }}
-                onPress={confirmCloseModal}
-              >
+              <WsGradientButton style={{ width: 110 }} onPress={confirmCloseModal}>
                 {t('確定')}
               </WsGradientButton>
             </WsFlex>
@@ -554,8 +477,8 @@ type BtnProps = {
   onPress: () => void;
   disabled?: boolean;
   primary?: boolean;
-  style?: StyleProp<ViewStyle>;      // 個別覆寫容器樣式
-  textStyle?: StyleProp<TextStyle>;  // 個別覆寫文字樣式
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
 };
 
 function Btn({ label, onPress, disabled, primary, style, textStyle }: BtnProps) {
@@ -570,9 +493,7 @@ function Btn({ label, onPress, disabled, primary, style, textStyle }: BtnProps) 
         style,
       ]}
     >
-      <Text style={[styles.btnText, primary && { color: '#fff' }, textStyle]}>
-        {label}
-      </Text>
+      <Text style={[styles.btnText, primary && { color: '#fff' }, textStyle]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -599,35 +520,6 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, padding: 0, margin: 0 },
 
-  // 摘要卡
-  summaryCard: {
-    borderWidth: 1,
-    borderColor: '#e6e6ea',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
-  },
-  summaryTitle: { fontSize: 14, fontWeight: '700', color: '#111' },
-  summaryActionBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#d9d9de',
-    backgroundColor: '#f6f7fa',
-  },
-  summaryActionTxt: { fontSize: 12, color: '#3f51b5', fontWeight: '700' },
-  kvRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  kvLabel: { color: '#666', width: 80 },
-  kvValue: { flex: 1, textAlign: 'right', color: '#111' },
-  kvValueStrong: { flex: 1, textAlign: 'right', color: '#0b5aaa', fontWeight: '800' },
-
   // Header
   header: {
     paddingHorizontal: 16,
@@ -643,26 +535,10 @@ const styles = StyleSheet.create({
 
   // Modal 內容
   wrap: { padding: 16, gap: 12, backgroundColor: '#fff' },
-  h1: { fontSize: 18, fontWeight: '700' },
   h2: { fontSize: 16, fontWeight: '700', marginTop: 4 },
   h3: { fontSize: 14, fontWeight: '600', marginTop: 8 },
   row: { flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' },
   rowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-
-  // 名稱輸入
-  nameBox: {
-    borderWidth: 1,
-    borderColor: '#e6e6ea',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: '#fff',
-  },
-  nameInput: {
-    color: '#111',
-    padding: 0,
-    margin: 0,
-  },
 
   btn: {
     paddingVertical: 8,

@@ -135,47 +135,6 @@ export default function Version3Block({
 
   return (
     <View style={[styles.root, style]}>
-      {/* 標題 */}
-      <Text style={styles.sectionTitle}>{title}</Text>
-
-      {/* 公式列表（公式一行、按鈕換行） */}
-      {formulas.map((f, i) => (
-        <View key={`${i}-${f}`} style={styles.formulaRow}>
-          {/* 公式：單獨一行 */}
-          <TouchableOpacity
-            style={[styles.formulaPill, formulaPillStyle]}
-            onPress={() => {
-              setModalActiveFormula(true)
-            }}
-          >
-            <Text style={styles.formulaText}>{f || '—'}</Text>
-          </TouchableOpacity>
-
-          {/* 按鈕：在下一行，空間不足時自動換行 */}
-          <View style={styles.actionGroupRow}>
-            <OutlineBtn
-              label={selectSourceLabel}
-              onPress={() => {
-                onSelectSource?.(i)
-                setModalVisibleSourceData(true)
-              }}
-              style={actionButtonStyle}
-              textStyle={actionButtonTextStyle}
-            />
-            <OutlineBtn
-              label={deleteLabel}
-              onPress={() => removeFormula(i)}
-              style={actionButtonStyle}
-              textStyle={actionButtonTextStyle}
-            />
-          </View>
-        </View>
-      ))}
-
-      {/* 加號 */}
-      <TouchableOpacity onPress={addFormula} style={styles.addRow}>
-        <Text style={styles.addPlus}>{addLabel}</Text>
-      </TouchableOpacity>
 
       {/* 已選擇的題目 */}
       <Text style={[styles.sectionTitle, { marginTop: 4 }]}>{selectedTitle}</Text>

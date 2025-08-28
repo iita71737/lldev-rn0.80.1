@@ -214,7 +214,7 @@ import WsFilterScopes from '@/__reactnative_stone/components/WsFilterScopes'
 import WsInfiniteScrollPagination from '@/__reactnative_stone/components/WsInfiniteScrollPagination'
 import WsTextHighlight from '@/__reactnative_stone/components/WsTextHighlight'
 import WsStatusBar from '@/__reactnative_stone/components/WsStatusBar'
-import WsStateRadioWithInput from '@/__reactnative_stone/components/WsStateRadioWithInput'
+import WsTimeRangePicker from '@/__reactnative_stone/components/WsTimeRangePicker'
 import WsAccordion from '@/__reactnative_stone/components/WsAccordion'
 import WsFormulaBuilder from '@/__reactnative_stone/components/WsFormulaBuilder'
 
@@ -593,7 +593,7 @@ export {
   WsInfiniteScrollPagination,
   WsTextHighlight,
   WsStatusBar,
-  WsStateRadioWithInput,
+  WsTimeRangePicker,
   WsAccordion,
   WsFormulaBuilder,
 

@@ -25,7 +25,8 @@ import {
   WsIcon,
   WsModal,
   WsState,
-  WsAccordion
+  WsAccordion,
+  WsGradientButton
 } from '@/components'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
@@ -35,7 +36,7 @@ import * as echarts from 'echarts/core';
 import { LineChart as ELineChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent } from 'echarts/components';
 import { SkiaRenderer, SkiaChart } from '@wuba/react-native-echarts'; // ✅ 重點：用 SkiaChart 或 SvgChart
-import { WsGradientButton } from 'components'
+import { useNavigation } from '@react-navigation/native'
 import PickType from '@/views/Statistics/Create/PickType'
 import SingleChart from './SingleChart'
 
@@ -47,6 +48,7 @@ const Show = () => {
   const chartRef = useRef<any>(null);
   const instRef = useRef<echarts.EChartsType | null>(null);
   const { width } = useWindowDimensions();
+  const navigation = useNavigation()
 
   const [chartInfo, setChartInfo] = useState({
     name: '',
@@ -54,6 +56,7 @@ const Show = () => {
     yAxisLabel: 'label',
     remark: ''
   });
+  const [formulaData, setFormulaData] = useState();
   const [modalAddChartForm, setModalAddChartForm] = React.useState(false)
   const [modalActiveFormula, setModalActiveFormula] = React.useState(false)
   const [modalAddRecord, setModalAddRecord] = React.useState(false)
@@ -132,6 +135,22 @@ const Show = () => {
   useEffect(() => {
     instRef.current?.resize({ width, height: 300 });
   }, [width]);
+
+
+  // Functions
+  const $_setStorage = async () => {
+    const _mockData = {
+      name: "Test name1",
+      owner: { name: 'test owner' },
+      factory_tags: [{ name: 'tag1' }, { name: 'tag2' }],
+      date_picker_type: 2,
+      dynamic_data_time: 7,
+      improvement_limited_period: 30,
+      remark: "Test remark",
+    }
+    const _task = JSON.stringify(_mockData)
+    await AsyncStorage.setItem('StatisticsEdit', _task)
+  }
 
   // chips
   const [uChips, setUChips] = React.useState<ChipItem[]>([
@@ -220,7 +239,9 @@ const Show = () => {
               right: 8,
               top: 8,
             }}
-            onPress={() => {
+            onPress={async () => {
+              await $_setStorage()
+              navigation.navigate('StatisticsEdit')
             }}
           />
           <View
@@ -330,6 +351,7 @@ const Show = () => {
               style={{
               }}
               onPress={() => {
+                setModalAddChartForm(true)
               }}
             />
             <TouchableOpacity
@@ -719,14 +741,53 @@ const Show = () => {
               }}
               label={t('公式​')}
               placeholder={t('輸入')}
-              value={chartInfo?.formulaString}
+              value={formulaData?.expression}
               params={[
                 { key: 'A1', value: 456.25, label: '起始(小時)' },
                 { key: 'A2', value: 472, label: '結束(小時)' },
-                { key: 'kWh', value: 12000, label: '電力使用量' },
+                { key: 'B1', value: 12000, label: '電力使用量' },
               ]}
-              onChange={(p) => console.log(p)}
+              onChange={(p) =>
+                setFormulaData(p)
+              }
             />
+
+            <WsState
+              style={{
+                marginVertical: 8
+              }}
+              label={t('公式名稱​')}
+              placeholder={t('輸入')}
+              value={formulaData?.name}
+              onChange={
+                (name: string) => setFormulaData((prev) => ({ ...prev, name }))
+              }
+            />
+
+            <WsState
+              style={{
+                marginVertical: 8
+              }}
+              label={t('結果​欄​位​名稱')}
+              placeholder={t('輸入')}
+              value={formulaData?.resultFieldName}
+              onChange={(resultFieldName: string) => {
+                setFormulaData((prev) => ({ ...prev, resultFieldName }))
+              }}
+            />
+
+            <WsState
+              style={{
+                marginVertical: 8
+              }}
+              label={t('結果​單位​')}
+              placeholder={t('輸入')}
+              value={formulaData?.resultFieldUnit}
+              onChange={(resultFieldUnit: string) => {
+                setFormulaData((prev) => ({ ...prev, resultFieldUnit }))
+              }}
+            />
+
           </WsPaddingContainer>
         </ScrollView>
       </WsModal>
