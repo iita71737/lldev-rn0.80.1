@@ -1,6 +1,6 @@
 // WsTimeRangePicker.tsx
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { View, TextInput, StyleSheet, Pressable } from 'react-native';
+import { View, TextInput, StyleSheet, Keyboard } from 'react-native';
 import $color from '@/__reactnative_stone/global/color';
 import { WsText, WsStateRadioItem } from '@/components';
 
@@ -8,9 +8,9 @@ export type TimeUnit = 'days' | 'weeks' | 'months' | 'year';
 
 export type PickerItem = {
   value: TimeUnit | string;
-  hasInput?: boolean;        // true => 需要數字
-  unitLabel?: string;        // 右側單位字：天內 / 周內 / ...
-  label?: string;            // 無輸入框時顯示用
+  hasInput?: boolean;
+  unitLabel?: string;
+  label?: string;
   placeholder?: string;
   maxLength?: number;
   min?: number;
@@ -21,23 +21,21 @@ export type PickerItem = {
 export type PickerState = {
   unit: string | number;
   amountByUnit: Record<string | number, number | undefined>;
-  amountForUnit?: number;    // 目前選中單位的值
-  valid: true;               // 僅在有效時才回傳 payload ⇒ 永遠為 true
+  amountForUnit?: number;
+  valid: true;
 };
 
 type Props = {
   items?: PickerItem[];
-  /** 受控值（不傳則採不受控） */
   value?: { unit: string | number; amountByUnit?: Record<string | number, number | undefined> };
-  /** 需要輸入但未輸入數字時，會回傳 undefined */
   onChange?: (s?: PickerState) => void;
   disabled?: boolean;
   style?: any;
   rowStyle?: any;
   isError?: boolean;
   borderColorError?: string;
-  /** 切換單選時是否清空該選項輸入值（預設 true） */
-  clearOnSwitch?: boolean;
+  clearOnSwitch?: boolean;          // 清空新選項（預設 true）
+  clearPreviousOnSwitch?: boolean;  // 清空舊選項（預設 true）
 };
 
 const DEFAULT_ITEMS: PickerItem[] = [
@@ -57,6 +55,7 @@ export default function WsTimeRangePicker({
   isError,
   borderColorError = $color.danger,
   clearOnSwitch = true,
+  clearPreviousOnSwitch = true,
 }: Props) {
   const finalItems = useMemo(() => (items.length ? items : DEFAULT_ITEMS), [items]);
 
@@ -68,28 +67,28 @@ export default function WsTimeRangePicker({
 
   const isControlled = value?.unit !== undefined;
 
+  // 內部狀態
   const [selectedUnit, setSelectedUnit] = useState<string | number>(initialUnit);
   const [amountByUnit, setAmountByUnit] = useState<Record<string | number, number | undefined>>(value?.amountByUnit ?? {});
   const [textMap, setTextMap] = useState<Record<string | number, string>>({});
-  const [clearedActiveUnit, setClearedActiveUnit] = useState<string | number | null>(null); // ⭐ 受控清空覆蓋旗標
-  const inputRefs = useRef<Record<string | number, TextInput | null>>({});
+  const [clearedKeys, setClearedKeys] = useState<Record<string | number, boolean>>({});
+  const [tempUnit, setTempUnit] = useState<string | number | undefined>(undefined); // ⭐ 暫存選取（讓 UI 立即反應）
 
   // 受控 → 追隨外部
   useEffect(() => {
     if (isControlled && value) {
       setSelectedUnit(value.unit);
       setAmountByUnit(value.amountByUnit ?? {});
-      // 保留 textMap；若剛清空，getText 會優先用 textMap
     }
   }, [isControlled, value?.unit, value?.amountByUnit]);
 
-  const activeUnit = isControlled ? (value?.unit ?? selectedUnit) : selectedUnit;
+  // 目前用來渲染的選取（UI 立即切）
+  const activeUnitUI = tempUnit ?? (isControlled ? (value?.unit ?? selectedUnit) : selectedUnit);
 
   const setText = (key: string | number, s: string) => {
     setTextMap(prev => ({ ...prev, [key]: s }));
   };
 
-  // 轉數字（空字串/非數字回 undefined；夾限 min/max）
   const parseNumber = (s?: string, min?: number, max?: number) => {
     const str = String(s ?? '').trim();
     if (str === '') return undefined;
@@ -101,22 +100,15 @@ export default function WsTimeRangePicker({
     return out;
   };
 
-  // 顯示值來源：受控時若剛清空(active 且 cleared)，忽略父層舊值
+  // 顯示文字：若該 key 在 clearedKeys=true，優先顯示 textMap（空字串）
   const getText = (key: string | number) => {
-    const isActive = String(activeUnit) === String(key);
-    const wasCleared = isActive && clearedActiveUnit !== null && String(clearedActiveUnit) === String(key);
-
-    if (isControlled && !wasCleared) {
-      const n = value?.amountByUnit?.[key];
-      if (typeof n === 'number') return String(n);
-    } else if (!isControlled) {
-      const n = amountByUnit[key];
-      if (typeof n === 'number') return String(n);
-    }
+    if (clearedKeys[key]) return textMap[key] ?? '';
+    const src = isControlled ? value?.amountByUnit?.[key] : amountByUnit[key];
+    if (typeof src === 'number') return String(src);
     return textMap[key] ?? '';
   };
 
-  // 只有在「有效有值」時才回傳 payload；否則 onChange(undefined)
+  // 只在有效時送 payload；否則回傳 undefined
   const emit = (nextUnit: string | number, nextAmountByUnit: Record<string | number, number | undefined>) => {
     const item = finalItems.find(i => i.value === nextUnit);
     const need = !!item?.hasInput;
@@ -126,95 +118,90 @@ export default function WsTimeRangePicker({
       onChange?.(undefined);
       return;
     }
-    onChange?.({
-      unit: nextUnit,
-      amountByUnit: nextAmountByUnit,
-      amountForUnit,
-      valid: true,
-    });
+    onChange?.({ unit: nextUnit, amountByUnit: nextAmountByUnit, amountForUnit, valid: true });
+    // 一旦有效，交棒給父層，清掉暫存
+    setTempUnit(undefined);
+    setClearedKeys(prev => ({ ...prev, [nextUnit]: false }));
   };
 
-  // 點選切換
+  // 切換（只讓 WsStateRadioItem 可點）
   const select = (opt: PickerItem) => {
     if (disabled) return;
-    const unit = opt.value;
+    Keyboard.dismiss();
 
+    const unit = opt.value;
+    const prevUnit = String(activeUnitUI);
+
+    // 立刻切換 UI（避免「要點兩下」）
+    setTempUnit(unit);
     if (!isControlled) setSelectedUnit(unit);
 
+    const base = isControlled ? (value?.amountByUnit ?? {}) : amountByUnit;
+    let next: Record<string | number, number | undefined> = { ...base };
+
+    // 清空上一個選項
+    if (clearPreviousOnSwitch && prevUnit !== String(unit)) {
+      setText(prevUnit, '');
+      setClearedKeys(prev => ({ ...prev, [prevUnit]: true }));
+      next[prevUnit] = undefined;
+    }
+
     if (opt.hasInput) {
-      // 切換就清空選中單位
+      // 清空新選中的值
       if (clearOnSwitch) {
         setText(unit, '');
-        setClearedActiveUnit(unit); // ⭐ 受控時也強制顯示為空
+        setClearedKeys(prev => ({ ...prev, [unit]: true }));
+        next[unit] = undefined;
       } else {
-        setClearedActiveUnit(null);
+        next[unit] = base[unit];
       }
-
-      const next = {
-        ...(isControlled ? (value?.amountByUnit ?? {}) : amountByUnit),
-        [unit]: clearOnSwitch ? undefined : (isControlled ? value?.amountByUnit?.[unit] : amountByUnit[unit]),
-      };
       if (!isControlled) setAmountByUnit(next);
-      emit(unit, next);                  // 會回傳 undefined（未輸入）
+      emit(unit, next); // 未輸入 ⇒ onChange(undefined)
     } else {
-      setClearedActiveUnit(null);
-      const next = { ...(isControlled ? (value?.amountByUnit ?? {}) : amountByUnit) };
+      // 不需輸入 ⇒ 直接有效
+      setClearedKeys(prev => ({ ...prev, [unit]: false }));
       if (!isControlled) setAmountByUnit(next);
-      emit(unit, next);                  // 不需輸入 ⇒ 直接有效
+      emit(unit, next);
+      if (!isControlled) setTempUnit(undefined);
     }
   };
 
-  // 輸入變更
   const onChangeText = (opt: PickerItem, s: string) => {
     const clean = s.replace(/[^\d]/g, '');
     setText(opt.value, clean);
 
-    if (String(activeUnit) === String(opt.value)) {
+    // 只有在目前選中的單位才送出
+    if (String(activeUnitUI) === String(opt.value)) {
       const n = parseNumber(clean, opt.min, opt.max);
       const next = { ...(isControlled ? (value?.amountByUnit ?? {}) : amountByUnit), [opt.value]: n };
       if (!isControlled) setAmountByUnit(next);
 
-      // 只要使用者有輸入，就取消清空覆蓋
-      if (clean !== '') setClearedActiveUnit(null);
-
+      // 有輸入 ⇒ 不再以 cleared 覆蓋
+      setClearedKeys(prev => ({ ...prev, [opt.value]: false }));
       emit(opt.value, next); // 空字串 ⇒ n=undefined ⇒ onChange(undefined)
     }
   };
 
   return (
-    <View
-      style={[
-        styles.wrap,
-        style,
-        isError && { borderRadius: 5, borderWidth: 1, borderColor: borderColorError },
-      ]}
-    >
+    <View style={[styles.wrap, style, isError && { borderRadius: 5, borderWidth: 1, borderColor: borderColorError }]}>
       {finalItems.map((opt) => {
-        const active = String(activeUnit) === String(opt.value);
+        const active = String(activeUnitUI) === String(opt.value);
         const needInput = !!opt.hasInput;
         const text = getText(opt.value);
         const showError = active && needInput && !disabled && text.trim() === '';
 
         return (
-          <Pressable
-            key={String(opt.value)}
-            onPress={() => select(opt)}
-            disabled={disabled}
-            style={[styles.row, rowStyle]}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: active, disabled: !!disabled }}
-          >
+          <View key={String(opt.value)} style={[styles.row, rowStyle]}>
             <WsStateRadioItem
               disabled={disabled}
               isActive={active}
               label={''}
-              onPress={() => select(opt)}
+              onPress={() => select(opt)}   // 用 WsStateRadioItem 自己的 Touchable
             />
 
             {needInput ? (
               <View style={styles.inline}>
                 <TextInput
-                  ref={r => (inputRefs.current[opt.value] = r)}
                   editable={active && !disabled}
                   keyboardType="number-pad"
                   placeholder={opt.placeholder ?? '數字'}
@@ -228,23 +215,13 @@ export default function WsTimeRangePicker({
                     showError && styles.inputError,
                   ]}
                 />
-                {!!opt.unitLabel && (
-                  <WsText color={$color.gray} style={styles.unit}>
-                    {opt.unitLabel}
-                  </WsText>
-                )}
-                {showError && (
-                  <WsText size={12} color={$color.danger} style={{ marginLeft: 8 }}>
-                    必填
-                  </WsText>
-                )}
+                {!!opt.unitLabel && <WsText color={$color.gray} style={styles.unit}>{opt.unitLabel}</WsText>}
+                {showError && <WsText size={12} color={$color.danger} style={{ marginLeft: 8 }}>必填</WsText>}
               </View>
             ) : (
-              <WsText size={14} color={$color.black}>
-                {opt.label ?? opt.unitLabel ?? String(opt.value)}
-              </WsText>
+              <WsText size={14} color={$color.black}>{opt.label ?? opt.unitLabel ?? String(opt.value)}</WsText>
             )}
-          </Pressable>
+          </View>
         );
       })}
     </View>
@@ -255,7 +232,6 @@ const styles = StyleSheet.create({
   wrap: { gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center' },
   inline: { flexDirection: 'row', alignItems: 'center' },
-
   input: {
     minWidth: 96,
     paddingVertical: 8,
