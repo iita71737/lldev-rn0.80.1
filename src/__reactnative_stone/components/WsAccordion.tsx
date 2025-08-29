@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 8,
     borderWidth: 1,
-    borderColor: $color.graydd,
+    borderColor: $color.white2d,
     borderRadius: 10,
     backgroundColor: $color.white,
     overflow: 'hidden', // 需要保留：收合時裁切內容

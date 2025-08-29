@@ -1,5 +1,43 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, ViewStyle, TextStyle } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  TextInput,
+  ViewStyle,
+  TextStyle,
+  FlatList,
+  Dimensions
+} from 'react-native';
+import {
+  WsBtn,
+  WsPaddingContainer,
+  WsTitle,
+  WsInfoUser,
+  WsFlex,
+  WsIcon,
+  WsText,
+  WsTabView,
+  WsCard,
+  LlAuditSortedResultDraftCard001,
+  WsSkeleton,
+  WsGradientButton,
+  WsNavCheck,
+  WsLoading,
+  WsPopup,
+  WsInfo,
+  WsAccordion,
+  LlCheckListQuestionCard005
+} from '@/components'
+import { useSelector } from 'react-redux'
+import $color from '@/__reactnative_stone/global/color'
+import { useTranslation } from 'react-i18next'
+import { useNavigation } from '@react-navigation/native'
+// import moment from 'moment'
+import moment from 'moment-timezone';
+import { DEMO_CHECKLIST_QUESTIONS, ChecklistItem } from './mock/checklistQuestions';
+import FormulaRelationsMobileDemo from './RelationshipFormulaBlock';
 
 export type ChipItem = { key: string; label: string; withInput?: boolean };
 
@@ -7,7 +45,7 @@ type Version3BlockProps = {
   /* 受控 / 不受控：公式 */
   formulas?: string[];
   onFormulasChange?: (next: string[]) => void;
-
+  step?: number;
   /* 受控 / 不受控：已選題目 */
   chips?: ChipItem[];
   onChipsChange?: (next: ChipItem[]) => void;
@@ -50,6 +88,7 @@ export default function Version3Block({
   onFormulasChange,
   chips: cChips,
   onChipsChange,
+  step,
 
   // 行為
   onSelectSource,
@@ -82,6 +121,10 @@ export default function Version3Block({
   actionButtonStyle,
   actionButtonTextStyle,
 }: Version3BlockProps) {
+  const { width, height } = Dimensions.get('window')
+  const { t, i18n } = useTranslation()
+  const navigation = useNavigation()
+
   /* ===== 內部 state（當外部不受控時使用） ===== */
   const [uFormulas, setUFormulas] = React.useState<string[]>([
     '(A - B) + (C - D) + E',
@@ -133,6 +176,9 @@ export default function Version3Block({
     onGoPage?.(next);
   };
 
+  const _test = moment().tz('Asia/Taipei').subtract(1, 'months').startOf('month').format('YYYY-MM-DD HH:mm:ss [GMT]Z')
+  console.log(_test, '_test');
+
   return (
     <View style={[styles.root, style]}>
 
@@ -151,36 +197,64 @@ export default function Version3Block({
         ))}
       </View>
 
-      {/* 檔案列 & 分頁（可選） */}
-      {showFilePanel && (
-        <View style={styles.fileCard}>
-          <View style={styles.fileRow}>
-            <View style={styles.checkbox} />
-            <Text style={styles.fileTitle} numberOfLines={1}>
-              {fileTitle}
-            </Text>
-          </View>
-
-          <View style={styles.pagerRow}>
-            <Text style={styles.pagerTxt}>前往頁數</Text>
-            <View style={styles.pageInput}>
-              <TextInput
-                style={styles.pageInputTxt}
-                value={String(page)}
-                onChangeText={(t) => setPage(Number(t.replace(/[^\d]/g, '')) || 1)}
-                keyboardType="number-pad"
+      {step === 0 && (
+        <FlatList
+          data={DEMO_CHECKLIST_QUESTIONS}
+          keyExtractor={(item, index) => item.id}
+          renderItem={({ item, index }) => {
+            return (
+              <LlCheckListQuestionCard005
+                key={item.id}
+                checkboxVisible={true}
+                checkboxOnPress={(answer) => {
+                }}
+                onPress={() => {
+                }}
+                style={{
+                  marginTop: 8
+                }}
+                no={index + 1}
+                answer={item}
+                title={item.title}
+                score={item.score}
               />
-            </View>
-            <Text style={styles.pagerTxt}>共 {pageTotal} 頁</Text>
-            <TouchableOpacity style={styles.goBtn} onPress={handleGo}>
-              <Text style={{ color: '#fff' }}>{goLabel}</Text>
-            </TouchableOpacity>
-            <Text style={[styles.pagerTxt, { marginLeft: 8 }]}>
-              {pageTextBuilder(page, pageTotal)}
-            </Text>
-          </View>
-        </View>
+            )
+          }}
+          ListHeaderComponent={() => {
+            return (
+              <>
+              </>
+            )
+          }}
+          ListFooterComponent={
+            () => {
+              return (
+                <></>
+              )
+            }
+          }
+        />
       )}
+
+      {step === 1 && (
+        <WsPaddingContainer
+          padding={0}
+          style={{
+            marginTop: 8,
+            backgroundColor: $color.white,
+            borderRadius: 10,
+          }}
+        >
+          <FormulaRelationsMobileDemo
+            // data={...可自行丟入 API 結果整理後的陣列}
+            onEdit={(f) => console.log('edit:', f)}
+            onPreviewAndDeleteData={(f) => console.log('preview&delete data:', f)}
+            onDelete={(f) => console.log('delete formula:', f)}
+          />
+        </WsPaddingContainer>
+      )}
+
+
     </View>
   );
 }

@@ -174,6 +174,7 @@ const StatisticsRecordCreate = () => {
                   <ChecklistVersionBlock
                     setModalVisibleSourceData={setModalVisibleSourceData}
                     setModalActiveFormula={setModalActiveFormula}
+                    step={STEPS.SELECT}
                   />
                 </WsAccordion>
 
@@ -184,83 +185,63 @@ const StatisticsRecordCreate = () => {
 
           {/* —— Step 2：題目之間的關係公式及剔除資料 —— */}
           {step === STEPS.BETWEEN && (
-            <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
-              {/* 基本資訊（可保留一致） */}
-              <View style={{ marginTop: 8 }}>
-                <WsInfo labelWidth={100} label={t('名稱')} value={'Admin Name'} />
-              </View>
-              <View style={{ marginTop: 8 }}>
-                <WsInfo labelWidth={100} label={t('時間區間')} value={`${'YYYY-MM-DD'} ~ ${'YYYY-MM-DD'}`} />
-              </View>
-              <View style={{ marginTop: 8 }}>
-                <WsInfo labelWidth={100} label={t('時間單位')} value={'Time Unit'} />
-              </View>
+            <>
+              <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
+                {/* 基本資訊 */}
+                <View style={{ marginTop: 8 }}>
+                  <WsInfo labelWidth={100} label={t('名稱')} value={'Admin Name'} />
+                </View>
+                <View style={{ marginTop: 8 }}>
+                  <WsInfo labelWidth={100} label={t('時間區間')} value={`${'YYYY-MM-DD'} ~ ${'YYYY-MM-DD'}`} />
+                </View>
+                <View style={{ marginTop: 8 }}>
+                  <WsInfo labelWidth={100} label={t('時間單位')} value={'Time Unit'} />
+                </View>
+              </WsPaddingContainer>
 
-              {/* A) 題目之間關係公式（用你現成的 WsState type="formula"） */}
-              <WsAccordion title={t('題目之間的關係公式')} defaultOpen>
-                <WsState
-                  type="formula"
-                  style={{ marginVertical: 8 }}
-                  label={t('公式')}
-                  placeholder={t('輸入')}
-                  params={[
-                    { key: 'A', value: 1, label: 'A 題目' },
-                    { key: 'B', value: 2, label: 'B 題目' },
-                    { key: 'C', value: 3, label: 'C 題目' },
-                    { key: 'D', value: 4, label: 'D 題目' },
-                  ]}
-                  value={betweenExpression}
-                  onChange={(p: any) => setBetweenExpression(p.expression)}
-                />
-              </WsAccordion>
+              {/* 版本/題目選擇（沿用你的 Accordion + Block） */}
+              <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
+                <WsAccordion title="版本1" defaultOpen>
+                  <WsText color={$color.gray}>表 1 內容…</WsText>
+                </WsAccordion>
 
-              {/* B) 剔除資料規則（示意：用 WsTag 切換） */}
-              <WsAccordion title={t('剔除資料規則')} defaultOpen>
-                <WsFlex flexWrap="wrap" style={{ gap: 8 }}>
-                  {excludeRules.map((r) => (
-                    <TouchableOpacity
-                      key={r.id}
-                      onPress={() =>
-                        setExcludeRules(xs =>
-                          xs.map(x => (x.id === r.id ? { ...x, enabled: !x.enabled } : x))
-                        )
-                      }
-                    >
-                      <WsTag
-                        backgroundColor={r.enabled ? $color.primary11l : $color.white2d}
-                        textColor={r.enabled ? $color.primary : $color.gray}
-                      >
-                        {r.enabled ? `✓ ${r.label}` : r.label}
-                      </WsTag>
-                    </TouchableOpacity>
-                  ))}
-                </WsFlex>
+                <WsAccordion title="版本2">
+                  <WsText color={$color.gray}>表 2 內容…</WsText>
+                </WsAccordion>
 
-                <TouchableOpacity
-                  style={{ marginTop: 10 }}
-                  onPress={() => setModalVisibleSourceData(true)}
+                <WsAccordion
+                  title={<Text style={{ fontSize: 14, fontWeight: '500' }}>版本 3</Text>}
+                  defaultOpen
+                  style={{ borderWidth: 1, borderRadius: 10 }}
+                  contentStyle={{ backgroundColor: '#fff' }}
                 >
-                  <WsTag>{t('預覽影響的資料')}</WsTag>
-                </TouchableOpacity>
-              </WsAccordion>
+                  <ChecklistVersionBlock
+                    setModalVisibleSourceData={setModalVisibleSourceData}
+                    setModalActiveFormula={setModalActiveFormula}
+                    step={STEPS.BETWEEN}
+                  />
+                </WsAccordion>
 
-              <FooterNav />
-            </WsPaddingContainer>
+                <FooterNav />
+              </WsPaddingContainer>
+            </>
           )}
 
           {/* —— Step 3：單位時間內的關係公式 —— */}
           {step === STEPS.TIMEUNIT && (
-            <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
-              {/* 基本資訊（可保留一致） */}
-              <View style={{ marginTop: 8 }}>
-                <WsInfo labelWidth={100} label={t('名稱')} value={'Admin Name'} />
-              </View>
-              <View style={{ marginTop: 8 }}>
-                <WsInfo labelWidth={100} label={t('時間區間')} value={`${'YYYY-MM-DD'} ~ ${'YYYY-MM-DD'}`} />
-              </View>
-              <View style={{ marginTop: 8 }}>
-                <WsInfo labelWidth={100} label={t('時間單位')} value={'Time Unit'} />
-              </View>
+            <>
+              <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
+                {/* 基本資訊 */}
+                <View style={{ marginTop: 8 }}>
+                  <WsInfo labelWidth={100} label={t('名稱')} value={'Admin Name'} />
+                </View>
+                <View style={{ marginTop: 8 }}>
+                  <WsInfo labelWidth={100} label={t('時間區間')} value={`${'YYYY-MM-DD'} ~ ${'YYYY-MM-DD'}`} />
+                </View>
+                <View style={{ marginTop: 8 }}>
+                  <WsInfo labelWidth={100} label={t('時間單位')} value={'Time Unit'} />
+                </View>
+              </WsPaddingContainer>
 
               {/* 清單：單位時間內的關係公式 */}
               <FormulaTimeUnitList
@@ -271,23 +252,32 @@ const StatisticsRecordCreate = () => {
                 onEditFormula={() => setModalActiveFormula(true)}
               />
 
-              {/* 版本（如有需要保留） */}
-              <WsAccordion title="版本1" defaultOpen>
-                <WsText color={$color.gray}>表 1 內容…</WsText>
-              </WsAccordion>
-              <WsAccordion title="版本2">
-                <WsText color={$color.gray}>表 2 內容…</WsText>
-              </WsAccordion>
+              {/* 版本/題目選擇（沿用你的 Accordion + Block） */}
+              <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
+                <WsAccordion title="版本1" defaultOpen>
+                  <WsText color={$color.gray}>表 1 內容…</WsText>
+                </WsAccordion>
 
-              <FooterNav
-                nextText={t('完成')}
-                onNext={() => {
-                  // TODO: 送出 API 或跳轉
-                  // console.log({ betweenExpression, excludeRules, rules })
-                  navigation.goBack()
-                }}
-              />
-            </WsPaddingContainer>
+                <WsAccordion title="版本2">
+                  <WsText color={$color.gray}>表 2 內容…</WsText>
+                </WsAccordion>
+
+                <WsAccordion
+                  title={<Text style={{ fontSize: 14, fontWeight: '500' }}>版本 3</Text>}
+                  defaultOpen
+                  style={{ borderWidth: 1, borderRadius: 10 }}
+                  contentStyle={{ backgroundColor: '#fff' }}
+                >
+                  <ChecklistVersionBlock
+                    setModalVisibleSourceData={setModalVisibleSourceData}
+                    setModalActiveFormula={setModalActiveFormula}
+                    step={STEPS.BETWEEN}
+                  />
+                </WsAccordion>
+
+                <FooterNav />
+              </WsPaddingContainer>
+            </>
           )}
         </View>
       </ScrollView >

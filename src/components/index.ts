@@ -245,6 +245,7 @@ import LlCheckListQuestionCard001 from './LlCheckListQuestionCard001'
 import LlCheckListQuestionCard002 from './LlCheckListQuestionCard002'
 import LlCheckListQuestionCard003 from './LlCheckListQuestionCard003'
 import LlCheckListQuestionCard004 from './LlCheckListQuestionCard004'
+import LlCheckListQuestionCard005 from './LlCheckListQuestionCard005'
 import LlRiskHeaderCalc from './LlRiskHeaderCalc'
 import LlEffectWithCheckListCalc from './LlEffectWithCheckListCalc'
 import LlEffectWithAuditRisk from './LlEffectWithAuditRisk'
@@ -626,6 +627,7 @@ export {
   LlCheckListQuestionCard002,
   LlCheckListQuestionCard003,
   LlCheckListQuestionCard004,
+  LlCheckListQuestionCard005,
   LlRiskHeaderCalc,
   LlEffectWithCheckListCalc,
   LlEffectWithAuditRisk,
