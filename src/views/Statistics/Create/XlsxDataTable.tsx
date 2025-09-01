@@ -1,5 +1,22 @@
-import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Platform } from 'react-native';
+import React, {
+  useMemo,
+  useState,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useEffect,
+} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Platform,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from 'react-native';
 import * as XLSX from 'xlsx';
 import { ScrollView } from 'react-native-gesture-handler';
 
@@ -8,10 +25,14 @@ type Row = { time: string; A: number; B: number; C: number; D: number; result: n
 function makeMockRows(): Row[] {
   const base = new Date('2025-08-01T01:00:00');
   const pad = (n: number) => String(n).padStart(2, '0');
-  return Array.from({ length: 400 }).map((_, i) => {
+  return Array.from({ length: 20 }).map((_, i) => {
     const t = new Date(base.getTime() + i * 3600_000);
     const time = `${t.getFullYear()}/${pad(t.getMonth() + 1)}/${pad(t.getDate())} ${pad(t.getHours())}:00:00`;
-    const A = i + 1, B = i + 2, C = i + 3, D = i + 4, result = A + B + C + D;
+    const A = i + 1,
+      B = i + 2,
+      C = i + 3,
+      D = i + 4,
+      result = A + B + C + D;
     return { time, A, B, C, D, result };
   });
 }
@@ -24,10 +45,47 @@ function rowsToAoA(rows: Row[]) {
 }
 
 const ROW_HEIGHT = 44;
-const TIME_SAMPLE = '2025/12/31 23:59:59'; // 估計最長的顯示樣本
-const CELL_H_PADDING = 16; // styles.cell 的左右 padding 共 16
+const TIME_SAMPLE = '2025/12/31 23:59:59';
+const CELL_H_PADDING = 16;
+const CHECK_COL_W = 44;
 
-// DataRow
+type XlsxDataTableProps = {
+  onCellLayout?: (
+    seriesIndex: 0 | 1,
+    dataIndex: number,
+    layout: { x: number; y: number; width: number; height: number }
+  ) => void;
+  onContentMeasure?: (abs: { x: number; y: number }) => void;
+  onScrollOffsets?: (offsets: { scrollX: number; scrollY: number }) => void;
+  selected?: { seriesIndex: 0 | 1; dataIndex: number } | null;
+  selectedRow?: number | null;
+  selectedRowColor?: string;
+};
+
+type DataRowProps = {
+  row: (string | number)[];
+  widths: number[];
+  checked: boolean;
+  onToggle: () => void;
+  zebra: boolean;
+  rowW: number;
+  index: number;
+  onCellLayout?: XlsxDataTableProps['onCellLayout'];
+  selected?: XlsxDataTableProps['selected'];
+  selectedRow?: number | null;
+  selectedRowColor?: string;
+};
+
+function toRGBA(color: string, alpha: number) {
+  if (color.startsWith('rgba')) return color.replace(/rgba\(([^)]+),\s*[\d.]+\)/, `rgba($1, ${alpha})`);
+  if (color.startsWith('rgb(')) return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+  const h = color.replace('#', '');
+  const r = parseInt(h.length === 3 ? h[0] + h[0] : h.slice(0, 2), 16);
+  const g = parseInt(h.length === 3 ? h[1] + h[1] : h.slice(2, 4), 16);
+  const b = parseInt(h.length === 3 ? h[2] + h[2] : h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 const DataRow = React.memo(function DataRow({
   row,
   widths,
@@ -35,96 +93,155 @@ const DataRow = React.memo(function DataRow({
   onToggle,
   zebra,
   rowW,
-}: {
-  row: (string | number)[];
-  widths: number[];
-  checked: boolean;
-  onToggle: () => void;
-  zebra: boolean;
-  rowW: number;
-}) {
+  index,
+  onCellLayout,
+  selected,
+  selectedRow,
+  selectedRowColor,
+}: DataRowProps) {
+  const isRowSelected = selectedRow === index;
+  const rowBG =
+    isRowSelected && selectedRowColor
+      ? { backgroundColor: toRGBA(selectedRowColor, 0.25) }
+      : null;
+
   return (
-    <View style={[styles.row, zebra && styles.zebra, { width: rowW }]}>
+    <View
+      style={[
+        styles.row,
+        zebra && styles.zebra,
+        rowBG,
+        { width: rowW },
+      ]}
+    >
       <TouchableOpacity onPress={onToggle} style={[styles.cell, styles.checkCell]}>
         <View style={styles.checkbox}>
           {checked && <Text style={styles.checkMark}>✓</Text>}
         </View>
       </TouchableOpacity>
-      {row.map((val, i) => (
-        <View key={i} style={[styles.cell, { width: widths[i] }]}>
-          <Text
-            numberOfLines={1}
-            ellipsizeMode={i === 0 ? 'clip' : 'tail'} // 第 1 欄（紀錄時間）不顯示省略號
-            style={[styles.text, checked && styles.strikeText]}
+
+      {row.map((val, i) => {
+        const isA = i === 1;
+        const isB = i === 2;
+        const isCellSelected =
+          (selected?.seriesIndex === 0 && isA && selected?.dataIndex === index) ||
+          (selected?.seriesIndex === 1 && isB && selected?.dataIndex === index);
+
+        const cellBG =
+          isCellSelected && selectedRowColor
+            ? { backgroundColor: toRGBA(selectedRowColor, 0.5) }
+            : (isCellSelected ? styles.cellSelected : null);
+
+        return (
+          <View
+            key={i}
+            style={[
+              styles.cell,
+              { width: widths[i] },
+              cellBG,
+            ]}
+            onLayout={
+              (isA || isB)
+                ? (e) => onCellLayout?.(isA ? 0 : 1, index, e.nativeEvent.layout)
+                : undefined
+            }
           >
-            {String(val)}
-          </Text>
-        </View>
-      ))}
+            <Text
+              numberOfLines={1}
+              ellipsizeMode={i === 0 ? 'clip' : 'tail'}
+              style={[
+                styles.text,
+                checked && styles.strikeText, // ✅ 勾選後整列加刪除線
+              ]}
+            >
+              {String(val)}
+            </Text>
+          </View>
+        );
+      })}
     </View>
   );
 });
 
-export default function XlsxDataTable() {
-  // 資料
+const XlsxDataTable = forwardRef<View, XlsxDataTableProps>(function XlsxDataTable(
+  { onCellLayout, onContentMeasure, onScrollOffsets, selected, selectedRow, selectedRowColor },
+  ref
+) {
   const rows = useMemo(() => makeMockRows(), []);
   const table = useMemo(() => rowsToAoA(rows), [rows]);
   const header = table[0] || [];
   const body = table.slice(1);
 
-  // ✅ 紀錄時間欄位寬度：動態量測
-  const [timeColWidth, setTimeColWidth] = useState<number>(240); // 初始先給一個安全值
+  const [timeColWidth, setTimeColWidth] = useState<number>(240);
   const onMeasureTime = useCallback((e: any) => {
     const w = Math.ceil(e?.nativeEvent?.lines?.[0]?.width ?? 0) + CELL_H_PADDING;
-    if (w > 0 && Math.abs(w - timeColWidth) > 1) {
-      setTimeColWidth(w);
-    }
+    if (w > 0 && Math.abs(w - timeColWidth) > 1) setTimeColWidth(w);
   }, [timeColWidth]);
 
-  // 欄寬 & 總寬
-  const checkColWidth = 44;
-  const colWidths = useMemo(() => [220, 110, 110, 110, 110, 110], [timeColWidth]);
-  const tableWidth = useMemo(
-    () => checkColWidth + colWidths.reduce((a, b) => a + b, 0),
-    [colWidths]
+  const colWidths = useMemo(() => [timeColWidth, 110, 110, 110, 110, 110], [timeColWidth]);
+  const tableWidth = useMemo(() => CHECK_COL_W + colWidths.reduce((a, b) => a + b, 0), [colWidths]);
+
+  const [checkedMap, setCheckedMap] = useState<Record<number, boolean>>({});
+  const toggle = useCallback((idx: number) => setCheckedMap(p => ({ ...p, [idx]: !p[idx] })), []);
+
+  const keyExtractor = useCallback((_: any, i: number) => String(i), []);
+  const getItemLayout = useCallback(
+    (_data: any, index: number) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * index, index }),
+    []
   );
 
-  // 勾選
-  const [checkedMap, setCheckedMap] = useState<Record<number, boolean>>({});
-  const toggle = useCallback((idx: number) => {
-    setCheckedMap(prev => ({ ...prev, [idx]: !prev[idx] }));
-  }, []);
+  const wrapRef = useRef<View>(null);
+  useImperativeHandle(ref, () => wrapRef.current as View);
 
-  // FlatList 設定
-  const keyExtractor = useCallback((_: any, i: number) => String(i), []);
-  const getItemLayout = useCallback((_data: any, index: number) => ({
-    length: ROW_HEIGHT,
-    offset: ROW_HEIGHT * index,
-    index,
-  }), []);
+  const contentRef = useRef<View>(null);
+  const onContentLayout = useCallback(() => {
+    if (!contentRef.current) return;
+    (contentRef.current as any).measureInWindow?.((x: number, y: number) => {
+      onContentMeasure?.({ x, y });
+    });
+  }, [onContentMeasure]);
+
+  const onHScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      onScrollOffsets?.({ scrollX: e.nativeEvent.contentOffset.x, scrollY: 0 });
+    },
+    [onScrollOffsets]
+  );
+  const onVScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      onScrollOffsets?.({ scrollX: 0, scrollY: e.nativeEvent.contentOffset.y });
+    },
+    [onScrollOffsets]
+  );
+
+  const listRef = useRef<FlatList>(null);
+  useEffect(() => {
+    if (selectedRow == null) return;
+    listRef.current?.scrollToIndex({
+      index: Math.max(0, Math.min(selectedRow, body.length - 1)),
+      animated: true,
+      viewOffset: 2 * ROW_HEIGHT,
+    });
+  }, [selectedRow, body.length]);
 
   return (
-    <View style={styles.wrap}>
-      {/* 🔍 隱藏量測：用最長樣本量出「紀錄時間」所需寬度 */}
+    <View ref={wrapRef} style={styles.wrap}>
       <View pointerEvents="none" style={styles.hiddenMeasure}>
         <Text style={styles.text} numberOfLines={1} onTextLayout={onMeasureTime}>
           {TIME_SAMPLE}
         </Text>
       </View>
 
-      {/* 外層水平捲動 */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator
         bounces={false}
         nestedScrollEnabled
         directionalLockEnabled
-        {...(Platform.OS === 'android' ? { overScrollMode: 'auto' as any } : {})}
+        onScroll={onHScroll}
         scrollEventThrottle={16}
       >
-        {/* 固定整表寬度 */}
-        <View style={{ width: tableWidth }}>
-          {/* Header */}
+        <View ref={contentRef} onLayout={onContentLayout} style={{ width: tableWidth }}>
           <View style={[styles.row, styles.headerRow, { width: tableWidth }]}>
             <View style={[styles.cell, styles.headerCell, styles.checkCell]}>
               <Text style={styles.headerText}>✓</Text>
@@ -138,12 +255,12 @@ export default function XlsxDataTable() {
             ))}
           </View>
 
-          {/* Body */}
           <FlatList
+            ref={listRef}
             data={body}
             keyExtractor={keyExtractor}
             getItemLayout={getItemLayout}
-            renderItem={({ item, index }: any) => (
+            renderItem={({ item, index }) => (
               <DataRow
                 row={item}
                 widths={colWidths}
@@ -151,6 +268,11 @@ export default function XlsxDataTable() {
                 onToggle={() => toggle(index)}
                 zebra={index % 2 === 1}
                 rowW={tableWidth}
+                index={index}
+                onCellLayout={onCellLayout}
+                selected={selected}
+                selectedRow={selectedRow}
+                selectedRowColor={selectedRowColor}
               />
             )}
             initialNumToRender={20}
@@ -161,32 +283,20 @@ export default function XlsxDataTable() {
             nestedScrollEnabled
             showsVerticalScrollIndicator
             removeClippedSubviews={false}
+            onScroll={onVScroll}
+            scrollEventThrottle={16}
           />
         </View>
       </ScrollView>
-
-      <View style={styles.footer}>
-        <TouchableOpacity
-          onPress={() => console.log('選取列：', Object.keys(checkedMap).filter(k => checkedMap[+k]))}
-          style={styles.submitBtn}
-        >
-          <Text style={styles.submitTxt}>送出</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
-}
+});
+
+export default XlsxDataTable;
 
 const styles = StyleSheet.create({
   wrap: { padding: 12, backgroundColor: '#fff' },
-
-  hiddenMeasure: {
-    position: 'absolute',
-    opacity: 0,
-    // 避免佔位影響布局
-    height: 0,
-    overflow: 'hidden',
-  },
+  hiddenMeasure: { position: 'absolute', opacity: 0, height: 0, overflow: 'hidden' },
 
   row: {
     flexDirection: 'row',
@@ -199,17 +309,25 @@ const styles = StyleSheet.create({
   zebra: { backgroundColor: '#fafbfd' },
 
   cell: {
-    paddingHorizontal: 8,           // ← 記得與 CELL_H_PADDING 一致
+    paddingHorizontal: 8,
     justifyContent: 'center',
     borderBottomWidth: 1,
     borderColor: '#cfd6e4',
     height: ROW_HEIGHT,
   },
-  checkCell: { width: 44, alignItems: 'center' },
+  cellSelected: { backgroundColor: 'rgba(255, 214, 102, 0.35)' },
+
+  checkCell: { width: CHECK_COL_W, alignItems: 'center' },
 
   headerCell: {},
   headerText: { color: '#1a1a1a' },
   text: { color: '#1a1a1a' },
+
+  /** 勾選 → 整列刪除線 */
+  strikeText: {
+    textDecorationLine: 'line-through',
+    color: '#8e8e8e',
+  },
 
   checkbox: {
     width: 18,
@@ -224,24 +342,12 @@ const styles = StyleSheet.create({
   },
   checkMark: {
     fontSize: 12,
-    lineHeight: 12,              // 避免基線偏移
+    lineHeight: 12,
     color: '#000',
     fontWeight: 'bold',
     textAlign: 'center',
     ...Platform.select({
-      android: {
-        transform: [{ translateY: -0.5 }],
-        textAlignVertical: 'center' as any,
-      },
+      android: { transform: [{ translateY: -0.5 }], textAlignVertical: 'center' as any },
     }),
-  },
-
-  footer: { alignItems: 'flex-end', marginTop: 12 },
-  submitBtn: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#1e88e5', borderRadius: 8 },
-  submitTxt: { color: '#fff' },
-
-  strikeText: {
-    textDecorationLine: 'line-through',
-    color: '#8e8e8e',
   },
 });

@@ -247,7 +247,10 @@ export default function Version3Block({
         >
           <FormulaRelationsMobileDemo
             // data={...可自行丟入 API 結果整理後的陣列}
-            onEdit={(f) => console.log('edit:', f)}
+            onEdit={(f) => {
+              console.log('edit:', f)
+              setModalVisibleSourceData(true)
+            }}
             onPreviewAndDeleteData={(f) => console.log('preview&delete data:', f)}
             onDelete={(f) => console.log('delete formula:', f)}
           />

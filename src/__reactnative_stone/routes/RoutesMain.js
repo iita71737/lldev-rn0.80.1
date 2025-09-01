@@ -89,6 +89,7 @@ import { getLocation, getGeocode } from '@/__reactnative_stone/global/location'
 import { getDistance } from 'geolib';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import S_factoryHelper from '@/helpers/factory'
+import { CopilotProvider } from 'react-native-copilot';
 
 const RoutesMain = ({ navigation }) => {
   const { t, i18n } = useTranslation()
@@ -667,90 +668,92 @@ const RoutesMain = ({ navigation }) => {
           )}
         </Modal>
       ) : (
-        <View
-          style={{
-            flex: 1,
-            paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-            backgroundColor: $color.primary
-          }}
-        >
-          <NavigationContainer
-            theme={scheme === 'light' ? MyThemes.light : MyThemes.dark}
-            linking={{
-              prefixes: [
-                'https://www.esgoal.com/',
-                'https://ll-esh-app.wasateam.com/',
-                'esgoal://',
-                'https://ll-esgoal.dev.wasateam.com/'
-              ],
-              config: {
-                screens: $ws.$h.route.getDeeplinks()
-              },
-              async getInitialURL() {
-                const url = await Linking.getInitialURL();
-                console.log('getInitialURL');
-                // 這邊只有在未開啟APP時，第一次開啟時會比對。
-                if (url) {
-                  try {
-                    const _url = await S_QRcode.redirectByScanUrl(url, navigation);
-                  } catch (e) {
-                    store.dispatch(setInitUrlFromQRcode(url))
-                  }
-                }
-              },
+        <CopilotProvider>
+          <View
+            style={{
+              flex: 1,
+              paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+              backgroundColor: $color.primary
             }}
-            fallback={<ActivityIndicator color="blue" size="large" />}
           >
-            <Stack.Navigator
-              screenOptions={{
-                headerBackTitleVisible: false
+            <NavigationContainer
+              theme={scheme === 'light' ? MyThemes.light : MyThemes.dark}
+              linking={{
+                prefixes: [
+                  'https://www.esgoal.com/',
+                  'https://ll-esh-app.wasateam.com/',
+                  'esgoal://',
+                  'https://ll-esgoal.dev.wasateam.com/'
+                ],
+                config: {
+                  screens: $ws.$h.route.getDeeplinks()
+                },
+                async getInitialURL() {
+                  const url = await Linking.getInitialURL();
+                  console.log('getInitialURL');
+                  // 這邊只有在未開啟APP時，第一次開啟時會比對。
+                  if (url) {
+                    try {
+                      const _url = await S_QRcode.redirectByScanUrl(url, navigation);
+                    } catch (e) {
+                      store.dispatch(setInitUrlFromQRcode(url))
+                    }
+                  }
+                },
               }}
+              fallback={<ActivityIndicator color="blue" size="large" />}
             >
-              {!isMounted && (
-                <Stack.Screen
-                  name="Init"
-                  options={{
-                    headerShown: false,
-                    cardStyle: { backgroundColor: '#FFFFFF' }
-                  }}
-                  component={ViewInit}
-                />
-              )}
-              {!currentUser && (
-                <>
+              <Stack.Navigator
+                screenOptions={{
+                  headerBackTitleVisible: false
+                }}
+              >
+                {!isMounted && (
                   <Stack.Screen
-                    name="RoutesAuth"
+                    name="Init"
                     options={{
                       headerShown: false,
                       cardStyle: { backgroundColor: '#FFFFFF' }
                     }}
-                    component={RoutesAuth}
-                    initialParams={{ autoFocus: modalVisible ? false : true }}
+                    component={ViewInit}
                   />
-                </>
-              )}
-              {currentUser && (
-                <>
-                  <Stack.Screen
-                    name="RoutesApp"
-                    options={{
-                      headerShown: false,
-                      cardStyle: { backgroundColor: '#FFFFFF' }
-                    }}
-                    component={RoutesApp}
-                  />
-                  <Stack.Screen
-                    name="CameraPage"
-                    component={WsCameraPage}
-                    options={{
-                      headerShown: false,
-                    }}
-                  />
-                </>
-              )}
-            </Stack.Navigator>
-          </NavigationContainer>
-        </View>
+                )}
+                {!currentUser && (
+                  <>
+                    <Stack.Screen
+                      name="RoutesAuth"
+                      options={{
+                        headerShown: false,
+                        cardStyle: { backgroundColor: '#FFFFFF' }
+                      }}
+                      component={RoutesAuth}
+                      initialParams={{ autoFocus: modalVisible ? false : true }}
+                    />
+                  </>
+                )}
+                {currentUser && (
+                  <>
+                    <Stack.Screen
+                      name="RoutesApp"
+                      options={{
+                        headerShown: false,
+                        cardStyle: { backgroundColor: '#FFFFFF' }
+                      }}
+                      component={RoutesApp}
+                    />
+                    <Stack.Screen
+                      name="CameraPage"
+                      component={WsCameraPage}
+                      options={{
+                        headerShown: false,
+                      }}
+                    />
+                  </>
+                )}
+              </Stack.Navigator>
+            </NavigationContainer>
+          </View>
+        </CopilotProvider>
       )}
     </>
   )

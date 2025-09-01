@@ -1,4 +1,3 @@
-// SingleChartVerticalTap.tsx
 import React, { useRef, useEffect, useMemo, useState } from 'react'
 import { View, Text, useWindowDimensions, TouchableOpacity } from 'react-native'
 import * as echarts from 'echarts/core'
@@ -6,7 +5,12 @@ import { LineChart as ELineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent } from 'echarts/components'
 import { SkiaRenderer, SkiaChart } from '@wuba/react-native-echarts'
 import $color from '@/__reactnative_stone/global/color'
-import { WsPaddingContainer } from '@/components'
+import {
+  WsPaddingContainer,
+  WsModal
+} from '@/components'
+import { useTranslation } from 'react-i18next'
+import SingleChartTrace, { SingleChartTraceRef } from './SingleChartTrace'
 
 // ✅ 註冊 Skia renderer + 需要的元件
 echarts.use([SkiaRenderer, ELineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
@@ -26,13 +30,16 @@ type TipState = {
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max))
 
 export default function SingleChart() {
+  const { t, i18n } = useTranslation()
   const { width } = useWindowDimensions()
   const chartRef = useRef<any>(null)
   const instRef = useRef<echarts.EChartsType | null>(null)
+
+  const [modalTraceData, setModalTraceData] = React.useState(false)
   const [tip, setTip] = useState<TipState>(null)
 
   const labels = useMemo(
-    () => ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+    () => ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
     []
   )
   // Demo 資料：正式版可換成你的實際資料
@@ -217,56 +224,73 @@ export default function SingleChart() {
   }, [width])
 
   return (
-    <WsPaddingContainer
-      padding={0}
-      style={{
-        paddingHorizontal: 16,
-        backgroundColor: $color.white,
-        position: 'relative', // ✅ 讓自訂 tooltip 能絕對定位在容器內
-      }}
-    >
-      {/* 若你的 app 有使用 RNGH，建議開啟 useRNGH：<SkiaChart ref={chartRef} useRNGH /> */}
-      <SkiaChart ref={chartRef} />
+    <>
+      <WsPaddingContainer
+        padding={0}
+        style={{
+          backgroundColor: $color.white,
+          position: 'relative', // ✅ 讓自訂 tooltip 能絕對定位在容器內
+        }}
+      >
+        {/* 若你的 app 有使用 RNGH，建議開啟 useRNGH：<SkiaChart ref={chartRef} useRNGH /> */}
+        <SkiaChart ref={chartRef} />
 
-      {/* 自訂可點 Tooltip（可依 UI 調整） */}
-      {tip && (
-        <View
-          style={{
-            position: 'absolute',
-            // 簡單邊界保護，避免出框
-            left: clamp(tip.x - 80, 8, width - 160 - 8),
-            top: clamp(tip.y - 72, 8, CHART_HEIGHT - 100),
-            width: 160,
-            padding: 10,
-            borderRadius: 10,
-            backgroundColor: 'rgba(0,0,0,0.85)',
-          }}
-        >
-          <Text style={{ color: '#fff', fontWeight: '600' }}>
-            {tip.payload.category}（index: {tip.payload.dataIndex}）
-          </Text>
-          {tip.payload.series.map((s) => (
-            <Text key={s.seriesName} style={{ color: '#fff', marginTop: 4 }}>
-              {s.seriesName}: {s.value}
-            </Text>
-          ))}
-
-          <TouchableOpacity
-            style={{ marginTop: 10 }}
-            onPress={() => {
-              // 你要的行為：開 BottomSheet、導頁、emit、寫入 state…
-              console.log('Go detail →', tip.payload)
-              setTip(null)
+        {/* 自訂可點 Tooltip（可依 UI 調整） */}
+        {tip && (
+          <View
+            style={{
+              position: 'absolute',
+              // 簡單邊界保護，避免出框
+              left: clamp(tip.x - 80, 8, width - 160 - 8),
+              top: clamp(tip.y - 72, 8, CHART_HEIGHT - 100),
+              width: 160,
+              padding: 10,
+              borderRadius: 10,
+              backgroundColor: 'rgba(0,0,0,0.85)',
             }}
           >
-            <Text style={{ color: '#4FC3F7' }}>查看詳情</Text>
-          </TouchableOpacity>
+            <Text style={{ color: '#fff', fontWeight: '600' }}>
+              {tip.payload.category}（index: {tip.payload.dataIndex}）
+            </Text>
+            {tip.payload.series.map((s) => (
+              <Text key={s.seriesName} style={{ color: '#fff', marginTop: 4 }}>
+                {s.seriesName}: {s.value}
+              </Text>
+            ))}
 
-          <TouchableOpacity onPress={() => setTip(null)} style={{ marginTop: 6 }}>
-            <Text style={{ color: '#BDBDBD' }}>關閉</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </WsPaddingContainer>
+            <TouchableOpacity
+              style={{ marginTop: 10 }}
+              onPress={() => {
+                console.log('Go detail →', tip.payload)
+                setTip(null)
+                setModalTraceData(true)
+              }}
+            >
+              <Text style={{ color: '#4FC3F7' }}>查看詳情</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setTip(null)} style={{ marginTop: 6 }}>
+              <Text style={{ color: '#BDBDBD' }}>關閉</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </WsPaddingContainer>
+
+      {/* 新增流程 */}
+      <WsModal
+        animationType={'none'}
+        visible={modalTraceData}
+        onBackButtonPress={() => {
+          setModalTraceData(false)
+        }}
+        headerLeftOnPress={() => {
+          setModalTraceData(false)
+        }}
+        title={t('新增記錄')}
+      >
+        <SingleChartTrace></SingleChartTrace>
+      </WsModal>
+
+    </>
   )
 }
