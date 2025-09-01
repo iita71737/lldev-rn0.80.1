@@ -45,7 +45,6 @@ echarts.use([SkiaRenderer, ELineChart, GridComponent, TooltipComponent, LegendCo
 
 const Show = () => {
   const { t, i18n } = useTranslation()
-  const chartRef = useRef<any>(null);
   const instRef = useRef<echarts.EChartsType | null>(null);
   const { width } = useWindowDimensions();
   const navigation = useNavigation()
@@ -61,81 +60,6 @@ const Show = () => {
   const [modalActiveFormula, setModalActiveFormula] = React.useState(false)
   const [modalAddRecord, setModalAddRecord] = React.useState(false)
   const [modalChart, setModalChart] = React.useState(false)
-
-  const labels = useMemo(
-    () => ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
-    []
-  );
-  const dsA = useMemo(() => Array.from({ length: 12 }, () => Math.floor(Math.random() * 100)), []);
-  const dsB = useMemo(() => Array.from({ length: 12 }, () => Math.floor(Math.random() * 100)), []);
-
-  const option = useMemo(() => ({
-    animation: false,
-    animationDurationUpdate: 150,
-    animationEasingUpdate: 'quartOut',
-    tooltip: { trigger: 'axis', transitionDuration: 0 },
-    legend: { data: ['A', 'B'] },
-
-    // ✅ 讓 grid 自動包含軸標籤，並適度增加 top/bottom
-    grid: {
-      left: 44,
-      right: 40,
-      top: 28,
-      bottom: 90,
-    },
-
-    xAxis: {
-      type: 'category',
-      boundaryGap: true,
-      data: labels,
-      axisLabel: {
-        interval: 0,        // ⬅️ 強制顯示每一個標籤
-        rotate: 30,         // ⬅️ 稍微旋轉避免重疊
-        margin: 12,
-      },
-      axisTick: { alignWithLabel: true },
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { formatter: '{value} k' },
-      splitNumber: 4,
-    },
-    // ⬅️ 用百分比讓初始視窗涵蓋 100% 資料，而不是 endValue: 5
-    dataZoom: [
-      // { type: 'inside', start: 0, end: 100, moveOnMouseMove: true, zoomOnMouseWheel: false, throttle: 50 },
-      {
-        type: 'slider',
-        start: 0,
-        end: 100,
-        height: 28,        // ← 加高滑軌
-        bottom: 24,        // ← 與圖底部留距離，避免貼邊難點
-        handleSize: 40,    // ← 放大手把
-        // 提升可視性
-        backgroundColor: '#f0f0f3',
-        dataBackground: { lineStyle: { opacity: 0.6 }, areaStyle: { opacity: 0.2 } },
-        fillerColor: 'rgba(63,81,181,0.20)',
-        handleStyle: { color: '#3f51b5', borderColor: '#2e3a8c', borderWidth: 1 },
-        moveHandleSize: 8, // ← 提升拖移區域（ECharts 支援）
-      },
-    ],
-    series: [
-      { name: 'A', type: 'line', data: dsA, showAllSymbol: false, symbolSize: 3, sampling: 'lttb' },
-      { name: 'B', type: 'line', data: dsB, showAllSymbol: false, symbolSize: 3, sampling: 'lttb' },
-    ],
-  }), [labels, dsA, dsB]);
-
-  useEffect(() => {
-    if (!chartRef.current || instRef.current) return;
-    const inst = echarts.init(chartRef.current, 'light', { renderer: 'skia', width, height: 300 });
-    instRef.current = inst;
-    inst.setOption(option, { notMerge: true, lazyUpdate: true });
-    return () => { instRef.current?.dispose(); instRef.current = null; };
-  }, [option]);
-
-  useEffect(() => {
-    instRef.current?.resize({ width, height: 300 });
-  }, [width]);
-
 
   // Functions
   const $_setStorage = async () => {
@@ -382,7 +306,7 @@ const Show = () => {
             backgroundColor: $color.white,
           }}
         >
-          <SkiaChart ref={chartRef} />
+          <SingleChart></SingleChart>
         </WsPaddingContainer>
 
         <WsPaddingContainer
