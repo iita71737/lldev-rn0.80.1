@@ -186,7 +186,9 @@ export default function SingleChart() {
           <Pressable
             style={{ position: 'absolute', left: 0, top: 0, width, height: CHART_HEIGHT }}
             onPress={() => {
-              setSpot(null)
+              setSpot(null);              // ✅ 清掉點位 → selected 會自動變 null
+              setSelectedRow(null);       // ✅ 清掉列高亮
+              setSelectedRowColor(null);  // ✅ 清掉列顏色
             }}
           >
             <Svg width={width} height={CHART_HEIGHT}>
