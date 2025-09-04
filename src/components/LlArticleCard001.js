@@ -139,10 +139,24 @@ const LlArticleCard001 = props => {
                 backgroundColor: $color.white
               },
               style
-            ]}>
+            ]}
+          >
+            {article.part != '' &&
+              <WsTitle
+                fontSize={24}
+                fontWeight={'600'}
+                style={{
+                  marginBottom: 16,
+                  // borderWidth:1,
+                }}
+              >
+                {article.part}
+              </WsTitle>
+            }
+
             {article.chapter != '' &&
               <WsTitle
-                fontSize={18}
+                fontSize={20}
                 fontWeight={'600'}
                 style={{
                   marginBottom: 16,
@@ -153,14 +167,35 @@ const LlArticleCard001 = props => {
               </WsTitle>
             }
 
+            {article.section != '' &&
+              <WsTitle
+                fontSize={18}
+                fontWeight={'600'}
+                style={{
+                  marginBottom: 16,
+                  // borderWidth:1,
+                }}
+              >
+                {article.section}
+              </WsTitle>
+            }
+
             {article.no_text != '' && (
               <WsFlex
                 justifyContent={'space-between'}
                 style={{
                   marginBottom: 16,
+                  // borderWidth: 1,
                 }}
               >
-                <WsText size={18} fontWeight={'600'}>
+                <WsText
+                  size={16}
+                  fontWeight={'600'}
+                  style={{
+                    // borderWidth: 1,
+                    maxWidth: width * 0.5
+                  }}
+                >
                   {article.no_text}
                 </WsText>
 
@@ -171,7 +206,7 @@ const LlArticleCard001 = props => {
                     justifyContent="space-between"
                     style={{
                       marginLeft: 8,
-                      flex: 1,
+                      flex: 1
                     }}
                   >
                     <WsTag
@@ -187,7 +222,7 @@ const LlArticleCard001 = props => {
                 <WsFlex
                   style={{
                     marginLeft: 8,
-                    // borderWidth: 2
+                    // borderWidth: 2,
                     flexDirection: 'column',
                   }}
                 >
