@@ -66,7 +66,9 @@ export default function SingleChart() {
     },
     yAxis: {
       type: 'value',
-      axisLabel: { formatter: '{value} k' },
+      axisLabel: { 
+        formatter: '{value} k' 
+      },
       splitNumber: 4,
     },
     dataZoom: [

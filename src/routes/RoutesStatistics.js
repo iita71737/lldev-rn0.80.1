@@ -57,7 +57,7 @@ const RoutesStatistics = ({ navigation }) => {
   // Fields
   const fields = {
     name: {
-      label: t('數量統計名稱'),
+      label: t('名稱'),
       placeholder: t('輸入'),
       rules: 'required',
     },
@@ -69,21 +69,6 @@ const RoutesStatistics = ({ navigation }) => {
       serviceIndexKey: 'simplifyFactoryIndex',
       customizedNameKey: 'userAndEmail',
       rules: 'required',
-    },
-    factory_tags: {
-      type: 'Ll_relatedTags',
-      label: t('標籤'),
-      placeholder: `${t('選擇')}`,
-      nameKey: 'name',
-      modelName: 'factory_tag',
-      serviceIndexKey: 'indexV2',
-      hasMeta: false,
-      params: {
-        lang: 'tw',
-        order_by: 'sequence',
-        order_way: 'asc',
-        get_all: 1
-      }
     },
     date_picker_type: {
       label: t('時間區間'),
@@ -143,8 +128,30 @@ const RoutesStatistics = ({ navigation }) => {
     },
     improvement_limited_period: {
       label: t('時間單位'),
-      type: 'date',
+      type: 'picker',
       rules: 'required',
+      items: [
+        { label: t('日'), value: 'day' },
+        { label: t('週'), value: 'week' },
+        { label: t('月'), value: 'month' },
+        { label: t('季'), value: 'season' },
+        { label: t('年'), value: 'year' }
+      ],
+    },
+    factory_tags: {
+      type: 'Ll_relatedTags',
+      label: t('標籤'),
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'factory_tag',
+      serviceIndexKey: 'indexV2',
+      hasMeta: false,
+      params: {
+        lang: 'tw',
+        order_by: 'sequence',
+        order_way: 'asc',
+        get_all: 1
+      }
     },
     remark: {
       label: t('備註'),
@@ -186,6 +193,7 @@ const RoutesStatistics = ({ navigation }) => {
             'remark',
             'date_picker_type',
             'dynamic_data_time',
+            'improvement_limited_period',
             'start_time',
             'end_time',
             'system_subclasses',

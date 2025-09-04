@@ -75,6 +75,7 @@ const Menu = ({ navigation }) => {
   const currentUserScope = useSelector(state => state.data.userScopes)
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
 
+
   // States
   const [manageList, setManageList] = React.useState([])
 

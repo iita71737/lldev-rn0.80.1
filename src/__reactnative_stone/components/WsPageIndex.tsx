@@ -27,7 +27,6 @@ import store from '@/store'
 import {
   setIdleCounter
 } from '@/store/data'
-import { Portal, PaperProvider } from 'react-native-paper';
 
 interface WsPageIndexProps {
   modelName: string;

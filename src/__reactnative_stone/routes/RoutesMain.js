@@ -668,7 +668,6 @@ const RoutesMain = ({ navigation }) => {
           )}
         </Modal>
       ) : (
-        <CopilotProvider>
           <View
             style={{
               flex: 1,
@@ -753,7 +752,6 @@ const RoutesMain = ({ navigation }) => {
               </Stack.Navigator>
             </NavigationContainer>
           </View>
-        </CopilotProvider>
       )}
     </>
   )

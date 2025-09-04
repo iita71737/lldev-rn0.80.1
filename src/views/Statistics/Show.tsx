@@ -232,14 +232,59 @@ const Show = () => {
               }}
             />
           </View>
+
+          <View
+            style={{
+              marginTop: 8
+            }}
+          >
+            <WsInfo
+              labelWidth={100}
+              label={t('備註')}
+              value={
+                t('備注')
+              }
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+            />
+          </View>
+
+
+          <View
+            style={{
+              marginTop: 8
+            }}
+          >
+            <WsInfo
+              type="filesAndImages"
+              label={t('附件')}
+              value={[]}
+            />
+          </View>
+
+          <View
+            style={{
+              marginTop: 8
+            }}
+          >
+            <WsInfo
+              style={{
+              }}
+              type="tags"
+              label={t('標籤')}
+              value={[]}
+            />
+          </View>
+
         </WsPaddingContainer>
 
 
         <TouchableOpacity
           style={{
             marginTop: 8,
-            marginLeft: 8,
-            marginRight: 8,
+            marginRight: 16,
             alignSelf: 'flex-end',
           }}
           onPress={() => {
@@ -251,7 +296,7 @@ const Show = () => {
               borderWidth: 1,
               borderColor: $color.primary,
             }}>
-            {t('新增圖')}
+            {t('新增圖表')}
           </WsTag>
         </TouchableOpacity>
 
@@ -324,6 +369,10 @@ const Show = () => {
               <WsDes>
                 {t('表與表之間的關係公式 ( i + ii) * 100 + iii = Final')}
               </WsDes>
+            </WsFlex>
+            <WsFlex
+              flexWrap="wrap"
+            >
               <TouchableOpacity
                 style={{
                   marginLeft: 8,
@@ -338,15 +387,20 @@ const Show = () => {
                 </WsTag>
               </TouchableOpacity>
             </WsFlex>
+
             <WsFlex
               flexWrap="wrap"
               style={{
-                marginTop: 4
+                marginTop: 8,
               }}
             >
               <WsDes>
                 {t('表與表之間的關係公式 (i + ii) * 100 + iii = Final')}
               </WsDes>
+            </WsFlex>
+            <WsFlex
+              flexWrap="wrap"
+            >
               <TouchableOpacity
                 style={{
                   marginLeft: 8,
@@ -358,6 +412,45 @@ const Show = () => {
                   style={{
                   }}>
                   {t('編輯')}
+                </WsTag>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  marginLeft: 8,
+                }}
+                onPress={() => {
+                  setModalActiveFormula(true)
+                }}>
+                <WsTag
+                  style={{
+                  }}>
+                  {t('預覽')}
+                </WsTag>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  marginLeft: 8,
+                }}
+                onPress={() => {
+                  setModalActiveFormula(true)
+                }}>
+                <WsTag
+                  style={{
+                  }}>
+                  {t('刪除')}
+                </WsTag>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  marginLeft: 8,
+                }}
+                onPress={() => {
+                  setModalActiveFormula(true)
+                }}>
+                <WsTag
+                  style={{
+                  }}>
+                  {t('匯出')}
                 </WsTag>
               </TouchableOpacity>
             </WsFlex>
@@ -378,17 +471,25 @@ const Show = () => {
           </View>
         </WsPaddingContainer>
 
-        <View style={{ padding: 16, gap: 12 }}>
-          <WsGradientButton
+        <View style={{ paddingHorizontal: 16 }}>
+
+          <TouchableOpacity
             style={{
-              width: 108,
+              marginTop: 8,
               alignSelf: 'flex-end',
             }}
             onPress={() => {
               setModalAddRecord(true)
             }}>
-            {t('新增記錄')}
-          </WsGradientButton>
+            <WsTag
+              backgroundColor={$color.white}
+              style={{
+                borderWidth: 1,
+                borderColor: $color.primary,
+              }}>
+              {t('新增資料集')}
+            </WsTag>
+          </TouchableOpacity>
 
           <WsAccordion
             title="表 1"
@@ -712,6 +813,30 @@ const Show = () => {
               }}
             />
 
+            <WsState
+              label={t('備註')}
+              // labelIcon={'ws-outline-edit-pencil'}
+              multiline={true}
+              style={{
+              }}
+              placeholder={t('輸入')}
+              value={formulaData?.remark}
+              onChange={() => { }}
+            />
+
+            <WsState
+              style={{
+                marginTop: 8
+              }}
+              modelName="checklist_record_answer"
+              type="Ll_filesAndImages"
+              label={t('附件')}
+              // labelIcon={'md-photo'}
+              value={formulaData?.images}
+              onChange={() => {
+              }}
+            />
+
           </WsPaddingContainer>
         </ScrollView>
       </WsModal>
@@ -726,10 +851,9 @@ const Show = () => {
         headerLeftOnPress={() => {
           setModalAddRecord(false)
         }}
-        title={t('新增記錄')}
+        title={t('新增資料集')}
       >
         <PickType
-          title={t('點檢表')}
           setModalAddRecord={setModalAddRecord}
         ></PickType>
       </WsModal>

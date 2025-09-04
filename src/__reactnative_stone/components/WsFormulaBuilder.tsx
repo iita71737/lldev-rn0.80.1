@@ -104,6 +104,7 @@ export default function WsFormulaBuilder({
   const [preview, setPreview] = React.useState<string>('-');
   const [err, setErr] = React.useState<string>('');
 
+
   // 只顯示四個函數（加總 / 最大值 / 最小值 / 平均值）
   const fnDefs = React.useMemo(
     () => [

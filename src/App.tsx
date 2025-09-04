@@ -32,7 +32,6 @@ import {
   WsFlex,
   WsStatusBar
 } from '@/components'
-import moment from 'moment-timezone';
 import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
 import { addEventListener, useNetInfo } from "@react-native-community/netinfo";
@@ -66,7 +65,10 @@ if (!__DEV__) {
   //   tracesSampleRate: 1.0,
   // });
 }
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Provider as PaperProvider } from 'react-native-paper';
+import { CopilotProvider } from 'react-native-copilot';
+import 'react-native-gesture-handler';
 
 function App(): JSX.Element {
   const { t, i18n } = useTranslation()
@@ -284,13 +286,19 @@ function App(): JSX.Element {
       )}
 
       {isLoading === false && (
-        <Provider store={store}>
-          {Config.ENV === 'development' && (
-            <WsGlobalOfflineAlert></WsGlobalOfflineAlert>
-          )}
-          <WsSnackBar></WsSnackBar>
-          <RoutesMain />
-        </Provider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <Provider store={store}>
+            <CopilotProvider>
+              <PaperProvider>
+                {Config.ENV === 'development' && (
+                  <WsGlobalOfflineAlert></WsGlobalOfflineAlert>
+                )}
+                <WsSnackBar></WsSnackBar>
+                <RoutesMain />
+              </PaperProvider>
+            </CopilotProvider>
+          </Provider>
+        </GestureHandlerRootView>
       )}
     </>
   )

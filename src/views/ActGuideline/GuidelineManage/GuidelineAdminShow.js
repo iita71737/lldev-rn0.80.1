@@ -98,8 +98,6 @@ import { actions, RichEditor, RichToolbar } from "react-native-pell-rich-editor"
 import IonIcon from 'react-native-vector-icons/Ionicons'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import effects from '@/services/api/v1/effects'
-// import DraggableFlatList from "react-native-draggable-flatlist";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { DraggableList } from './DraggableList'
 import ViewArticleShowForModal from '@/views/Act/ArticleShowForModal'
 import { decode } from 'html-entities';

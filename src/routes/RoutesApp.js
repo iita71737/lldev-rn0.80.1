@@ -149,6 +149,11 @@ const RoutesApp = ({ navigation, route }) => {
 
   return (
     <>
+      <WsDetectIdle002
+        active={active}
+        setActive={setActive}
+      ></WsDetectIdle002>
+
       <UserInactivity
         isActive={active}
         timeForInactivity={300000} // 多少秒沒操作視為閒置 ms
@@ -454,11 +459,6 @@ const RoutesApp = ({ navigation, route }) => {
 
         </StackSetting.Navigator>
       </UserInactivity>
-
-      <WsDetectIdle002
-        active={active}
-        setActive={setActive}
-      ></WsDetectIdle002>
 
       <WsQRcodeDetect></WsQRcodeDetect>
     </>

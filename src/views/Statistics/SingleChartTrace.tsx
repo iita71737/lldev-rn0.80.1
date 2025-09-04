@@ -25,7 +25,7 @@ const MASK_RADIUS = 24
 
 type SpotState = { x: number; y: number; dataIndex: number; seriesIndex: number } | null
 
-export default function SingleChart() {
+export default function SingleChartTrace() {
   const { t } = useTranslation()
   const { width } = useWindowDimensions()
   const chartRef = useRef<any>(null)
