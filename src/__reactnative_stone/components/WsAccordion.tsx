@@ -93,8 +93,8 @@ export const WsAccordion: React.FC<SectionProps> = ({
 const styles = StyleSheet.create({
   section: {
     marginTop: 8,
-    borderWidth: 1,
-    borderColor: $color.white2d,
+    borderWidth: 0.5,
+    borderColor: $color.black,
     borderRadius: 10,
     backgroundColor: $color.white,
     overflow: 'hidden', // 需要保留：收合時裁切內容

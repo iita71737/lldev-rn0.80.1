@@ -689,7 +689,7 @@ const Show = () => {
               style={{
                 marginVertical: 8
               }}
-              label={t('圖​的​類型')}
+              label={t('圖的類型')}
               value={chartInfo?.chartType}
               onChange={(chartType: number) => {
                 setChartInfo((prev) => ({ ...prev, chartType }))

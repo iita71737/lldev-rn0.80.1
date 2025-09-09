@@ -32,7 +32,7 @@ const CheckLists: React.FC<CheckListFrequencyProps> = (props) => {
     search,
     defaultFilter,
     type,
-    setStateModal,
+    setStateModal001,
     setModalAddRecord
   } = props
 
@@ -108,7 +108,7 @@ const CheckLists: React.FC<CheckListFrequencyProps> = (props) => {
                 system_subclasses={item.system_subclasses}
                 factory_tags={item.factory_tags}
                 onPress={() => {
-                  setStateModal(false)
+                  setStateModal001(false)
                   setModalAddRecord(false)
                   InteractionManager.runAfterInteractions(() => {
                     navigation.push('RoutesStatistics', {

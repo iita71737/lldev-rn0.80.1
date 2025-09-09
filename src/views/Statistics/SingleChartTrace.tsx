@@ -63,34 +63,39 @@ export default function SingleChartTrace() {
     animationDurationUpdate: 150,
     animationEasingUpdate: 'quartOut',
     legend: { data: ['A', 'B'] },
-    grid: { left: 44, right: 40, top: 28, bottom: 90 },
+    grid: {
+      left: 50,
+      right: 16,
+      top: 50,
+      bottom: 50
+    },
     xAxis: {
       type: 'category',
       boundaryGap: true,
       data: labels,
-      axisLabel: { interval: 0, rotate: 30, margin: 12 },
-      axisTick: { alignWithLabel: true },
+      axisLabel: {
+        interval: 0,
+        rotate: 30,
+        margin: 12
+      },
+      axisTick: {
+        alignWithLabel: true
+      },
+      name: '123',
+      nameLocation: 'middle',
+      nameGap: 40,
+      splitLine: {
+        show: true,
+      },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { formatter: '{value} k' },
+      axisLabel: {
+        formatter: '{value} k'
+      },
+      name: '123',
       splitNumber: 4,
     },
-    dataZoom: [
-      {
-        type: 'slider',
-        start: 0,
-        end: 100,
-        height: 28,
-        bottom: 24,
-        handleSize: 40,
-        backgroundColor: '#f0f0f3',
-        dataBackground: { lineStyle: { opacity: 0.6 }, areaStyle: { opacity: 0.2 } },
-        fillerColor: 'rgba(63,81,181,0.20)',
-        handleStyle: { color: '#3f51b5', borderColor: '#2e3a8c', borderWidth: 1 },
-        moveHandleSize: 8,
-      },
-    ],
     series: [
       {
         name: 'A',
@@ -98,10 +103,13 @@ export default function SingleChartTrace() {
         data: dsA,
         showSymbol: true,
         symbol: 'circle',
-        symbolSize: 18,
-        lineStyle: { width: 2, color: '#4caf50' },   // 線條 → 綠色實色
-        itemStyle: { color: 'rgba(76, 175, 80, 0.3)' }, // 點 → 綠色半透明
+        symbolSize: 18,               
+        itemStyle: { opacity: 0.15 },
+        lineStyle: { width: 2 },
         sampling: 'lttb',
+        emphasis: {
+          focus: 'self'
+        },
       },
       {
         name: 'B',
@@ -110,12 +118,15 @@ export default function SingleChartTrace() {
         showSymbol: true,
         symbol: 'circle',
         symbolSize: 18,
-        lineStyle: { width: 2, color: '#2196f3' },   // 線條 → 藍色實色
-        itemStyle: { color: 'rgba(33, 150, 243, 0.3)' }, // 點 → 藍色半透明
+        itemStyle: { opacity: 0.15 },
+        lineStyle: { width: 2 },
         sampling: 'lttb',
+        emphasis: {
+          focus: 'self'
+        },
       },
     ],
-  }), [labels, dsA, dsB]);
+  }), [labels, dsA, dsB])
 
 
   useEffect(() => {

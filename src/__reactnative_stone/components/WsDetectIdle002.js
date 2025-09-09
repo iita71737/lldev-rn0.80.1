@@ -81,6 +81,7 @@ const WsDetectIdle002 = (props) => {
   // 閒置倒數器相關
   const initCount = 300 //初始秒數
   // const initCount = 5  // test issue
+
   const [countdownEnded, setCountdownEnded] = useState(false);
   const [countdown, setCountdown] = useState();
   const countdownInterval = useRef(null); // 閒置後計數器
@@ -286,9 +287,10 @@ const WsDetectIdle002 = (props) => {
             alreadyLockedRef.current = true;
             setCountdownEnded(true);
             setIdleAlertVisible(false);
-            setTimeout(() => {
-              setRequestLoginVisible(true);
-            }, 300);
+            // setTimeout(() => {
+            //   setRequestLoginVisible(true);
+            // }, 300);
+            setRequestLoginVisible(true);
             console.log("Session Locked");
           }
           return 0;
@@ -346,9 +348,10 @@ const WsDetectIdle002 = (props) => {
             alreadyLockedRef.current = true;
             setCountdownEnded(true);
             setIdleAlertVisible(false);
-            setTimeout(() => {
-              setRequestLoginVisible(true);
-            }, 500);
+            // setTimeout(() => {
+            //   setRequestLoginVisible(true);
+            // }, 500);
+            setRequestLoginVisible(true);
           }
           return updated;
         });
@@ -372,82 +375,6 @@ const WsDetectIdle002 = (props) => {
 
   return (
     <>
-      {/* <WsPopup
-        key={`popup1`}
-        active={idleAlertVisible}
-        onClose={() => {
-        }}>
-        <View
-          style={{
-            width: width * 0.9,
-            backgroundColor: $color.white,
-            borderRadius: 10,
-          }}>
-          <WsText
-            size={24}
-            color={$color.black}
-            style={{
-              padding: 16
-            }}
-          >{t('已閒置一段時間未瀏覽')}
-          </WsText>
-          <WsText
-            size={18}
-            color={$color.black}
-            style={{
-              paddingHorizontal: 16
-            }}
-          >{
-              t(
-                '是否要繼續使用此平台，否則在{{name}}秒後將自動登出。',
-                { name: countdown }
-              )}
-          </WsText>
-          <WsFlex
-            style={{
-              margin: 16,
-              alignSelf: "flex-end"
-            }}
-          >
-            <TouchableOpacity
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 9,
-                borderWidth: 1,
-                borderColor: $color.gray,
-                borderRadius: 25,
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: 128,
-                backgroundColor: $color.white,
-                height: 48
-              }}
-              onPress={() => {
-                clearInterval(countdownInterval.current)
-                setCountdown(initCount)
-                setIdleAlertVisible(false)
-                setRequestLoginVisible(false)
-                setCountdownEnded(false)
-                alreadyLockedRef.current = false;
-              }}>
-              <WsText
-                size={14}
-                color={$color.gray}
-              >{t('繼續使用')}
-              </WsText>
-            </TouchableOpacity>
-            <WsGradientButton
-              style={{
-                width: 128,
-              }}
-              onPress={() => {
-                $_logout()
-              }}>
-              {t('登出')}
-            </WsGradientButton>
-          </WsFlex>
-        </View>
-      </WsPopup> */}
       <Portal>
         <PaperModal
           visible={idleAlertVisible}
@@ -503,137 +430,6 @@ const WsDetectIdle002 = (props) => {
           </View>
         </PaperModal>
       </Portal>
-
-
-      {/* <WsPopup
-        active={requestLoginVisible}
-        onClose={() => {
-        }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : null}
-          style={{
-          }}>
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={{
-              minWidth: width * 0.9,
-              margin: 16,
-              padding: 16,
-              borderRadius: 8,
-              backgroundColor: $color.white,
-            }}>
-              <View
-                style={{
-                  maxHeight: height * 0.55
-                }}
-              >
-                <ScrollView>
-                  {topErrorMessage ? (
-                    <WsErrorMessage
-                      style={{
-                        marginVertical: 8,
-                        marginLeft: -8
-                      }}>
-                      {topErrorMessage}
-                    </WsErrorMessage>
-                  ) : (
-                    <>
-                      <WsText
-                        size={24}
-                        color={$color.black}
-                        style={{
-                          marginBottom: 8
-                        }}
-                      >{t(`已閒置過久`)}
-                      </WsText>
-                      <WsText
-                        size={18}
-                        color={$color.black}
-                        style={{
-                          marginBottom: 8
-                        }}
-                      >{t('為了保護您的資料安全，本系統已鎖定，請重新登入。')}
-                      </WsText>
-                    </>
-                  )}
-
-                  <WsState
-                    style={{
-                      marginTop: 16,
-                    }}
-                    type="email"
-                    label={i18next.t('帳號')}
-                    placeholder={i18next.t('輸入')}
-                    value={email}
-                    autoFocus={true}
-                    placeholderTextColor={$color.gray}
-                    onChange={setEmail}
-                  />
-                  <WsState
-                    style={{
-                      marginTop: 16,
-                    }}
-                    ref={passwordInput}
-                    type="password"
-                    label={i18next.t('密碼')}
-                    placeholder={i18next.t('輸入')}
-                    placeholderTextColor={$color.gray}
-                    value={password}
-                    autoCompleteType="password"
-                    textContentType="password"
-                    onSubmitEditing={
-                      () => $_onSubmit(email, password)
-                    }
-                    onChange={setPassword}
-                  />
-                  <WsGradientButton
-                    style={{
-                      marginTop: 30
-                    }}
-                    isLoading={isLoading}
-                    isDisabled={!isSubmittable}
-                    onPress={
-                      () => $_onSubmit(email, password)
-                    }
-                    borderRadius={30}>
-                    {i18next.t('登入解鎖')}
-                  </WsGradientButton>
-
-                  {Platform.OS === 'ios' && (
-                    <View
-                      style={{
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <TouchableOpacity
-                        style={{
-                          alignItems: 'center',
-                          marginTop: 16,
-                        }}
-                        onPress={() => {
-                          $_onFocus()
-                        }}
-                      >
-                        <Image
-                          style={{
-                            width: 72,
-                            height: 72,
-                          }}
-                          source={require('@/__reactnative_stone/assets/img/face-id.png')}
-                        />
-                        <WsText size={14} color={$color.primary}>
-                          {'Face ID'}
-                        </WsText>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                </ScrollView>
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </WsPopup> */}
 
       <Portal>
         <PaperModal

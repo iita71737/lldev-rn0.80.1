@@ -56,47 +56,75 @@ export default function SingleChart() {
     //   axisPointer: { type: 'line', snap: true } 
     // },
     legend: { data: ['A', 'B'] },
-    grid: { left: 44, right: 40, top: 28, bottom: 90 },
+    grid: {
+      left: 40,
+      right: 40,
+      top: 28,
+      bottom: 50
+    },
     xAxis: {
       type: 'category',
       boundaryGap: true,
       data: labels,
-      axisLabel: { interval: 0, rotate: 30, margin: 12 },
+      axisLabel: {
+        interval: 0,
+        rotate: 30,
+        margin: 12
+      },
       axisTick: { alignWithLabel: true },
+      name: '123',
+      nameLocation: 'middle',
+      nameGap: 40,
+      splitLine: {
+        show: true,
+      },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { 
-        formatter: '{value} k' 
+      axisLabel: {
+        formatter: '{value} k'
       },
+      name: '123',
       splitNumber: 4,
     },
-    dataZoom: [
-      {
-        type: 'slider',
-        start: 0,
-        end: 100,
-        height: 28,
-        bottom: 24,
-        handleSize: 40,
-        backgroundColor: '#f0f0f3',
-        dataBackground: { lineStyle: { opacity: 0.6 }, areaStyle: { opacity: 0.2 } },
-        fillerColor: 'rgba(63,81,181,0.20)',
-        handleStyle: { color: '#3f51b5', borderColor: '#2e3a8c', borderWidth: 1 },
-        moveHandleSize: 8,
-      },
-    ],
+    // dataZoom: [
+    //   {
+    //     type: 'slider',
+    //     start: 0,
+    //     end: 100,
+    //     height: 28,
+    //     bottom: 24,
+    //     handleSize: 40,
+    //     backgroundColor: '#f0f0f3',
+    //     dataBackground: {
+    //       lineStyle: {
+    //         opacity: 0.6
+    //       },
+    //       areaStyle: {
+    //         opacity: 0.2
+    //       }
+    //     },
+    //     fillerColor: 'rgba(63,81,181,0.20)',
+    //     handleStyle: {
+    //       color: '#3f51b5',
+    //       borderColor: '#2e3a8c', borderWidth: 1
+    //     },
+    //     moveHandleSize: 8,
+    //   },
+    // ],
     series: [
       {
         name: 'A',
-        type: 'line',
+        type: 'bar',
         data: dsA,
         showSymbol: true,
         symbol: 'circle',
-        symbolSize: 18,                // ← 讓命中更好
-        itemStyle: { opacity: 0.15 },  // ← 視覺較輕，但保留命中
+        symbolSize: 18,
         lineStyle: { width: 2 },
         sampling: 'lttb',
+        emphasis: {
+          focus: 'self'
+        },
       },
       {
         name: 'B',
@@ -105,9 +133,11 @@ export default function SingleChart() {
         showSymbol: true,
         symbol: 'circle',
         symbolSize: 18,
-        itemStyle: { opacity: 0.15 },
         lineStyle: { width: 2 },
         sampling: 'lttb',
+        emphasis: {
+          focus: 'self'
+        },
       },
     ],
   }), [labels, dsA, dsB])
@@ -154,9 +184,6 @@ export default function SingleChart() {
           ],
         },
       })
-
-      // （可選）同步叫出原生 tooltip 做展示（仍不可點）
-      inst.dispatchAction({ type: 'showTip', x: pt[0], y: pt[1] })
     }
     zr.on('click', onZrClick)
 

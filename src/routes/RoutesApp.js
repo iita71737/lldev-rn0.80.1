@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   StatusBar,
   Text,
@@ -62,6 +62,15 @@ import { scopeFilterScreen } from '@/__reactnative_stone/global/scopes'
 import ViewFileStore from '@/views/File/FileStore'
 import ViewFileStoreSubLayer from '@/views/File/FileStoreSubLayer'
 import RoutesStatistics from '@/routes/RoutesStatistics'
+import ViewNews from '@/views/News/Index'
+import ViewNewsShow from '@/views/News/Show'
+import {
+  getMessaging,
+  getInitialNotification,
+  onNotificationOpenedApp,
+  setBackgroundMessageHandler,
+} from '@react-native-firebase/messaging';
+// const messaging = getMessaging();
 
 const RoutesApp = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
@@ -134,18 +143,28 @@ const RoutesApp = ({ navigation, route }) => {
     }
   };
 
-  React.useEffect(() => {
-    messaging().onNotificationOpenedApp(remoteMessage => {
-      // console.log('Notification caused app to open from background state');
+  useEffect(() => {
+    const m = getMessaging();
+
+    // 從「背景」被點開
+    const unsubscribe = onNotificationOpenedApp(m, (remoteMessage) => {
       handleNotification(remoteMessage);
     });
-    messaging().getInitialNotification()
-      .then(remoteMessage => {
-        if (remoteMessage) {
-          handleNotification(remoteMessage);
+
+    // 從「已結束」狀態被點開
+    (async () => {
+      try {
+        const initial = await getInitialNotification(m);
+        if (initial) {
+          handleNotification(initial);
         }
-      });
-  }, []);
+      } catch (e) {
+        console.warn('getInitialNotification error:', e);
+      }
+    })();
+
+    return unsubscribe; // 清理監聽
+  }, [handleNotification]);
 
   return (
     <>
@@ -455,6 +474,26 @@ const RoutesApp = ({ navigation, route }) => {
               gestureEnabled: false,
               headerShown: false
             }}
+          />
+
+          {/* 16 */}
+          <StackSetting.Screen
+            name="ViewNews"
+            component={ViewNews}
+            options={({ navigation }) => ({
+              headerBackTitle: ' ',
+              title: t('新訊'),
+              ...$option.headerOption,
+            })}
+          />
+          <StackSetting.Screen
+            name="ViewNewsShow"
+            component={ViewNewsShow}
+            options={({ navigation }) => ({
+              headerBackTitle: ' ',
+              title: t('新訊內頁'),
+              ...$option.headerOption,
+            })}
           />
 
         </StackSetting.Navigator>
