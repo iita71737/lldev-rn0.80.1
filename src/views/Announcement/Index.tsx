@@ -17,7 +17,8 @@ import { useSelector } from 'react-redux'
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import store from '@/store'
 import { setIdleCounter } from '@/store/data';
-import ViewNewsList from '@/views/News/NewsList'
+import ViewAnnouncementList from '@/views/Announcement/AnnouncementList'
+import ViewAnnouncementCollectionList from '@/views/Announcement/AnnouncementCollectionList'
 
 const NewsTabs = ({ route, navigation }) => {
   const { width, height } = Dimensions.get('window')
@@ -38,7 +39,7 @@ const NewsTabs = ({ route, navigation }) => {
       {
         value: 'listing',
         label: t('聯盟新訊'),
-        view: ViewNewsList,
+        view: ViewAnnouncementList,
         props: {
           navigation: navigation,
         }
@@ -46,7 +47,7 @@ const NewsTabs = ({ route, navigation }) => {
       {
         value: 'collection',
         label: t('我的收藏'),
-        view: ViewNewsList,
+        view: ViewAnnouncementCollectionList,
         props: {
           navigation: navigation,
         }

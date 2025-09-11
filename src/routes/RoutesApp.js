@@ -62,8 +62,8 @@ import { scopeFilterScreen } from '@/__reactnative_stone/global/scopes'
 import ViewFileStore from '@/views/File/FileStore'
 import ViewFileStoreSubLayer from '@/views/File/FileStoreSubLayer'
 import RoutesStatistics from '@/routes/RoutesStatistics'
-import ViewNews from '@/views/News/Index'
-import ViewNewsShow from '@/views/News/Show'
+import ViewAnnouncement from '@/views/Announcement/Index'
+import ViewAnnouncementShow from '@/views/Announcement/Show'
 import {
   getMessaging,
   getInitialNotification,
@@ -71,6 +71,7 @@ import {
   setBackgroundMessageHandler,
 } from '@react-native-firebase/messaging';
 // const messaging = getMessaging();
+
 
 const RoutesApp = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
@@ -176,7 +177,7 @@ const RoutesApp = ({ navigation, route }) => {
       <UserInactivity
         isActive={active}
         timeForInactivity={300000} // 多少秒沒操作視為閒置 ms
-        // timeForInactivity={5000} // debug用
+        // timeForInactivity={10000} // debug用
         onAction={isActive => {
           setActive(isActive)
         }}
@@ -478,8 +479,8 @@ const RoutesApp = ({ navigation, route }) => {
 
           {/* 16 */}
           <StackSetting.Screen
-            name="ViewNews"
-            component={ViewNews}
+            name="ViewAnnouncement"
+            component={ViewAnnouncement}
             options={({ navigation }) => ({
               headerBackTitle: ' ',
               title: t('新訊'),
@@ -487,8 +488,8 @@ const RoutesApp = ({ navigation, route }) => {
             })}
           />
           <StackSetting.Screen
-            name="ViewNewsShow"
-            component={ViewNewsShow}
+            name="ViewAnnouncementShow"
+            component={ViewAnnouncementShow}
             options={({ navigation }) => ({
               headerBackTitle: ' ',
               title: t('新訊內頁'),

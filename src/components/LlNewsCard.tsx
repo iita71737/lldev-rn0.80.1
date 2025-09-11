@@ -10,15 +10,18 @@ import {
   ViewStyle,
   ImageSourcePropType,
 } from 'react-native';
-import { WsIconBtn } from '@/components'; // ✅ 你的收藏按鈕
+import {
+  WsIconBtn,
+  WsIcon
+} from '@/components'; // ✅ 你的收藏按鈕
 
 export type LlNewsCardProps = {
   coverUri?: string;                 // 網路圖片
   coverSource?: ImageSourcePropType; // 本地圖片（擇一）
-  date?: string | Date;
-  title: string;
-  excerpt?: string;
-  tagLabel?: string;
+  updated_at?: string | Date;
+  name: string;
+  introduction?: string;
+  alliance?: string;
   onPress?: () => void;
   style?: ViewStyle;
   width?: number | string;           // 卡片寬度
@@ -32,7 +35,7 @@ export type LlNewsCardProps = {
 
   // ⭐ 收藏相關（新增）
   showCollect?: boolean;             // 是否顯示收藏按鈕
-  isCollect?: boolean;               // 收藏狀態
+  is_collect?: boolean;               // 收藏狀態
   onPressCollect?: () => void;       // 收藏按鈕事件
   collectIconNames?: { active: string; inactive: string }; // 自訂圖示名稱
   collectButtonStyle?: ViewStyle;    // 自訂按鈕位置/樣式
@@ -46,15 +49,15 @@ const formatDate = (d?: string | Date) => {
 };
 
 export default function LlNewsCard({
-  coverUri,
+  coverUri = 'https://picsum.photos/seed/d/900/600',
   coverSource,
-  date,
-  title,
-  excerpt,
-  tagLabel,
+  updated_at = '2025-09-04',
+  name,
+  introduction = '供應鏈轉移帶動越南快速崛起，投資熱度與政策觀察成為關鍵…',
+  alliance,
   onPress,
   style,
-  width = 320,
+  width,
   imageHeight = 150,
   radius = 20,
   tagColor = '#0B5CAD',
@@ -65,14 +68,22 @@ export default function LlNewsCard({
 
   // 收藏 props（新增）
   showCollect = true,
-  isCollect = false,
+  is_collect = false,
   onPressCollect,
   collectIconNames = { active: 'md-bookmark', inactive: 'ws-outline-bookmark' },
   collectButtonStyle,
 }: LlNewsCardProps) {
   return (
     // 外層用來做陰影（iOS shadow / Android elevation）
-    <View style={[styles.shadowCard, { borderRadius: radius, width }, style]}>
+    <View style={[
+      styles.shadowCard,
+      {
+        borderRadius: radius,
+        width
+      },
+      style
+    ]}
+    >
       {/* 內層才裁切圓角內容，並提供點擊 */}
       <TouchableOpacity
         testID={testID}
@@ -101,26 +112,26 @@ export default function LlNewsCard({
 
         {/* 內容區 */}
         <View style={styles.body}>
-          {!!date && (
+          {!!updated_at && (
             <View style={styles.row}>
-              <Text style={styles.calendarIcon}>📅</Text>
-              <Text style={styles.dateText}>{formatDate(date)}</Text>
+              <WsIcon style={styles.calendarIcon} name={'ws-outline-calendar-date'} size={24}></WsIcon>
+              <Text style={styles.dateText}>{formatDate(updated_at)}</Text>
             </View>
           )}
 
-          <Text style={styles.title} numberOfLines={titleLines}>
-            {title}
+          <Text style={styles.name} numberOfLines={titleLines}>
+            {name}
           </Text>
 
-          {!!excerpt && (
-            <Text style={styles.excerpt} numberOfLines={excerptLines}>
-              {excerpt}
+          {!!introduction && (
+            <Text style={styles.introduction} numberOfLines={excerptLines}>
+              {introduction}
             </Text>
           )}
 
-          {!!tagLabel && (
+          {!!alliance && (
             <View style={[styles.tag, { backgroundColor: tagColor }]}>
-              <Text style={styles.tagText}>{tagLabel}</Text>
+              <Text style={styles.tagText}>{alliance?.name}</Text>
             </View>
           )}
         </View>
@@ -133,7 +144,7 @@ export default function LlNewsCard({
           >
             <WsIconBtn
               style={styles.collectBtn}
-              name={isCollect ? collectIconNames.active : collectIconNames.inactive}
+              name={is_collect ? collectIconNames.active : collectIconNames.inactive}
               size={28}
               onPress={onPressCollect}
             />
@@ -146,6 +157,8 @@ export default function LlNewsCard({
 
 const styles = StyleSheet.create({
   shadowCard: {
+    marginTop: 16,
+    marginHorizontal: 16,
     backgroundColor: 'transparent',
     ...Platform.select({
       ios: {
@@ -190,14 +203,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  title: {
+  name: {
     color: '#173B63',
     fontSize: 18,
     fontWeight: '800',
     lineHeight: 24,
     marginTop: 2,
   },
-  excerpt: {
+  introduction: {
     color: '#5B6B77',
     fontSize: 14,
     lineHeight: 20,

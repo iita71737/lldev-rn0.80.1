@@ -285,21 +285,17 @@ function App(): JSX.Element {
         </View>
       )}
 
-      {isLoading === false && (
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <Provider store={store}>
-            <CopilotProvider>
-              <PaperProvider>
-                {Config.ENV === 'development' && (
-                  <WsGlobalOfflineAlert></WsGlobalOfflineAlert>
-                )}
-                <WsSnackBar></WsSnackBar>
-                <RoutesMain />
-              </PaperProvider>
-            </CopilotProvider>
-          </Provider>
-        </GestureHandlerRootView>
-      )}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Provider store={store}>
+          <CopilotProvider>
+            <PaperProvider>
+              {Config.ENV === 'development' && <WsGlobalOfflineAlert />}
+              <WsSnackBar />
+              {isLoading ? null : <RoutesMain />}   {/* ← 只切內容，不切 Provider */}
+            </PaperProvider>
+          </CopilotProvider>
+        </Provider>
+      </GestureHandlerRootView>
     </>
   )
 }

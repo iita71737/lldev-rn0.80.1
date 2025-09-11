@@ -371,7 +371,7 @@ const Menu = ({ navigation }) => {
                     )
                     e.preventDefault();
                   } else if (scopePermission('llbroadcast-read', currentUserScope)) {
-                    navigation.push('ViewNews')
+                    navigation.push('ViewAnnouncement')
                   }
 
                 }}
