@@ -56,7 +56,7 @@ import {
 const FastLoadingImage = ({
   uri,
   style,
-  resizeMode = 'cover',
+  resizeMode = 'contain',
   priority = 'normal',
   cache = 'immutable',
   headers,
