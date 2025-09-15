@@ -195,16 +195,16 @@ const Menu = ({ navigation }) => {
       //   onPress: () => { }
       // }
 
-      {
-        title: t('數量統計管理'),
-        backgroundImg: require('@/assets/img/audit-management.jpg'),
-        onPress: () => {
-          navigation.push('RoutesStatistics', {
-            screen: 'StatisticsIndex'
-          })
-        },
-        permission: scopePermission('audit-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'audit') : scopeSubscriptions(currentFactory, 'audit'))
-      },
+      // {
+      //   title: t('數量統計管理'),
+      //   backgroundImg: require('@/assets/img/audit-management.jpg'),
+      //   onPress: () => {
+      //     navigation.push('RoutesStatistics', {
+      //       screen: 'StatisticsIndex'
+      //     })
+      //   },
+      //   permission: scopePermission('audit-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'audit') : scopeSubscriptions(currentFactory, 'audit'))
+      // },
     ]
     )
   }
@@ -354,7 +354,7 @@ const Menu = ({ navigation }) => {
                 style={{
                   backgroundColor: $color.white
                 }}
-                iconLeft="ll-nav-news-outline"
+                iconLeft="ll-esh-fairtrade"
                 onPress={(e) => {
                   if (!scopePermission('llbroadcast-read', currentUserScope)) {
                     Alert.alert(

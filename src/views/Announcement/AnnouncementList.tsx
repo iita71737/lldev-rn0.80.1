@@ -20,13 +20,13 @@ import {
   LlBtn002,
   WsPageIndex,
   LlNewsCard,
-  WsState
+  WsState,
+  WsSnackBar
 } from '@/components'
 import { useSelector } from 'react-redux'
 import $color from '@/__reactnative_stone/global/color'
 import moment from 'moment'
 import { useTranslation } from 'react-i18next'
-import { StackActions } from '@react-navigation/native';
 
 interface BroadCastProps {
   navigation: any; // Replace 'any' with actual navigation prop type
@@ -41,33 +41,54 @@ const News: React.FC<BroadCastProps> = ({ navigation, route }) => {
   const currentOrganization = useSelector(state => state.data.currentOrganization)
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentViewMode = useSelector(state => state.data.currentViewMode)
+  const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
 
   // State
   const [searchValue, setSearchValue] = React.useState<string | undefined>(undefined);
+  const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false)
+  const [snackBarText, setSnackBarText] = React.useState(
+    t('已儲存至「我的收藏」')
+  )
 
-  const [params] = React.useState({
-    // order_by: 'announce_at',
-    // order_way: 'desc',
-    // time_field: 'announce_at',
-    factory: currentViewMode === 'factory' && currentFactory ? currentFactory.id : currentOrganization ? currentOrganization.id : null
-  })
+  // MEMO
+  const params = React.useMemo(() => {
+    return {
+      factory: currentViewMode === 'factory' && currentFactory ? currentFactory.id : currentOrganization ? currentOrganization.id : null
+    }
+  }, [currentRefreshCounter, currentFactory, currentViewMode]);
 
   const filterFields = {
-    date_range: {
-      type: 'date_range',
-      label: t('發布日期'),
-      time_field: 'announce_at',
-    }
+    alliance: {
+      type: 'belongsto',
+      label: t('聯盟'),
+      nameKey: 'name',
+      modelName: 'alliance',
+      serviceIndexKey: 'index',
+      hasMeta: false,
+      placeholder: t('選擇'),
+    },
+    // date_range: {
+    //   type: 'date_range',
+    //   label: t('發布日期'),
+    //   time_field: 'announce_at',
+    // }
   }
 
   // Render
   return (
     <>
+      <WsSnackBar
+        text={snackBarText}
+        setVisible={setIsSnackBarVisible}
+        visible={isSnackBarVisible}
+        quickHidden={true}
+      />
+
       <WsPageIndex
         modelName={'announcement'}
         params={params}
         filterFields={filterFields}
-        searchLabel={t('主旨')}
+        searchLabel={t('標題')}
         renderItem={({ item, index }:
           {
             item: any;
@@ -77,6 +98,8 @@ const News: React.FC<BroadCastProps> = ({ navigation, route }) => {
             <LlNewsCard
               key={index}
               {...item}
+              setSnackBarText={setSnackBarText}
+              setIsSnackBarVisible={setIsSnackBarVisible}
               onPress={() => {
                 // console.log('Open:', item.title);
                 navigation.push('RoutesApp', {
@@ -87,6 +110,19 @@ const News: React.FC<BroadCastProps> = ({ navigation, route }) => {
                 })
               }}
             />
+          )
+        }}
+        ListFooterComponent={() => {
+          return (
+            <>
+              <View
+                style={{
+                  height: 50,
+                }}
+              >
+              </View>
+            </>
+
           )
         }}
       >

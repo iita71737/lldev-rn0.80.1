@@ -14,9 +14,17 @@ import {
   WsIconBtn,
   WsIcon
 } from '@/components'; // ✅ 你的收藏按鈕
+import S_Announcement from '@/services/api/v1/announcement'
+import store from '@/store'
+import { useSelector } from 'react-redux'
+import {
+  setRefreshCounter
+} from '@/store/data'
+import $color from '@/__reactnative_stone/global/color'
 
 export type LlNewsCardProps = {
-  coverUri?: string;                 // 網路圖片
+  id?: string;
+  cover_image?: string;                 // 網路圖片
   coverSource?: ImageSourcePropType; // 本地圖片（擇一）
   updated_at?: string | Date;
   name: string;
@@ -39,6 +47,8 @@ export type LlNewsCardProps = {
   onPressCollect?: () => void;       // 收藏按鈕事件
   collectIconNames?: { active: string; inactive: string }; // 自訂圖示名稱
   collectButtonStyle?: ViewStyle;    // 自訂按鈕位置/樣式
+  setIsSnackBarVisible?: () => void;
+  setSnackBarText?: () => void;
 };
 
 const formatDate = (d?: string | Date) => {
@@ -49,7 +59,8 @@ const formatDate = (d?: string | Date) => {
 };
 
 export default function LlNewsCard({
-  coverUri = 'https://picsum.photos/seed/d/900/600',
+  id,
+  cover_image = 'https://picsum.photos/seed/d/900/600',
   coverSource,
   updated_at = '2025-09-04',
   name,
@@ -62,17 +73,59 @@ export default function LlNewsCard({
   radius = 20,
   tagColor = '#0B5CAD',
   titleLines = 2,
-  excerptLines = 2,
+  excerptLines = 3,
   activeOpacity = 0.8,
   testID,
 
   // 收藏 props（新增）
   showCollect = true,
   is_collect = false,
-  onPressCollect,
   collectIconNames = { active: 'md-bookmark', inactive: 'ws-outline-bookmark' },
   collectButtonStyle,
+  setIsSnackBarVisible,
+  setSnackBarText,
+
 }: LlNewsCardProps) {
+
+  // Redux
+  const currentFactory = useSelector(state => state.data.currentFactory)
+  const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
+
+  // states
+  const [isCollect, setIsCollect] = React.useState(is_collect)
+
+  const bookmarkOnPress = async () => {
+    try {
+      if (isCollect) {
+        setIsSnackBarVisible(false)
+        setIsSnackBarVisible(true)
+        setIsCollect(false)
+        setSnackBarText('已從我的收藏中移除')
+        const _params = {
+          id: id,
+          factory: currentFactory?.id
+        }
+        console.log(_params, '_params');
+        await S_Announcement.removeMyCollect({ params: _params })
+        store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
+      } else {
+        setIsSnackBarVisible(false)
+        setIsSnackBarVisible(true)
+        setIsCollect(true)
+        setSnackBarText('已儲存至「我的收藏」')
+        const _params = {
+          id: id,
+          factory: currentFactory?.id
+        }
+        console.log(_params, '_params');
+        await S_Announcement.addMyCollect({ params: _params })
+        store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
+      }
+    } catch (e) {
+      console.error(e, 'e');
+    }
+  }
+
   return (
     // 外層用來做陰影（iOS shadow / Android elevation）
     <View style={[
@@ -93,19 +146,19 @@ export default function LlNewsCard({
       >
         {/* 封面圖 */}
         <View style={[styles.imageWrap, { height: imageHeight }]}>
-          {coverUri || coverSource ? (
+          {cover_image || coverSource ? (
             <Image
-              source={coverSource ?? { uri: coverUri! }}
+              source={coverSource ?? { uri: cover_image! }}
               resizeMode="cover"
               style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
             />
           ) : (
             <View style={[StyleSheet.absoluteFill, styles.imagePlaceholder]}>
-              <Image
+              {/* <Image
                 source={{ uri: 'https://images.unsplash.com/photo-1707742984673-ae30d982bdec?q=80&w=3132&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }}
                 resizeMode="cover"
                 style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
-              />
+              /> */}
             </View>
           )}
         </View>
@@ -146,7 +199,7 @@ export default function LlNewsCard({
               style={styles.collectBtn}
               name={is_collect ? collectIconNames.active : collectIconNames.inactive}
               size={28}
-              onPress={onPressCollect}
+              onPress={bookmarkOnPress}
             />
           </View>
         )}

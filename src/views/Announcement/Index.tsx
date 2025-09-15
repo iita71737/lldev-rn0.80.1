@@ -38,7 +38,7 @@ const NewsTabs = ({ route, navigation }) => {
     setTabItems([
       {
         value: 'listing',
-        label: t('聯盟新訊'),
+        label: t('最新上線'),
         view: ViewAnnouncementList,
         props: {
           navigation: navigation,
