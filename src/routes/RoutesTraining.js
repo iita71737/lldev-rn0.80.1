@@ -229,21 +229,11 @@ const RoutesTraining = () => {
       })
       if (res) {
         Alert.alert('教育訓練編輯成功')
-        navigation.reset({
-          index: 1,
-          routes: [
-            {
-              name: 'TrainingIndex'
-            },
-            {
-              name: 'TrainingShow',
-              params: {
-                id: res.id
-              }
-            }
-          ],
-          key: null
-        })
+        navigation.popToTop();
+        navigation.navigate('TrainingShow', {
+          id: res.id,
+          refreshKey: Date.now()
+        });
       }
     } catch (e) {
       Alert.alert('教育訓練編輯異常')
@@ -263,8 +253,10 @@ const RoutesTraining = () => {
   return (
     <StackSetting.Navigator
       screenOptions={{
-        headerBackTitleVisible: false
-      }}>
+        headerBackTitleVisible: false,
+        headerShown: true,
+      }}
+    >
       <StackSetting.Screen
         name="TrainingIndex"
         component={scopeFilterScreen('internal-training-read', ViewTrainingIndex)}
@@ -294,7 +286,7 @@ const RoutesTraining = () => {
         component={scopeFilterScreen('internal-training-read', ViewTrainingShow)}
         options={({ navigation }) => ({
           title: t('教育訓練'),
-          ...$option.headerOption
+          ...$option.headerOption,
         })}
       />
       <StackSetting.Screen
@@ -302,7 +294,7 @@ const RoutesTraining = () => {
         component={scopeFilterScreen('internal-training-read', ViewTrainingGroupShow)}
         options={({ navigation }) => ({
           title: t('教育訓練群組'), // 教育訓練群組內頁
-          ...$option.headerOption
+          ...$option.headerOption,
         })}
       />
       <StackSetting.Screen

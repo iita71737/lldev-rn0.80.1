@@ -230,6 +230,7 @@ const LlRelatedGuidelineStateFormView001 = props => {
               }}>
               <WsText
                 style={{
+                  height:30
                 }}
                 size={14}
                 color={$color.gray}

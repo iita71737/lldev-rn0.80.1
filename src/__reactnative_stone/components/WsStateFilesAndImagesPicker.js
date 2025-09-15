@@ -28,8 +28,6 @@ import $color from '@/__reactnative_stone/global/color'
 import config from '@/__config'
 import * as ImagePicker from 'react-native-image-picker'
 import { useTranslation } from 'react-i18next'
-// import DocumentPicker from 'react-native-document-picker'
-import DocumentPicker from '@react-native-documents/picker'
 import { launchImageLibrary } from 'react-native-image-picker'
 import { PermissionsAndroid } from 'react-native'
 import { Image, Video } from 'react-native-compressor';
@@ -38,6 +36,7 @@ import RNFS from 'react-native-fs'
 import { Camera, useCameraDevice } from 'react-native-vision-camera'
 import { useNavigation } from '@react-navigation/native'
 import HeicConverter from 'react-native-heic-converter';
+import { pick, types } from '@react-native-documents/picker'
 
 const WsStateFilesAndImagesPicker = props => {
   const { width, height } = Dimensions.get('window')
@@ -356,18 +355,23 @@ const WsStateFilesAndImagesPicker = props => {
 
   // Browse Files
   const $_onBrowsePress = async () => {
-    console.log('1111');
     try {
-      const response = await DocumentPicker.pick({})
+      const response = await pick({})
+      console.log(response, 'response---');
       const _value = [...value]
       for (const item of response) {
         await processResponse(item, _value);
       }
     } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
-        console.log(err)
+      // Android 有 code；iOS 可能只有 message
+      const isCancel =
+        err?.code === 'DOCUMENT_PICKER_CANCELED' ||
+        err?.message?.includes('user canceled') ||
+        err?.message?.includes('The operation was cancelled')
+      if (isCancel) {
+        console.log('✅ 使用者取消選擇')
       } else {
-        throw err
+        console.error('❌ 發生其他錯誤:', err)
       }
     }
   }

@@ -30,9 +30,13 @@ import S_Training from '@/services/api/v1/training'
 import moment from 'moment'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
-import store from '@/store'
 import license from '@/services/api/v1/license'
 import { useNavigation } from '@react-navigation/native'
+import $option from '@/__reactnative_stone/global/option'
+import store from '@/store'
+import {
+  setRefreshCounter
+} from '@/store/data'
 
 const TrainingShow = ({ route, ...props }) => {
   const { t, i18n } = useTranslation()
@@ -40,9 +44,11 @@ const TrainingShow = ({ route, ...props }) => {
 
   // Params
   const id = props?.id || route?.params?.id || null;
+  const refreshKey = props?.refreshKey || route?.params?.refreshKey || null;
 
   // REDUX
   const currentFactory = useSelector(state => state.data.currentFactory)
+  const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
 
   // States
   const [stateModal, setStateModal] = React.useState(false)
@@ -205,7 +211,7 @@ const TrainingShow = ({ route, ...props }) => {
 
   React.useEffect(() => {
     $_fetchTraining()
-  }, [route, id])
+  }, [route, id, refreshKey])
 
   React.useEffect(() => {
     if (training) {

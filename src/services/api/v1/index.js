@@ -66,6 +66,8 @@ import locale from '@/services/api/v1/locale'
 import content_text from '@/services/api/v1/content_text'
 import exit_checklist from '@/services/api/v1/exit_checklist'
 import exit_checklist_assignment from '@/services/api/v1/exit_checklist_assignment'
+import announcement from '@/services/api/v1/announcement'
+import alliance from '@/services/api/v1/alliance'
 
 export default {
   act,
@@ -135,5 +137,7 @@ export default {
   locale,
   content_text,
   exit_checklist,
-  exit_checklist_assignment
+  exit_checklist_assignment,
+  announcement,
+  alliance
 }

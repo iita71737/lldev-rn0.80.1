@@ -8,8 +8,6 @@ import ViewFactoryAndOrganization from '@/views/FactoryAndOrganization'
 import ViewMyAccountSetting from '@/views/MyAccountSettings'
 import ViewSettingLanguage from '@/views/SettingLanguage'
 import ViewSettingTranslation from '@/views/SettingTranslation'
-import ViewBroadCast from '@/views/BroadCast/Index'
-import ViewBroadCastShow from '@/views/BroadCast/Show'
 import ViewFeedBack from '@/views/FeedBack'
 import RoutesSetting from '@/routes/RoutesSetting'
 import RoutesCheckList from '@/routes/RoutesCheckList'
@@ -124,7 +122,7 @@ const RoutesMenu = () => {
                       )
                       e.preventDefault();
                     } else if (scopePermission('sos-create', currentUserScope)) {
-                      navigation.navigate('SOS')
+                      navigation.push('SOS')
                     }
                   }}
                 />

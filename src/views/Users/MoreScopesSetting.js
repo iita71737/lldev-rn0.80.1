@@ -31,7 +31,7 @@ import {
 import { useSelector } from 'react-redux'
 import store from '@/store'
 import S_SystemClass from '@/__reactnative_stone/services/api/v1/system_class'
-import { FontWeight } from '@shopify/react-native-skia'
+// import { FontWeight } from '@shopify/react-native-skia'
 
 const MoreScopesSetting = ({ navigation, route }) => {
   const { width, height } = Dimensions.get('window')

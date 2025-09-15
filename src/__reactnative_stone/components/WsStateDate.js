@@ -1,5 +1,5 @@
 import React from 'react'
-import { useColorScheme, View, Text, Pressable, Dimensions } from 'react-native'
+import { useColorScheme, View, Text, Pressable, Dimensions, Platform } from 'react-native'
 import DatePicker from 'react-native-date-picker'
 import { WsDialog, WsBtnSelect, WsText } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
@@ -156,6 +156,7 @@ const WsStateDate = props => {
           disabled={!editable}
         />
       </View>
+
       <WsDialog
         btnBorderWidth={0}
         dialogVisible={visible}
@@ -181,25 +182,33 @@ const WsStateDate = props => {
           paddingRight: 0,
           backgroundColor: 'white'
         }}>
+
         <DatePicker
           testID="datePicker"
-          modal={false}
+          modal={Platform.OS === 'android' ? false : true}
+          title={t('選擇')}
+          confirmText={t('確認')}
+          cancelText={t('取消')}
           open={visible}
           onConfirm={(date) => {
+            console.log(date, 'dateVV');
             setVisible(false)
-            setDateValue($_setDate($event))
+            setDateValue($_setDate(date))
+            onChange($_setDate(date))
           }}
           onCancel={() => {
             setVisible(false)
           }}
-          theme={'auto'}
+          theme={'light'}
           date={
             moment(dateValue).isValid()
               ? new Date(moment(dateValue))
               : new Date()
           }
-          onDateChange={$event => {
-            setDateValue($_setDate($event))
+          onDateChange={($event) => {
+            if ($event) {
+              setDateValue($_setDate($event))
+            }
           }}
           mode={mode}
           is24hourSource={is24hourSource}
@@ -215,6 +224,7 @@ const WsStateDate = props => {
             flex: 1
           }}
         />
+
       </WsDialog>
     </>
   )

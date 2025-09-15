@@ -5,7 +5,7 @@ import {
   WsFlex,
   WsIconBtn,
   WsBtn,
-  WsSwipeGestures
+  // WsSwipeGestures
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import $theme from '@/__reactnative_stone/global/theme'
@@ -33,7 +33,7 @@ const WsModalHeader = props => {
 
   // Render
   return (
-    <WsSwipeGestures onSwipeDown={onSwipeDown}>
+    // <WsSwipeGestures onSwipeDown={onSwipeDown}>
       <WsFlex
         style={[
           {
@@ -115,7 +115,7 @@ const WsModalHeader = props => {
           )}
         </WsFlex>
       </WsFlex>
-    </WsSwipeGestures>
+    // </WsSwipeGestures>
   )
 }
 export default WsModalHeader

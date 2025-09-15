@@ -536,7 +536,7 @@ const CheckListAssignmentStep = props => {
               </WsPaddingContainer>
 
               <WsDialog
-                contentHeight={300}
+                contentHeight={256}
                 dialogVisible={visible}
                 setDialogVisible={() => {
                   setVisible(false)
@@ -759,45 +759,47 @@ const CheckListAssignmentStep = props => {
                       </WsFlex>
                     )}
 
-                  {question?.latLng && (
-                    <View
-                      style={{
-                        marginTop: 8
-                      }}
-                    >
-                      <WsInfo
-                        type="link"
-                        label={t('答題位置')}
-                        labelFontWeight={300}
-                        labelWidth={80}
+                  {question?.latLng &&
+                    question?.latLng?.latitude &&
+                    question?.latLng?.longitude && (
+                      <View
                         style={{
-                          flexDirection: 'row',
+                          marginTop: 8
                         }}
-                        value={`${question?.latLng?.latitude} , ${question?.latLng?.longitude}`}
-                        onPress={() => {
-                          if (currentFactory?.map_url) {
-                            if (currentFactory?.map_url === 'google') {
+                      >
+                        <WsInfo
+                          type="link"
+                          label={t('答題位置')}
+                          labelFontWeight={300}
+                          labelWidth={80}
+                          style={{
+                            flexDirection: 'row',
+                          }}
+                          value={`${question?.latLng?.latitude} , ${question?.latLng?.longitude}`}
+                          onPress={() => {
+                            if (currentFactory?.map_url) {
+                              if (currentFactory?.map_url === 'google') {
+                                // GOOGLE MAP
+                                const url = `https://www.google.com/maps/search/?api=1&query=${question?.latLng?.latitude},${question?.latLng?.longitude}`;
+                                Linking.openURL(url);
+                              } else if (currentFactory?.map_url === 'gaode') {
+                                // AMAP
+                                const url1 = `https://uri.amap.com/marker?position=${question?.latLng?.latitude},${question?.latLng?.longitude}`;
+                                Linking.openURL(url1);
+                              } else if (currentFactory?.map_url === 'naver') {
+                                // NAVER MAP
+                                const url2 = `https://map.naver.com/v5/?c=${question?.latLng?.latitude},${question?.latLng?.longitude},17,0,0,0,d`;
+                                Linking.openURL(url2);
+                              }
+                            } else {
                               // GOOGLE MAP
                               const url = `https://www.google.com/maps/search/?api=1&query=${question?.latLng?.latitude},${question?.latLng?.longitude}`;
                               Linking.openURL(url);
-                            } else if (currentFactory?.map_url === 'google') {
-                              // AMAP
-                              const url1 = `https://uri.amap.com/marker?position=${question?.latLng?.latitude},${question?.latLng?.longitude}`;
-                              Linking.openURL(url1);
-                            } else if (currentFactory?.map_url === 'google') {
-                              // NAVER MAP
-                              const url2 = `https://map.naver.com/v5/?c=${question?.latLng?.latitude},${question?.latLng?.longitude},17,0,0,0,d`;
-                              Linking.openURL(url2);
                             }
-                          } else {
-                            // GOOGLE MAP
-                            const url = `https://www.google.com/maps/search/?api=1&query=${question?.latLng?.latitude},${question?.latLng?.longitude}`;
-                            Linking.openURL(url);
-                          }
-                        }}
-                      />
-                    </View>
-                  )}
+                          }}
+                        />
+                      </View>
+                    )}
 
                   {question?.ip && (
                     <View

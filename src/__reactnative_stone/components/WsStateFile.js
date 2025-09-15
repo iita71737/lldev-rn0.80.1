@@ -1,15 +1,15 @@
 // OUO
 import React from 'react'
 import { WsUpdateBtn, WsStateFileItem } from '@/components'
-import DocumentPicker from '@react-native-documents/picker'
+import { pick, types } from '@react-native-documents/picker'
 import { useTranslation } from 'react-i18next'
 
 const WsStateFile = props => {
   // Props
-  const { 
-    value, 
-    onChange, 
-    uploadUrl 
+  const {
+    value,
+    onChange,
+    uploadUrl
   } = props
 
   // i18n
@@ -18,18 +18,24 @@ const WsStateFile = props => {
   // Function
   const $_onUploadPress = async () => {
     try {
-      const response = await DocumentPicker.pick({})
-      console.log(response,'response');
+      const response = await pick({})
+      console.log(response, 'response');
       onChange({
         lazyUri: response.uri,
         fileName: response.name,
         needUpload: true
       })
     } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
+      // Android 有 code；iOS 可能只有 message
+      const isCancel =
+        err?.code === 'DOCUMENT_PICKER_CANCELED' ||
+        err?.message?.includes('user canceled') ||
+        err?.message?.includes('The operation was cancelled')
 
+      if (isCancel) {
+        console.log('✅ 使用者取消選擇')
       } else {
-        throw err
+        console.error('❌ 發生其他錯誤:', err)
       }
     }
   }

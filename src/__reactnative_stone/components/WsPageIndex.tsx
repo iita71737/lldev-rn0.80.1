@@ -27,7 +27,6 @@ import store from '@/store'
 import {
   setIdleCounter
 } from '@/store/data'
-import { Portal, PaperProvider } from 'react-native-paper';
 
 interface WsPageIndexProps {
   modelName: string;
@@ -107,7 +106,6 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
 
   // FUNC
   const $_onFilterSubmit = ($event: any) => {
-    // console.log($event,'$event--');
     setLoading(true)
     setModalVisible(false)
     setFiltersValue($event)
@@ -156,9 +154,26 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
     _setParams({ ...params });
   }, [params])
 
+  // WsIconBtn延遲顯示
+  const delayMs = 1200; // 想延遲的毫秒數
+  const [showFilterBtn, setShowFilterBtn] = React.useState(false);
+  React.useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | null = null;
+
+    if (filterVisible) {
+      t = setTimeout(() => setShowFilterBtn(true), delayMs);
+    } else {
+      setShowFilterBtn(false); // 立刻隱藏
+    }
+
+    return () => {
+      if (t) clearTimeout(t);  // 清理避免競態
+    };
+  }, [filterVisible, delayMs]);
+
   return (
     <>
-      {filterVisible && (
+      {showFilterBtn && (
         <WsIconBtn
           testID={'WsFilter002'}
           name="bih-filter"
@@ -171,7 +186,6 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
             position: 'absolute',
             bottom: 16,
             right: 16,
-            // borderWidth:2
           }}
           onPress={() => {
             setModalVisible(true)

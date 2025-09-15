@@ -11,12 +11,10 @@ import {
 } from '@/components'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import { useIsFocused } from '@react-navigation/native'
 import $color from '@/__reactnative_stone/global/color'
 import AsyncStorage from '@react-native-community/async-storage'
 import S_SystemClass from '@/__reactnative_stone/services/api/v1/system_class'
 import PickTemplate from '@/views/Training/Create/PickTemplate'
-
 
 interface TrainingListProps {
   tabIndex: number;
@@ -31,7 +29,6 @@ interface TrainingItem {
 const TrainingList: React.FC<TrainingListProps> = props => {
   const { t } = useTranslation()
   const navigation = useNavigation<any>()
-  const isFocused = useIsFocused()
 
   // Props
   const {
@@ -52,7 +49,7 @@ const TrainingList: React.FC<TrainingListProps> = props => {
       timezone: 'Asia/Taipei',
       lang: 'tw'
     }
-  }, [isFocused]);
+  }, []);
 
   // Field
   const [filterFields] = React.useState({
@@ -213,6 +210,7 @@ const TrainingList: React.FC<TrainingListProps> = props => {
         filterValue={defaultFilter}
         renderItem={({ item, index }: { item: TrainingItem, index: number }) => (
           <WsPaddingContainer
+            key={index}
             padding={0}
             style={{
               paddingHorizontal: 16
@@ -230,8 +228,8 @@ const TrainingList: React.FC<TrainingListProps> = props => {
                   }
               ]}
               onPress={() => {
-                navigation.navigate({
-                  name: 'TrainingShow',
+                navigation.push('RoutesTraining', {
+                  screen: 'TrainingShow',
                   params: {
                     id: item.id
                   }

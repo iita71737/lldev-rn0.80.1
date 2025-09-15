@@ -75,6 +75,7 @@ const Menu = ({ navigation }) => {
   const currentUserScope = useSelector(state => state.data.userScopes)
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
 
+
   // States
   const [manageList, setManageList] = React.useState([])
 
@@ -193,6 +194,17 @@ const Menu = ({ navigation }) => {
       //   permission: false,
       //   onPress: () => { }
       // }
+
+      // {
+      //   title: t('數量統計管理'),
+      //   backgroundImg: require('@/assets/img/audit-management.jpg'),
+      //   onPress: () => {
+      //     navigation.push('RoutesStatistics', {
+      //       screen: 'StatisticsIndex'
+      //     })
+      //   },
+      //   permission: scopePermission('audit-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'audit') : scopeSubscriptions(currentFactory, 'audit'))
+      // },
     ]
     )
   }
@@ -338,70 +350,34 @@ const Menu = ({ navigation }) => {
             </LlNavButton001>
 
             <>
-              {scopePermission('guideline-read', currentUserScope) &&
-                scopeSubscriptions(currentFactory, 'guideline') && (
-                  <LlNavButton001
-                    style={{
-                      backgroundColor: $color.white
-                    }}
-                    iconLeft="ll-nav-internalegulations-outline"
-                    onPress={(e) => {
-                      if (!scopePermission('guideline-read', currentUserScope)) {
-                        Alert.alert(
-                          t('您無此單位內相關權限，請聯絡系統管理員'),
-                          "",
-                          [
-                            {
-                              text: "我知道了",
-                              onPress: () => {
-                                navigation.navigate('RoutesMenu')
-                              }
-                            }
-                          ]
-                        )
-                        e.preventDefault();
-                      } else if (scopePermission('guideline-read', currentUserScope)) {
-                        navigation.navigate('RoutesAct',
-                          {
-                            screen: 'GuidelineIndex'
-                          })
-                      }
-                    }}>
-                    {t('內規')}
-                  </LlNavButton001>
-                )}
+              <LlNavButton001
+                style={{
+                  backgroundColor: $color.white
+                }}
+                iconLeft="ll-esh-fairtrade"
+                onPress={(e) => {
+                  if (!scopePermission('llbroadcast-read', currentUserScope)) {
+                    Alert.alert(
+                      t('您無此單位內相關權限，請聯絡系統管理員'),
+                      "",
+                      [
+                        {
+                          text: "我知道了",
+                          onPress: () => {
+                            navigation.navigate('RoutesMenu')
+                          }
+                        }
+                      ]
+                    )
+                    e.preventDefault();
+                  } else if (scopePermission('llbroadcast-read', currentUserScope)) {
+                    navigation.push('ViewAnnouncement')
+                  }
 
-
-              {scopePermission('guideline-admin-read', currentUserScope) &&
-                scopeSubscriptions(currentFactory, 'guideline') && (
-                  <LlNavButton001
-                    style={{
-                      backgroundColor: $color.white
-                    }}
-                    iconLeft="ll-nav-internalegulationsmanage-outline"
-                    onPress={(e) => {
-                      if (!scopePermission('guideline-admin-read', currentUserScope)) {
-                        Alert.alert(
-                          t('您無此單位內相關權限，請聯絡系統管理員'),
-                          "",
-                          [
-                            {
-                              text: t("確定"),
-                              onPress: () => {
-                                navigation.navigate('RoutesMenu')
-                              }
-                            }
-                          ]
-                        )
-                        e.preventDefault();
-                      } else if (scopePermission('guideline-admin-read', currentUserScope)) {
-                        navigation.navigate('RoutesAct', { screen: 'GuidelineAdminIndex' })
-                      }
-                    }}>
-                    {t('內規管理')}
-                  </LlNavButton001>
-                )}
-
+                }}
+              >
+                {t('新訊')}
+              </LlNavButton001>
 
               <LlNavButton001
                 style={{
@@ -434,37 +410,8 @@ const Menu = ({ navigation }) => {
                 style={{
                   backgroundColor: $color.white
                 }}
-                iconLeft="ll-nav-news-outline"
-                onPress={(e) => {
-                  if (!scopePermission('llbroadcast-read', currentUserScope)) {
-                    Alert.alert(
-                      t('您無此單位內相關權限，請聯絡系統管理員'),
-                      "",
-                      [
-                        {
-                          text: "我知道了",
-                          onPress: () => {
-                            navigation.navigate('RoutesMenu')
-                          }
-                        }
-                      ]
-                    )
-                    e.preventDefault();
-                  } else if (scopePermission('llbroadcast-read', currentUserScope)) {
-                    navigation.push('ViewBroadCast')
-                  }
-
-                }}
-              >
-                {t('ESGoal快報')}
-              </LlNavButton001>
-
-              <LlNavButton001
-                style={{
-                  backgroundColor: $color.white
-                }}
                 iconLeft="ll-nav-filemanage"
-                iconRight={false}>
+              >
                 {t('管理')}
               </LlNavButton001>
             </>
@@ -507,6 +454,99 @@ const Menu = ({ navigation }) => {
               />
 
             </WsPaddingContainer>
+
+            {scopePermission('guideline-read', currentUserScope) &&
+              scopeSubscriptions(currentFactory, 'guideline') && (
+                <LlNavButton001
+                  style={{
+                    backgroundColor: $color.white
+                  }}
+                  iconLeft="ll-nav-internalegulations-outline"
+                  onPress={(e) => {
+                    if (!scopePermission('guideline-read', currentUserScope)) {
+                      Alert.alert(
+                        t('您無此單位內相關權限，請聯絡系統管理員'),
+                        "",
+                        [
+                          {
+                            text: "我知道了",
+                            onPress: () => {
+                              navigation.navigate('RoutesMenu')
+                            }
+                          }
+                        ]
+                      )
+                      e.preventDefault();
+                    } else if (scopePermission('guideline-read', currentUserScope)) {
+                      navigation.navigate('RoutesAct',
+                        {
+                          screen: 'GuidelineIndex'
+                        })
+                    }
+                  }}>
+                  {t('內規')}
+                </LlNavButton001>
+              )}
+
+
+            {scopePermission('guideline-admin-read', currentUserScope) &&
+              scopeSubscriptions(currentFactory, 'guideline') && (
+                <LlNavButton001
+                  style={{
+                    backgroundColor: $color.white
+                  }}
+                  iconLeft="ll-nav-internalegulationsmanage-outline"
+                  onPress={(e) => {
+                    if (!scopePermission('guideline-admin-read', currentUserScope)) {
+                      Alert.alert(
+                        t('您無此單位內相關權限，請聯絡系統管理員'),
+                        "",
+                        [
+                          {
+                            text: t("確定"),
+                            onPress: () => {
+                              navigation.navigate('RoutesMenu')
+                            }
+                          }
+                        ]
+                      )
+                      e.preventDefault();
+                    } else if (scopePermission('guideline-admin-read', currentUserScope)) {
+                      navigation.navigate('RoutesAct', { screen: 'GuidelineAdminIndex' })
+                    }
+                  }}>
+                  {t('內規管理')}
+                </LlNavButton001>
+              )}
+
+            <LlNavButton001
+              style={{
+                backgroundColor: $color.white
+              }}
+              iconLeft="ll-nav-news-outline"
+              onPress={(e) => {
+                if (!scopePermission('llbroadcast-read', currentUserScope)) {
+                  Alert.alert(
+                    t('您無此單位內相關權限，請聯絡系統管理員'),
+                    "",
+                    [
+                      {
+                        text: "我知道了",
+                        onPress: () => {
+                          navigation.navigate('RoutesMenu')
+                        }
+                      }
+                    ]
+                  )
+                  e.preventDefault();
+                } else if (scopePermission('llbroadcast-read', currentUserScope)) {
+                  navigation.push('ViewBroadCast')
+                }
+
+              }}
+            >
+              {t('ESGoal快報')}
+            </LlNavButton001>
 
             <LlNavButton001
               style={{

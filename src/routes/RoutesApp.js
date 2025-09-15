@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   StatusBar,
   Text,
@@ -61,6 +61,17 @@ import UserInactivity from "react-native-user-inactivity";
 import { scopeFilterScreen } from '@/__reactnative_stone/global/scopes'
 import ViewFileStore from '@/views/File/FileStore'
 import ViewFileStoreSubLayer from '@/views/File/FileStoreSubLayer'
+import RoutesStatistics from '@/routes/RoutesStatistics'
+import ViewAnnouncement from '@/views/Announcement/Index'
+import ViewAnnouncementShow from '@/views/Announcement/Show'
+import {
+  getMessaging,
+  getInitialNotification,
+  onNotificationOpenedApp,
+  setBackgroundMessageHandler,
+} from '@react-native-firebase/messaging';
+// const messaging = getMessaging();
+
 
 const RoutesApp = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
@@ -133,25 +144,40 @@ const RoutesApp = ({ navigation, route }) => {
     }
   };
 
-  React.useEffect(() => {
-    messaging().onNotificationOpenedApp(remoteMessage => {
-      // console.log('Notification caused app to open from background state');
+  useEffect(() => {
+    const m = getMessaging();
+
+    // 從「背景」被點開
+    const unsubscribe = onNotificationOpenedApp(m, (remoteMessage) => {
       handleNotification(remoteMessage);
     });
-    messaging().getInitialNotification()
-      .then(remoteMessage => {
-        if (remoteMessage) {
-          handleNotification(remoteMessage);
+
+    // 從「已結束」狀態被點開
+    (async () => {
+      try {
+        const initial = await getInitialNotification(m);
+        if (initial) {
+          handleNotification(initial);
         }
-      });
-  }, []);
+      } catch (e) {
+        console.warn('getInitialNotification error:', e);
+      }
+    })();
+
+    return unsubscribe; // 清理監聽
+  }, [handleNotification]);
 
   return (
     <>
+      <WsDetectIdle002
+        active={active}
+        setActive={setActive}
+      ></WsDetectIdle002>
+
       <UserInactivity
         isActive={active}
         timeForInactivity={300000} // 多少秒沒操作視為閒置 ms
-        // timeForInactivity={5000} // debug用
+        // timeForInactivity={10000} // debug用
         onAction={isActive => {
           setActive(isActive)
         }}
@@ -166,7 +192,6 @@ const RoutesApp = ({ navigation, route }) => {
               'RoutesCheckList',
               'RoutesAudit',
               'RoutesContractorEnter',
-              // 'RoutesTask',
               'RoutesTraining',
               'RoutesLicense',
               'RoutesEvent',
@@ -395,6 +420,7 @@ const RoutesApp = ({ navigation, route }) => {
             component={scopeFilterScreen('system-file-read', ViewFileStore)}
             options={({ navigation }) => ({
               title: t('文件檔案庫'),
+              headerShown: true,
               ...gOption.headerOption,
               headerTitleAlign: 'center',
               animationEnabled: false,
@@ -418,7 +444,8 @@ const RoutesApp = ({ navigation, route }) => {
             name="FileStoreSubLayer"
             component={scopeFilterScreen('system-file-read', ViewFileStoreSubLayer)}
             options={({ navigation, route }) => ({
-              title: route.params.name,
+              headerShown: true,
+              title: route.params.name || 'so4u,',
               ...gOption.headerOption,
               headerTitleAlign: 'center',
               animationEnabled: false,
@@ -439,15 +466,39 @@ const RoutesApp = ({ navigation, route }) => {
             })}
           />
 
+          {/* 15 */}
+          <StackSetting.Screen
+            name="RoutesStatistics"
+            component={RoutesStatistics}
+            options={{
+              ...$option.headerOption,
+              gestureEnabled: false,
+              headerShown: false
+            }}
+          />
 
+          {/* 16 */}
+          <StackSetting.Screen
+            name="ViewAnnouncement"
+            component={ViewAnnouncement}
+            options={({ navigation }) => ({
+              headerBackTitle: ' ',
+              title: t('新訊'),
+              ...$option.headerOption,
+            })}
+          />
+          <StackSetting.Screen
+            name="ViewAnnouncementShow"
+            component={ViewAnnouncementShow}
+            options={({ navigation }) => ({
+              headerBackTitle: ' ',
+              title: t('新訊內頁'),
+              ...$option.headerOption,
+            })}
+          />
 
         </StackSetting.Navigator>
       </UserInactivity>
-
-      <WsDetectIdle002
-        active={active}
-        setActive={setActive}
-      ></WsDetectIdle002>
 
       <WsQRcodeDetect></WsQRcodeDetect>
     </>

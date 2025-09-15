@@ -1,6 +1,6 @@
 import React from 'react'
 import {
-  Modal,
+  // Modal,
   View,
   ScrollView,
   Platform,
@@ -15,7 +15,7 @@ import layouts from '@/__reactnative_stone/global/layout'
 import $color from '@/__reactnative_stone/global/color'
 import $theme from '@/__reactnative_stone/global/theme'
 import { WsModalHeader, WsModalFooter } from '@/components'
-// import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import Modal from 'react-native-modal'
 
 const WsModal = props => {
   const { windowWidth, windowHeight } = layouts
@@ -59,12 +59,14 @@ const WsModal = props => {
   // Render
   return (
     <Modal
-      visible={visible}
-      onRequestClose={() => {
-        onBackButtonPress()
-      }}
-      animationType={animationType}
-      propagateSwipe={true}
+      isVisible={visible} // ✅ 注意：prop 是 isVisible，不是 visible
+      onBackdropPress={() => onBackButtonPress()} // 點背景關閉
+      useNativeDriver={true}
+      hideModalContentWhileAnimating={true}
+      style={{
+        margin: 0,
+        backgroundColor: 'white'
+      }} // ✅ 保持全螢幕
     >
       <SafeAreaView
         style={{

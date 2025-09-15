@@ -16,7 +16,11 @@ const WsModalIconMessage = props => {
 
   // Render
   return (
-    <Modal visible={visible} animationType="fade" transparent={true}>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={true}
+    >
       <WsFlex
         style={{
           flex: 1
@@ -31,7 +35,7 @@ const WsModalIconMessage = props => {
             width: 160,
             height: 160,
             backgroundColor: 'rgba(0,0,0,.8)',
-            borderRadius: 8
+            borderRadius: 8,
           }}>
           <WsIcon name={icon} size={48} color={iconColor} />
           <WsText

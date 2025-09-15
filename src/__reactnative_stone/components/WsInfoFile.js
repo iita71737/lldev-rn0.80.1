@@ -10,6 +10,7 @@ import { request, PERMISSIONS, openSettings, check } from 'react-native-permissi
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
 import $color from '@/__reactnative_stone/global/color'
+import RNBlobUtil from 'react-native-blob-util';
 
 const WsInfoFile = props => {
   const { t, i18n } = useTranslation()
@@ -73,90 +74,100 @@ const WsInfoFile = props => {
     return str.replace(/\s+/g, '');
   }
 
-const $_onCardPress = async () => {
-  if (isProcessing) return;
-  setIsProcessing(true);
+  const $_onCardPress = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
 
-  try {
-    const type = $_getFileType()?.toLowerCase?.();
-    const url = getSourceUrl(value);
+    try {
+      const type = $_getFileType()?.toLowerCase?.();
+      const url = getSourceUrl(value);
 
-    // 圖片 / 影片直接預覽
-    const previewTypes = ['png', 'jpg', 'gif', 'jpeg', 'svg', 'mp4', 'avi', 'mov', 'mkv', 'wmv'];
-    if (previewTypes.includes(type)) {
-      setIsVisible(true);
-      return;
-    }
+      // 圖片 / 影片直接預覽
+      const previewTypes = ['png', 'jpg', 'gif', 'jpeg', 'svg', 'mp4', 'avi', 'mov', 'mkv', 'wmv'];
+      if (previewTypes.includes(type)) {
+        setIsVisible(true);
+        return;
+      }
 
-    // ✅ Android 若為本地檔案（file:// 開頭）直接開啟
-    if (url.startsWith('file://')) {
-      await FileViewer.open(decodeURIComponent(url), { showOpenWithDialog: true });
-      return;
-    }
+      // ✅ Android 若為本地檔案（file:// 開頭）直接開啟
+      if (url.startsWith('file://')) {
+        await FileViewer.open(decodeURIComponent(url), { showOpenWithDialog: true });
+        return;
+      }
 
-    // ✅ iOS 若為本地檔案（/private 開頭）直接開啟
-    if (url.startsWith('/private')) {
-      await FileViewer.open(decodeURIComponent(url), { showOpenWithDialog: true });
-      return;
-    }
+      // ✅ iOS 若為本地檔案（/private 開頭）直接開啟
+      if (url.startsWith('/private')) {
+        await FileViewer.open(decodeURIComponent(url), { showOpenWithDialog: true });
+        return;
+      }
 
-    // ⛔ Android 權限檢查
-    if (Platform.OS === 'android') {
-      const version = parseInt(DeviceInfo.getSystemVersion(), 10);
-      if (version >= 13) {
-        const [img, vid, aud] = await Promise.all([
-          request(PERMISSIONS.ANDROID.READ_MEDIA_IMAGES),
-          request(PERMISSIONS.ANDROID.READ_MEDIA_VIDEO),
-          request(PERMISSIONS.ANDROID.READ_MEDIA_AUDIO),
-        ]);
-        if (![img, vid, aud].includes(PermissionsAndroid.RESULTS.GRANTED)) {
-          Alert.alert('權限被拒絕', '請授權媒體讀取權限');
-          return;
-        }
-      } else {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-        );
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert('權限被拒絕', '請授權寫入儲存空間權限');
-          return;
+      // ⛔ Android 權限檢查
+      if (Platform.OS === 'android') {
+        const version = parseInt(DeviceInfo.getSystemVersion(), 10);
+        if (version >= 13) {
+          const [img, vid, aud] = await Promise.all([
+            request(PERMISSIONS.ANDROID.READ_MEDIA_IMAGES),
+            request(PERMISSIONS.ANDROID.READ_MEDIA_VIDEO),
+            request(PERMISSIONS.ANDROID.READ_MEDIA_AUDIO),
+          ]);
+          if (![img, vid, aud].includes(PermissionsAndroid.RESULTS.GRANTED)) {
+            Alert.alert('權限被拒絕', '請授權媒體讀取權限');
+            return;
+          }
+        } else {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+          );
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            Alert.alert('權限被拒絕', '請授權寫入儲存空間權限');
+            return;
+          }
         }
       }
-    }
 
-    // 🧠 構建下載路徑
-    const safeFileName = encodeURIComponent($_getFileName(value));
-    const fileExtension = getFileExtension(value) || $_getFileType();
-    const baseDir = Platform.OS === 'ios' ? RNFS.DocumentDirectoryPath : RNFS.DownloadDirectoryPath;
-    const filePath = `${baseDir}/${safeFileName}.${fileExtension}`;
-    const decodedFilePath = decodeURIComponent(filePath);
+      const res = await RNBlobUtil.config({
+        fileCache: true,
+        appendExt: value.split('?')[0].split('.').pop()?.toLowerCase() || 'pdf'
+      }).fetch('GET', value);
+      const localPath = res.path(); 
+      console.log(localPath,'localPath--');
+      await FileViewer.open(localPath, { showOpenWithDialog: true });
 
-    // 💾 下載檔案
-    const downloadRes = await RNFS.downloadFile({
-      fromUrl: url,
-      toFile: decodedFilePath,
-      background: Platform.OS === 'ios',
-      discretionary: Platform.OS === 'ios',
-      begin: (res) => console.log('Download started:', res.headers),
-      progress: (res) => {
-        const progress = (res.bytesWritten / res.contentLength) * 100;
-        console.log(`Download progress: ${progress.toFixed(2)}%`);
-      },
-    }).promise;
+      // 🧠 構建下載路徑
+      // const safeFileName = encodeURIComponent($_getFileName(value));
+      const safeFileName = $_getFileName(value).replace(/[^a-zA-Z0-9.\-_]/g, '_'); // 只保留安全字元
+      const fileExtension = getFileExtension(value) || $_getFileType();
+      const baseDir = Platform.OS === 'ios' ? RNFS.DocumentDirectoryPath : RNFS.DocumentDirectoryPath;
+      const filePath = `${baseDir}/${safeFileName}.${fileExtension}`;
+      const decodedFilePath = decodeURIComponent(filePath);
 
-    if (downloadRes.statusCode === 200) {
-      await FileViewer.open(decodedFilePath, { showOpenWithDialog: true });
-    } else {
-      console.warn('Download failed with status:', downloadRes.statusCode);
+      // 💾 下載檔案
+      const downloadRes = await RNFS.downloadFile({
+        fromUrl: url,
+        toFile: decodedFilePath,
+        background: Platform.OS === 'ios',
+        discretionary: Platform.OS === 'ios',
+        begin: (res) => console.log('Download started:', res.headers),
+        progress: (res) => {
+          const progress = (res.bytesWritten / res.contentLength) * 100;
+          console.log(`Download progress: ${progress.toFixed(2)}%`);
+        },
+      }).promise;
+
+      if (downloadRes.statusCode === 200) {
+        console.log(decodedFilePath, 'decodedFilePath');
+        await FileViewer.open(decodedFilePath, { showOpenWithDialog: true });
+      } else {
+        console.warn('Download failed with status:', downloadRes.statusCode);
+        setIsVisible(true);
+      }
+    } catch (error) {
+      console.error('Error during file open:', error);
       setIsVisible(true);
+    } finally {
+      setIsProcessing(false);
     }
-  } catch (error) {
-    console.error('Error during file open:', error);
-    setIsVisible(true);
-  } finally {
-    setIsProcessing(false);
-  }
-};
+  };
 
   const getFileExtension = (file) => {
     if (typeof file === 'string') {

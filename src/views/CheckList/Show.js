@@ -84,48 +84,7 @@ const CheckListShow = ({ route }) => {
   const [lastTemplateVersion, setLastTemplateVersion] = useState()
 
   const [index, setIndex] = React.useState(0)
-  const [tabItems, setTabItems] = React.useState([
-    {
-      value: 'CheckListResultOverview',
-      label: t('資訊'),
-      view: CheckListOverview,
-      props: {
-        id: id
-      }
-    },
-    {
-      value: 'CheckListQuestion',
-      label: t('題目'),
-      view: CheckListQuestion,
-      props: {
-        id: id
-      }
-    },
-    {
-      value: 'GeneralSchedule',
-      label: t('排程'),
-      view: CheckListGeneralScheduleList,
-      props: {
-        id: id
-      }
-    },
-    {
-      value: 'CheckListRecordList',
-      label: t('點檢記錄'),
-      view: CheckListRecordList,
-      props: {
-        id: id
-      }
-    },
-    {
-      value: 'CheckListSampleRecordList',
-      label: t('抽檢紀錄'),
-      view: CheckListSampleRecordList,
-      props: {
-        id: id,
-      }
-    }
-  ])
+  const [tabItems, setTabItems] = React.useState()
 
   const [bottomSheetItems, setBottomSheetItems] = React.useState([])
   const [isBottomSheetActive, setIsBottomSheetActive] = React.useState(false)
@@ -559,8 +518,6 @@ const CheckListShow = ({ route }) => {
       setIsDisabled(isSampleContentEmpty || sampleScore === null);
     }
   }, [selectedMode, sampleContent, sampleScore, reviewContent, reviewScore]);
-
-  // console.log(checkList,'checkList---');
 
   return (
     <>

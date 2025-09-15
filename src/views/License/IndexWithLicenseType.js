@@ -49,7 +49,8 @@ const IndexWithLicenseType = ({ navigation, route }) => {
         props: {
           navigation: navigation,
           type: type.id,
-          systemSubclass: id
+          systemSubclass: id,
+          typeName: type.name,
         }
       })
     })

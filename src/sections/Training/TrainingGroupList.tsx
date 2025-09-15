@@ -306,9 +306,11 @@ const TrainingGroupList: React.FC<TrainingListProps> = props => {
                     }
                     : null,
                 ]}
-              type="user"
+              type="belongsto"
               modelName="user"
               nameKey="name"
+              serviceIndexKey="simplifyFactoryIndex"
+              customizedNameKey="userAndEmail"
               label={t('管理者')}
               value={owner}
               onChange={setOwner}

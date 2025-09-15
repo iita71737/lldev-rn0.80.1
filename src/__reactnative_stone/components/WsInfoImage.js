@@ -50,6 +50,7 @@ const WsInfoImage = props => {
     setIsVisible(true)
   }
   const $_onRequestClose = () => {
+    setIsProcessing(false);
     setIsVisible(false)
   }
   const handlePlayPause = () => {
@@ -201,7 +202,7 @@ const WsInfoImage = props => {
         onPress={$_onImageOnPress}
         style={{
           justifyContent: 'center',
-          alignItems:'center'
+          alignItems: 'center'
         }}>
         {['png', 'jpg', 'gif', 'jpeg', 'svg', 'pdf', 'PNG', 'JPG', 'GIF', 'JPEG', 'SVG'].includes($_getFileType()) && (
           <FastImage

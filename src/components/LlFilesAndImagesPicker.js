@@ -31,14 +31,11 @@ import $color from '@/__reactnative_stone/global/color'
 import config from '@/__config'
 import * as ImagePicker from 'react-native-image-picker'
 import { useTranslation } from 'react-i18next'
-// import DocumentPicker from 'react-native-document-picker'
-import DocumentPicker from '@react-native-documents/picker'
 import { launchImageLibrary } from 'react-native-image-picker'
 import { PermissionsAndroid } from 'react-native'
 import RNFS from 'react-native-fs'
 import { Camera, useCameraDevice } from 'react-native-vision-camera'
 import { useNavigation } from '@react-navigation/native'
-import { pick } from '@react-native-documents/picker'
 import LlFilesAndImagesPickerModal from '@/views/File/LlFilesAndImagesPickerModal'
 import S_File from '@/services/api/v1/file'
 
@@ -312,28 +309,27 @@ const LlFilesAndImagesPicker = props => {
 
   return (
     <>
-      {visible && (
-        <LlFilesAndImagesPickerModal
-          modelName={modelName}
-          oneFile={oneFile}
-          limitFileExtension={limitFileExtension}
-          value={formatFileItems(value)}
-          loadingProgress={loadingProgress}
-          isVisible={visible}
-          onClose={() => {
-            setVisible(false)
-          }}
-          onUploadFromFileStoreComplete={(files, relatedVersion) => {
-            onUploadFromFileStoreComplete(files, relatedVersion)
-          }}
-          onUploadFromLocalComplete={(url) => {
-            onUploadFromLocalComplete(url)
-          }}
-          onUploadFromOtherFileStoreComplete={(files, relatedVersion) => {
-            onUploadFromOtherFileStoreComplete(files, relatedVersion)
-          }}
-        ></LlFilesAndImagesPickerModal>
-      )}
+
+      <LlFilesAndImagesPickerModal
+        modelName={modelName}
+        oneFile={oneFile}
+        limitFileExtension={limitFileExtension}
+        value={formatFileItems(value)}
+        loadingProgress={loadingProgress}
+        isVisible={visible}
+        onClose={() => {
+          setVisible(false)
+        }}
+        onUploadFromFileStoreComplete={(files, relatedVersion) => {
+          onUploadFromFileStoreComplete(files, relatedVersion)
+        }}
+        onUploadFromLocalComplete={(url) => {
+          onUploadFromLocalComplete(url)
+        }}
+        onUploadFromOtherFileStoreComplete={(files, relatedVersion) => {
+          onUploadFromOtherFileStoreComplete(files, relatedVersion)
+        }}
+      ></LlFilesAndImagesPickerModal>
 
       {value != '' && value != null && (
         <WsGrid

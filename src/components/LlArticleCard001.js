@@ -139,10 +139,24 @@ const LlArticleCard001 = props => {
                 backgroundColor: $color.white
               },
               style
-            ]}>
+            ]}
+          >
+            {article.part != '' &&
+              <WsTitle
+                fontSize={24}
+                fontWeight={'600'}
+                style={{
+                  marginBottom: 16,
+                  // borderWidth:1,
+                }}
+              >
+                {article.part}
+              </WsTitle>
+            }
+
             {article.chapter != '' &&
               <WsTitle
-                fontSize={18}
+                fontSize={20}
                 fontWeight={'600'}
                 style={{
                   marginBottom: 16,
@@ -153,121 +167,150 @@ const LlArticleCard001 = props => {
               </WsTitle>
             }
 
+            {article.section != '' &&
+              <WsTitle
+                fontSize={18}
+                fontWeight={'600'}
+                style={{
+                  marginBottom: 16,
+                  // borderWidth:1,
+                }}
+              >
+                {article.section}
+              </WsTitle>
+            }
+
             {article.no_text != '' && (
               <WsFlex
                 justifyContent={'space-between'}
                 style={{
-                  marginBottom: 16,
+                  // marginBottom: 16,
+                  // borderWidth: 1,
                 }}
               >
-                <WsText size={18} fontWeight={'600'}>
-                  {article.no_text}
-                </WsText>
-
-                {actVersionId &&
-                  article.act_version &&
-                  actVersionId === article.act_version.id ? (
-                  <WsFlex
-                    justifyContent="space-between"
-                    style={{
-                      marginLeft: 8,
-                      flex: 1,
-                    }}
-                  >
-                    <WsTag
-                      backgroundColor={$color.yellow11l}
-                      textColor={$color.gray2d}
-                    >
-                      {t('更新')}
-                    </WsTag>
-                  </WsFlex>
-                ) : (
-                  <View></View>
-                )}
-                <WsFlex
+                <WsText
+                  size={16}
+                  fontWeight={'600'}
                   style={{
-                    marginLeft: 8,
-                    // borderWidth: 2
-                    flexDirection: 'column',
+                    // borderWidth: 1,
+                    // maxWidth: width * 0.5
                   }}
                 >
-                  {!article.task &&
-                    actVersionId &&
-                    article.act_version &&
-                    actVersionId === article.act_version.id && (
-                      <TouchableOpacity
-                        color={$color.primary}
-                        textColor={$color.white}
-                        isFullWidth={false}
-                        borderRadius={28}
-                        textSize={14}
-                        style={{
-                          padding: 10,
-                          backgroundColor: $color.primary,
-                          borderRadius: 28,
-                          borderWidth: 0.3,
-                          borderColor: $color.primary,
-                          zIndex: 999,
-                          marginRight: 8,
-                          marginBottom: 4,
-                        }}
-                        onPress={() => {
-                          $_setStorage(article.id)
-                          $_createTask()
-                        }}>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            justifyContent: 'center',
-                            alignItems: 'center'
-                          }}>
-                          <WsIcon
-                            color={$color.white}
-                            name={'ll-nav-assignment-filled'}
-                            size={16}
-                            style={{
-                              marginRight: 4
-                            }}
-                          >
-                          </WsIcon>
-                          <WsText color={$color.white} size={12}>
-                            {t('建立任務')}
-                          </WsText>
-                        </View>
-                      </TouchableOpacity>
-                    )}
-                  {article.prev_version &&
-                    article.prev_version.length > 0 &&
-                    article.article &&
-                    article.article.act_version &&
-                    actVersionId === article.act_version.id && (
-                      <TouchableOpacity
-                        style={{
-                          borderColor: $color.gray,
-                          borderWidth: 1,
-                          borderRadius: 25,
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          paddingHorizontal: 16,
-                          paddingVertical: 8
-                        }}
-                        onPress={() => {
-                          navigation.navigate({
-                            name: 'ArticleHistory',
-                            params: {
-                              article: article,
-                              actId: actId,
-                              articleId: article.article.id,
-                              prevId: article.prev_version[0].id
-                            }
-                          })
-                        }}>
-                        <WsText color={$color.gray} size={12}>{t('沿革')}</WsText>
-                      </TouchableOpacity>
-                    )}
-                </WsFlex>
+                  {article.no_text}
+                </WsText>
               </WsFlex>
             )}
+
+            <WsFlex
+              style={{
+              }}
+            >
+
+              {actVersionId &&
+                article.act_version &&
+                actVersionId === article.act_version.id ? (
+                <WsFlex
+                  justifyContent="space-between"
+                  style={{
+                    marginLeft: 8,
+                    flex: 1
+                  }}
+                >
+                  <WsTag
+                    backgroundColor={$color.yellow11l}
+                    textColor={$color.gray2d}
+                  >
+                    {t('更新')}
+                  </WsTag>
+                </WsFlex>
+              ) : (
+                <View></View>
+              )}
+
+              <WsFlex
+                style={{
+                  // marginLeft: 8,
+                  // borderWidth: 1,
+                  // flexDirection: 'column',
+                }}
+              >
+                {!article.task &&
+                  actVersionId &&
+                  article.act_version &&
+                  actVersionId === article.act_version.id && (
+                    <TouchableOpacity
+                      color={$color.primary}
+                      textColor={$color.white}
+                      isFullWidth={false}
+                      borderRadius={28}
+                      textSize={14}
+                      style={{
+                        // padding: 10,
+                        // backgroundColor: $color.primary,
+                        // borderRadius: 28,
+                        // borderWidth: 0.3,
+                        // borderColor: $color.primary,
+                        zIndex: 999,
+                        marginRight: 4,
+                      }}
+                      onPress={() => {
+                        $_setStorage(article.id)
+                        $_createTask()
+                      }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'center',
+                          alignItems: 'center'
+                        }}>
+                        <WsIcon
+                          // color={$color.white}
+                          color={$color.primary}
+                          name={'ll-nav-assignment-filled'}
+                          size={28}
+                          style={{
+                            marginRight: 4
+                          }}
+                        >
+                        </WsIcon>
+                        {/* <WsText color={$color.white} size={12}>
+                        {t('建立任務')}
+                      </WsText> */}
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                {
+                  article.prev_version &&
+                  article.prev_version.length > 0 &&
+                  article.article &&
+                  article.article.act_version &&
+                  actVersionId === article.act_version.id && (
+                    <TouchableOpacity
+                      style={{
+                        borderColor: $color.gray,
+                        borderWidth: 1,
+                        borderRadius: 25,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        paddingHorizontal: 16,
+                        paddingVertical: 4
+                      }}
+                      onPress={() => {
+                        navigation.navigate({
+                          name: 'ArticleHistory',
+                          params: {
+                            article: article,
+                            actId: actId,
+                            articleId: article.article.id,
+                            prevId: article.prev_version[0].id
+                          }
+                        })
+                      }}>
+                      <WsText color={$color.gray} size={12}>{t('沿革')}</WsText>
+                    </TouchableOpacity>
+                  )}
+              </WsFlex>
+            </WsFlex>
 
             {$_isEffect(article.effect_at) && (
               <WsDes

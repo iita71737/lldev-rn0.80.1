@@ -9,7 +9,6 @@ import {
   WsIconBtn,
   WsChartItem,
   WsChartStackedBarChart,
-  WsChartBarChart,
   WsState
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
@@ -246,8 +245,6 @@ const WsCharts = props => {
                     index={tabIndex}
                     fixedTabWidth={(width * 0.85) / 2}
                     fixedContainerHeight={60}
-                    scrollEnabled={tabItems.length <= 2 ? false : true}
-                    isAutoWidth={tabItems.length > 2 ? false : true}
                     setIndex={$event => {
                       settabIndex($event)
                       onTabChange($event)

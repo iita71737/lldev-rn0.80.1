@@ -88,6 +88,8 @@ import AndroidOpenSettings from 'react-native-android-open-settings'
 import { getLocation, getGeocode } from '@/__reactnative_stone/global/location'
 import { getDistance } from 'geolib';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
+import S_factoryHelper from '@/helpers/factory'
+import { CopilotProvider } from 'react-native-copilot';
 
 const RoutesMain = ({ navigation }) => {
   const { t, i18n } = useTranslation()
@@ -204,9 +206,17 @@ const RoutesMain = ({ navigation }) => {
         const _factory = initOrganization.child_factories[0]
         store.dispatch(setCurrentFactory(_factory))
       }
-    } else if (currentUser && currentUser?.current_factory && currentUser?.current_factory?.id) {
-      $_checkoutFactory(currentUser.current_factory)
-    } else {
+    }
+    else if (currentUser && currentUser?.current_factory && currentUser?.current_factory?.id) {
+      // 確認使用者上次登入的單位現在是否有權限-250731-issue
+      const hasMatch2 = _allScopesUnit.some(unit => unit.factory?.id === currentUser?.current_factory?.id) //250731-issue
+      if (hasMatch2) {
+        $_checkoutFactory(currentUser?.current_factory)
+      } else {
+        $_checkoutFactory(_allScopesUnit[0]?.factory)
+      }
+    }
+    else {
       const hasCommonFactory = currentUser.factories.find(factory => s_user_factory_scopes.some(scope => factory.id == scope.factory.id && scope.scopes.includes('app-apply')));
       if (hasCommonFactory) {
         store.dispatch(setCurrentFactory(hasCommonFactory))
@@ -243,24 +253,37 @@ const RoutesMain = ({ navigation }) => {
       permission = PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
     }
     const result = await check(permission);
-    console.log('權限檢查結果:', result);
-    if (result === RESULTS.GRANTED) {
-      return true;
-    }
+    if (result === RESULTS.GRANTED) return true;
+
     if (result === RESULTS.DENIED || result === RESULTS.LIMITED) {
       const requestResult = await request(permission);
-      console.log('權限請求結果:', requestResult);
       return requestResult === RESULTS.GRANTED;
     }
+
     if (result === RESULTS.BLOCKED) {
-      if (Platform.OS === 'android') {
-        AndroidOpenSettings.locationSourceSettings(); // ✅ 跳轉至定位(GPS)頁面
+      if (!hasPromptedOpenSettings) {
+        setHasPromptedOpenSettings(true)
+        Alert.alert(
+          t('需要定位權限'),
+          t('請選擇「位置」\n> 選擇「使用App期間」。'),
+          [
+            { text: t('取消'), style: 'cancel' },
+            {
+              text: t('前往設定'),
+              onPress: () => {
+                Platform.OS === 'android'
+                  ? AndroidOpenSettings.locationSourceSettings()
+                  : openSettings()
+              }
+            }
+          ]
+        );
       }
       return false;
     }
-    // unavailable 或其他情況
     return false;
-  };
+  }
+
   const $_getLocation = async () => {
     const granted = await $_requestLocationPermission();
     if (!granted) {
@@ -645,90 +668,90 @@ const RoutesMain = ({ navigation }) => {
           )}
         </Modal>
       ) : (
-        <View
-          style={{
-            flex: 1,
-            paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-            backgroundColor: $color.primary
-          }}
-        >
-          <NavigationContainer
-            theme={scheme === 'light' ? MyThemes.light : MyThemes.dark}
-            linking={{
-              prefixes: [
-                'https://www.esgoal.com/',
-                'https://ll-esh-app.wasateam.com/',
-                'esgoal://',
-                'https://ll-esgoal.dev.wasateam.com/'
-              ],
-              config: {
-                screens: $ws.$h.route.getDeeplinks()
-              },
-              async getInitialURL() {
-                const url = await Linking.getInitialURL();
-                console.log('getInitialURL');
-                // 這邊只有在未開啟APP時，第一次開啟時會比對。
-                if (url) {
-                  try {
-                    const _url = await S_QRcode.redirectByScanUrl(url, navigation);
-                  } catch (e) {
-                    store.dispatch(setInitUrlFromQRcode(url))
-                  }
-                }
-              },
+          <View
+            style={{
+              flex: 1,
+              paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+              backgroundColor: $color.primary
             }}
-            fallback={<ActivityIndicator color="blue" size="large" />}
           >
-            <Stack.Navigator
-              screenOptions={{
-                headerBackTitleVisible: false
+            <NavigationContainer
+              theme={scheme === 'light' ? MyThemes.light : MyThemes.dark}
+              linking={{
+                prefixes: [
+                  'https://www.esgoal.com/',
+                  'https://ll-esh-app.wasateam.com/',
+                  'esgoal://',
+                  'https://ll-esgoal.dev.wasateam.com/'
+                ],
+                config: {
+                  screens: $ws.$h.route.getDeeplinks()
+                },
+                async getInitialURL() {
+                  const url = await Linking.getInitialURL();
+                  console.log('getInitialURL');
+                  // 這邊只有在未開啟APP時，第一次開啟時會比對。
+                  if (url) {
+                    try {
+                      const _url = await S_QRcode.redirectByScanUrl(url, navigation);
+                    } catch (e) {
+                      store.dispatch(setInitUrlFromQRcode(url))
+                    }
+                  }
+                },
               }}
+              fallback={<ActivityIndicator color="blue" size="large" />}
             >
-              {!isMounted && (
-                <Stack.Screen
-                  name="Init"
-                  options={{
-                    headerShown: false,
-                    cardStyle: { backgroundColor: '#FFFFFF' }
-                  }}
-                  component={ViewInit}
-                />
-              )}
-              {!currentUser && (
-                <>
+              <Stack.Navigator
+                screenOptions={{
+                  headerBackTitleVisible: false
+                }}
+              >
+                {!isMounted && (
                   <Stack.Screen
-                    name="RoutesAuth"
+                    name="Init"
                     options={{
                       headerShown: false,
                       cardStyle: { backgroundColor: '#FFFFFF' }
                     }}
-                    component={RoutesAuth}
-                    initialParams={{ autoFocus: modalVisible ? false : true }}
+                    component={ViewInit}
                   />
-                </>
-              )}
-              {currentUser && (
-                <>
-                  <Stack.Screen
-                    name="RoutesApp"
-                    options={{
-                      headerShown: false,
-                      cardStyle: { backgroundColor: '#FFFFFF' }
-                    }}
-                    component={RoutesApp}
-                  />
-                  <Stack.Screen
-                    name="CameraPage"
-                    component={WsCameraPage}
-                    options={{
-                      headerShown: false,
-                    }}
-                  />
-                </>
-              )}
-            </Stack.Navigator>
-          </NavigationContainer>
-        </View>
+                )}
+                {!currentUser && (
+                  <>
+                    <Stack.Screen
+                      name="RoutesAuth"
+                      options={{
+                        headerShown: false,
+                        cardStyle: { backgroundColor: '#FFFFFF' }
+                      }}
+                      component={RoutesAuth}
+                      initialParams={{ autoFocus: modalVisible ? false : true }}
+                    />
+                  </>
+                )}
+                {currentUser && (
+                  <>
+                    <Stack.Screen
+                      name="RoutesApp"
+                      options={{
+                        headerShown: false,
+                        cardStyle: { backgroundColor: '#FFFFFF' }
+                      }}
+                      component={RoutesApp}
+                    />
+                    <Stack.Screen
+                      name="CameraPage"
+                      component={WsCameraPage}
+                      options={{
+                        headerShown: false,
+                      }}
+                    />
+                  </>
+                )}
+              </Stack.Navigator>
+            </NavigationContainer>
+          </View>
       )}
     </>
   )

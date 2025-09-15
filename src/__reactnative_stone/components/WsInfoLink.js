@@ -58,14 +58,13 @@ const WsInfoLink = props => {
         >
           <WsText size={size} color={color}>
             {value}
+            {iconVisible && (
+              <WsIcon
+                size={iconSize}
+                name={icon}
+              />
+            )}
           </WsText>
-          {iconVisible && (
-            <WsIcon
-              size={iconSize}
-              name={icon}
-              style={{ marginLeft: 4 }} // 視情況微調
-            />
-          )}
         </WsFlex>
       </TouchableOpacity>
     </>

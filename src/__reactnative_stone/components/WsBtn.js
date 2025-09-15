@@ -65,6 +65,8 @@ const WsBtn = props => {
         {
           minHeight: minHeight,
           borderRadius: borderRadius,
+          borderWidth: borderColor ? 1 : 0,
+          borderColor: borderColor,
           justifyContent: 'center',
           backgroundColor: _isDisabled ? colorDisabled : color,
         },

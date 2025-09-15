@@ -20,7 +20,8 @@ import {
   WsIcon,
   WsGradientButton,
   WsPopup,
-  WsBtnLeftIconCircle
+  WsBtnLeftIconCircle,
+  WsLoading
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import Services from '@/services/api/v1/index'
@@ -442,7 +443,7 @@ const LlStateRelatedTags = props => {
         )}
         <WsInfiniteScroll
           style={{
-            height: height * 0.55
+            height: Platform.OS === 'android' ? height - (height * 0.44) : height - (height * 0.425),
           }}
           hasMeta={hasMeta}
           service={Services[modelName]}
@@ -578,6 +579,7 @@ const LlStateRelatedTags = props => {
                   style={{
                     width: width * 0.375,
                     marginRight: 16,
+                    justifyContent: 'center',
                   }}
                   borderRadius={24}
                   color="transparent"
@@ -602,7 +604,6 @@ const LlStateRelatedTags = props => {
                   }}>
                   <View
                     style={{
-                      paddingTop: 8,
                       flexDirection: 'row',
                       justifyContent: 'center',
                       alignItems: 'center'

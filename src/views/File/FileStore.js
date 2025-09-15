@@ -68,12 +68,13 @@ const FileStore = () => {
 
 
   return (
-    <WsTabView
-      index={tabIndex}
-      scrollEnabled={true}
-      setIndex={settabIndex}
-      items={tabItems}
-    />
+    <>
+      <WsTabView
+        index={tabIndex}
+        setIndex={settabIndex}
+        items={tabItems}
+      />
+    </>
   )
 }
 

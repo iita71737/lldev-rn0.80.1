@@ -513,7 +513,7 @@ const WsStateBelongstoManyModalPicker = props => {
                 <>
                   <FlatList
                     style={{
-                      maxHeight: height * 0.425
+                      maxHeight: Platform.OS === 'ios' ? height * 0.425 :height * 0.425
                     }}
                     data={list}
                     keyExtractor={(item, index) => index}

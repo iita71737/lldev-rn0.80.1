@@ -18,7 +18,7 @@ interface TrainingIndexProps {
   navigation: any;
 }
 
-const TrainingIndex: React.FC<TrainingIndexProps> = ({ route, navigation }) => {
+const TrainingIndex: React.FC<TrainingIndexProps> = ({ route }) => {
   const { t, i18n } = useTranslation()
 
   // Params

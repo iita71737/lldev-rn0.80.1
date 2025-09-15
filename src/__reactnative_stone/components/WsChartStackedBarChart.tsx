@@ -68,66 +68,6 @@ function SvgComponent({ option }: any) {
   return <SvgChart ref={svgRef} />
 }
 
-// E_CHART_DEFAULT_OPTION
-// const option = {
-//   legend: {
-//     data: ['所有領域', 'Evaporation']
-//   },
-//   xAxis: {
-//     type: 'category',
-//     axisTick: { show: false },
-//     data: ['1月', '2月', '3月', '4月', '5月', '6月']
-//   },
-//   yAxis: {
-//     type: 'value',
-//     scale: true,
-//     name: '數量',
-//     max: function (value) {
-//       return value.max + 10
-//     },
-//     min: 0,
-//     interval: 2,
-//     minInterval: 1,
-//     maxInterval: 6,
-//     splitNumber : 6,
-//     boundaryGap: [0.2, 0.2]
-//   },
-//   series: [
-//     {
-//       name: '所有領域',
-//       data: data2,
-//       type: 'bar',
-//       barWidth: '30%',
-//       emphasis: {
-//         focus: 'series'
-//       },
-//     },
-//   ],
-//   grid: {
-//     bottom: '3%',
-//     containLabel: true,
-//   },
-//   tooltip: {
-//     trigger: 'axis',
-//     axisPointer: {
-//       type: 'shadow'
-//     }
-//   },
-//   toolbox: {
-//     show: true,
-//     orient: 'vertical',
-//     left: 'right',
-//     top: 'center',
-//     feature: {
-//       mark: { show: true },
-//       dataView: { show: true, readOnly: false },
-//       magicType: { show: true, type: ['line', 'bar', 'stack'] },
-//       restore: { show: true },
-//       saveAsImage: { show: true }
-//     }
-//   },
-// }
-
 interface Fields {
   [key: string]: {
     color: string
@@ -211,20 +151,7 @@ const WsChartStackedBarChart = (props: Props) => {
       axisPointer: {
         type: 'shadow'
       }
-    },
-    // toolbox: {
-    //   show: true,
-    //   orient: 'vertical',
-    //   left: 'right',
-    //   top: 'center',
-    //   feature: {
-    //     mark: {show: true},
-    //     dataView: {show: true, readOnly: false},
-    //     magicType: {show: true, type: ['line', 'bar', 'stack']},
-    //     restore: {show: true},
-    //     saveAsImage: {show: true}
-    //   }
-    // }
+    }
   })
 
   // FOR ECHART
@@ -287,12 +214,7 @@ const WsChartStackedBarChart = (props: Props) => {
         testID={'WsChartStackedBarChart'}
       >
         <View style={styles.container}>
-          {/* {Platform.OS === 'ios' ? (
-            // iPhone 15 Pro Max Layout issues
-            <SkiaComponent option={option} />
-          ) : ( */}
           <SvgComponent option={option} />
-          {/* )} */}
         </View>
       </View>
     </>

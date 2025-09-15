@@ -1,3 +1,7 @@
-v0.80.1.1.3
+v0.80.1.5.1
 
 # react-native upgrade to 0.80.1
+# yarn add mathjs
+# yarn add react-native-copilot
+# yarn add react-native-paper
+# fix 16KB policy

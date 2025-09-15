@@ -11,6 +11,7 @@ import {
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
+import WsInfoFile from '__reactnative_stone/components/WsInfoFile'
 
 const LlLicenseHeaderCard001 = props => {
   const { t, i18n } = useTranslation()

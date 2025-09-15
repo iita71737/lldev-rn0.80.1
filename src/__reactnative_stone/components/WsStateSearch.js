@@ -71,9 +71,7 @@ const WsStateSearch = React.forwardRef(
     const [_value, setValue] = useState(value)
 
     const handleInputChange = (text) => {
-      if (Platform.OS === 'android') {
-        onChange(text);
-      }
+      onChange(text);
       setValue(text)
     }
 
