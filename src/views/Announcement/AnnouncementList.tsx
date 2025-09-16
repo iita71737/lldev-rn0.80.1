@@ -53,7 +53,9 @@ const News: React.FC<BroadCastProps> = ({ navigation, route }) => {
   // MEMO
   const params = React.useMemo(() => {
     return {
-      factory: currentViewMode === 'factory' && currentFactory ? currentFactory.id : currentOrganization ? currentOrganization.id : null
+      factory: currentViewMode === 'factory' && currentFactory ? currentFactory.id : currentOrganization ? currentOrganization.id : null,
+      order_by: 'updated_at',
+      order_way: 'desc'
     }
   }, [currentRefreshCounter, currentFactory, currentViewMode]);
 

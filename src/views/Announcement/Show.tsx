@@ -1,5 +1,5 @@
 // Show.js
-import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -15,21 +15,8 @@ import {
   useWindowDimensions
 } from 'react-native';
 import {
-  WsPage,
-  WsInfiniteScroll,
-  WsPaddingContainer,
-  WsFilter,
-  WsFlex,
-  WsText,
-  WsDes,
-  WsIcon,
-  LlBtn002,
-  WsPageIndex,
-  LlNewsCard,
-  WsState,
   WsSnackBar,
   WsIconBtn,
-  WsHtmlRender,
   WsInfo
 } from '@/components'
 import axios from 'axios';
@@ -39,7 +26,6 @@ import RenderHTML, {
   HTMLElementModel,
 } from 'react-native-render-html';
 import Video from 'react-native-video';
-import { WebView } from 'react-native-webview';
 import moment from 'moment';
 import $color from '@/__reactnative_stone/global/color';
 import FastImage from 'react-native-fast-image';
@@ -48,9 +34,14 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import S_Announcement from '@/services/api/v1/announcement'
 import { useSelector } from 'react-redux'
 import store from '@/store'
-import {
-  setRefreshCounter
-} from '@/store/data'
+import { setRefreshCounter } from '@/store/data'
+import table, {
+  IGNORED_TAGS,
+  defaultTableStylesSpecs,
+  cssRulesFromSpecs,
+  tableModel,
+} from '@native-html/table-plugin';
+import { WebView } from 'react-native-webview';
 
 // ---- 小封裝：FastImage + loading/失敗佔位 ----
 const FastLoadingImage = ({
@@ -61,15 +52,15 @@ const FastLoadingImage = ({
   cache = 'immutable',
   headers,
   showPercent = false,
-  fitWidth = false,              // <- 新增：是否自動佔滿螢幕寬
-  placeholderRatio = 16 / 9,     // <- 新增：在還沒拿到尺寸前先用的比例，避免版面跳動
-  knownSize,                     // <- 可選：若你已知 {w,h} 可直接用來計算比例
+  fitWidth = false,
+  placeholderRatio = 16 / 9,
+  knownSize,
 }) => {
   const { width: screenWidth } = useWindowDimensions();
   const [loading, setLoading] = useState(true);
   const [pct, setPct] = useState(0);
   const [error, setError] = useState(false);
-  const [ratio, setRatio] = useState<number | null>(
+  const [ratio, setRatio] = useState(
     knownSize?.w && knownSize?.h ? knownSize.w / knownSize.h : null
   );
 
@@ -86,7 +77,6 @@ const FastLoadingImage = ({
 
   const onLoad = useCallback((e) => {
     setLoading(false);
-    // FastImage 的 onLoad 會帶原圖寬高
     const { width, height } = e?.nativeEvent || {};
     if (width && height) setRatio(width / height);
   }, []);
@@ -133,16 +123,9 @@ const FastLoadingImage = ({
   );
 };
 
-// ---- 文字閱讀時間估算 ----
-const calcReadingTime = (html) => {
-  const text = String(html || '').replace(/<[^>]+>/g, ' ');
-  const words = text.trim().split(/\s+/).filter(Boolean).length || 0;
-  return `${Math.max(1, Math.round(words / 250))} min read`;
-};
-
 export default function Show() {
   const { t } = useTranslation();
-  const { width, height } = Dimensions.get('window');
+  const { width } = Dimensions.get('window');
   const contentWidth = width - 32;
   const navigation = useNavigation();
   const route = useRoute();
@@ -171,11 +154,7 @@ export default function Show() {
         setIsSnackBarVisible(true)
         setIsCollect(false)
         setSnackBarText('已從我的收藏中移除')
-        const _params = {
-          id: id,
-          factory: currentFactory?.id
-        }
-        console.log(_params, '_params');
+        const _params = { id, factory: currentFactory?.id }
         await S_Announcement.removeMyCollect({ params: _params })
         store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
       } else {
@@ -183,11 +162,7 @@ export default function Show() {
         setIsSnackBarVisible(true)
         setIsCollect(true)
         setSnackBarText('已儲存至「我的收藏」')
-        const _params = {
-          id: id,
-          factory: currentFactory?.id
-        }
-        console.log(_params, '_params');
+        const _params = { id, factory: currentFactory?.id }
         await S_Announcement.addMyCollect({ params: _params })
         store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
       }
@@ -206,9 +181,7 @@ export default function Show() {
           color={$color.white}
           underlayColorPressIn="transparent"
           style={{ marginRight: 4 }}
-          onPress={() => {
-            bookmarkOnPress()
-          }}
+          onPress={bookmarkOnPress}
         />
       ),
       headerLeft: () => (
@@ -217,9 +190,7 @@ export default function Show() {
           name="ws-outline-arrow-left"
           color="white"
           size={24}
-          style={{
-            marginRight: 4
-          }}
+          style={{ marginRight: 4 }}
           onPress={() => navigation.goBack()}
         />
       ),
@@ -234,17 +205,12 @@ export default function Show() {
       setErr('Invalid id');
       return;
     }
-
     const controller = new AbortController();
-
     (async () => {
       try {
         setLoading(true);
         setErr(null);
-        // 依你 API 路徑調整 URL
-        const res = await S_Announcement.show({
-          modelId: id
-        })
+        const res = await S_Announcement.show({ modelId: id })
         setPost(res);
         setIsCollect(res.is_collect)
       } catch (e) {
@@ -254,62 +220,42 @@ export default function Show() {
         setLoading(false);
       }
     })();
-
     return () => controller.abort();
   }, [id, currentRefreshCounter]);
 
-  const reading = useMemo(() => calcReadingTime(post?.html), [post?.html]);
   const source = useMemo(() => ({ html: post?.content || '' }), [post?.content]);
-
-  // 分享
-  const onShare = useCallback(async () => {
-    if (!post) return;
-    try {
-      await Share.share({ message: `Check this out: ${post.name}` });
-    } catch { }
-  }, [post]);
 
   // 定義 nav：把它視為 block 容器
   const navModel = HTMLElementModel.fromCustomModel({
     tagName: 'nav',
     contentModel: HTMLContentModel.block
   });
-  // Custom Styling
+
+  // Custom Styling models
   const _customHTMLElementModels = {
     em: HTMLElementModel.fromCustomModel({
       tagName: 'em',
-      mixedUAStyles: {
-        fontFamily: 'Open Sans',
-      },
+      mixedUAStyles: { fontFamily: 'Open Sans' },
       contentModel: HTMLContentModel.block
     }),
     ul: HTMLElementModel.fromCustomModel({
       tagName: 'ul',
-      mixedUAStyles: {
-        marginVertical: 20
-      },
+      mixedUAStyles: { marginVertical: 20 },
       contentModel: HTMLContentModel.block
     }),
     li: HTMLElementModel.fromCustomModel({
       tagName: 'li',
-      mixedUAStyles: {
-        flexDirection: 'row',
-      },
+      mixedUAStyles: { flexDirection: 'row' },
       contentModel: HTMLContentModel.block
     }),
     img: HTMLElementModel.fromCustomModel({
       tagName: 'img',
-      mixedUAStyles: {
-        borderWidth: 0.3,     // 若需要邊框，可以取消註解
-      },
+      mixedUAStyles: { borderWidth: 0.3 },
       contentModel: HTMLContentModel.block
     }),
     br: HTMLElementModel.fromCustomModel({
       tagName: 'br',
-      mixedUAStyles: {
-        // borderWidth: 1,
-        marginBottom: 16 / 2,
-      },
+      mixedUAStyles: { marginBottom: 8 },
       contentModel: HTMLContentModel.block
     }),
     mark: HTMLElementModel.fromCustomModel({
@@ -317,11 +263,58 @@ export default function Show() {
       contentModel: HTMLContentModel.textual,
     }),
   }
-  // --- 自訂 <video> 與 <iframe>（v6.3.4 相容）---
+
+  // ✅ 關鍵 CSS：讓 WebView 內的表格能水平滾動、且不被壓縮
+  const tableCss =
+    cssRulesFromSpecs({
+      ...defaultTableStylesSpecs,
+      outerBorderWidthPx: 1,
+      columnsBorderWidthPx: 1,
+      fitContainerWidth: false,
+      fitContainerHeight: false,
+    }) +
+    `
+    html, body { margin:0; padding:0; background: transparent; }
+    /* ✅ 讓 WebView 真的能左右滾動 */
+    body { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; padding-right: 16px; }
+
+    /* ✅ 讓表格依內容展開，保證比 viewport 寬；用 inline-block + !important 把任何 100% 覆蓋掉 */
+    table {
+      display: inline-block !important;
+      min-width: 100% !important;         /* 或用 100vw 也可 */
+      width: auto !important;
+      max-width: none !important;     
+      border-collapse: collapse;
+      border-spacing: 0;
+      white-space: normal; /* 恢復表格內部自行換行控制 */
+    }
+
+    /* ✅ 每欄設最小寬，確保內容把整張表撐寬 */
+    th, td { white-space: nowrap; }
+
+    /* 你的原本邊框樣式（注意是 !important） */
+    td {
+      border-width: 0px 1pt 1pt !important;
+      border-style: solid !important;
+      border-color:rgb(213, 213, 213) !important;
+    }
+    /* ── 對齊規則：整列的儲存格一律靠左 ── */
+    tr > th,
+    tr > td {
+      text-align: left !important;
+    }
+    table td, table td * {
+      line-height: 0.8 !important;
+    }
+  `;
+
+
+  // --- 自訂 <video> 與 <iframe>（RNRH v6 相容）+ 註冊 tableModel ---
   const customHTMLElementModels = {
     video: defaultHTMLElementModels.video.extend({ contentModel: HTMLContentModel.block }),
     iframe: defaultHTMLElementModels.iframe.extend({ contentModel: HTMLContentModel.block }),
     nav: navModel,
+    table: tableModel, // ✅ 讓 RNRH 正確認得 <table>
     ..._customHTMLElementModels
   };
 
@@ -394,7 +387,6 @@ export default function Show() {
     );
   }
 
-  // --- 預設備用圖 ---
   const fallbackHero =
     'https://images.unsplash.com/photo-1707742984673-ae30d982bdec?q=80&w=3132&auto=format&fit=crop'
 
@@ -404,41 +396,37 @@ export default function Show() {
         text={snackBarText}
         setVisible={setIsSnackBarVisible}
         visible={isSnackBarVisible}
-        quickHidden={true}
+        quickHidden
       />
 
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F6F8FB' }}>
-        <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 32 }}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+          directionalLockEnabled
+        >
           {/* Hero */}
           <FastLoadingImage
             uri={post.cover_image || fallbackHero}
-            fitWidth                           // 自動佔滿螢幕寬
-            placeholderRatio={3 / 2}             // 可自行調整預設比例
+            fitWidth
+            placeholderRatio={3 / 2}
             showPercent={false}
           />
 
           {/* Title + Meta */}
           <View style={[styles.container, { marginTop: 16 }]}>
             <Text style={styles.name}>{post.name}</Text>
-
             <View style={styles.metaRow}>
-
               {!!post?.alliance && (
-                <View style={
-                  [
-                    styles.tag,
-                  ]
-                }
-                >
+                <View style={styles.tag}>
                   <Text style={styles.tagText}>{post?.alliance?.name}</Text>
                 </View>
               )}
               <Text style={styles.metaLight}>
-                {post.updated_at ? moment(post.updated_at).format('YYYY-MM-DD') : ''}
+                {post.updated_at ? moment(post.updated_at).format('YYYY-MM-DD  HH:mm:ss') : ''}
               </Text>
             </View>
-
-            {/* Tags */}
             {!!post.tags?.length && (
               <View style={styles.tagsRow}>
                 {post.tags.map((t) => (
@@ -448,82 +436,92 @@ export default function Show() {
                 ))}
               </View>
             )}
-
           </View>
 
           {/* Body：HTML */}
-          <View style={[styles.container]}>
-            {/* <WsHtmlRender
-              content={post?.content}
-              contentWidth={width * 0.8}
-            /> */}
-
-            <RenderHTML
-              contentWidth={contentWidth}
-              source={source}
-              customHTMLElementModels={customHTMLElementModels}
-              renderers={{ video: VideoRenderer, iframe: IframeRenderer }}
-              enableExperimentalMarginCollapsing
-              enableCSSInlineProcessing
-              defaultTextProps={{
-                selectable: true,
-                style: Platform.OS === 'android' ? { includeFontPadding: true } : undefined
-              }}
-              baseStyle={{ lineHeight: 24, fontSize: 16 }}
-              ignoredStyles={['lineHeight']}
-              tagsStyles={{
-                p: { color: '#334155', lineHeight: 24, fontSize: 16 },
-                h2: { color: '#0f172a', fontWeight: '700', fontSize: 24, lineHeight: 24 * 1.6, marginTop: 12, marginBottom: 8 },
-                h3: { color: '#0f172a', fontWeight: '700', fontSize: 20, lineHeight: 20 * 1.6, marginTop: 10, marginBottom: 6 },
-                a: { color: '#2563eb', textDecorationLine: 'underline' },
-                ul: { paddingLeft: 18, marginBottom: 12, listStyleType: 'none', },
-                li: { color: '#334155', lineHeight: 24, fontSize: 16, marginLeft: 18 },
-                nav: { marginVertical: 8, paddingVertical: 4 },
-                blockquote: {
-                  borderLeftWidth: 4,
-                  borderLeftColor: '#94a3b8',
-                  paddingLeft: 12,
-                  color: '#475569',
-                  fontStyle: 'italic',
-                  marginVertical: 12,
-                },
-                img: { borderRadius: 12 },
-                code: { fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }) },
-                pre: { backgroundColor: '#0b1020', borderRadius: 12, padding: 12, marginVertical: 8 },
-              }}
-              renderersProps={{
-                a: {
-                  onPress: (_, href) => href && Linking.openURL(href).catch(() => { }),
-                },
-              }}
-            />
-          </View>
-
-          {post.attaches &&
-            post.attaches.length > 0 && (
-              <View
-                style={{
-                  padding: 16,
-                }}
-              >
-                <WsInfo
-                  // labelWidth={80}
-                  label={t('附件')}
-                  type="filesAndImages"
-                  labelColor={$color.gray}
-                  value={post.attaches}
-                  style={{
-                    // flexDirection: 'row'
+          {post && (
+            <ScrollView style={{ flex: 1 }} nestedScrollEnabled>
+              <View style={[styles.container]}>
+                <RenderHTML
+                  WebView={WebView}
+                  contentWidth={contentWidth}
+                  source={source}
+                  customHTMLElementModels={customHTMLElementModels}
+                  renderers={{
+                    table,
+                    video: VideoRenderer,
+                    iframe: IframeRenderer,
+                  }}
+                  ignoredDomTags={IGNORED_TAGS}
+                  renderersProps={{
+                    table: {
+                      displayMode: 'embedded',
+                      cssRules: tableCss,
+                      animationType: 'none',
+                      animationDuration: 0,
+                      webViewProps: {
+                        nestedScrollEnabled: true,
+                        scrollEnabled: true,
+                        showsHorizontalScrollIndicator: true,
+                        bounces: true,
+                        overScrollMode: 'always',
+                        scalesPageToFit: false,
+                      },
+                    },
+                    a: {
+                      onPress: (_, href) => href && Linking.openURL(href).catch(() => { }),
+                    },
+                  }}
+                  // enableExperimentalMarginCollapsing
+                  enableCSSInlineProcessing
+                  defaultTextProps={{
+                    selectable: true,
+                    style: Platform.OS === 'android' ? { includeFontPadding: true } : undefined
+                  }}
+                  baseStyle={{ lineHeight: 24, fontSize: 16 }}
+                  ignoredStyles={['lineHeight']}
+                  tagsStyles={{
+                    p: { color: '#334155', lineHeight: 24, fontSize: 16, marginVertical: 8, paddingVertical: 0 },
+                    h2: { color: '#0f172a', fontWeight: '700', fontSize: 24, lineHeight: 24 * 1.6, marginTop: 12, marginBottom: 8 },
+                    h3: { color: '#0f172a', fontWeight: '700', fontSize: 20, lineHeight: 20 * 1.6, marginTop: 10, marginBottom: 6 },
+                    a: { color: '#2563eb', textDecorationLine: 'underline' },
+                    ul: { paddingLeft: 18, marginBottom: 12, listStyleType: 'none' },
+                    li: { color: '#334155', lineHeight: 24, fontSize: 16, marginLeft: 18 },
+                    nav: { marginVertical: 8, paddingVertical: 4 },
+                    blockquote: {
+                      borderLeftWidth: 4,
+                      borderLeftColor: '#94a3b8',
+                      paddingLeft: 12,
+                      color: '#475569',
+                      fontStyle: 'italic',
+                      marginVertical: 12,
+                    },
+                    img: { borderRadius: 12 },
+                    code: { fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }) },
+                    pre: { backgroundColor: '#0b1020', borderRadius: 12, padding: 12, marginVertical: 8 },
+                    strong: { marginVertical: 0, paddingVertical: 0 },
+                    span: { marginVertical: 0, paddingVertical: 0 },
+                    mark: {},
                   }}
                 />
               </View>
-            )}
+            </ScrollView>
+          )}
 
-          {/* Prev/Next（若 API 有回） */}
+          {post.attaches?.length > 0 && (
+            <View style={{ padding: 16 }}>
+              <WsInfo
+                label={t('附件')}
+                type="filesAndImages"
+                labelColor={$color.gray}
+                value={post.attaches}
+              />
+            </View>
+          )}
+
           {!!(post.prev || post.next) && (
             <View style={[styles.container, { marginTop: 16 }]}>
               <Text style={{ fontSize: 15, color: '#64748b', marginBottom: 8 }}>More</Text>
-
               <View style={{ gap: 12 }}>
                 {!!post.prev && (
                   <TouchableOpacity style={styles.moreItem} onPress={() => navigation.push('RoutesApp', { screen: 'ViewNewsShow', params: { id: post.prev.id } })}>
@@ -548,7 +546,7 @@ export default function Show() {
             </View>
           )}
         </ScrollView>
-      </SafeAreaView >
+      </SafeAreaView>
     </>
   );
 }
@@ -559,9 +557,7 @@ const styles = StyleSheet.create({
   hero: { width: '100%', minHeight: 220, backgroundColor: '#e2e8f0' },
   name: { fontSize: 26, fontWeight: '800', color: '#0f172a', lineHeight: 32 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14, marginBottom: 16 },
-  avatarWrap: {
-    width: 36, height: 36, borderRadius: 18, marginRight: 10, overflow: 'hidden', backgroundColor: '#cbd5e1',
-  },
+  avatarWrap: { width: 36, height: 36, borderRadius: 18, marginRight: 10, overflow: 'hidden', backgroundColor: '#cbd5e1' },
   avatar: { width: '100%', height: '100%' },
   alliance: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
   metaLight: { fontSize: 13, color: '#64748b', marginTop: 2 },

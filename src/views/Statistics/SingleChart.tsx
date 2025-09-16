@@ -115,7 +115,7 @@ export default function SingleChart() {
     series: [
       {
         name: 'A',
-        type: 'bar',
+        type: 'line',
         data: dsA,
         showSymbol: true,
         symbol: 'circle',

@@ -21,6 +21,7 @@ import {
   setRefreshCounter
 } from '@/store/data'
 import $color from '@/__reactnative_stone/global/color'
+import moment from 'moment';
 
 export type LlNewsCardProps = {
   id?: string;
@@ -167,12 +168,13 @@ export default function LlNewsCard({
         <View style={styles.body}>
           {!!updated_at && (
             <View style={styles.row}>
-              <WsIcon style={styles.calendarIcon} name={'ws-outline-calendar-date'} size={24}></WsIcon>
-              <Text style={styles.dateText}>{formatDate(updated_at)}</Text>
+              <WsIcon style={styles.calendarIcon} color={$color.gray} name={'ws-outline-calendar-date'} size={24}></WsIcon>
+              <Text style={styles.dateText}>{moment(updated_at).format('YYYY-MM-DD  HH:mm:ss')}</Text>
             </View>
           )}
 
-          <Text style={styles.name} numberOfLines={titleLines}>
+          <Text style={styles.name}
+          >
             {name}
           </Text>
 
