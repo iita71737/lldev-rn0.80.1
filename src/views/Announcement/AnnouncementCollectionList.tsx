@@ -59,7 +59,7 @@ const News: React.FC<BroadCastProps> = ({ navigation, route }) => {
 
   const filterFields = {
     alliance: {
-      type: 'belongsto',
+      type: 'belongstomany',
       label: t('聯盟'),
       nameKey: 'name',
       modelName: 'alliance',
