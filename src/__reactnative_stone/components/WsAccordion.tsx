@@ -93,7 +93,7 @@ export const WsAccordion: React.FC<SectionProps> = ({
 const styles = StyleSheet.create({
   section: {
     marginTop: 8,
-    borderWidth: 0.5,
+    borderWidth: .8,
     borderColor: $color.black,
     borderRadius: 10,
     backgroundColor: $color.white,

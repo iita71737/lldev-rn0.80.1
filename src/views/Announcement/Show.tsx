@@ -472,7 +472,7 @@ export default function Show() {
                       onPress: (_, href) => href && Linking.openURL(href).catch(() => { }),
                     },
                   }}
-                  // enableExperimentalMarginCollapsing
+                  enableExperimentalMarginCollapsing
                   enableCSSInlineProcessing
                   defaultTextProps={{
                     selectable: true,
