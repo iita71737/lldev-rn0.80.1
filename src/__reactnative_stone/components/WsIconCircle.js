@@ -19,7 +19,6 @@ const WsIconCircle = props => {
     count,
     hasProgress = false,
     padding = 16,
-    left = -8,
     text,
     textStyle,
     progressTintColor = $color.primary1l,

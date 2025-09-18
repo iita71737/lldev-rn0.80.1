@@ -43,6 +43,7 @@ import axios from 'axios'
 import S_Factory from '@/services/api/v1/factory'
 import S_Task from '@/services/api/v1/task'
 import VersionCheck from 'react-native-version-check';
+// import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 const Menu = ({ navigation }) => {
   // 不要把翻譯結果存到 state，直接在 render 裡呼叫 t('key')
@@ -195,16 +196,16 @@ const Menu = ({ navigation }) => {
       //   onPress: () => { }
       // }
 
-      // {
-      //   title: t('數量統計管理'),
-      //   backgroundImg: require('@/assets/img/audit-management.jpg'),
-      //   onPress: () => {
-      //     navigation.push('RoutesStatistics', {
-      //       screen: 'StatisticsIndex'
-      //     })
-      //   },
-      //   permission: scopePermission('audit-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'audit') : scopeSubscriptions(currentFactory, 'audit'))
-      // },
+      {
+        title: t('數量統計管理'),
+        backgroundImg: require('@/assets/img/audit-management.jpg'),
+        onPress: () => {
+          navigation.push('RoutesStatistics', {
+            screen: 'StatisticsIndex'
+          })
+        },
+        permission: scopePermission('audit-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'audit') : scopeSubscriptions(currentFactory, 'audit'))
+      },
     ]
     )
   }
@@ -280,7 +281,7 @@ const Menu = ({ navigation }) => {
 
   return (
     <>
-      <SafeAreaView>
+     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
 
         <ScrollView
           testID={'ScrollView'}

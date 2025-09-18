@@ -21,7 +21,6 @@ const WsSOSBtn001 = props => {
         style={[
           {
             borderRadius: 40,
-            // backgroundColor: 'transparent',
             backgroundColor: $color.danger,
             shadowColor: '#000',
             shadowOffset: {
@@ -43,7 +42,6 @@ const WsSOSBtn001 = props => {
             position: 'absolute',
             // borderWidth:1,
             width: 36,
-            height: 24,
             alignSelf: 'center',
           }}
           gradientColor={[$color.danger, $color.danger4l]}

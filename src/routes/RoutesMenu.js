@@ -79,7 +79,7 @@ const RoutesMenu = () => {
             <>
               <WsFlex
                 style={{
-                  marginRight: 4
+                  marginRight: 4,
                 }}>
                 <WsIconBtn
                   name="qr_code_scanner_FILL0_wght400_GRAD0_opsz24"
