@@ -1,8 +1,16 @@
 import React from 'react';
-import { View, SafeAreaView, StatusBar, ViewStyle, Text } from 'react-native';
+import {
+  View,
+  // SafeAreaView, 
+  Platform,
+  StatusBar,
+  ViewStyle,
+  Text
+} from 'react-native';
 import { WsToggleTabBar } from '@/components';
 import gColor from '@/__reactnative_stone/global/color';
-
+import $color from '@/__reactnative_stone/global/color'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 interface WsToggleTabViewProps {
   items: {
     value: string;
@@ -14,9 +22,12 @@ interface WsToggleTabViewProps {
   backgroundColor?: string;
   style?: ViewStyle;
   tabIndex?: number;
+  withTopInset?: boolean;
+  withBottomInset?: boolean;
 }
 
 const WsToggleTabView: React.FC<WsToggleTabViewProps> = (props) => {
+
   const {
     items,
     tabIndex = 0,
@@ -40,19 +51,29 @@ const WsToggleTabView: React.FC<WsToggleTabViewProps> = (props) => {
 
   return (
     <>
-      <StatusBar barStyle="dark-content" />
-      <SafeAreaView>
-        <View style={[{ backgroundColor, padding: 16 }, style]}>
-          <WsToggleTabBar
-            items={items}
-            value={items[tabIndex].value}
-            tabIndex={tabIndex}
-            onPress={(value: any, index: number) => {
-              setIndex(index);
-            }}
-          />
-        </View>
-      </SafeAreaView>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={backgroundColor} // 只影響 Android
+        translucent={false}
+      />
+      <View
+        style={[
+          {
+            backgroundColor,
+            padding: 16
+          },
+          style
+        ]}
+      >
+        <WsToggleTabBar
+          items={items}
+          value={items[tabIndex].value}
+          tabIndex={tabIndex}
+          onPress={(value: any, index: number) => {
+            setIndex(index);
+          }}
+        />
+      </View>
     </>
   );
 };

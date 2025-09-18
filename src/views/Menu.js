@@ -43,6 +43,7 @@ import axios from 'axios'
 import S_Factory from '@/services/api/v1/factory'
 import S_Task from '@/services/api/v1/task'
 import VersionCheck from 'react-native-version-check';
+// import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 const Menu = ({ navigation }) => {
   // 不要把翻譯結果存到 state，直接在 render 裡呼叫 t('key')
@@ -195,16 +196,16 @@ const Menu = ({ navigation }) => {
       //   onPress: () => { }
       // }
 
-      // {
-      //   title: t('數量統計管理'),
-      //   backgroundImg: require('@/assets/img/audit-management.jpg'),
-      //   onPress: () => {
-      //     navigation.push('RoutesStatistics', {
-      //       screen: 'StatisticsIndex'
-      //     })
-      //   },
-      //   permission: scopePermission('audit-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'audit') : scopeSubscriptions(currentFactory, 'audit'))
-      // },
+      {
+        title: t('數量統計管理'),
+        backgroundImg: require('@/assets/img/audit-management.jpg'),
+        onPress: () => {
+          navigation.push('RoutesStatistics', {
+            screen: 'StatisticsIndex'
+          })
+        },
+        permission: scopePermission('audit-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'audit') : scopeSubscriptions(currentFactory, 'audit'))
+      },
     ]
     )
   }
@@ -279,82 +280,241 @@ const Menu = ({ navigation }) => {
   }, [navigation]);
 
   return (
-    <SafeAreaView>
+    <>
+     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
 
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 32,
-          right: 16,
-          zIndex: 999,
-          alignItems: 'flex-end'
-        }}
-      >
-      </View>
-
-      <ScrollView
-        testID={'ScrollView'}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
-        {currentUser && (
-          <>
-            <WsUserSection
-              isAvatar={true}
-              userName={currentUser.name}
-              userEmail={currentUser.email}
-              avatar={currentUser.avatar}
-              onPress={() => {
-                navigation.navigate('MyAccountSetting')
-              }}
-            />
-            <WsPaddingContainer>
-              <LlSOSBtn002
-                onPress={(e) => {
-                  if (!scopePermission('sos-create', currentUserScope)) {
-                    Alert.alert(
-                      t('您無此單位內相關權限，請聯絡系統管理員'),
-                      "",
-                      [
-                        {
-                          text: "我知道了",
-                          onPress: () => {
-                            navigation.navigate('RoutesMenu')
-                          }
-                        }
-                      ]
-                    )
-                    e.preventDefault();
-                  } else if (scopePermission('sos-create', currentUserScope)) {
-                    navigation.navigate('SOS')
-                  }
+        <ScrollView
+          testID={'ScrollView'}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        >
+          {currentUser && (
+            <>
+              <WsUserSection
+                isAvatar={true}
+                userName={currentUser.name}
+                userEmail={currentUser.email}
+                avatar={currentUser.avatar}
+                onPress={() => {
+                  navigation.navigate('MyAccountSetting')
                 }}
               />
-            </WsPaddingContainer>
+              <WsPaddingContainer>
+                <LlSOSBtn002
+                  onPress={(e) => {
+                    if (!scopePermission('sos-create', currentUserScope)) {
+                      Alert.alert(
+                        t('您無此單位內相關權限，請聯絡系統管理員'),
+                        "",
+                        [
+                          {
+                            text: "我知道了",
+                            onPress: () => {
+                              navigation.navigate('RoutesMenu')
+                            }
+                          }
+                        ]
+                      )
+                      e.preventDefault();
+                    } else if (scopePermission('sos-create', currentUserScope)) {
+                      navigation.navigate('SOS')
+                    }
+                  }}
+                />
+              </WsPaddingContainer>
 
-            <LlNavButton001
-              testID={`切換單位鈕`}
-              style={{
-                backgroundColor: $color.white
-              }}
-              iconLeft="ll-risk-shutdown"
-              subTitle={
-                currentViewMode === 'factory' && currentFactory
-                  ? currentFactory.name
-                  : currentOrganization && currentOrganization.name ? currentOrganization.name : null
-              }
-              onPress={() => {
-                navigation.navigate('ViewFactoryAndOrganization')
-              }}>
-              {`${t('切換單位')}`}
-            </LlNavButton001>
+              <LlNavButton001
+                testID={`切換單位鈕`}
+                style={{
+                  backgroundColor: $color.white
+                }}
+                iconLeft="ll-risk-shutdown"
+                subTitle={
+                  currentViewMode === 'factory' && currentFactory
+                    ? currentFactory.name
+                    : currentOrganization && currentOrganization.name ? currentOrganization.name : null
+                }
+                onPress={() => {
+                  navigation.navigate('ViewFactoryAndOrganization')
+                }}>
+                {`${t('切換單位')}`}
+              </LlNavButton001>
 
-            <>
+              <>
+                <LlNavButton001
+                  style={{
+                    backgroundColor: $color.white
+                  }}
+                  iconLeft="ll-esh-fairtrade"
+                  onPress={(e) => {
+                    if (!scopePermission('llbroadcast-read', currentUserScope)) {
+                      Alert.alert(
+                        t('您無此單位內相關權限，請聯絡系統管理員'),
+                        "",
+                        [
+                          {
+                            text: "我知道了",
+                            onPress: () => {
+                              navigation.navigate('RoutesMenu')
+                            }
+                          }
+                        ]
+                      )
+                      e.preventDefault();
+                    } else if (scopePermission('llbroadcast-read', currentUserScope)) {
+                      navigation.push('ViewAnnouncement')
+                    }
+
+                  }}
+                >
+                  {t('新訊')}
+                </LlNavButton001>
+
+                <LlNavButton001
+                  style={{
+                    backgroundColor: $color.white
+                  }}
+                  iconLeft="ll-nav-assignment-outline"
+                  onPress={(e) => {
+                    if (!scopePermission('task-read', currentUserScope)) {
+                      Alert.alert(
+                        t('您無此單位內相關權限，請聯絡系統管理員'),
+                        "",
+                        [
+                          {
+                            text: "我知道了",
+                            onPress: () => {
+                              navigation.navigate('RoutesMenu')
+                            }
+                          }
+                        ]
+                      )
+                      e.preventDefault();
+                    } else if (scopePermission('task-read', currentUserScope)) {
+                      navigation.navigate('RoutesTask', { screen: 'TaskIndex' })
+                    }
+                  }}>
+                  {t('任務')}
+                </LlNavButton001>
+
+                <LlNavButton001
+                  style={{
+                    backgroundColor: $color.white
+                  }}
+                  iconLeft="ll-nav-filemanage"
+                >
+                  {t('管理')}
+                </LlNavButton001>
+              </>
+              <WsPaddingContainer
+                style={{
+                  backgroundColor: gColor.white,
+                }}>
+                <WsGrid
+                  style={{}}
+                  numColumns={2}
+                  spacing={4}
+                  keyExtractor={item => item.title}
+                  data={manageList}
+                  renderItem={({ item, itemIndex }) => (
+                    <>
+                      <WsImageBtn
+                        key={item.title}
+                        backgroundImg={item.backgroundImg}
+                        title={item.title}
+                        style={{}}
+                        icon={
+                          (item.permission === false || item && item.permission === null) ? 'ws-outline-lock' : null
+                        }
+                        LinearGradientColors={
+                          item.permission === false
+                            ? [
+                              'rgba(6, 34, 46, 1)',
+                              'rgba(0, 24, 57, .8)',
+                              'rgba(6, 34, 46, 1)'
+                            ]
+                            : undefined
+                        }
+                        disable={(item && item.permission === false || item && item.permission === null) ? true : false}
+                        onPress={
+                          item.permission === true ? item.onPress : () => { }
+                        }
+                      />
+                    </>
+                  )}
+                />
+
+              </WsPaddingContainer>
+
+              {scopePermission('guideline-read', currentUserScope) &&
+                scopeSubscriptions(currentFactory, 'guideline') && (
+                  <LlNavButton001
+                    style={{
+                      backgroundColor: $color.white
+                    }}
+                    iconLeft="ll-nav-internalegulations-outline"
+                    onPress={(e) => {
+                      if (!scopePermission('guideline-read', currentUserScope)) {
+                        Alert.alert(
+                          t('您無此單位內相關權限，請聯絡系統管理員'),
+                          "",
+                          [
+                            {
+                              text: "我知道了",
+                              onPress: () => {
+                                navigation.navigate('RoutesMenu')
+                              }
+                            }
+                          ]
+                        )
+                        e.preventDefault();
+                      } else if (scopePermission('guideline-read', currentUserScope)) {
+                        navigation.navigate('RoutesAct',
+                          {
+                            screen: 'GuidelineIndex'
+                          })
+                      }
+                    }}>
+                    {t('內規')}
+                  </LlNavButton001>
+                )}
+
+
+              {scopePermission('guideline-admin-read', currentUserScope) &&
+                scopeSubscriptions(currentFactory, 'guideline') && (
+                  <LlNavButton001
+                    style={{
+                      backgroundColor: $color.white
+                    }}
+                    iconLeft="ll-nav-internalegulationsmanage-outline"
+                    onPress={(e) => {
+                      if (!scopePermission('guideline-admin-read', currentUserScope)) {
+                        Alert.alert(
+                          t('您無此單位內相關權限，請聯絡系統管理員'),
+                          "",
+                          [
+                            {
+                              text: t("確定"),
+                              onPress: () => {
+                                navigation.navigate('RoutesMenu')
+                              }
+                            }
+                          ]
+                        )
+                        e.preventDefault();
+                      } else if (scopePermission('guideline-admin-read', currentUserScope)) {
+                        navigation.navigate('RoutesAct', { screen: 'GuidelineAdminIndex' })
+                      }
+                    }}>
+                    {t('內規管理')}
+                  </LlNavButton001>
+                )}
+
               <LlNavButton001
                 style={{
                   backgroundColor: $color.white
                 }}
-                iconLeft="ll-esh-fairtrade"
+                iconLeft="ll-nav-news-outline"
                 onPress={(e) => {
                   if (!scopePermission('llbroadcast-read', currentUserScope)) {
                     Alert.alert(
@@ -371,242 +531,73 @@ const Menu = ({ navigation }) => {
                     )
                     e.preventDefault();
                   } else if (scopePermission('llbroadcast-read', currentUserScope)) {
-                    navigation.push('ViewAnnouncement')
+                    navigation.push('ViewBroadCast')
                   }
 
                 }}
               >
-                {t('新訊')}
+                {t('ESGoal快報')}
               </LlNavButton001>
 
               <LlNavButton001
                 style={{
                   backgroundColor: $color.white
                 }}
-                iconLeft="ll-nav-assignment-outline"
-                onPress={(e) => {
-                  if (!scopePermission('task-read', currentUserScope)) {
-                    Alert.alert(
-                      t('您無此單位內相關權限，請聯絡系統管理員'),
-                      "",
-                      [
-                        {
-                          text: "我知道了",
-                          onPress: () => {
-                            navigation.navigate('RoutesMenu')
-                          }
-                        }
-                      ]
-                    )
-                    e.preventDefault();
-                  } else if (scopePermission('task-read', currentUserScope)) {
-                    navigation.navigate('RoutesTask', { screen: 'TaskIndex' })
-                  }
+                iconLeft="ws-outline-settings-outline"
+                onPress={() => {
+                  navigation.navigate('RoutesSetting', { screen: 'SettingIndex' })
                 }}>
-                {t('任務')}
+                {t('設定')}
               </LlNavButton001>
 
               <LlNavButton001
                 style={{
                   backgroundColor: $color.white
                 }}
-                iconLeft="ll-nav-filemanage"
-              >
-                {t('管理')}
+                iconLeft="md-phone-iphone"
+                onPress={() => {
+                  navigation.navigate('RoutesMenu', { screen: 'SystemVersion' })
+                }}>
+                {t('系統版本')}
               </LlNavButton001>
-            </>
-            <WsPaddingContainer
-              style={{
-                backgroundColor: gColor.white,
-              }}>
-              <WsGrid
-                style={{}}
-                numColumns={2}
-                spacing={4}
-                keyExtractor={item => item.title}
-                data={manageList}
-                renderItem={({ item, itemIndex }) => (
-                  <>
-                    <WsImageBtn
-                      key={item.title}
-                      backgroundImg={item.backgroundImg}
-                      title={item.title}
-                      style={{}}
-                      icon={
-                        (item.permission === false || item && item.permission === null) ? 'ws-outline-lock' : null
-                      }
-                      LinearGradientColors={
-                        item.permission === false
-                          ? [
-                            'rgba(6, 34, 46, 1)',
-                            'rgba(0, 24, 57, .8)',
-                            'rgba(6, 34, 46, 1)'
-                          ]
-                          : undefined
-                      }
-                      disable={(item && item.permission === false || item && item.permission === null) ? true : false}
-                      onPress={
-                        item.permission === true ? item.onPress : () => { }
-                      }
-                    />
-                  </>
-                )}
-              />
 
-            </WsPaddingContainer>
+              <LlNavButton001
+                style={{
+                  backgroundColor: $color.white
+                }}
+                iconLeft="ws-outline-lock"
+                onPress={() => {
+                  navigation.navigate({
+                    name: 'ChangePassword'
+                  })
+                }}>
+                {t('變更密碼')}
+              </LlNavButton001>
 
-            {scopePermission('guideline-read', currentUserScope) &&
-              scopeSubscriptions(currentFactory, 'guideline') && (
-                <LlNavButton001
-                  style={{
-                    backgroundColor: $color.white
-                  }}
-                  iconLeft="ll-nav-internalegulations-outline"
-                  onPress={(e) => {
-                    if (!scopePermission('guideline-read', currentUserScope)) {
-                      Alert.alert(
-                        t('您無此單位內相關權限，請聯絡系統管理員'),
-                        "",
-                        [
-                          {
-                            text: "我知道了",
-                            onPress: () => {
-                              navigation.navigate('RoutesMenu')
-                            }
-                          }
-                        ]
-                      )
-                      e.preventDefault();
-                    } else if (scopePermission('guideline-read', currentUserScope)) {
-                      navigation.navigate('RoutesAct',
-                        {
-                          screen: 'GuidelineIndex'
-                        })
-                    }
-                  }}>
-                  {t('內規')}
-                </LlNavButton001>
-              )}
+              <LlNavButton001
+                style={{
+                  backgroundColor: $color.white
+                }}
+                iconLeft="md-system-update"
+                onPress={() => {
+                  navigation.navigate('RoutesMenu', { screen: 'DeviceInfo' })
+                }}>
+                {t('登入資訊')}
+              </LlNavButton001>
 
+              <LlNavButton001
+                style={{
+                  backgroundColor: $color.white
+                }}
+                iconLeft="ws-filled-logout"
+                onPress={() => {
+                  $_logout()
+                }}>
+                {t('登出')}
+              </LlNavButton001>
 
-            {scopePermission('guideline-admin-read', currentUserScope) &&
-              scopeSubscriptions(currentFactory, 'guideline') && (
-                <LlNavButton001
-                  style={{
-                    backgroundColor: $color.white
-                  }}
-                  iconLeft="ll-nav-internalegulationsmanage-outline"
-                  onPress={(e) => {
-                    if (!scopePermission('guideline-admin-read', currentUserScope)) {
-                      Alert.alert(
-                        t('您無此單位內相關權限，請聯絡系統管理員'),
-                        "",
-                        [
-                          {
-                            text: t("確定"),
-                            onPress: () => {
-                              navigation.navigate('RoutesMenu')
-                            }
-                          }
-                        ]
-                      )
-                      e.preventDefault();
-                    } else if (scopePermission('guideline-admin-read', currentUserScope)) {
-                      navigation.navigate('RoutesAct', { screen: 'GuidelineAdminIndex' })
-                    }
-                  }}>
-                  {t('內規管理')}
-                </LlNavButton001>
-              )}
-
-            <LlNavButton001
-              style={{
-                backgroundColor: $color.white
-              }}
-              iconLeft="ll-nav-news-outline"
-              onPress={(e) => {
-                if (!scopePermission('llbroadcast-read', currentUserScope)) {
-                  Alert.alert(
-                    t('您無此單位內相關權限，請聯絡系統管理員'),
-                    "",
-                    [
-                      {
-                        text: "我知道了",
-                        onPress: () => {
-                          navigation.navigate('RoutesMenu')
-                        }
-                      }
-                    ]
-                  )
-                  e.preventDefault();
-                } else if (scopePermission('llbroadcast-read', currentUserScope)) {
-                  navigation.push('ViewBroadCast')
-                }
-
-              }}
-            >
-              {t('ESGoal快報')}
-            </LlNavButton001>
-
-            <LlNavButton001
-              style={{
-                backgroundColor: $color.white
-              }}
-              iconLeft="ws-outline-settings-outline"
-              onPress={() => {
-                navigation.navigate('RoutesSetting', { screen: 'SettingIndex' })
-              }}>
-              {t('設定')}
-            </LlNavButton001>
-
-            <LlNavButton001
-              style={{
-                backgroundColor: $color.white
-              }}
-              iconLeft="md-phone-iphone"
-              onPress={() => {
-                navigation.navigate('RoutesMenu', { screen: 'SystemVersion' })
-              }}>
-              {t('系統版本')}
-            </LlNavButton001>
-
-            <LlNavButton001
-              style={{
-                backgroundColor: $color.white
-              }}
-              iconLeft="ws-outline-lock"
-              onPress={() => {
-                navigation.navigate({
-                  name: 'ChangePassword'
-                })
-              }}>
-              {t('變更密碼')}
-            </LlNavButton001>
-
-            <LlNavButton001
-              style={{
-                backgroundColor: $color.white
-              }}
-              iconLeft="md-system-update"
-              onPress={() => {
-                navigation.navigate('RoutesMenu', { screen: 'DeviceInfo' })
-              }}>
-              {t('登入資訊')}
-            </LlNavButton001>
-
-            <LlNavButton001
-              style={{
-                backgroundColor: $color.white
-              }}
-              iconLeft="ws-filled-logout"
-              onPress={() => {
-                $_logout()
-              }}>
-              {t('登出')}
-            </LlNavButton001>
-
-            <>
-              {/* <LlNavButton001
+              <>
+                {/* <LlNavButton001
                 style={{
                   backgroundColor: $color.white
                 }}
@@ -614,19 +605,19 @@ const Menu = ({ navigation }) => {
                 {t('常見問題')}
               </LlNavButton001> */}
 
-              <LlNavButton001
-                style={{
-                  backgroundColor: $color.white
-                }}
-                iconLeft="md-info-outline"
-                onPress={() => {
-                  Linking.openURL('https://www.esgoal.com.tw/en')
-                }}
-              >
-                {t('關於我們')}
-              </LlNavButton001>
+                <LlNavButton001
+                  style={{
+                    backgroundColor: $color.white
+                  }}
+                  iconLeft="md-info-outline"
+                  onPress={() => {
+                    Linking.openURL('https://www.esgoal.com.tw/en')
+                  }}
+                >
+                  {t('關於我們')}
+                </LlNavButton001>
 
-              {/* <LlNavButton001
+                {/* <LlNavButton001
                   style={{
                     backgroundColor: $color.white
                   }}
@@ -637,37 +628,38 @@ const Menu = ({ navigation }) => {
                   {t('意見回饋')}
                 </LlNavButton001> */}
 
-              <LlNavButton001
-                style={{
-                  backgroundColor: $color.white
-                }}
-                iconLeft="ws-outline-risk-low"
-                onPress={() => {
-                  Linking.openURL('https://www.esgoal.com.tw/privacy')
-                }}
-              >
-                {t('條款政策')}
-              </LlNavButton001>
+                <LlNavButton001
+                  style={{
+                    backgroundColor: $color.white
+                  }}
+                  iconLeft="ws-outline-risk-low"
+                  onPress={() => {
+                    Linking.openURL('https://www.esgoal.com.tw/privacy')
+                  }}
+                >
+                  {t('條款政策')}
+                </LlNavButton001>
 
-              {currentUser && currentUser.id &&
-                (currentUser.id === 1 || currentUser.id === 86) && (
-                  <LlNavButton001
-                    style={{
-                      backgroundColor: $color.white
-                    }}
-                    iconLeft="ll-nav-filemanage"
-                    onPress={() => {
-                      navigation.navigate('ViewUISpec')
-                    }}>
-                    {t('UI Components')}
-                  </LlNavButton001>
-                )}
+                {currentUser && currentUser.id &&
+                  (currentUser.id === 1 || currentUser.id === 86) && (
+                    <LlNavButton001
+                      style={{
+                        backgroundColor: $color.white
+                      }}
+                      iconLeft="ll-nav-filemanage"
+                      onPress={() => {
+                        navigation.navigate('ViewUISpec')
+                      }}>
+                      {t('UI Components')}
+                    </LlNavButton001>
+                  )}
+              </>
+
             </>
-
-          </>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </>
   )
 }
 export default Menu

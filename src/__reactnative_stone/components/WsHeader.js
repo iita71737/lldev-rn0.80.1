@@ -10,7 +10,6 @@ const WsHeader = props => {
   const { windowWidth, windowHeight } = layouts
   // Props
   const {
-    height = Platform.OS == 'ios' ? 56 : 56,
     title,
     iconRight,
     iconLeft,
@@ -43,40 +42,31 @@ const WsHeader = props => {
         style={{
           backgroundColor: $color.primary,
           width: windowWidth,
-          height: height,
-          padding: 16,
+          paddingHorizontal: 16,
+          paddingBottom: 8,
         }}>
         <WsFlex>
-          <View
-            style={{
-              width: 24,
-            }}>
-            {!hideLeftBtn && (
-              <WsIconBtn
-                testID={iconLeft ? '' : 'backButton'}
-                name={iconLeft ? iconLeft : 'md-chevron-left'}
-                color={$color.white}
-                size={28}
-                padding={0}
-                onPress={leftOnPress ? leftOnPress : $_leftOnPress}
-              />
-            )}
-          </View>
+
+          {!hideLeftBtn && (
+            <WsIconBtn
+              testID={iconLeft ? '' : 'backButton'}
+              name={iconLeft ? iconLeft : 'md-chevron-left'}
+              color={$color.white}
+              size={24}
+              padding={0}
+              onPress={leftOnPress ? leftOnPress : $_leftOnPress}
+            />
+          )}
 
           <View
             style={{
-              flex: 1
+              flex: 1,
+              alignItems: 'center'
             }}>
-            <WsFlex
-              justifyContent="center"
-              style={{
-                // flex: 1, //230808
-                height: 40
-              }}>
-              <WsText color={$color.white} size={18}>
-                {title}
-              </WsText>
-            </WsFlex>
+            <WsText color={$color.white} size={18}>
+              {title}
+            </WsText>
+
           </View>
 
           <View

@@ -1,5 +1,9 @@
 import React from 'react'
-import { Text, StyleSheet } from 'react-native'
+import { 
+  Text, 
+  StyleSheet, 
+  Platform 
+} from 'react-native'
 import $color from '@/__reactnative_stone/global/color'
 
 const WsText = ({
@@ -36,6 +40,7 @@ const WsText = ({
           letterSpacing: letterSpacing,
           flexWrap: 'wrap',    // 允許換行-250421
         },
+        Platform.OS === 'android' ? { includeFontPadding: false, textAlignVertical: 'center' } : null,
         style
       ]}>
       {children}

@@ -17,6 +17,8 @@ import { useSelector } from 'react-redux'
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import store from '@/store'
 import { setIdleCounter } from '@/store/data';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLayoutEffect } from 'react';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -90,23 +92,37 @@ const Act = ({ route, navigation }) => {
     store.dispatch(setIdleCounter(currentIdleCounter + 1))
   }, [tabIndex])
 
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      // 想顯示自訂返回鍵的情況
+      headerLeft:
+        navigation.canGoBack() && tabIndex !== 2 && tabIndex !== 3
+          ? () => (
+            <WsIconBtn
+              testID="backButton"
+              name="md-chevron-left"
+              color={$color.white}
+              size={24}
+              onPress={() => navigation.goBack()}
+            />
+          )
+          // 想還原成「預設」行為用 undefined；想完全隱藏用 null
+          : undefined,
+    });
+  }, [navigation, tabIndex]);
+
   return (
     <>
-      <WsPage
-        hideLeftBtn={tabIndex != 2 && tabIndex != 3 ? false : true}
-        title={t('法規')}
-      >
-        {tabItems && (
-          <WsTabView
-            index={tabIndex}
-            setIndex={settabIndex}
-            items={tabItems}
-            scrollEnabled={true}
-            isAutoWidth={true}
-            fixedTabWidth={128}
-          />
-        )}
-      </WsPage>
+      {tabItems && (
+        <WsTabView
+          index={tabIndex}
+          setIndex={settabIndex}
+          items={tabItems}
+          scrollEnabled={true}
+          isAutoWidth={true}
+          fixedTabWidth={128}
+        />
+      )}
     </>
   )
 }

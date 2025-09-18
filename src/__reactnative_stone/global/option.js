@@ -24,11 +24,14 @@ const option = {
       borderBottomWidth: 0,
       elevation: 0,
       backgroundColor: $color.primary,
-      shadowColor: 'transparent',  
+      shadowColor: 'transparent',
     },
     headerTitleStyle: {
-      fontSize: 17,
-      color: $color.white
+      fontSize: 18,
+      color: $color.white,
+      fontWeight: 'normal',
+      lineHeight: 24,
+      letterSpacing: 0.6
     },
     headerTitleAlign: 'center',
     headerTintColor: '#fff',

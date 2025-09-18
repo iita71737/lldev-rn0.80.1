@@ -1,7 +1,11 @@
 import React, { useState } from 'react'
-import { View, SafeAreaView } from 'react-native'
+import {
+  View,
+  // SafeAreaView
+} from 'react-native'
 import { WsHeader, WsHeaderSearch } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const WsPage = props => {
   // Props
@@ -27,8 +31,9 @@ const WsPage = props => {
         flex: 1,
       }}>
       <SafeAreaView
+        edges={['top']}
         style={{
-          backgroundColor: $color.primary
+          backgroundColor: $color.primary,
         }}
       />
       {!mode && (

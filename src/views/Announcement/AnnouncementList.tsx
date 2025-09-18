@@ -53,13 +53,15 @@ const News: React.FC<BroadCastProps> = ({ navigation, route }) => {
   // MEMO
   const params = React.useMemo(() => {
     return {
-      factory: currentViewMode === 'factory' && currentFactory ? currentFactory.id : currentOrganization ? currentOrganization.id : null
+      factory: currentViewMode === 'factory' && currentFactory ? currentFactory.id : currentOrganization ? currentOrganization.id : null,
+      order_by: 'updated_at',
+      order_way: 'desc'
     }
   }, [currentRefreshCounter, currentFactory, currentViewMode]);
 
   const filterFields = {
     alliance: {
-      type: 'belongsto',
+      type: 'belongstomany',
       label: t('聯盟'),
       nameKey: 'name',
       modelName: 'alliance',
@@ -101,7 +103,6 @@ const News: React.FC<BroadCastProps> = ({ navigation, route }) => {
               setSnackBarText={setSnackBarText}
               setIsSnackBarVisible={setIsSnackBarVisible}
               onPress={() => {
-                // console.log('Open:', item.title);
                 navigation.push('RoutesApp', {
                   screen: 'ViewAnnouncementShow',
                   params: {

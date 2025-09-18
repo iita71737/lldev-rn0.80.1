@@ -189,12 +189,14 @@ const RoutesMain = ({ navigation }) => {
         // 如果廠在第一層級
         if (unit.id == initFactory.id) {
           store.dispatch(setCurrentFactory(unit))
+          $_checkoutFactory(_unit)
         }
         // 如果廠在第二層級
         else if (unit.child_factories && unit.child_factories.length > 0) {
           unit.child_factories.forEach(_unit => {
             if (_unit.id === initFactory.id) {
               store.dispatch(setCurrentFactory(_unit))
+              $_checkoutFactory(_unit)
             }
           })
         }
@@ -668,90 +670,89 @@ const RoutesMain = ({ navigation }) => {
           )}
         </Modal>
       ) : (
-          <View
-            style={{
-              flex: 1,
-              paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-              backgroundColor: $color.primary
-            }}
-          >
-            <NavigationContainer
-              theme={scheme === 'light' ? MyThemes.light : MyThemes.dark}
-              linking={{
-                prefixes: [
-                  'https://www.esgoal.com/',
-                  'https://ll-esh-app.wasateam.com/',
-                  'esgoal://',
-                  'https://ll-esgoal.dev.wasateam.com/'
-                ],
-                config: {
-                  screens: $ws.$h.route.getDeeplinks()
-                },
-                async getInitialURL() {
-                  const url = await Linking.getInitialURL();
-                  console.log('getInitialURL');
-                  // 這邊只有在未開啟APP時，第一次開啟時會比對。
-                  if (url) {
-                    try {
-                      const _url = await S_QRcode.redirectByScanUrl(url, navigation);
-                    } catch (e) {
-                      store.dispatch(setInitUrlFromQRcode(url))
-                    }
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: $color.primary
+          }}
+        >
+          <NavigationContainer
+            theme={scheme === 'light' ? MyThemes.light : MyThemes.dark}
+            linking={{
+              prefixes: [
+                'https://www.esgoal.com/',
+                'https://ll-esh-app.wasateam.com/',
+                'esgoal://',
+                'https://ll-esgoal.dev.wasateam.com/'
+              ],
+              config: {
+                screens: $ws.$h.route.getDeeplinks()
+              },
+              async getInitialURL() {
+                const url = await Linking.getInitialURL();
+                console.log('getInitialURL');
+                // 這邊只有在未開啟APP時，第一次開啟時會比對。
+                if (url) {
+                  try {
+                    const _url = await S_QRcode.redirectByScanUrl(url, navigation);
+                  } catch (e) {
+                    store.dispatch(setInitUrlFromQRcode(url))
                   }
-                },
+                }
+              },
+            }}
+            fallback={<ActivityIndicator color="blue" size="large" />}
+          >
+            <Stack.Navigator
+              screenOptions={{
+                headerBackTitleVisible: false
               }}
-              fallback={<ActivityIndicator color="blue" size="large" />}
             >
-              <Stack.Navigator
-                screenOptions={{
-                  headerBackTitleVisible: false
-                }}
-              >
-                {!isMounted && (
+              {!isMounted && (
+                <Stack.Screen
+                  name="Init"
+                  options={{
+                    headerShown: false,
+                    cardStyle: { backgroundColor: '#FFFFFF' }
+                  }}
+                  component={ViewInit}
+                />
+              )}
+              {!currentUser && (
+                <>
                   <Stack.Screen
-                    name="Init"
+                    name="RoutesAuth"
                     options={{
                       headerShown: false,
                       cardStyle: { backgroundColor: '#FFFFFF' }
                     }}
-                    component={ViewInit}
+                    component={RoutesAuth}
+                    initialParams={{ autoFocus: modalVisible ? false : true }}
                   />
-                )}
-                {!currentUser && (
-                  <>
-                    <Stack.Screen
-                      name="RoutesAuth"
-                      options={{
-                        headerShown: false,
-                        cardStyle: { backgroundColor: '#FFFFFF' }
-                      }}
-                      component={RoutesAuth}
-                      initialParams={{ autoFocus: modalVisible ? false : true }}
-                    />
-                  </>
-                )}
-                {currentUser && (
-                  <>
-                    <Stack.Screen
-                      name="RoutesApp"
-                      options={{
-                        headerShown: false,
-                        cardStyle: { backgroundColor: '#FFFFFF' }
-                      }}
-                      component={RoutesApp}
-                    />
-                    <Stack.Screen
-                      name="CameraPage"
-                      component={WsCameraPage}
-                      options={{
-                        headerShown: false,
-                      }}
-                    />
-                  </>
-                )}
-              </Stack.Navigator>
-            </NavigationContainer>
-          </View>
+                </>
+              )}
+              {currentUser && (
+                <>
+                  <Stack.Screen
+                    name="RoutesApp"
+                    options={{
+                      headerShown: false,
+                      cardStyle: { backgroundColor: '#FFFFFF' }
+                    }}
+                    component={RoutesApp}
+                  />
+                  <Stack.Screen
+                    name="CameraPage"
+                    component={WsCameraPage}
+                    options={{
+                      headerShown: false,
+                    }}
+                  />
+                </>
+              )}
+            </Stack.Navigator>
+          </NavigationContainer>
+        </View>
       )}
     </>
   )
