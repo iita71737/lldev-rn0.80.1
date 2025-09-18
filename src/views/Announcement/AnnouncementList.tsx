@@ -103,7 +103,6 @@ const News: React.FC<BroadCastProps> = ({ navigation, route }) => {
               setSnackBarText={setSnackBarText}
               setIsSnackBarVisible={setIsSnackBarVisible}
               onPress={() => {
-                // console.log('Open:', item.title);
                 navigation.push('RoutesApp', {
                   screen: 'ViewAnnouncementShow',
                   params: {

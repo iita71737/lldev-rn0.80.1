@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import {
   WsIconBtn,
-  WsIcon
+  WsIcon,
+  WsFlex
 } from '@/components'; // ✅ 你的收藏按鈕
 import S_Announcement from '@/services/api/v1/announcement'
 import store from '@/store'
@@ -146,7 +147,7 @@ export default function LlNewsCard({
         style={[styles.inner, { borderRadius: radius }]}
       >
         {/* 封面圖 */}
-        <View style={[styles.imageWrap, { height: imageHeight }]}>
+        {/* <View style={[styles.imageWrap, { height: imageHeight }]}>
           {cover_image || coverSource ? (
             <Image
               source={coverSource ?? { uri: cover_image! }}
@@ -155,17 +156,40 @@ export default function LlNewsCard({
             />
           ) : (
             <View style={[StyleSheet.absoluteFill, styles.imagePlaceholder]}>
-              {/* <Image
+              <Image
                 source={{ uri: 'https://images.unsplash.com/photo-1707742984673-ae30d982bdec?q=80&w=3132&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }}
                 resizeMode="cover"
                 style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
-              /> */}
+              />
             </View>
           )}
-        </View>
+        </View> */}
 
         {/* 內容區 */}
         <View style={styles.body}>
+
+          <WsFlex
+            justifyContent={'space-between'}
+            style={{
+              marginBottom: 8,
+            }}
+          >
+            {!!alliance && (
+              <View style={[styles.tag, { backgroundColor: tagColor }]}>
+                <Text style={styles.tagText}>{alliance?.name}</Text>
+              </View>
+            )}
+
+            {showCollect && (
+              <WsIconBtn
+                padding={0}
+                name={is_collect ? collectIconNames.active : collectIconNames.inactive}
+                size={28}
+                onPress={bookmarkOnPress}
+              />
+            )}
+          </WsFlex>
+
           {!!updated_at && (
             <View style={styles.row}>
               <WsIcon style={styles.calendarIcon} color={$color.gray} name={'ws-outline-calendar-date'} size={24}></WsIcon>
@@ -184,15 +208,15 @@ export default function LlNewsCard({
             </Text>
           )}
 
-          {!!alliance && (
+          {/* {!!alliance && (
             <View style={[styles.tag, { backgroundColor: tagColor }]}>
               <Text style={styles.tagText}>{alliance?.name}</Text>
             </View>
-          )}
+          )} */}
         </View>
 
         {/* ⭐ 收藏按鈕（右下角） */}
-        {showCollect && (
+        {/* {showCollect && (
           <View
             pointerEvents="box-none"
             style={[styles.collectWrap, collectButtonStyle]}
@@ -204,7 +228,7 @@ export default function LlNewsCard({
               onPress={bookmarkOnPress}
             />
           </View>
-        )}
+        )} */}
       </TouchableOpacity>
     </View>
   );
@@ -273,7 +297,7 @@ const styles = StyleSheet.create({
   },
   tag: {
     alignSelf: 'flex-start',
-    marginTop: 12,
+    // marginTop: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -292,8 +316,5 @@ const styles = StyleSheet.create({
     bottom: 4,
     zIndex: 99,
     elevation: 3,
-  },
-  collectBtn: {
-    // 若 WsIconBtn 自帶觸控區即可不用額外 padding
   },
 });

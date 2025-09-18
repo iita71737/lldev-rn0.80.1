@@ -19,7 +19,7 @@ import $color from '@/__reactnative_stone/global/color'
 import { useSelector } from 'react-redux'
 import PickTemplate from '@/views/License/Create/PickTemplate'
 import PickTypeTemplate from '@/views/License/Create/PickTypeTemplate'
-
+import { HeaderHeightContext } from '@react-navigation/elements';
 interface LicenseListProps {
   searchValue: string;
   setSearchValue: (value: string) => void;

@@ -8,7 +8,7 @@ import {
   Dimensions,
   TouchableOpacity,
   RefreshControl,
-  SafeAreaView
+  // SafeAreaView
 } from 'react-native'
 import {
   WsAnalyzeCard,
@@ -54,6 +54,7 @@ import {
 import { useNavigationState } from '@react-navigation/native';
 import S_Locale from '@/services/api/v1/locale'
 import H_time from '@/helpers/time';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Dashboard = ({ navigation }) => {
   const { width, height } = Dimensions.get('window')
@@ -912,10 +913,17 @@ const Dashboard = ({ navigation }) => {
         backgroundColor: $color.primary11l
       }}
     >
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={$color.primary} // 只影響 Android
+        translucent={false}
+      />
+
       <ScrollView
         testID={'ScrollView'}
         onScroll={handleScroll}
         showsVerticalScrollIndicator={false}
+        edges={['top']}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={fetchData} />
         }

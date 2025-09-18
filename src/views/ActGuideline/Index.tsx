@@ -83,7 +83,6 @@ const Guideline = ({ route, navigation }) => {
             items={tabItems}
             scrollEnabled={true}
             isAutoWidth={true}
-            fixedTabWidth={128}
           />
         )}
       </WsPage>

@@ -673,7 +673,6 @@ const RoutesMain = ({ navigation }) => {
         <View
           style={{
             flex: 1,
-            paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
             backgroundColor: $color.primary
           }}
         >

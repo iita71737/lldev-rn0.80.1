@@ -43,8 +43,9 @@ const WsHeader = props => {
         style={{
           backgroundColor: $color.primary,
           width: windowWidth,
-          height: height,
-          padding: 16,
+          // height: height,
+          paddingHorizontal: 16,
+          paddingBottom: 8,
         }}>
         <WsFlex>
           <View
@@ -71,7 +72,7 @@ const WsHeader = props => {
               justifyContent="center"
               style={{
                 // flex: 1, //230808
-                height: 40
+                height: 36
               }}>
               <WsText color={$color.white} size={18}>
                 {title}

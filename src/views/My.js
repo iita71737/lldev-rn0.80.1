@@ -5,7 +5,7 @@ import {
   RefreshControl,
   Alert,
   Linking,
-  SafeAreaView
+  // SafeAreaView
 } from 'react-native'
 import {
   WsNavButton,
@@ -44,7 +44,7 @@ import MyTaskTabs from '@/sections/MyKanban/MyTaskTabs';
 import {
   setInitUrlFromQRcode
 } from '@/store/data'
-// import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const My = ({ route }) => {
   const { t, i18n } = useTranslation();
@@ -286,99 +286,100 @@ const My = ({ route }) => {
   // Render
   return (
     <>
-        <SafeAreaView
+      <SafeAreaView
+        edges={['top']}
+        style={{
+          flex: 1,
+          backgroundColor: $color.primary
+        }}
+      >
+        <ScrollView
+          scrollEventThrottle={16}
+          testID={'ScrollView'}
           style={{
-            flex: 1,
-            backgroundColor: $color.primary
+            backgroundColor: $color.primary11l,
           }}
+          onScroll={handleScroll}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={fetchData}
+              tintColor="transparent"
+              progressBackgroundColor="transparent"
+            />
+          }
         >
-          <ScrollView
-            scrollEventThrottle={16}
-            testID={'ScrollView'}
-            style={{
-              backgroundColor: $color.primary11l,
-            }}
-            onScroll={handleScroll}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={fetchData}
-                tintColor="transparent"
-                progressBackgroundColor="transparent"
-              />
-            }
-          >
-            {!loading && mainMenu ? (
-              <>
-                <View
-                  testID="ViewMy"
+          {!loading && mainMenu ? (
+            <>
+              <View
+                testID="ViewMy"
+                style={{
+                  padding: 16,
+                  paddingBottom: 24,
+                  backgroundColor: $color.primary,
+                }}
+              >
+                <WsGrid
                   style={{
-                    padding: 16,
-                    paddingBottom: 24,
-                    backgroundColor: $color.primary,
+                    alignItems: 'flex-start',
                   }}
-                >
-                  <WsGrid
-                    style={{
-                      alignItems: 'flex-start',
-                    }}
-                    numColumns={4}
-                    data={mainMenu}
-                    keyExtractor={item => item.name}
-                    renderItem={({ item, index }) => (
-                      <WsBadgeIconButton
-                        testID={item.name}
-                        key={item.id}
-                        style={{
-                          marginBottom: 16,
-                        }}
-                        disable={!item.permission}
-                        icon={item.permission === false ? 'ws-outline-lock' : item.icon}
-                        name={item.name}
-                        badge={item.badge}
-                        onPress={item.permission === true ? item.onPress : () => { }}
-                      />
-                    )}
-                  />
-                  <WsToggleTabBar
-                    style={{
-                      marginTop: 10
-                    }}
-                    value={tabFocus}
-                    items={toggleTabs}
-                    onPress={($event) => {
-                      setTabFocus($event)
-                    }}
-                  />
-                </View>
+                  numColumns={4}
+                  data={mainMenu}
+                  keyExtractor={item => item.name}
+                  renderItem={({ item, index }) => (
+                    <WsBadgeIconButton
+                      testID={item.name}
+                      key={item.id}
+                      style={{
+                        marginBottom: 16,
+                      }}
+                      disable={!item.permission}
+                      icon={item.permission === false ? 'ws-outline-lock' : item.icon}
+                      name={item.name}
+                      badge={item.badge}
+                      onPress={item.permission === true ? item.onPress : () => { }}
+                    />
+                  )}
+                />
+                <WsToggleTabBar
+                  style={{
+                    marginTop: 10
+                  }}
+                  value={tabFocus}
+                  items={toggleTabs}
+                  onPress={($event) => {
+                    setTabFocus($event)
+                  }}
+                />
+              </View>
 
-                <MySubtasks
+              <MySubtasks
+                tabFocus={tabFocus}
+                _setSortValue={_setSortValue}
+                _setSortValue002={_setSortValue002}>
+              </MySubtasks>
+
+              {tabFocus === 'mytask' && (
+                <MyTaskTabs
                   tabFocus={tabFocus}
-                  _setSortValue={_setSortValue}
-                  _setSortValue002={_setSortValue002}>
-                </MySubtasks>
+                  route={route}
+                  refreshing={refreshing}
+                  setRefreshing={setRefreshing}
+                  _setSortValue={(e) => {
+                    _setSortValue(e)
+                  }}
+                  _setSortValue002={_setSortValue002}
+                ></MyTaskTabs>
+              )}
 
-                {tabFocus === 'mytask' && (
-                  <MyTaskTabs
-                    tabFocus={tabFocus}
-                    route={route}
-                    refreshing={refreshing}
-                    setRefreshing={setRefreshing}
-                    _setSortValue={(e) => {
-                      _setSortValue(e)
-                    }}
-                    _setSortValue002={_setSortValue002}
-                  ></MyTaskTabs>
-                )}
+            </>
+          ) : (
+            <WsSkeleton></WsSkeleton>
+          )}
 
-              </>
-            ) : (
-              <WsSkeleton></WsSkeleton>
-            )}
-
-          </ScrollView>
-        </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
     </>
   )
 }

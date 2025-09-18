@@ -1,6 +1,12 @@
 
 import React from 'react';
-import { StatusBar, Text, Alert, SafeAreaView, View } from 'react-native'
+import { 
+  StatusBar, 
+  Text, 
+  Alert, 
+  SafeAreaView, 
+  View 
+} from 'react-native'
 import { useSelector, connect } from 'react-redux'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
@@ -214,7 +220,7 @@ const RoutesFactory = ({ navigation, route }) => {
         initialRouteName={'MyIndex'}
         screenOptions={({ route }) => ({
           headerShown: false,
-          tabBarShowLabel: false, 
+          tabBarShowLabel: false,
           activeTintColor: $color.primary,
           showLabel: false,
           tabBarVisible: setRoutesMenuTabBarVisible(route),

@@ -17,6 +17,7 @@ import { useSelector } from 'react-redux'
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import store from '@/store'
 import { setIdleCounter } from '@/store/data';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Tab = createMaterialTopTabNavigator();
 

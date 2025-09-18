@@ -407,12 +407,12 @@ export default function Show() {
           directionalLockEnabled
         >
           {/* Hero */}
-          <FastLoadingImage
+          {/* <FastLoadingImage
             uri={post.cover_image || fallbackHero}
             fitWidth
             placeholderRatio={3 / 2}
             showPercent={false}
-          />
+          /> */}
 
           {/* Title + Meta */}
           <View style={[styles.container, { marginTop: 16 }]}>
@@ -427,7 +427,39 @@ export default function Show() {
                 {post.updated_at ? moment(post.updated_at).format('YYYY-MM-DD  HH:mm:ss') : ''}
               </Text>
             </View>
-            {!!post.tags?.length && (
+
+            <View
+              style={{
+              }}
+            >
+              <WsInfo
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+                label={t('作者')}
+                color={$color.primary3l}
+                value={post.author}
+              />
+            </View>
+
+            <View
+              style={{
+                marginTop: 8
+              }}
+            >
+              <WsInfo
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+                label={t('授權者')}
+                color={$color.primary3l}
+                value={post.authorizer}
+              />
+            </View>
+
+            {/* {!!post.tags?.length && (
               <View style={styles.tagsRow}>
                 {post.tags.map((t) => (
                   <View key={String(t)} style={styles.tag}>
@@ -435,7 +467,8 @@ export default function Show() {
                   </View>
                 ))}
               </View>
-            )}
+            )} */}
+
           </View>
 
           {/* Body：HTML */}

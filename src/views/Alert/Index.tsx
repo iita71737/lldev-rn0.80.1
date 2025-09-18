@@ -1,5 +1,10 @@
 import React from 'react'
-import { View, SafeAreaView } from 'react-native'
+import {
+  View,
+  StatusBar,
+  Platform,
+  // SafeAreaView
+} from 'react-native'
 import {
   LlToggleTabBar001,
   WsPopup,
@@ -14,7 +19,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux'
 import store from '@/store'
 import { setIdleCounter } from '@/store/data';
-
+import $color from '@/__reactnative_stone/global/color'
+import { HeaderHeightContext } from '@react-navigation/elements';
+import { SafeAreaView } from 'react-native-safe-area-context';
 interface AlertIndexProps {
   route: any;
 }
@@ -64,6 +71,13 @@ const AlertIndex: React.FC<AlertIndexProps> = ({ route }) => {
   // Render
   return (
     <>
+      {/* 250918-edge-to-edge-issue */}
+      <SafeAreaView
+        edges={['top']}
+        style={{
+          backgroundColor: $color.primary
+        }}
+      />
       <WsPage002
         tabItems={toggleTabs}
         tabIndex={tabIndex}

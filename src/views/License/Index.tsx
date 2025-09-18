@@ -21,6 +21,8 @@ import LicenseTemplateList from '@/sections/License/LicenseTemplateList'
 import S_LicenseType from '@/services/api/v1/license_type'
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux'
+import { HeaderHeightContext } from '@react-navigation/elements';
+import { useHeaderHeight } from '@react-navigation/elements';
 interface LicenseIndexProps {
   route: any;
 }

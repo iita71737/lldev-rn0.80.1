@@ -1,5 +1,9 @@
 import React, { useEffect, useCallback } from 'react'
-import { View, SafeAreaView } from 'react-native'
+import {
+  View,
+  // SafeAreaView ,
+  StatusBar
+} from 'react-native'
 import {
   WsHeaderSearch,
   WsToggleTabView
@@ -13,6 +17,8 @@ import {
 } from '@/store/data'
 import { NavigationProp, useNavigation } from '@react-navigation/native'
 import { useFocusEffect } from '@react-navigation/native'
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
+
 interface TabItem {
   value: number;
   view: React.ComponentType<any>;
@@ -52,7 +58,7 @@ const WsPage002: React.FC<WsPage002Props> = props => {
 
   // REDUX
   const currentIdleCounter = useSelector(state => state.data.idleCounter)
-  
+
   // DETECT IDLE
   const handleDetectIdle = () => {
     store.dispatch(setIdleCounter(currentIdleCounter + 1))
@@ -91,12 +97,8 @@ const WsPage002: React.FC<WsPage002Props> = props => {
     <View
       style={{
         flex: 1
-      }}>
-      <SafeAreaView
-        style={{
-          backgroundColor: $color.primary
-        }}
-      />
+      }}
+    >
       {title && (
         <WsHeaderSearch
           title={t(title)}
@@ -114,7 +116,11 @@ const WsPage002: React.FC<WsPage002Props> = props => {
           borderRadius={borderRadius}
         />
       )}
-      <View style={{ flex: 1 }}>
+
+      <View style={{
+        flex: 1
+      }}
+      >
         <WsToggleTabView
           items={tabItems}
           tabIndex={tabIndex}
@@ -122,7 +128,7 @@ const WsPage002: React.FC<WsPage002Props> = props => {
         />
         {renderScene(tabIndex)}
       </View>
-    </View>
+    </View >
   )
 }
 

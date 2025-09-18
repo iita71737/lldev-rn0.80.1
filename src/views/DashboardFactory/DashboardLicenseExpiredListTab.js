@@ -3,9 +3,11 @@ import { WsTabView } from '@/components'
 import i18next from 'i18next'
 import { useTranslation } from 'react-i18next'
 import ViewDashboardLicenseExpiredList from '@/views/DashboardFactory/LicenseExpiredList'
+import { useNavigation } from '@react-navigation/native'
 
-const DashboardLicenseExpiredListTab = (props, { navigation, route }) => {
+const DashboardLicenseExpiredListTab = (props) => {
   const { t, i18n } = useTranslation()
+  const navigation = useNavigation()
 
   // PROPS
   const { systemClass, type } = props.route.params
