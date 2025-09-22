@@ -407,12 +407,15 @@ export default function Show() {
           directionalLockEnabled
         >
           {/* Hero */}
-          {/* <FastLoadingImage
-            uri={post.cover_image || fallbackHero}
-            fitWidth
-            placeholderRatio={3 / 2}
-            showPercent={false}
-          /> */}
+          {post?.cover_image && (
+            <FastLoadingImage
+              uri={post.cover_image || fallbackHero}
+              fitWidth
+              placeholderRatio={3 / 2}
+              showPercent={false}
+            />
+          )}
+
 
           {/* Title + Meta */}
           <View style={[styles.container, { marginTop: 16 }]}>
