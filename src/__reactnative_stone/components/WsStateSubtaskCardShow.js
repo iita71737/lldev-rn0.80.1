@@ -107,7 +107,6 @@ const WsStateSubtaskCardShow = props => {
                     marginRight: 35,
                     paddingHorizontal: 8
                   }}
-                  size="h3"
                   fontWeight="bold"
                   >
                   {value && value.name ? value.name : value.title ? value.title : ''}

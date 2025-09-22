@@ -62,7 +62,7 @@ const formatDate = (d?: string | Date) => {
 
 export default function LlNewsCard({
   id,
-  cover_image = 'https://picsum.photos/seed/d/900/600',
+  cover_image,
   coverSource,
   updated_at = '2025-09-04',
   name,
@@ -147,23 +147,25 @@ export default function LlNewsCard({
         style={[styles.inner, { borderRadius: radius }]}
       >
         {/* 封面圖 */}
-        {/* <View style={[styles.imageWrap, { height: imageHeight }]}>
-          {cover_image || coverSource ? (
-            <Image
-              source={coverSource ?? { uri: cover_image! }}
-              resizeMode="cover"
-              style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
-            />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, styles.imagePlaceholder]}>
+        {cover_image && (
+          <View style={[styles.imageWrap, { height: imageHeight }]}>
+            {cover_image || coverSource ? (
               <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1707742984673-ae30d982bdec?q=80&w=3132&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }}
+                source={coverSource ?? { uri: cover_image! }}
                 resizeMode="cover"
                 style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
               />
-            </View>
-          )}
-        </View> */}
+            ) : (
+              <View style={[StyleSheet.absoluteFill, styles.imagePlaceholder]}>
+                <Image
+                  source={{ uri: 'https://images.unsplash.com/photo-1707742984673-ae30d982bdec?q=80&w=3132&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }}
+                  resizeMode="cover"
+                  style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
+                />
+              </View>
+            )}
+          </View>
+        )}
 
         {/* 內容區 */}
         <View style={styles.body}>
@@ -301,6 +303,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    maxWidth: '90%'
   },
   tagText: {
     color: '#fff',
