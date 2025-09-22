@@ -537,7 +537,6 @@ export default function Show() {
                     pre: { backgroundColor: '#0b1020', borderRadius: 12, padding: 12, marginVertical: 8 },
                     strong: { marginVertical: 0, paddingVertical: 0 },
                     span: { marginVertical: 0, paddingVertical: 0 },
-                    mark: {},
                   }}
                 />
               </View>
@@ -589,10 +588,10 @@ export default function Show() {
 
 const styles = StyleSheet.create({
   fillCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { paddingHorizontal: 16, paddingTop: 16 },
+  container: { paddingHorizontal: 16, paddingTop: 16},
   hero: { width: '100%', minHeight: 220, backgroundColor: '#e2e8f0' },
   name: { fontSize: 26, fontWeight: '800', color: '#0f172a', lineHeight: 32 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14, marginBottom: 16 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14, marginBottom: 16 , flexWrap: 'wrap'},
   avatarWrap: { width: 36, height: 36, borderRadius: 18, marginRight: 10, overflow: 'hidden', backgroundColor: '#cbd5e1' },
   avatar: { width: '100%', height: '100%' },
   alliance: { fontSize: 15, fontWeight: '700', color: '#0f172a' },

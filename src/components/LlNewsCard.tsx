@@ -303,6 +303,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    maxWidth: '90%'
   },
   tagText: {
     color: '#fff',
