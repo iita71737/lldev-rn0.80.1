@@ -223,12 +223,7 @@ export default function Show() {
     return () => controller.abort();
   }, [id, currentRefreshCounter]);
 
-  // const source = useMemo(() => ({ html: post?.content || '' }), [post?.content]);
-  const source = useMemo(() => {
-    const intro = post?.introduction ? `<p>${post.introduction}</p>` : '';
-    const content = post?.content || '';
-    return { html: intro + content };
-  }, [post?.introduction, post?.content]);
+  const source = useMemo(() => ({ html: post?.content || '' }), [post?.content]);
 
   // 定義 nav：把它視為 block 容器
   const navModel = HTMLElementModel.fromCustomModel({
@@ -442,6 +437,11 @@ export default function Show() {
           {/* Title + Meta */}
           <View style={[styles.container, { marginTop: 16 }]}>
             <Text style={styles.name}>{post.name}</Text>
+
+            <Text style={styles.introduction}>
+              {post?.introduction}
+            </Text>
+
             <View style={styles.metaRow}>
               {!!post?.alliance && (
                 <View style={styles.tag}>
@@ -449,7 +449,7 @@ export default function Show() {
                 </View>
               )}
               <Text style={styles.metaLight}>
-                {post.updated_at ? moment(post.updated_at).format('YYYY-MM-DD  HH:mm:ss') : ''}
+                {post?.updated_at ? moment(post.updated_at).format('YYYY-MM-DD  HH:mm:ss') : ''}
               </Text>
             </View>
 
@@ -604,6 +604,7 @@ const styles = StyleSheet.create({
   container: { paddingHorizontal: 16, paddingTop: 16 },
   hero: { width: '100%', minHeight: 220, backgroundColor: '#e2e8f0' },
   name: { fontSize: 26, fontWeight: '800', color: '#0f172a', lineHeight: 32 },
+  introduction: { fontSize: 14, color: '#475569', marginTop: 8, lineHeight: 22 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14, marginBottom: 16, flexWrap: 'wrap' },
   avatarWrap: { width: 36, height: 36, borderRadius: 18, marginRight: 10, overflow: 'hidden', backgroundColor: '#cbd5e1' },
   avatar: { width: '100%', height: '100%' },
