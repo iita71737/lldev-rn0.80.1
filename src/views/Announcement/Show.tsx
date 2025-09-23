@@ -12,7 +12,7 @@ import {
   Platform,
   ActivityIndicator,
   Linking,
-  useWindowDimensions
+  useWindowDimensions,
 } from 'react-native';
 import {
   WsSnackBar,
@@ -223,7 +223,12 @@ export default function Show() {
     return () => controller.abort();
   }, [id, currentRefreshCounter]);
 
-  const source = useMemo(() => ({ html: post?.content || '' }), [post?.content]);
+  // const source = useMemo(() => ({ html: post?.content || '' }), [post?.content]);
+  const source = useMemo(() => {
+    const intro = post?.introduction ? `<p>${post.introduction}</p>` : '';
+    const content = post?.content || '';
+    return { html: intro + content };
+  }, [post?.introduction, post?.content]);
 
   // 定義 nav：把它視為 block 容器
   const navModel = HTMLElementModel.fromCustomModel({
@@ -262,6 +267,23 @@ export default function Show() {
       tagName: 'mark',
       contentModel: HTMLContentModel.textual,
     }),
+    font: HTMLElementModel.fromCustomModel({
+      tagName: 'font',
+      contentModel: HTMLContentModel.textual,
+      mixedUAStyles: ({ attribs }) => {
+        const style: any = {};
+        if (attribs.color) style.color = attribs.color;
+        if (attribs.size) {
+          // HTML font size 原本是 1-7 級，這裡自己轉成 px
+          const size = parseInt(attribs.size, 10);
+          if (!isNaN(size)) {
+            style.fontSize = 12 + size * 2;
+          }
+        }
+        if (attribs.face) style.fontFamily = attribs.face;
+        return style;
+      }
+    })
   }
 
   // ✅ 關鍵 CSS：讓 WebView 內的表格能水平滾動、且不被壓縮
@@ -436,6 +458,7 @@ export default function Show() {
               }}
             >
               <WsInfo
+                labelWidth={80}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -452,26 +475,16 @@ export default function Show() {
               }}
             >
               <WsInfo
+                labelWidth={80}
                 style={{
+                  flexWrap: 'wrap',
                   flexDirection: 'row',
-                  alignItems: 'center',
                 }}
                 label={t('授權者')}
                 color={$color.primary3l}
                 value={post.authorizer}
               />
             </View>
-
-            {/* {!!post.tags?.length && (
-              <View style={styles.tagsRow}>
-                {post.tags.map((t) => (
-                  <View key={String(t)} style={styles.tag}>
-                    <Text style={styles.tagText}>{String(t)}</Text>
-                  </View>
-                ))}
-              </View>
-            )} */}
-
           </View>
 
           {/* Body：HTML */}
@@ -588,10 +601,10 @@ export default function Show() {
 
 const styles = StyleSheet.create({
   fillCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { paddingHorizontal: 16, paddingTop: 16},
+  container: { paddingHorizontal: 16, paddingTop: 16 },
   hero: { width: '100%', minHeight: 220, backgroundColor: '#e2e8f0' },
   name: { fontSize: 26, fontWeight: '800', color: '#0f172a', lineHeight: 32 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14, marginBottom: 16 , flexWrap: 'wrap'},
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14, marginBottom: 16, flexWrap: 'wrap' },
   avatarWrap: { width: 36, height: 36, borderRadius: 18, marginRight: 10, overflow: 'hidden', backgroundColor: '#cbd5e1' },
   avatar: { width: '100%', height: '100%' },
   alliance: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
