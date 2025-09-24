@@ -278,7 +278,48 @@ export default function Show() {
         if (attribs.face) style.fontFamily = attribs.face;
         return style;
       }
-    })
+    }),
+    // <center>
+    center: HTMLElementModel.fromCustomModel({
+      tagName: 'center',
+      contentModel: HTMLContentModel.block,
+      mixedUAStyles: { textAlign: 'center' },
+    }),
+
+    // <big>
+    big: HTMLElementModel.fromCustomModel({
+      tagName: 'big',
+      contentModel: HTMLContentModel.textual,
+      mixedUAStyles: { fontSize: 20, fontWeight: '500' }, // 你可以用相對值調整
+    }),
+
+    // <small>
+    small: HTMLElementModel.fromCustomModel({
+      tagName: 'small',
+      contentModel: HTMLContentModel.textual,
+      mixedUAStyles: { fontSize: 12, opacity: 0.8 },
+    }),
+
+    // <strike> (deprecated) → 刪除線
+    strike: HTMLElementModel.fromCustomModel({
+      tagName: 'strike',
+      contentModel: HTMLContentModel.textual,
+      mixedUAStyles: { textDecorationLine: 'line-through' },
+    }),
+
+    // <u>（底線；HTML5 改語意，不保證是裝飾）
+    u: HTMLElementModel.fromCustomModel({
+      tagName: 'u',
+      contentModel: HTMLContentModel.textual,
+      mixedUAStyles: { textDecorationLine: 'underline' },
+    }),
+
+    // <tt> 打字機字體（monospace）
+    tt: HTMLElementModel.fromCustomModel({
+      tagName: 'tt',
+      contentModel: HTMLContentModel.textual,
+      mixedUAStyles: { fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }) },
+    }),
   }
 
   // ✅ 關鍵 CSS：讓 WebView 內的表格能水平滾動、且不被壓縮
