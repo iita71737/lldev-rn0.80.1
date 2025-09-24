@@ -604,7 +604,7 @@ const styles = StyleSheet.create({
   container: { paddingHorizontal: 16, paddingTop: 16 },
   hero: { width: '100%', minHeight: 220, backgroundColor: '#e2e8f0' },
   name: { fontSize: 26, fontWeight: '800', color: '#0f172a', lineHeight: 32 },
-  introduction: { fontSize: 14, color: '#475569', marginTop: 8, lineHeight: 22 },
+  introduction: { fontSize: 14, color: '#808080', marginTop: 8, lineHeight: 22, fontWeight: 600 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14, marginBottom: 16, flexWrap: 'wrap' },
   avatarWrap: { width: 36, height: 36, borderRadius: 18, marginRight: 10, overflow: 'hidden', backgroundColor: '#cbd5e1' },
   avatar: { width: '100%', height: '100%' },
