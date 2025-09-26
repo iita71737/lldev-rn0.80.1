@@ -1851,7 +1851,7 @@ PODS:
     - Yoga
   - react-native-cameraroll (5.2.3):
     - React-Core
-  - react-native-compressor (1.12.0):
+  - react-native-compressor (1.13.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2103,35 +2103,6 @@ PODS:
   - react-native-netinfo (11.3.1):
     - React-Core
   - react-native-pager-view (6.8.1):
-    - boost
-    - DoubleConversion
-    - fast_float
-    - fmt
-    - glog
-    - hermes-engine
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-hermes
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - SocketRocket
-    - Yoga
-  - react-native-pdf (6.7.7):
     - boost
     - DoubleConversion
     - fast_float
@@ -3018,8 +2989,35 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNKeychain (7.0.0):
+  - RNKeychain (10.0.0):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
     - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - RNPermissions (5.4.1):
     - boost
     - DoubleConversion
@@ -3259,36 +3257,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNSentry (5.32.0):
-    - boost
-    - DoubleConversion
-    - fast_float
-    - fmt
-    - glog
-    - hermes-engine
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-hermes
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - Sentry/HybridSDK (= 8.36.0)
-    - SocketRocket
-    - Yoga
   - RNShare (12.0.3):
     - boost
     - DoubleConversion
@@ -3416,7 +3384,6 @@ PODS:
   - SDWebImageWebPCoder (0.8.5):
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.10)
-  - Sentry/HybridSDK (8.36.0)
   - SocketRocket (0.7.1)
   - VisionCamera (4.7.1):
     - VisionCamera/Core (= 4.7.1)
@@ -3488,7 +3455,6 @@ DEPENDENCIES:
   - react-native-mmkv (from `../node_modules/react-native-mmkv`)
   - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
   - react-native-pager-view (from `../node_modules/react-native-pager-view`)
-  - react-native-pdf (from `../node_modules/react-native-pdf`)
   - react-native-render-html (from `../node_modules/react-native-render-html`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - "react-native-skia (from `../node_modules/@shopify/react-native-skia`)"
@@ -3543,7 +3509,6 @@ DEPENDENCIES:
   - RNPermissions (from `../node_modules/react-native-permissions`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
-  - "RNSentry (from `../node_modules/@sentry/react-native`)"
   - RNShare (from `../node_modules/react-native-share`)
   - RNSnackbar (from `../node_modules/react-native-snackbar`)
   - RNStaticSafeAreaInsets (from `../node_modules/react-native-static-safe-area-insets`)
@@ -3573,7 +3538,6 @@ SPEC REPOS:
     - React-Codegen
     - SDWebImage
     - SDWebImageWebPCoder
-    - Sentry
     - SocketRocket
 
 EXTERNAL SOURCES:
@@ -3692,8 +3656,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-community/netinfo"
   react-native-pager-view:
     :path: "../node_modules/react-native-pager-view"
-  react-native-pdf:
-    :path: "../node_modules/react-native-pdf"
   react-native-render-html:
     :path: "../node_modules/react-native-render-html"
   react-native-safe-area-context:
@@ -3802,8 +3764,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
     :path: "../node_modules/react-native-screens"
-  RNSentry:
-    :path: "../node_modules/@sentry/react-native"
   RNShare:
     :path: "../node_modules/react-native-share"
   RNSnackbar:
@@ -3881,7 +3841,7 @@ SPEC CHECKSUMS:
   react-native-blob-util: a8487513233d9b7c24e1a0184cb7a611cb397c76
   react-native-blur: 736888dd75460ec75605254214caded098066cfc
   react-native-cameraroll: 5b25d0be40185d02e522bf2abf8a1ba4e8faa107
-  react-native-compressor: f2e1b4cd1dd670126dd9b9d36b521fdecdaab2f8
+  react-native-compressor: cfddd7471801a7101bbb0c10f4c5b9d3ab24e058
   react-native-config: 3367df9c1f25bb96197007ec531c7087ed4554c3
   react-native-date-picker: cd814222804158f949a722002216095120ce4662
   react-native-document-picker: 65723ccdfe85fafc77b80428b61973039cae2e80
@@ -3893,7 +3853,6 @@ SPEC CHECKSUMS:
   react-native-mmkv: a975a5ef60a8ef763bff82ffbca7d9292ea052ac
   react-native-netinfo: bdb108d340cdb41875c9ced535977cac6d2ff321
   react-native-pager-view: adf5c4ae45a4ce743b0ff2855bda83ffce13b4c4
-  react-native-pdf: 2cf27361d860386ecd6d7743dffcba23ef41ef31
   react-native-render-html: 984dfe2294163d04bf5fe25d7c9f122e60e05ebe
   react-native-safe-area-context: 339885703b6dd1be2bce42d9c0b0350c21180032
   react-native-skia: b093318344053a530690ff9e3d2e01f312f885f6
@@ -3944,11 +3903,10 @@ SPEC CHECKSUMS:
   RNFileViewer: ce7ca3ac370e18554d35d6355cffd7c30437c592
   RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
   RNGestureHandler: c202f13fa95347076d8aca4ccb61739b067396cb
-  RNKeychain: f75b8c8b2f17d3b2aa1f25b4a0ac5b83d947ff8f
+  RNKeychain: f9022b0a123bb459ba2e6045f79203a7c7e54956
   RNPermissions: 57c7df2f2c092f3e99abb80cfd55583b6c6721cf
   RNReanimated: 2010262133feb53009f16faaa404042eed7da018
   RNScreens: 75074e642b69b086813a943bdf63da7085fb2166
-  RNSentry: a133608906bd6aa8810987ed5bf15ddd9a60cd97
   RNShare: d3f173b32dc5f34f6f90744805159a6f17cd1487
   RNSnackbar: b0914bd060cdb82862dc1a987be57a8b918610bf
   RNStaticSafeAreaInsets: 055ddbf5e476321720457cdaeec0ff2ba40ec1b8
@@ -3956,7 +3914,6 @@ SPEC CHECKSUMS:
   RNVectorIcons: 54df27a2e90ddeb674c7237d76060ec9762d0bc5
   SDWebImage: a7f831e1a65eb5e285e3fb046a23fcfbf08e696d
   SDWebImageWebPCoder: 908b83b6adda48effe7667cd2b7f78c897e5111d
-  Sentry: f8374b5415bc38dfb5645941b3ae31230fbeae57
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   VisionCamera: 0ecfede218b2d989be3d504270b71f3d2384d95d
   Yoga: daa1e4de4b971b977b23bc842aaa3e135324f1f3

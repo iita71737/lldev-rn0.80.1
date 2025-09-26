@@ -36,7 +36,7 @@ import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
 import { addEventListener, useNetInfo } from "@react-native-community/netinfo";
 import base from '@/__reactnative_stone/services/wasaapi/v1/__base'
-import * as Sentry from '@sentry/react-native'
+
 import { checkForUpdate } from '@/__reactnative_stone/global/checkForUpdate'
 import S_Auth from '@/__reactnative_stone/services/app/auth'
 import semver from "semver";
@@ -51,19 +51,8 @@ import VersionCheck from 'react-native-version-check';
 G_i18n.i18nInit()
 if (!__DEV__) {
   LogBox.ignoreAllLogs(true);
-  Sentry.init({
-    dsn: Config.SENTRY_DSN,
-    // Set tracesSampleRate to 1.0 to capture 100%
-    // of transactions for performance monitoring.
-    // We recommend adjusting this value in production
-    tracesSampleRate: 1.0,
-  });
 } else {
   LogBox.ignoreAllLogs(true);
-  // Sentry.init({
-  //   dsn: Config.SENTRY_DSN,
-  //   tracesSampleRate: 1.0,
-  // });
 }
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider as PaperProvider } from 'react-native-paper';
@@ -300,8 +289,4 @@ function App(): JSX.Element {
   )
 }
 
-// export default codePush({
-//   checkFrequency: codePush.CheckFrequency.MANUAL,
-// })(Sentry.wrap(App));
-
-export default Sentry.wrap(App);
+export default App;

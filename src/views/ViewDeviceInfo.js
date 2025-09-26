@@ -37,7 +37,6 @@ import { getLocation, getGeocode } from '@/__reactnative_stone/global/location'
 import axios from 'axios'
 // import MarkdownDisplay from 'react-native-markdown-display'
 import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
-import * as Sentry from "@sentry/react-native";
 import { getDistance } from 'geolib';
 import Geolocation from '@react-native-community/geolocation';
 import AndroidOpenSettings from 'react-native-android-open-settings'
@@ -292,13 +291,6 @@ const ViewDeviceInfo = ({ navigation }) => {
           </WsPaddingContainer>
         )
         }
-        {/* <Button
-          title='Try!'
-          onPress={() => {
-            Sentry.captureException(new Error('First error'))
-            alert('test error')
-          }}
-        /> */}
 
       </ScrollView>
     </>

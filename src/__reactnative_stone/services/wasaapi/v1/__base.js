@@ -2,7 +2,6 @@ import axios from 'axios'
 import apiCallBack from '@/__reactnative_stone/global/apiCallBack'
 import Config from "react-native-config";
 axios.defaults.baseURL = Config.API_URL
-import * as Sentry from "@sentry/react-native";
 
 export default {
   init() {
@@ -65,7 +64,6 @@ export default {
             console.error('Error Response Status:', err.response.status);
             console.error('Error Response Headers:', err.response.headers);
           }
-          Sentry.captureException(err);
           reject(err)
         })
     })
@@ -119,7 +117,6 @@ export default {
             console.error('Axios request error:', err.message);
           }
           console.error('Axios config:', err.config);
-          Sentry.captureException(err);
           console.error(`${modelName} show error`)
           reject(err)
         })
@@ -147,7 +144,6 @@ export default {
           resolve(res.data?.message)
         })
         .catch(err => {
-          Sentry.captureException(err);
           console.error(`${modelName} delete error`)
           // 詳細錯誤處理
           if (err.response) {
@@ -206,7 +202,6 @@ export default {
           }
         })
         .catch(err => {
-          Sentry.captureException(err);
           reject(err)
         })
     })
@@ -239,7 +234,6 @@ export default {
           resolve(res.data.data)
         })
         .catch(err => {
-          Sentry.captureException(err);
           console.error(`${modelName} update error`)
           reject(err);
         })
@@ -273,7 +267,6 @@ export default {
           resolve(res.data.data)
         })
         .catch(err => {
-          Sentry.captureException(err);
           console.error(`${modelName} update error`)
         })
     })
@@ -305,7 +298,6 @@ export default {
     try {
       return Promise.all(axiosTask)
     } catch (err) {
-      Sentry.captureException(err);
       console.error(`${modelName} createAll error`)
     }
   },
@@ -329,7 +321,6 @@ export default {
     try {
       return Promise.all(axiosTask)
     } catch (err) {
-      Sentry.captureException(err);
       console.error(`${modelName} updateAll error`)
     }
   },
@@ -345,7 +336,6 @@ export default {
     try {
       return Promise.all(axiosTask)
     } catch (err) {
-      Sentry.captureException(err);
       console.error(`${modelName} showAll error`)
     }
   },
@@ -358,7 +348,6 @@ export default {
           resolve(res.data.data)
         })
         .catch(err => {
-          Sentry.captureException(err);
           console.error(`${modelName} create error`)
         })
     })
@@ -372,7 +361,6 @@ export default {
           resolve(res.data.data)
         })
         .catch(err => {
-          Sentry.captureException(err);
           console.error(`${modelName} create error`)
         })
     })
@@ -386,7 +374,6 @@ export default {
           resolve(res.data.data)
         })
         .catch(err => {
-          Sentry.captureException(err);
           console.error(`${modelName} done error`)
         })
     })
@@ -400,7 +387,6 @@ export default {
           resolve(res.data.data)
         })
         .catch(err => {
-          Sentry.captureException(err);
           console.error(`${modelName} undo error`)
         })
     })
@@ -434,7 +420,6 @@ export default {
           resolve(res.data.data)
         })
         .catch(err => {
-          Sentry.captureException(err);
           console.error(`${modelName} stop error`)
         })
     })
@@ -468,7 +453,6 @@ export default {
           resolve(res.data.data)
         })
         .catch(err => {
-          Sentry.captureException(err);
           console.error(`${modelName} restart error`)
         })
     })
@@ -501,7 +485,6 @@ export default {
           resolve(res.data.data)
         })
         .catch(err => {
-          Sentry.captureException(err);
           console.error(`${modelName} read error`)
         })
     })
@@ -537,7 +520,6 @@ export default {
           resolve(res.data.data);
         })
         .catch(err => {
-          Sentry.captureException(err);
           reject(err);
         });
     });
