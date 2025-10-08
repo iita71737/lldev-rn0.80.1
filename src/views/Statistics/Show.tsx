@@ -39,6 +39,7 @@ import { SkiaRenderer, SkiaChart } from '@wuba/react-native-echarts'; // ✅ 重
 import { useNavigation } from '@react-navigation/native'
 import PickType from '@/views/Statistics/Create/PickType'
 import SingleChart from './SingleChart'
+// import { SafeAreaView } from "react-native-safe-area-context";
 
 // ✅ 註冊 Renderer + 圖表 + 元件
 echarts.use([SkiaRenderer, ELineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent]);
@@ -120,366 +121,251 @@ const Show = () => {
 
   return (
     <>
-      <ScrollView
-        style={{
-        }}
-      >
-        <WsPaddingContainer
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView
           style={{
-            backgroundColor: $color.white,
-          }}>
-
-          <WsFlex
-            justifyContent="space-between"
-            alignItems="flex-start"
-            style={{
-            }}
-          >
-            <WsText size={24} style={{ flex: 1 }}>
-              {t('title')}
-            </WsText>
-            <View
-              style={{
-                justifyContent: 'center',
-                alignItems: 'flex-end',
-                marginLeft: 8,
-              }}
-            >
-            </View>
-          </WsFlex>
-        </WsPaddingContainer>
-
-        <WsPaddingContainer
-          style={{
-            marginTop: 8,
-            backgroundColor: $color.white,
           }}
         >
-          <WsIconBtn
-            name="md-edit"
-            size={24}
+          <WsPaddingContainer
             style={{
-              position: 'absolute',
-              right: 8,
-              top: 8,
-            }}
-            onPress={async () => {
-              await $_setStorage()
-              navigation.navigate('StatisticsEdit')
-            }}
-          />
-          <View
-            style={{
-              marginTop: 8
-            }}
-          >
-            <WsInfo
-              labelWidth={100}
-              label={t('名稱')}
-              value={'Admin Name'}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            />
-          </View>
-
-          <View
-            style={{
-              marginTop: 8
-            }}
-          >
-            <WsInfo
-              labelWidth={100}
-              type="user"
-              label={t('管理者')}
-              value={'Admin Name'}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            />
-          </View>
-          <View
-            style={{
-              marginTop: 8
-            }}
-          >
-            <WsInfo
-              labelWidth={100}
-              label={t('時間區間')}
-              value={
-                `${'YYYY-MM-DD'} ~ ${'YYYY-MM-DD'}`
-              }
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            />
-          </View>
-          <View
-            style={{
-              marginTop: 8
-            }}
-          >
-            <WsInfo
-              labelWidth={100}
-              label={t('時間單位')}
-              value={'Time Unit'}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            />
-          </View>
-
-          <View
-            style={{
-              marginTop: 8
-            }}
-          >
-            <WsInfo
-              labelWidth={100}
-              label={t('備註')}
-              value={
-                t('備注')
-              }
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            />
-          </View>
-
-
-          <View
-            style={{
-              marginTop: 8
-            }}
-          >
-            <WsInfo
-              type="filesAndImages"
-              label={t('附件')}
-              value={[]}
-            />
-          </View>
-
-          <View
-            style={{
-              marginTop: 8
-            }}
-          >
-            <WsInfo
-              style={{
-              }}
-              type="tags"
-              label={t('標籤')}
-              value={[]}
-            />
-          </View>
-
-        </WsPaddingContainer>
-
-
-        <TouchableOpacity
-          style={{
-            marginTop: 8,
-            marginRight: 16,
-            alignSelf: 'flex-end',
-          }}
-          onPress={() => {
-            setModalAddChartForm(true)
-          }}>
-          <WsTag
-            backgroundColor={$color.white}
-            style={{
-              borderWidth: 1,
-              borderColor: $color.primary,
+              backgroundColor: $color.white,
             }}>
-            {t('新增圖表')}
-          </WsTag>
-        </TouchableOpacity>
-
-        <WsPaddingContainer
-          padding={0}
-          style={{
-            marginTop: 8,
-            backgroundColor: $color.white,
-          }}
-        >
-          <WsFlex
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-            }}
-          >
-            <WsIconBtn
-              name="md-edit"
-              size={24}
-              style={{
-              }}
-              onPress={() => {
-                setModalAddChartForm(true)
-              }}
-            />
-            <TouchableOpacity
-              style={{
-              }}
-              onPress={() => { }}>
-              <WsTag
-                style={{
-                }}>
-                {t('加入到概況')}
-              </WsTag>
-            </TouchableOpacity>
-            <WsIconBtn
-              name="md-update"
-              size={24}
-              style={{
-              }}
-              onPress={() => {
-              }}
-            />
-          </WsFlex>
-        </WsPaddingContainer>
-
-        <WsPaddingContainer
-          padding={0}
-          style={{
-            paddingHorizontal: 16,
-            backgroundColor: $color.white,
-          }}
-        >
-          <SingleChart></SingleChart>
-        </WsPaddingContainer>
-
-        <WsPaddingContainer
-          padding={0}
-          style={{
-            paddingHorizontal: 16,
-            paddingVertical: 16,
-            backgroundColor: $color.white,
-          }}
-        >
-          <View>
-            <WsFlex
-              flexWrap="wrap"
-            >
-              <WsDes>
-                {t('表與表之間的關係公式 ( i + ii) * 100 + iii = Final')}
-              </WsDes>
-            </WsFlex>
-            <WsFlex
-              flexWrap="wrap"
-            >
-              <TouchableOpacity
-                style={{
-                  marginLeft: 8,
-                }}
-                onPress={() => {
-                  setModalActiveFormula(true)
-                }}>
-                <WsTag
-                  style={{
-                  }}>
-                  {t('編輯')}
-                </WsTag>
-              </TouchableOpacity>
-            </WsFlex>
 
             <WsFlex
-              flexWrap="wrap"
+              justifyContent="space-between"
+              alignItems="flex-start"
               style={{
-                marginTop: 8,
               }}
             >
-              <WsDes>
-                {t('表與表之間的關係公式 (i + ii) * 100 + iii = Final')}
-              </WsDes>
+              <WsText size={24} style={{ flex: 1 }}>
+                {t('title')}
+              </WsText>
+              <View
+                style={{
+                  justifyContent: 'center',
+                  alignItems: 'flex-end',
+                  marginLeft: 8,
+                }}
+              >
+              </View>
             </WsFlex>
-            <WsFlex
-              flexWrap="wrap"
-            >
-              <TouchableOpacity
-                style={{
-                  marginLeft: 8,
-                }}
-                onPress={() => {
-                  setModalActiveFormula(true)
-                }}>
-                <WsTag
-                  style={{
-                  }}>
-                  {t('編輯')}
-                </WsTag>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{
-                  marginLeft: 8,
-                }}
-                onPress={() => {
-                  setModalActiveFormula(true)
-                }}>
-                <WsTag
-                  style={{
-                  }}>
-                  {t('預覽')}
-                </WsTag>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{
-                  marginLeft: 8,
-                }}
-                onPress={() => {
-                  setModalActiveFormula(true)
-                }}>
-                <WsTag
-                  style={{
-                  }}>
-                  {t('刪除')}
-                </WsTag>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{
-                  marginLeft: 8,
-                }}
-                onPress={() => {
-                  setModalActiveFormula(true)
-                }}>
-                <WsTag
-                  style={{
-                  }}>
-                  {t('匯出')}
-                </WsTag>
-              </TouchableOpacity>
-            </WsFlex>
-          </View>
-          <View
+          </WsPaddingContainer>
+
+          <WsPaddingContainer
             style={{
               marginTop: 8,
-              alignItems: 'flex-end',
+              backgroundColor: $color.white,
             }}
           >
-            <WsDes
+
+            <WsFlex
               style={{
-                fontStyle: 'italic',
+                position: 'absolute',
+                right: 8,
+                top: 8,
               }}
             >
-              {t('更新​時間：​YY​YY-MM-DD HH:mm:ss')}
-            </WsDes>
-          </View>
-        </WsPaddingContainer>
+              <TouchableOpacity
+                style={{
+                }}
+                onPress={() => {
+                  setModalAddChartForm(true)
+                }}>
+                <WsTag
+                  backgroundColor={$color.white}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: $color.primary,
+                  }}>
+                  {t('停止更新')}
+                </WsTag>
+              </TouchableOpacity>
 
-        <View style={{ paddingHorizontal: 16 }}>
+              <WsIconBtn
+                name="md-edit"
+                size={24}
+                style={{
+                }}
+                onPress={async () => {
+                  await $_setStorage()
+                  navigation.navigate('StatisticsEdit')
+                }}
+              />
+            </WsFlex>
+
+            <View
+              style={{
+                marginTop: 8
+              }}
+            >
+              <WsInfo
+                labelWidth={100}
+                label={t('名稱')}
+                value={'Admin Name'}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              />
+            </View>
+
+            <View
+              style={{
+                marginTop: 8
+              }}
+            >
+              <WsInfo
+                labelWidth={100}
+                label={t('狀態')}
+                value={t('停止更新')}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              />
+            </View>
+
+            <View
+              style={{
+                marginTop: 8
+              }}
+            >
+              <WsInfo
+                labelWidth={100}
+                type="user"
+                label={t('管理者')}
+                value={'Admin Name'}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              />
+            </View>
+            <View
+              style={{
+                marginTop: 8
+              }}
+            >
+              <WsInfo
+                labelWidth={100}
+                label={t('時間區間')}
+                value={
+                  `${'YYYY-MM-DD'} ~ 
+${'YYYY-MM-DD'}`
+                }
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              />
+            </View>
+
+            <View
+              style={{
+                marginTop: 8
+              }}
+            >
+              <WsInfo
+                labelWidth={100}
+                label={t('時間單位')}
+                value={'月'}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              />
+            </View>
+
+            <View
+              style={{
+                marginTop: 8
+              }}
+            >
+              <WsInfo
+                type={'users'}
+                labelWidth={100}
+                style={{
+                  flexDirection: 'row',
+                }}
+                labelSize={14}
+                label={t('檢閱成員')}
+                value={[{ name: '成員1' }, { name: '成員2' }, { name: '成員3' }]}
+              />
+            </View>
+
+            <View
+              style={{
+                marginTop: 8
+              }}
+            >
+              <WsInfo
+                labelWidth={100}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+                label={t('限閱角色')}
+                type={'belongstomany'}
+                valueFontSize={14}
+                value={[{ name: '角色1' }, { name: '角色2' }]}
+              />
+            </View>
+
+            <View
+              style={{
+                marginTop: 8
+              }}
+            >
+              <WsInfo
+                labelWidth={100}
+                label={t('備註')}
+                value={
+                  t('備注')
+                }
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              />
+            </View>
+
+
+            <View
+              style={{
+                marginTop: 8
+              }}
+            >
+              <WsInfo
+                type="filesAndImages"
+                label={t('附件')}
+                value={[]}
+              />
+            </View>
+
+            <View
+              style={{
+                marginTop: 8
+              }}
+            >
+              <WsInfo
+                style={{
+                }}
+                type="tags"
+                label={t('標籤')}
+                value={[]}
+              />
+            </View>
+          </WsPaddingContainer>
+
 
           <TouchableOpacity
             style={{
               marginTop: 8,
+              marginRight: 16,
               alignSelf: 'flex-end',
             }}
             onPress={() => {
-              setModalAddRecord(true)
+              setModalAddChartForm(true)
             }}>
             <WsTag
               backgroundColor={$color.white}
@@ -487,13 +373,33 @@ const Show = () => {
                 borderWidth: 1,
                 borderColor: $color.primary,
               }}>
-              {t('新增資料集')}
+              {t('新增圖表')}
             </WsTag>
           </TouchableOpacity>
 
-          <WsAccordion
-            title="表 1"
-            rightActions={
+          <WsPaddingContainer
+            padding={0}
+            style={{
+              marginTop: 8,
+              backgroundColor: $color.white,
+            }}
+          >
+            <WsFlex
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+              }}
+            >
+              <WsIconBtn
+                name="md-edit"
+                size={24}
+                style={{
+                }}
+                onPress={() => {
+                  setModalAddChartForm(true)
+                }}
+              />
               <TouchableOpacity
                 style={{
                 }}
@@ -501,146 +407,384 @@ const Show = () => {
                 <WsTag
                   style={{
                   }}>
-                  {t('編輯')}
+                  {t('加入到概況')}
                 </WsTag>
               </TouchableOpacity>
-            }
-            defaultOpen
-          >
-            <WsText color={$color.gray}>表 1 內容…</WsText>
-          </WsAccordion>
-
-          <WsAccordion
-            title="表 2"
-            rightActions={
-              <TouchableOpacity
+              <WsIconBtn
+                name="md-update"
+                size={24}
                 style={{
+                  marginRight: 8
                 }}
-                onPress={() => { }}>
-                <WsTag
-                  style={{
-                  }}>
-                  {t('編輯')}
-                </WsTag>
-              </TouchableOpacity>}
-          >
-            <WsText color={$color.gray}>表 2 內容…</WsText>
-          </WsAccordion>
+                onPress={() => {
+                }}
+              />
+            </WsFlex>
+          </WsPaddingContainer>
 
-          <WsAccordion
-            title={<WsText weight="700">表 3</WsText>}
-            rightActions={
-              <TouchableOpacity
+          <WsPaddingContainer
+            padding={0}
+            style={{
+              paddingHorizontal: 16,
+              backgroundColor: $color.white,
+            }}
+          >
+            <SingleChart></SingleChart>
+            <View
+              style={{
+                marginTop: 8,
+                alignItems: 'flex-end',
+              }}
+            >
+              <WsDes
                 style={{
+                  fontStyle: 'italic',
                 }}
-                onPress={() => { }}>
-                <WsTag
-                  style={{
-                  }}>
-                  {t('編輯')}
-                </WsTag>
-              </TouchableOpacity>
-            }
-            defaultOpen
-          >
-            {/* 子項：關係公式 + 小按鈕 */}
-            <View style={{ gap: 10 }}>
-              <WsFlex
-                flexWrap="wrap"
               >
-                <WsText color={$color.gray}>{'公式 sum(result)'}</WsText>
-                <TouchableOpacity
-                  style={{
-                    marginLeft: 8,
-                    marginRight: 8,
-                  }}
-                  onPress={() => { }}>
-                  <WsTag
-                    style={{
-                    }}>
-                    {t('匯出')}
-                  </WsTag>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                  }}
-                  onPress={() => {
-                    setModalChart(true)
-                  }}>
-                  <WsTag
-                    style={{
-                    }}>
-                    {t('圖')}
-                  </WsTag>
-                </TouchableOpacity>
-              </WsFlex>
-
-              <WsFlex
-                flexWrap="wrap"
-              >
-                <WsText color={$color.gray}>{'公式 sum(result)'}</WsText>
-                <TouchableOpacity
-                  style={{
-                    marginLeft: 8,
-                    marginRight: 8,
-                  }}
-                  onPress={() => { }}>
-                  <WsTag
-                    style={{
-                    }}>
-                    {t('匯出')}
-                  </WsTag>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                  }}
-                  onPress={() => {
-                    setModalChart(true)
-                  }}>
-                  <WsTag
-                    style={{
-                    }}>
-                    {t('圖')}
-                  </WsTag>
-                </TouchableOpacity>
-              </WsFlex>
+                {t('更新​時間：​YY​YY-MM-DD HH:mm:ss')}
+              </WsDes>
             </View>
+          </WsPaddingContainer>
 
-            {/* 巢狀版本列表 */}
-            <View style={{ marginTop: 12, gap: 10 }}>
-              <WsAccordion title="版本 1">
-                <WsText color={$color.gray}>版本 1 內容…</WsText>
-              </WsAccordion>
+          <WsPaddingContainer
+            padding={0}
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 16,
+            }}
+          >
+            <WsAccordion
+              title={t("資料集之間的關係公式")}
+              defaultOpen
+            >
+              <View>
+                <WsFlex
+                  flexWrap="wrap"
+                >
+                  <WsDes>
+                    {t('公式名稱 ( i + ii) * 100 + iii = Final')}
+                  </WsDes>
+                </WsFlex>
+                <WsFlex
+                  flexWrap="wrap"
+                >
+                  <TouchableOpacity
+                    style={{
+                      marginLeft: 8,
+                    }}
+                    onPress={() => {
+                      setModalActiveFormula(true)
+                    }}>
+                    <WsTag
+                      style={{
+                      }}>
+                      {t('編輯')}
+                    </WsTag>
+                  </TouchableOpacity>
+                </WsFlex>
 
-              <WsAccordion title="版本 2">
-                <WsText color={$color.gray}>版本 2 內容…</WsText>
-              </WsAccordion>
+                <WsFlex
+                  flexWrap="wrap"
+                  style={{
+                    marginTop: 8,
+                  }}
+                >
+                  <WsDes>
+                    {t('公式名稱 (i + ii) * 100 + iii = Final')}
+                  </WsDes>
+                </WsFlex>
+                <WsFlex
+                  flexWrap="wrap"
+                >
+                  <TouchableOpacity
+                    style={{
+                      marginLeft: 8,
+                    }}
+                    onPress={() => {
+                      setModalActiveFormula(true)
+                    }}>
+                    <WsTag
+                      style={{
+                      }}>
+                      {t('編輯')}
+                    </WsTag>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      marginLeft: 8,
+                    }}
+                    onPress={() => {
+                      setModalActiveFormula(true)
+                    }}>
+                    <WsTag
+                      style={{
+                      }}>
+                      {t('預覽')}
+                    </WsTag>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      marginLeft: 8,
+                    }}
+                    onPress={() => {
+                      setModalActiveFormula(true)
+                    }}>
+                    <WsTag
+                      style={{
+                      }}>
+                      {t('刪除')}
+                    </WsTag>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      marginLeft: 8,
+                    }}
+                    onPress={() => {
+                      setModalActiveFormula(true)
+                    }}>
+                    <WsTag
+                      style={{
+                      }}>
+                      {t('匯出')}
+                    </WsTag>
+                  </TouchableOpacity>
+                </WsFlex>
+              </View>
+            </WsAccordion>
+          </WsPaddingContainer>
 
-              <WsAccordion
-                title="版本 3"
-                defaultOpen
-              >
-                <View>
-                  <WsText size={12} color={$color.gray}>{'題目之間的關係公式 (A - B) + (C - D) + E'}</WsText>
-                  <WsText size={12} color={$color.gray}>{'題目之間的關係公式 A + E'}</WsText>
+          <View style={{ paddingHorizontal: 16 }}>
+            <TouchableOpacity
+              style={{
+                marginTop: 8,
+                alignSelf: 'flex-end',
+              }}
+              onPress={() => {
+                setModalAddRecord(true)
+              }}>
+              <WsTag
+                backgroundColor={$color.white}
+                style={{
+                  borderWidth: 1,
+                  borderColor: $color.primary,
+                }}>
+                {t('新增資料集')}
+              </WsTag>
+            </TouchableOpacity>
 
-                  {uChips.map((c, idx) => (
-                    <Chip
-                      key={c.key}
-                      prefix={String.fromCharCode(65 + idx)} // A/B/C...
-                      label={c.label}
-                      withInput={c.withInput}
-                      onRemove={() => removeChip(c.key)}
-                      onInputChange={(v) => onChipInputChange?.(c.key, v)}
-                    />
-                  ))}
+            <WsAccordion
+              title="​自定​義文案​ 1"
+              rightActions={
+                <TouchableOpacity
+                  style={{
+                  }}
+                  onPress={() => { }}>
+                  <WsTag
+                    style={{
+                    }}>
+                    {t('編輯')}
+                  </WsTag>
+                </TouchableOpacity>
+              }
+              defaultOpen
+            >
+              <WsText color={$color.gray}>表 1 內容…</WsText>
+            </WsAccordion>
+
+            <WsAccordion
+              title="​自定​義文案​2"
+              rightActions={
+                <TouchableOpacity
+                  style={{
+                  }}
+                  onPress={() => { }}>
+                  <WsTag
+                    style={{
+                    }}>
+                    {t('編輯')}
+                  </WsTag>
+                </TouchableOpacity>}
+            >
+              <WsText color={$color.gray}>表 2 內容…</WsText>
+            </WsAccordion>
+
+            <WsAccordion
+              title={<WsText weight="700">​自定​義文案​ 3</WsText>}
+              rightActions={
+                <TouchableOpacity
+                  style={{
+                  }}
+                  onPress={() => { }}>
+                  <WsTag
+                    style={{
+                    }}>
+                    {t('編輯')}
+                  </WsTag>
+                </TouchableOpacity>
+              }
+              defaultOpen
+            >
+              {/* 子項：關係公式 + 小按鈕 */}
+              <View style={{ gap: 10 }}>
+                <View
+                  style={{
+                    marginTop: 8
+                  }}
+                >
+                  <WsInfo
+                    labelWidth={100}
+                    label={t('點檢表')}
+                    value={'點檢表名稱title'}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                  />
                 </View>
-              </WsAccordion>
-            </View>
-          </WsAccordion>
-        </View>
+                <WsFlex
+                  flexWrap="wrap"
+                >
+                  <WsText color={$color.gray}>{'公式名稱 sum(result)'}</WsText>
+                  <TouchableOpacity
+                    style={{
+                      marginLeft: 8,
+                      marginRight: 8,
+                    }}
+                    onPress={() => { }}>
+                    <WsTag
+                      style={{
+                      }}>
+                      {t('匯出')}
+                    </WsTag>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                    }}
+                    onPress={() => {
+                      setModalChart(true)
+                    }}>
+                    <WsTag
+                      style={{
+                      }}>
+                      {t('圖')}
+                    </WsTag>
+                  </TouchableOpacity>
+                </WsFlex>
+                <WsFlex
+                  flexWrap="wrap"
+                >
+                  <WsText color={$color.gray}>{'公式名稱 sum(result)'}</WsText>
+                  <TouchableOpacity
+                    style={{
+                      marginLeft: 8,
+                      marginRight: 8,
+                    }}
+                    onPress={() => { }}>
+                    <WsTag
+                      style={{
+                      }}>
+                      {t('匯出')}
+                    </WsTag>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                    }}
+                    onPress={() => {
+                      setModalChart(true)
+                    }}>
+                    <WsTag
+                      style={{
+                      }}>
+                      {t('圖')}
+                    </WsTag>
+                  </TouchableOpacity>
+                </WsFlex>
+              </View>
 
-      </ScrollView>
+              {/* 巢狀版本列表 */}
+              <View style={{ marginTop: 12, gap: 10 }}>
+                <WsAccordion title="版本 1">
+                  <WsText color={$color.gray}>版本 1 內容…</WsText>
+                </WsAccordion>
+
+                <WsAccordion title="版本 2">
+                  <WsText color={$color.gray}>版本 2 內容…</WsText>
+                </WsAccordion>
+
+                <WsAccordion
+                  title="版本 3"
+                  defaultOpen
+                >
+                  <View>
+                    <WsText size={12} color={$color.gray}>{'題目之間的關係公式 (A - B) + (C - D) + E'}</WsText>
+                    <WsText size={12} color={$color.gray}>{'題目之間的關係公式 A + E'}</WsText>
+
+                    {uChips.map((c, idx) => (
+                      <Chip
+                        key={c.key}
+                        prefix={String.fromCharCode(65 + idx)} // A/B/C...
+                        label={c.label}
+                        withInput={c.withInput}
+                        onRemove={() => removeChip(c.key)}
+                        onInputChange={(v) => onChipInputChange?.(c.key, v)}
+                      />
+                    ))}
+                  </View>
+                </WsAccordion>
+              </View>
+            </WsAccordion>
+
+            <WsAccordion
+              title={
+                <WsFlex>
+                  <WsText weight="700">{`​自定​義文案​ 3  `}</WsText><WsText size={12} weight="700" color={$color.danger}>​已​停止​更新​</WsText>
+                </WsFlex>
+              }
+              rightActions={
+                <TouchableOpacity
+                  style={{
+                  }}
+                  onPress={() => { }}>
+                  <WsTag
+                    style={{
+                    }}>
+                    {t('編輯')}
+                  </WsTag>
+                </TouchableOpacity>}
+            >
+              <WsFlex
+                flexWrap="wrap"
+              >
+                <WsText color={$color.gray}>{'公式名稱 sum(result)'}</WsText>
+                <TouchableOpacity
+                  style={{
+                    marginLeft: 8,
+                    marginRight: 8,
+                  }}
+                  onPress={() => { }}>
+                  <WsTag
+                    style={{
+                    }}>
+                    {t('匯出')}
+                  </WsTag>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                  }}
+                  onPress={() => {
+                    setModalChart(true)
+                  }}>
+                  <WsTag
+                    style={{
+                    }}>
+                    {t('圖表')}
+                  </WsTag>
+                </TouchableOpacity>
+              </WsFlex>
+            </WsAccordion>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
 
       {/* 新增與編輯上方圖表 */}
       <WsModal

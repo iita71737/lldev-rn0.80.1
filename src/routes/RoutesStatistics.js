@@ -138,6 +138,29 @@ const RoutesStatistics = ({ navigation }) => {
         { label: t('年'), value: 'year' }
       ],
     },
+    users: {
+      type: 'belongstomany',
+      label: `${t('限閱人員')}`,
+      nameKey: 'name',
+      valueKey: 'id',
+      modelName: 'user',
+      serviceIndexKey: 'simplifyFactoryIndex',
+      customizedNameKey: 'userAndEmail',
+      rules: 'required'
+    },
+    user_factory_role_templates: {
+      type: 'multipleBelongstomany',
+      label: t('限閱角色'),
+      placeholder: t('選擇'),
+      innerLabel: [t('預設角色'), t('自訂角色')],
+      modelName: ['user_role', 'user_factory_role_template'],
+      hasMeta: false,
+      getAll: true,
+      params: {
+        get_all: 1
+      },
+      searchBarVisible: true
+    },
     factory_tags: {
       type: 'Ll_relatedTags',
       label: t('標籤'),
@@ -189,6 +212,8 @@ const RoutesStatistics = ({ navigation }) => {
             'event_type',
             'name',
             'owner',
+            'users',
+            'user_factory_role_templates',
             'factory_tags',
             'remark',
             'date_picker_type',

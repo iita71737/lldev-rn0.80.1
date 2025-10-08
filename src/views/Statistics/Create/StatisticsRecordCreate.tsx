@@ -157,6 +157,17 @@ const StatisticsRecordCreate = () => {
 
               {/* 版本/題目選擇（沿用你的 Accordion + Block） */}
               <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
+                <WsState
+                  style={{
+                    width: width * 0.8
+                  }}
+                  label={t('名稱')}
+                  value={'ttt'}
+                  onChange={(e) => {
+                  }}
+                  rules={'required'}
+                  placeholder={t('輸入')}
+                />
                 <WsAccordion title="版本1" defaultOpen>
                   <WsText color={$color.gray}>表 1 內容…</WsText>
                 </WsAccordion>

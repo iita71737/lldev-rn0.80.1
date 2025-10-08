@@ -4,10 +4,11 @@ import {
   WsFilter,
   LlBtn002,
   WsPaddingContainer,
-  LlTrainingCard001,
+  // LlTrainingCard001,
   WsPageIndex,
   WsIconBtn,
-  WsModal
+  WsModal,
+  LlStatisticsCard001
 } from '@/components'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
@@ -128,34 +129,27 @@ const TrainingList: React.FC<TrainingListProps> = props => {
         filterFields={filterFields}
         filterValue={defaultFilter}
         renderItem={({ item, index }: { item: TrainingItem, index: number }) => (
-          <WsPaddingContainer
-            key={index}
-            padding={0}
-            style={{
-              paddingHorizontal: 16
-            }}>
-            <LlTrainingCard001
-              testID={`LlTrainingCard001-${index}`}
-              item={item}
-              style={[
-                index != 0
-                  ? {
-                    marginTop: 8
-                  }
-                  : {
-                    marginTop: 8
-                  }
-              ]}
-              onPress={() => {
-                navigation.push('RoutesStatistics', {
-                  screen: 'StatisticsShow',
-                  params: {
-                    id: item.id
-                  }
-                })
-              }}
-            />
-          </WsPaddingContainer>
+          <LlStatisticsCard001
+            testID={`LlTrainingCard001-${index}`}
+            item={item}
+            style={[
+              index != 0
+                ? {
+                  marginTop: 8
+                }
+                : {
+                  marginTop: 8
+                }
+            ]}
+            onPress={() => {
+              navigation.push('RoutesStatistics', {
+                screen: 'StatisticsShow',
+                params: {
+                  id: item.id
+                }
+              })
+            }}
+          />
         )}
       >
       </WsPageIndex>

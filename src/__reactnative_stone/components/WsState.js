@@ -46,7 +46,8 @@ import {
   WsStateModelsUserScopes,
   LlRelatedModuleModalPicker,
   WsTimeRangePicker,
-  WsFormulaBuilder
+  WsFormulaBuilder,
+  WsFormulaBuilder002
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import $theme from '@/__reactnative_stone/global/theme'
@@ -999,7 +1000,7 @@ const WsState = React.forwardRef((props, ref) => {
 
       {type == 'formula' && (
         <>
-          <WsFormulaBuilder
+          <WsFormulaBuilder002
             placeholder={placeholder}
             value={value}
             onChange={onChange}
