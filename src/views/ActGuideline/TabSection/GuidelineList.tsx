@@ -127,8 +127,8 @@ const GuidelineList: React.FC<ActListingProps> = props => {
                 setIsSnackBarVisible={setIsSnackBarVisible}
                 act_status={item.guideline_status}
                 isChange={
-                  item && item.updated_at ?
-                    S_Act.getActUpdateDateBadge(item.updated_at) : null
+                  item && item?.last_version?.announce_at ?
+                    S_Act.getActUpdateDateBadge(item.last_version?.announce_at) : null
                 }
                 onPress={() => {
                   navigation.push('RoutesAct', {

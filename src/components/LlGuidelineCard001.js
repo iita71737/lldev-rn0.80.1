@@ -29,6 +29,7 @@ import {
   deleteCollectGuidelineId,
 } from '@/store/data'
 import S_Guideline from '@/services/api/v1/guideline'
+import { clampRGBA } from 'react-native-reanimated/lib/typescript/Colors'
 
 const LlGuidelineCard001 = props => {
   const { t, i18n } = useTranslation()
