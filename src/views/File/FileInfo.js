@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react';
 import {
   ScrollView,
   Text,
@@ -8,9 +8,9 @@ import {
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Alert,
-  StyleSheet
-} from 'react-native'
-import AsyncStorage from '@react-native-community/async-storage'
+  StyleSheet,
+} from 'react-native';
+import AsyncStorage from '@react-native-community/async-storage';
 import {
   WsFlex,
   WsText,
@@ -33,71 +33,70 @@ import {
   WsState,
   WsTag,
   WsTabView,
-  WsEmpty
-} from '@/components'
-import $color from '@/__reactnative_stone/global/color'
-import licenseFields from '@/models/license'
-import moment from 'moment'
-import { useTranslation } from 'react-i18next'
-import store from '@/store'
-import { useSelector } from 'react-redux'
-import ViewArticleShowForModal from '@/views/Act/ArticleShowForModal'
-import i18next from 'i18next'
-import FileHistoryVersion from '@/views/File/FileHistoryVersion'
-import FileActivityRecord from '@/views/File/FileActivityRecord'
-import S_File from '@/services/api/v1/file'
-import LlFileFolderCRUDModal from './LlFileFolderCRUDModal'
-import { useNavigation } from '@react-navigation/native'
-import S_url from '@/__reactnative_stone/services/app/url'
+  WsEmpty,
+} from '@/components';
+import $color from '@/__reactnative_stone/global/color';
+import licenseFields from '@/models/license';
+import moment from 'moment';
+import { useTranslation } from 'react-i18next';
+import store from '@/store';
+import { useSelector } from 'react-redux';
+import ViewArticleShowForModal from '@/views/Act/ArticleShowForModal';
+import i18next from 'i18next';
+import FileHistoryVersion from '@/views/File/FileHistoryVersion';
+import FileActivityRecord from '@/views/File/FileActivityRecord';
+import S_File from '@/services/api/v1/file';
+import LlFileFolderCRUDModal from './LlFileFolderCRUDModal';
+import { useNavigation } from '@react-navigation/native';
+import S_url from '@/__reactnative_stone/services/app/url';
 
-const FileInfo = (props) => {
-  const { width, height } = Dimensions.get('window')
-  const { t, i18n } = useTranslation()
-  const navigation = useNavigation()
+const FileInfo = props => {
+  const { width, height } = Dimensions.get('window');
+  const { t, i18n } = useTranslation();
+  const navigation = useNavigation();
 
-  const {
-    file
-  } = props
+  const { file } = props;
 
-  const [articleModal, setArticleModal] = React.useState(false)
-  const [selectVersionId, setSelectVersionId] = React.useState()
-  const [remarkInput, setRemarkInput] = React.useState(false)
-  const [remark, setRemark] = React.useState(file && file.remark ? file.remark : null)
-
+  const [articleModal, setArticleModal] = React.useState(false);
+  const [selectVersionId, setSelectVersionId] = React.useState();
+  const [remarkInput, setRemarkInput] = React.useState(false);
+  const [remark, setRemark] = React.useState(
+    file && file.remark ? file.remark : null,
+  );
 
   // SERVICES
   const $_updateRemark = async () => {
     try {
       const _res = await S_File.remarkUpdate({
         id: file.id,
-        remark: remark
-      })
+        remark: remark,
+      });
       if (_res) {
         navigation.replace('FileStoreShow', {
-          id: _res.id
-        })
+          id: _res.id,
+        });
       }
     } catch (e) {
-      Alert.alert(t('編輯失敗'))
+      Alert.alert(t('編輯失敗'));
     }
-  }
+  };
 
   // Helper
   const $_setArticleText = article => {
     if (article.act_version) {
-      return `${article.act_version.name} ${article.no_text}`
+      return `${article.act_version.name} ${article.no_text}`;
     } else if (article.act_versions) {
-      return `${article.act_versions[0].name} ${article.no_text}`
+      return `${article.act_versions[0].name} ${article.no_text}`;
     } else {
-      return t('無')
+      return t('無');
     }
-  }
+  };
 
   return (
     <>
       <ScrollView
         style={{
-          flex: 1
+          flex: 1,
         }}
         scrollIndicatorInsets={{ right: 0.1 }}
       >
@@ -108,17 +107,17 @@ const FileInfo = (props) => {
               style={{
                 paddingTop: 16,
                 paddingHorizontal: 16,
-                backgroundColor: $color.white
-              }}>
+                backgroundColor: $color.white,
+              }}
+            >
               <WsFlex
                 style={{
                   flexDirection: 'column',
                   justifyContent: 'center',
-                  alignItems: 'flex-start'
-                }}>
-                <WsFlex
-                  style={{
-                  }}>
+                  alignItems: 'flex-start',
+                }}
+              >
+                <WsFlex style={{}}>
                   {file.is_invalid === 1 && (
                     <WsTag
                       icon={'md-archive'}
@@ -127,8 +126,9 @@ const FileInfo = (props) => {
                       backgroundColor={$color.danger11l}
                       style={{
                         width: 'auto',
-                        margin: 2
-                      }}>
+                        margin: 2,
+                      }}
+                    >
                       {t('作廢')}
                     </WsTag>
                   )}
@@ -139,29 +139,38 @@ const FileInfo = (props) => {
                     style={{
                       marginTop: 8,
                       marginBottom: 4,
-                    }}>
+                    }}
+                  >
                     {file.name}
                   </WsText>
                 )}
               </WsFlex>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'flex-start',
-                  alignItems: 'center',
-                  marginBottom: 8
-                }}>
-                <WsAvatar size={50} source={file.updated_user?.avatar} />
+
+              {file.updated_user && (
                 <View
                   style={{
-                    marginLeft: 8
-                  }}>
-                  <WsText color={$color.gray}>{file.updated_user?.name}</WsText>
-                  <WsText color={$color.gray}>
-                    {t('編輯時間')} {moment(file.updated_at).format('YYYY-MM-DD HH:mm:ss')}
-                  </WsText>
+                    flexDirection: 'row',
+                    justifyContent: 'flex-start',
+                    alignItems: 'center',
+                    marginBottom: 8,
+                  }}
+                >
+                  <WsAvatar size={50} source={file.updated_user?.avatar} />
+                  <View
+                    style={{
+                      marginLeft: 8,
+                    }}
+                  >
+                    <WsText color={$color.gray}>
+                      {file.updated_user?.name}
+                    </WsText>
+                    <WsText color={$color.gray}>
+                      {t('編輯時間')}{' '}
+                      {moment(file.updated_at).format('YYYY-MM-DD HH:mm:ss')}
+                    </WsText>
+                  </View>
                 </View>
-              </View>
+              )}
             </WsPaddingContainer>
 
             <WsPaddingContainer
@@ -169,12 +178,12 @@ const FileInfo = (props) => {
               style={{
                 paddingHorizontal: 16,
                 paddingBottom: 16,
-                backgroundColor: $color.white
-              }}>
-
+                backgroundColor: $color.white,
+              }}
+            >
               <View
                 style={{
-                  marginTop: 8
+                  marginTop: 8,
                 }}
               >
                 <WsInfo
@@ -190,7 +199,7 @@ const FileInfo = (props) => {
 
               <View
                 style={{
-                  marginTop: 8
+                  marginTop: 8,
                 }}
               >
                 <WsInfo
@@ -206,7 +215,7 @@ const FileInfo = (props) => {
 
               <View
                 style={{
-                  marginTop: 8
+                  marginTop: 8,
                 }}
               >
                 <WsInfo
@@ -222,7 +231,7 @@ const FileInfo = (props) => {
 
               <View
                 style={{
-                  marginTop: 8
+                  marginTop: 8,
                 }}
               >
                 <WsInfo
@@ -231,14 +240,14 @@ const FileInfo = (props) => {
                     flexDirection: 'row',
                     alignItems: 'center',
                   }}
-                  value={moment(file.updated_at).format('YYYY-MM-DD HH:mm:ss')}
+                  value={moment(file.created_at).format('YYYY-MM-DD HH:mm:ss')}
                   label={t('上傳日期')}
                 />
               </View>
 
               <View
                 style={{
-                  marginTop: 8
+                  marginTop: 8,
                 }}
               >
                 <WsInfo
@@ -248,16 +257,14 @@ const FileInfo = (props) => {
                     flexDirection: 'row',
                     alignItems: 'center',
                   }}
-                  value={
-                    file?.created_user
-                  }
+                  value={file?.created_user}
                   label={t('上傳者')}
                 />
               </View>
 
               <View
                 style={{
-                  marginTop: 8
+                  marginTop: 8,
                 }}
               >
                 <WsInfo
@@ -275,7 +282,7 @@ const FileInfo = (props) => {
 
               <View
                 style={{
-                  marginTop: 8
+                  marginTop: 8,
                 }}
               >
                 <WsInfo
@@ -293,89 +300,82 @@ const FileInfo = (props) => {
                 />
               </View>
 
-              {((
-                file &&
+              {((file &&
                 file.act_version_alls &&
-                file.act_version_alls.length != 0 ||
-                (
-                  file &&
+                file.act_version_alls.length != 0) ||
+                (file &&
                   file.article_versions &&
-                  file.article_versions.length > 0
-                ))
-                && (
-                  <>
-                    <View
-                      style={{
-                        marginTop: 16,
-                        flexDirection: 'row'
-                      }}>
-                      <WsText size={14} fontWeight={600}>{t('法規依據')}</WsText>
-                    </View>
-                    {file &&
-                      file.act_version_alls &&
-                      file.act_version_alls.length != 0 && (
-                        <>
-                          {file.act_version_alls.map(
-                            (article, articleIndex) => {
-                              return (
-                                <WsInfo
-                                  testID={`法規-${articleIndex}`}
-                                  style={{
-                                    marginTop: 8,
-                                  }}
-                                  type="link"
-                                  value={
-                                    article.name
-                                  }
-                                  onPress={() => {
-                                    navigation.push('RoutesAct', {
-                                      screen: 'ActShow',
-                                      params: {
-                                        id: article.act.id,
-                                      }
-                                    })
-                                  }}
-                                />
-                              )
-                            }
-                          )}
-                        </>
-                      )}
-
-                    {file &&
-                      file.article_versions &&
-                      file.article_versions.length > 0 &&
-                      file.article_versions.map(
-                        (article, articleIndex) => {
+                  file.article_versions.length > 0)) && (
+                <>
+                  <View
+                    style={{
+                      marginTop: 16,
+                      flexDirection: 'row',
+                    }}
+                  >
+                    <WsText size={14} fontWeight={600}>
+                      {t('法規依據')}
+                    </WsText>
+                  </View>
+                  {file &&
+                    file.act_version_alls &&
+                    file.act_version_alls.length != 0 && (
+                      <>
+                        {file.act_version_alls.map((article, articleIndex) => {
                           return (
-                            <View
-                              key={articleIndex}
+                            <WsInfo
+                              testID={`法規-${articleIndex}`}
                               style={{
                                 marginTop: 8,
-                                // borderWidth: 1,
-                                flexDirection: 'row',
-                                justifyContent: 'flex-start',
-                                alignItems: 'center'
-                              }}>
-                              <WsInfo
-                                testID={`法條-${articleIndex}`}
-                                style={{
-                                  flexWrap: 'nowrap',
-                                  width: width * 0.8,
-                                }}
-                                type="link"
-                                value={$_setArticleText(article)}
-                                onPress={() => {
-                                  setSelectVersionId(article.id)
-                                  setArticleModal(true)
-                                }}
-                              />
-                            </View>
-                          )
-                        }
-                      )}
-                  </>
-                )
+                              }}
+                              type="link"
+                              value={article.name}
+                              onPress={() => {
+                                navigation.push('RoutesAct', {
+                                  screen: 'ActShow',
+                                  params: {
+                                    id: article.act.id,
+                                  },
+                                });
+                              }}
+                            />
+                          );
+                        })}
+                      </>
+                    )}
+
+                  {file &&
+                    file.article_versions &&
+                    file.article_versions.length > 0 &&
+                    file.article_versions.map((article, articleIndex) => {
+                      return (
+                        <View
+                          key={articleIndex}
+                          style={{
+                            marginTop: 8,
+                            // borderWidth: 1,
+                            flexDirection: 'row',
+                            justifyContent: 'flex-start',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <WsInfo
+                            testID={`法條-${articleIndex}`}
+                            style={{
+                              flexWrap: 'nowrap',
+                              width: width * 0.8,
+                            }}
+                            type="link"
+                            value={$_setArticleText(article)}
+                            onPress={() => {
+                              setSelectVersionId(article.id);
+                              setArticleModal(true);
+                            }}
+                          />
+                        </View>
+                      );
+                    })}
+                </>
               )}
             </WsPaddingContainer>
 
@@ -383,25 +383,20 @@ const FileInfo = (props) => {
               <WsPaddingContainer
                 style={{
                   backgroundColor: $color.white,
-                  marginTop: 8
+                  marginTop: 8,
                 }}
               >
-                <WsFlex
-                  style={{
-                  }}
-                  justifyContent={'space-between'}
-                >
+                <WsFlex style={{}} justifyContent={'space-between'}>
                   <WsInfo
                     infoMarginTop={16}
                     label={i18next.t('備註')}
-                    style={{
-                    }}
+                    style={{}}
                     value={
                       remark
                         ? remark
                         : file.remark
-                          ? file.remark
-                          : i18next.t('無')
+                        ? file.remark
+                        : i18next.t('無')
                     }
                   />
                 </WsFlex>
@@ -410,11 +405,11 @@ const FileInfo = (props) => {
                   style={{
                     position: 'absolute',
                     right: 16,
-                    top: 16
+                    top: 16,
                   }}
                   onPress={() => {
-                    setRemark(file.remark)
-                    setRemarkInput(true)
+                    setRemark(file.remark);
+                    setRemarkInput(true);
                   }}
                 >
                   {t('編輯')}
@@ -425,8 +420,9 @@ const FileInfo = (props) => {
                       flexDirection: 'row',
                       alignItems: 'center',
                       marginVertical: 8,
-                      marginRight: 8
-                    }}>
+                      marginRight: 8,
+                    }}
+                  >
                     <WsIcon
                       name="md-access-time"
                       size={20}
@@ -436,7 +432,9 @@ const FileInfo = (props) => {
                     <WsText color={$color.gray} size={14}>
                       <>
                         {i18next.t('編輯時間')}
-                        {moment(file.remark_updated_at).format('YYYY-MM-DD HH:mm')}
+                        {moment(file.remark_updated_at).format(
+                          'YYYY-MM-DD HH:mm',
+                        )}
                       </>
                     </WsText>
                   </View>
@@ -444,26 +442,25 @@ const FileInfo = (props) => {
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
-                      marginVertical: 8
-                    }}>
+                      marginVertical: 8,
+                    }}
+                  >
                     {file.updated_user && (
                       <>
                         <WsAvatar
-                          style={{
-                          }}
+                          style={{}}
                           size={20}
-                          source={
-                            file.updated_user?.avatar
-                          }
+                          source={file.updated_user?.avatar}
                         />
                         <View style={styles.content}>
                           {file.updated_user?.name && (
-                            <Text style={styles.title}>{file.updated_user?.name}</Text>
+                            <Text style={styles.title}>
+                              {file.updated_user?.name}
+                            </Text>
                           )}
                         </View>
                       </>
-                    )
-                    }
+                    )}
                   </View>
                 </WsFlex>
               </WsPaddingContainer>
@@ -473,25 +470,26 @@ const FileInfo = (props) => {
               <WsPaddingContainer
                 style={{
                   backgroundColor: $color.white,
-                  marginTop: 8
-                }}>
+                  marginTop: 8,
+                }}
+              >
                 <WsFlex
                   style={{
                     position: 'absolute',
                     right: 16,
                     top: 16,
-                    zIndex: 999
+                    zIndex: 999,
                   }}
                 >
                   <LlBtn002
                     minHeight={0}
                     style={{
                       width: 62,
-                      marginRight: 4
+                      marginRight: 4,
                     }}
                     onPress={() => {
-                      setRemark(remark)
-                      setRemarkInput(false)
+                      setRemark(remark);
+                      setRemarkInput(false);
                     }}
                   >
                     {t('取消')}
@@ -506,8 +504,8 @@ const FileInfo = (props) => {
                       width: 62,
                     }}
                     onPress={() => {
-                      setRemarkInput(false)
-                      $_updateRemark()
+                      setRemarkInput(false);
+                      $_updateRemark();
                     }}
                   >
                     {t('儲存')}
@@ -523,9 +521,9 @@ const FileInfo = (props) => {
                     value={remark ? remark : ''}
                     onChange={$event => {
                       if (!$event) {
-                        setRemark('')
+                        setRemark('');
                       } else {
-                        setRemark($event)
+                        setRemark($event);
                       }
                     }}
                     placeholder={i18next.t('輸入')}
@@ -537,8 +535,9 @@ const FileInfo = (props) => {
             <WsPaddingContainer
               style={{
                 backgroundColor: $color.white,
-                marginTop: 8
-              }}>
+                marginTop: 8,
+              }}
+            >
               <WsInfo
                 type="file"
                 text={decodeURI(S_url.getFileName(file.source_url))}
@@ -551,21 +550,22 @@ const FileInfo = (props) => {
               title={t('法規依據')}
               visible={articleModal}
               headerLeftOnPress={() => {
-                setArticleModal(false)
+                setArticleModal(false);
               }}
               onBackButtonPress={() => {
-                setArticleModal(false)
-              }}>
+                setArticleModal(false);
+              }}
+            >
               <ViewArticleShowForModal versionId={selectVersionId} />
             </WsModal>
           </>
         )}
       </ScrollView>
     </>
-  )
-}
+  );
+};
 
-export default FileInfo
+export default FileInfo;
 
 const styles = StyleSheet.create({
   avatar: {
