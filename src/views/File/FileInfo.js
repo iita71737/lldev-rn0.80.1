@@ -271,34 +271,36 @@ const FileInfo = props => {
                   labelWidth={100}
                   style={{
                     flexDirection: 'row',
-                    alignItems: 'center',
                   }}
                   size={14}
                   iconVisible={false}
-                  value={file.file_path.replace(/\//g, ' > ')}
+                  value={file.file_path.replace(/\//g, '/')}
                   label={t('檔案位置')}
                 />
               </View>
 
-              <View
-                style={{
-                  marginTop: 8,
-                }}
-              >
-                <WsInfo
-                  type={'belongstomany'}
-                  iconVisible={false}
-                  labelWidth={100}
-                  size={14}
+              {file.share_factories && file.share_factories.length > 0 && (
+                <View
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
+                    marginTop: 8,
                   }}
-                  label={t('共享單位')}
-                  valueFontSize={12}
-                  value={file.share_factories}
-                />
-              </View>
+                >
+                  <WsInfo
+                    type={'belongstomany'}
+                    iconVisible={false}
+                    labelWidth={100}
+                    size={14}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                    label={t('共享單位')}
+                    valueFontSize={12}
+                    value={file.share_factories}
+                  />
+                </View>
+              )}
+
 
               {((file &&
                 file.act_version_alls &&
@@ -306,77 +308,77 @@ const FileInfo = props => {
                 (file &&
                   file.article_versions &&
                   file.article_versions.length > 0)) && (
-                <>
-                  <View
-                    style={{
-                      marginTop: 16,
-                      flexDirection: 'row',
-                    }}
-                  >
-                    <WsText size={14} fontWeight={600}>
-                      {t('法規依據')}
-                    </WsText>
-                  </View>
-                  {file &&
-                    file.act_version_alls &&
-                    file.act_version_alls.length != 0 && (
-                      <>
-                        {file.act_version_alls.map((article, articleIndex) => {
-                          return (
+                  <>
+                    <View
+                      style={{
+                        marginTop: 16,
+                        flexDirection: 'row',
+                      }}
+                    >
+                      <WsText size={14} fontWeight={600}>
+                        {t('法規依據')}
+                      </WsText>
+                    </View>
+                    {file &&
+                      file.act_version_alls &&
+                      file.act_version_alls.length != 0 && (
+                        <>
+                          {file.act_version_alls.map((article, articleIndex) => {
+                            return (
+                              <WsInfo
+                                testID={`法規-${articleIndex}`}
+                                style={{
+                                  marginTop: 8,
+                                }}
+                                type="link"
+                                value={article.name}
+                                onPress={() => {
+                                  navigation.push('RoutesAct', {
+                                    screen: 'ActShow',
+                                    params: {
+                                      id: article.act.id,
+                                    },
+                                  });
+                                }}
+                              />
+                            );
+                          })}
+                        </>
+                      )}
+
+                    {file &&
+                      file.article_versions &&
+                      file.article_versions.length > 0 &&
+                      file.article_versions.map((article, articleIndex) => {
+                        return (
+                          <View
+                            key={articleIndex}
+                            style={{
+                              marginTop: 8,
+                              // borderWidth: 1,
+                              flexDirection: 'row',
+                              justifyContent: 'flex-start',
+                              alignItems: 'center',
+                            }}
+                          >
                             <WsInfo
-                              testID={`法規-${articleIndex}`}
+                              testID={`法條-${articleIndex}`}
                               style={{
-                                marginTop: 8,
+                                flexWrap: 'nowrap',
+                                width: width * 0.8,
                               }}
                               type="link"
-                              value={article.name}
+                              value={$_setArticleText(article)}
                               onPress={() => {
-                                navigation.push('RoutesAct', {
-                                  screen: 'ActShow',
-                                  params: {
-                                    id: article.act.id,
-                                  },
-                                });
+                                setSelectVersionId(article.id);
+                                setArticleModal(true);
                               }}
                             />
-                          );
-                        })}
-                      </>
-                    )}
-
-                  {file &&
-                    file.article_versions &&
-                    file.article_versions.length > 0 &&
-                    file.article_versions.map((article, articleIndex) => {
-                      return (
-                        <View
-                          key={articleIndex}
-                          style={{
-                            marginTop: 8,
-                            // borderWidth: 1,
-                            flexDirection: 'row',
-                            justifyContent: 'flex-start',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <WsInfo
-                            testID={`法條-${articleIndex}`}
-                            style={{
-                              flexWrap: 'nowrap',
-                              width: width * 0.8,
-                            }}
-                            type="link"
-                            value={$_setArticleText(article)}
-                            onPress={() => {
-                              setSelectVersionId(article.id);
-                              setArticleModal(true);
-                            }}
-                          />
-                        </View>
-                      );
-                    })}
-                </>
-              )}
+                          </View>
+                        );
+                      })}
+                  </>
+                )}
             </WsPaddingContainer>
 
             {file.remark && !remarkInput && (
@@ -395,8 +397,8 @@ const FileInfo = props => {
                       remark
                         ? remark
                         : file.remark
-                        ? file.remark
-                        : i18next.t('無')
+                          ? file.remark
+                          : i18next.t('無')
                     }
                   />
                 </WsFlex>
