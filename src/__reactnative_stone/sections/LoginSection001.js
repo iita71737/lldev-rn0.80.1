@@ -100,7 +100,6 @@ const LoginSection001 = (props) => {
       key: route && route.name === 'Login' && captcha.captcha && captcha.captcha.key ? captcha.captcha.key : undefined,
       captcha: route && route.name === 'Login' && captchaInputNumber ? captchaInputNumber : undefined,
     }
-    console.log(submitValue, 'submitValue');
     const { errors, isValid } = Validator.validate(rules, submitValue)
     if (!isValid) {
     } else {
