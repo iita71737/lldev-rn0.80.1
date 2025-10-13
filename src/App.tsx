@@ -71,11 +71,6 @@ function App(): JSX.Element {
   const [des, setDes] = React.useState(false)
   const [downloadProgress, setDownloadProgress] = React.useState(0);
 
-  // helper 
-  const isLower = (buildNumber: string, targetVersion: string): boolean => {
-    return semver.lt(buildNumber, targetVersion); // 大於或等於則返回 true
-  };
-
   const $_init = async () => {
     try {
       // PRD環境檢查線上新版本，停用現有舊版本
