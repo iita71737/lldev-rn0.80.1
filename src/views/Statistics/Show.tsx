@@ -737,7 +737,7 @@ ${'YYYY-MM-DD'}`
             <WsAccordion
               title={
                 <WsFlex>
-                  <WsText weight="700">{`​自定​義文案​ 3  `}</WsText><WsText size={12} weight="700" color={$color.danger}>​已​停止​更新​</WsText>
+                  <WsText weight="700">{`數量​統​計​名​稱 1  `}</WsText><WsText size={12} weight="700" color={$color.danger}>​已​停止​更新​</WsText>
                 </WsFlex>
               }
               rightActions={
