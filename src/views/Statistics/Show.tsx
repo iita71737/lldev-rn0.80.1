@@ -46,8 +46,6 @@ echarts.use([SkiaRenderer, ELineChart, GridComponent, TooltipComponent, LegendCo
 
 const Show = () => {
   const { t, i18n } = useTranslation()
-  const instRef = useRef<echarts.EChartsType | null>(null);
-  const { width } = useWindowDimensions();
   const navigation = useNavigation()
 
   const [chartInfo, setChartInfo] = useState({
@@ -912,9 +910,14 @@ ${'YYYY-MM-DD'}`
               placeholder={t('輸入')}
               value={formulaData?.expression}
               params={[
-                { key: 'A1', value: 456.25, label: '起始(小時)' },
-                { key: 'A2', value: 472, label: '結束(小時)' },
-                { key: 'B1', value: 12000, label: '電力使用量' },
+                { question_id: 'A001', label: '題目A' },
+                { question_id: 'A002', label: '題目B' },
+                { question_id: 'A003', label: '題目C' },
+              ]}
+              records={[
+                { time: "2025/08/01 1:00:00", 題目A: 1, 題目B: 2, 題目C: 3, 題目D: 4, 題目E: 5, question_id: 'A001' },
+                { time: "2025/08/01 2:00:00", 題目A: 2, 題目B: 3, 題目C: 4, 題目D: 5, 題目E: 6, question_id: 'A002' },
+                { time: "2025/08/01 3:00:00", 題目A: 3, 題目B: 4, 題目C: 5, 題目D: 6, 題目E: 7, question_id: 'A003' },
               ]}
               onChange={(p) =>
                 setFormulaData(p)

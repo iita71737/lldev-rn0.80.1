@@ -179,7 +179,8 @@ const WsState = React.forwardRef((props, ref) => {
     showListBelow,
     pagination,
     customizedNameKey,
-    values
+    values,
+    records
   } = props
 
   // i18n
@@ -1007,6 +1008,7 @@ const WsState = React.forwardRef((props, ref) => {
             disabled={disabled}
             isError={isError}
             params={params}
+            records={records}
           />
         </>
       )}
