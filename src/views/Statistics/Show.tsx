@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo, } from 'react'
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import {
   ScrollView,
   View,
@@ -26,7 +26,8 @@ import {
   WsModal,
   WsState,
   WsAccordion,
-  WsGradientButton
+  WsGradientButton,
+  LlSectionList
 } from '@/components'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
@@ -40,6 +41,42 @@ import { useNavigation } from '@react-navigation/native'
 import PickType from '@/views/Statistics/Create/PickType'
 import SingleChart from './SingleChart'
 // import { SafeAreaView } from "react-native-safe-area-context";
+
+/** — 資料模型 — */
+export type ChipItem = {
+  key: string
+  label: string
+  withInput?: boolean
+}
+export type FormulaRow = {
+  label: string            // 例如：'公式名稱 sum(result)'
+  exportable?: boolean     // 顯示「匯出」鈕
+  chartable?: boolean      // 顯示「圖/圖表」鈕
+  chartLabel?: string      // 「圖」或「圖表」
+}
+export type VersionBlock = {
+  id: string
+  title: string | React.ReactNode
+  defaultOpen?: boolean
+  /** 二選一：你可以直接塞 content（客製 JSX），或是用下方 textLines/chips 來產 */
+  content?: React.ReactNode
+  textLines?: string[]
+  chips?: ChipItem[]
+}
+export type SectionItem = {
+  id: string
+  title: string | React.ReactNode
+  defaultOpen?: boolean
+  showEdit?: boolean
+  /** 這區塊最上面的資訊區（可選） */
+  info?: { label: string; value: string; labelWidth?: number }
+  /** 中段的「公式列」們 */
+  formulas?: FormulaRow[]
+  /** 巢狀的版本清單 */
+  versions?: VersionBlock[]
+  /** 最單純：直接給 body（若有此值，會放在最前面） */
+  body?: React.ReactNode
+}
 
 // ✅ 註冊 Renderer + 圖表 + 元件
 echarts.use([SkiaRenderer, ELineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent]);
@@ -83,39 +120,91 @@ const Show = () => {
     { key: 'D', label: 'wmv' },
     { key: 'E', label: 'webm', withInput: true },
   ]);
-  function Chip({
-    prefix,
-    label,
-    onRemove,
-    withInput,
-    onInputChange,
-  }: {
-    prefix?: string;
-    label: string;
-    withInput?: boolean;
-    onRemove?: () => void;
-    onInputChange?: (v: string) => void;
-  }) {
-    return (
-      <View style={styles.chip}>
-        {!!prefix && (
-          <View style={styles.chipPrefix}>
-            <Text style={styles.chipPrefixTxt}>{prefix}</Text>
-          </View>
-        )}
-        <Text style={styles.chipLabel} numberOfLines={1}>{label}</Text>
-        {withInput && (
-          <View style={styles.chipSmallInput}>
-            <TextInput
-              style={styles.chipSmallInputTxt}
-              placeholder=""
-              onChangeText={onInputChange}
-            />
-          </View>
-        )}
-      </View>
-    );
-  }
+
+  /** WsAccordion */
+  const sections = useMemo<SectionItem[]>(() => [
+    {
+      id: 's3',
+      title: <WsText weight="700">自定義文案 3</WsText>,
+      defaultOpen: false,
+      showEdit: true,
+      info: {
+        label: '點檢表', value: '點檢表名稱title', labelWidth: 100
+      },
+      formulas: [
+        {
+          label: '公式名稱 sum(result)', exportable: true, chartable: true, chartLabel: '圖'
+        },
+        {
+          label: '公式名稱 sum(result)', exportable: true, chartable: true, chartLabel: '圖'
+        },
+      ],
+      versions: [
+        {
+          id: 'v3',
+          title: '版本 3',
+          defaultOpen: false,
+          textLines: [
+            '題目之間的關係公式 (A - B) + (C - D) + E',
+            '題目之間的關係公式 A + E',
+          ],
+          chips: uChips,
+        },
+      ],
+    },
+    {
+      id: 's4',
+      title: (
+        <WsFlex>
+          <WsText weight="700">{`數量統計名稱 1  `}</WsText>
+          <WsText size={12} weight="700" color={$color.danger}>已停止更新</WsText>
+        </WsFlex>
+      ),
+      showEdit: true,
+      formulas: [
+        { label: '公式名稱 sum(result)', exportable: true, chartable: true, chartLabel: '圖表' },
+      ],
+    },
+  ], [uChips])
+
+  /** 事件處理（接到 SectionList 的回呼） */
+  const onEditPress = useCallback((section: SectionItem) => {
+    console.log('Edit section:', section.id)
+  }, [])
+
+  const onExportPress = useCallback((_section: SectionItem, row) => {
+    console.log('Export:', row.label)
+    // TODO: 你的匯出流程
+  }, [])
+
+  const onChartPress = useCallback((_section: SectionItem, row) => {
+    console.log('Chart:', row.label)
+    setModalChart(true) // ← 等同你原本 setModalChart(true)
+  }, [])
+
+  const removeChip = useCallback((key: string) => {
+    setUChips((prev) => prev.filter((c) => c.key !== key))
+  }, [])
+
+  const onChipInputChange = useCallback((key: string, v: string) => {
+    setUChips((prev) => prev.map((c) => (c.key === key ? { ...c, label: v } : c)))
+  }, [])
+
+  // -------------
+  const [demoData, setDemoData] = React.useState([])
+  const loadStatistics = async () => {
+    try {
+      const jsonValue = await AsyncStorage.getItem('@statistics_data');
+      const parsed = JSON.parse(jsonValue);
+      setDemoData(parsed);
+    } catch (e) {
+      console.error('讀取錯誤:', e);
+    }
+  };
+
+  React.useEffect(() => {
+    loadStatistics()
+  }, [])
 
   return (
     <>
@@ -124,7 +213,7 @@ const Show = () => {
           style={{
           }}
         >
-          <WsPaddingContainer
+          {/* <WsPaddingContainer
             style={{
               backgroundColor: $color.white,
             }}>
@@ -136,7 +225,7 @@ const Show = () => {
               }}
             >
               <WsText size={24} style={{ flex: 1 }}>
-                {t('title')}
+                {t(demoData.name)}
               </WsText>
               <View
                 style={{
@@ -147,7 +236,7 @@ const Show = () => {
               >
               </View>
             </WsFlex>
-          </WsPaddingContainer>
+          </WsPaddingContainer> */}
 
           <WsPaddingContainer
             style={{
@@ -169,14 +258,14 @@ const Show = () => {
                 onPress={() => {
                   setModalAddChartForm(true)
                 }}>
-                <WsTag
+                {/* <WsTag
                   backgroundColor={$color.white}
                   style={{
                     borderWidth: 1,
                     borderColor: $color.primary,
                   }}>
                   {t('停止更新')}
-                </WsTag>
+                </WsTag> */}
               </TouchableOpacity>
 
               <WsIconBtn
@@ -199,7 +288,7 @@ const Show = () => {
               <WsInfo
                 labelWidth={100}
                 label={t('名稱')}
-                value={'Admin Name'}
+                value={demoData.name}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -232,7 +321,9 @@ const Show = () => {
                 labelWidth={100}
                 type="user"
                 label={t('管理者')}
-                value={'Admin Name'}
+                value={{
+                  name: 'test user'
+                }}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -248,8 +339,8 @@ const Show = () => {
                 labelWidth={100}
                 label={t('時間區間')}
                 value={
-                  `${'YYYY-MM-DD'} ~ 
-${'YYYY-MM-DD'}`
+                  `${demoData?.start_time} ~ 
+${demoData?.end_time}`
                 }
                 style={{
                   flexDirection: 'row',
@@ -266,7 +357,7 @@ ${'YYYY-MM-DD'}`
               <WsInfo
                 labelWidth={100}
                 label={t('時間單位')}
-                value={'月'}
+                value={demoData.time_unit === 'day' ? t('天') : t('')}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -318,7 +409,7 @@ ${'YYYY-MM-DD'}`
                 labelWidth={100}
                 label={t('備註')}
                 value={
-                  t('備注')
+                  demoData.remark ? demoData.remark : t('')
                 }
                 style={{
                   flexDirection: 'row',
@@ -350,7 +441,7 @@ ${'YYYY-MM-DD'}`
                 }}
                 type="tags"
                 label={t('標籤')}
-                value={[]}
+                value={demoData.factory_tags ? demoData.factory_tags : []}
               />
             </View>
           </WsPaddingContainer>
@@ -427,7 +518,16 @@ ${'YYYY-MM-DD'}`
               backgroundColor: $color.white,
             }}
           >
-            <SingleChart></SingleChart>
+            <SingleChart
+              timeUnit={demoData.time_unit ? demoData.time_unit : 'month'}
+              dsA={Array.from({ length: 30 }, () => Math.floor(Math.random() * 100))}
+              dsB={Array.from({ length: 30 }, () => Math.floor(Math.random() * 100))}
+              seriesNames={{ a: '收入', b: '成本' }}
+              xAxisName="月份"
+              yAxisName="金額"
+              valueSuffix=" 萬"
+            />
+
             <View
               style={{
                 marginTop: 8,
@@ -570,216 +670,15 @@ ${'YYYY-MM-DD'}`
               </WsTag>
             </TouchableOpacity>
 
-            <WsAccordion
-              title="​自定​義文案​ 1"
-              rightActions={
-                <TouchableOpacity
-                  style={{
-                  }}
-                  onPress={() => { }}>
-                  <WsTag
-                    style={{
-                    }}>
-                    {t('編輯')}
-                  </WsTag>
-                </TouchableOpacity>
-              }
-              defaultOpen
-            >
-              <WsText color={$color.gray}>表 1 內容…</WsText>
-            </WsAccordion>
+            <LlSectionList
+              sections={sections}
+              onEditPress={onEditPress}
+              onExportPress={onExportPress}
+              onChartPress={onChartPress}
+              onChipRemove={removeChip}
+              onChipInputChange={onChipInputChange}
+            />
 
-            <WsAccordion
-              title="​自定​義文案​2"
-              rightActions={
-                <TouchableOpacity
-                  style={{
-                  }}
-                  onPress={() => { }}>
-                  <WsTag
-                    style={{
-                    }}>
-                    {t('編輯')}
-                  </WsTag>
-                </TouchableOpacity>}
-            >
-              <WsText color={$color.gray}>表 2 內容…</WsText>
-            </WsAccordion>
-
-            <WsAccordion
-              title={<WsText weight="700">​自定​義文案​ 3</WsText>}
-              rightActions={
-                <TouchableOpacity
-                  style={{
-                  }}
-                  onPress={() => { }}>
-                  <WsTag
-                    style={{
-                    }}>
-                    {t('編輯')}
-                  </WsTag>
-                </TouchableOpacity>
-              }
-              defaultOpen
-            >
-              {/* 子項：關係公式 + 小按鈕 */}
-              <View style={{ gap: 10 }}>
-                <View
-                  style={{
-                    marginTop: 8
-                  }}
-                >
-                  <WsInfo
-                    labelWidth={100}
-                    label={t('點檢表')}
-                    value={'點檢表名稱title'}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                    }}
-                  />
-                </View>
-                <WsFlex
-                  flexWrap="wrap"
-                >
-                  <WsText color={$color.gray}>{'公式名稱 sum(result)'}</WsText>
-                  <TouchableOpacity
-                    style={{
-                      marginLeft: 8,
-                      marginRight: 8,
-                    }}
-                    onPress={() => { }}>
-                    <WsTag
-                      style={{
-                      }}>
-                      {t('匯出')}
-                    </WsTag>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                    }}
-                    onPress={() => {
-                      setModalChart(true)
-                    }}>
-                    <WsTag
-                      style={{
-                      }}>
-                      {t('圖')}
-                    </WsTag>
-                  </TouchableOpacity>
-                </WsFlex>
-                <WsFlex
-                  flexWrap="wrap"
-                >
-                  <WsText color={$color.gray}>{'公式名稱 sum(result)'}</WsText>
-                  <TouchableOpacity
-                    style={{
-                      marginLeft: 8,
-                      marginRight: 8,
-                    }}
-                    onPress={() => { }}>
-                    <WsTag
-                      style={{
-                      }}>
-                      {t('匯出')}
-                    </WsTag>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                    }}
-                    onPress={() => {
-                      setModalChart(true)
-                    }}>
-                    <WsTag
-                      style={{
-                      }}>
-                      {t('圖')}
-                    </WsTag>
-                  </TouchableOpacity>
-                </WsFlex>
-              </View>
-
-              {/* 巢狀版本列表 */}
-              <View style={{ marginTop: 12, gap: 10 }}>
-                <WsAccordion title="版本 1">
-                  <WsText color={$color.gray}>版本 1 內容…</WsText>
-                </WsAccordion>
-
-                <WsAccordion title="版本 2">
-                  <WsText color={$color.gray}>版本 2 內容…</WsText>
-                </WsAccordion>
-
-                <WsAccordion
-                  title="版本 3"
-                  defaultOpen
-                >
-                  <View>
-                    <WsText size={12} color={$color.gray}>{'題目之間的關係公式 (A - B) + (C - D) + E'}</WsText>
-                    <WsText size={12} color={$color.gray}>{'題目之間的關係公式 A + E'}</WsText>
-
-                    {uChips.map((c, idx) => (
-                      <Chip
-                        key={c.key}
-                        prefix={String.fromCharCode(65 + idx)} // A/B/C...
-                        label={c.label}
-                        withInput={c.withInput}
-                        onRemove={() => removeChip(c.key)}
-                        onInputChange={(v) => onChipInputChange?.(c.key, v)}
-                      />
-                    ))}
-                  </View>
-                </WsAccordion>
-              </View>
-            </WsAccordion>
-
-            <WsAccordion
-              title={
-                <WsFlex>
-                  <WsText weight="700">{`數量​統​計​名​稱 1  `}</WsText><WsText size={12} weight="700" color={$color.danger}>​已​停止​更新​</WsText>
-                </WsFlex>
-              }
-              rightActions={
-                <TouchableOpacity
-                  style={{
-                  }}
-                  onPress={() => { }}>
-                  <WsTag
-                    style={{
-                    }}>
-                    {t('編輯')}
-                  </WsTag>
-                </TouchableOpacity>}
-            >
-              <WsFlex
-                flexWrap="wrap"
-              >
-                <WsText color={$color.gray}>{'公式名稱 sum(result)'}</WsText>
-                <TouchableOpacity
-                  style={{
-                    marginLeft: 8,
-                    marginRight: 8,
-                  }}
-                  onPress={() => { }}>
-                  <WsTag
-                    style={{
-                    }}>
-                    {t('匯出')}
-                  </WsTag>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                  }}
-                  onPress={() => {
-                    setModalChart(true)
-                  }}>
-                  <WsTag
-                    style={{
-                    }}>
-                    {t('圖表')}
-                  </WsTag>
-                </TouchableOpacity>
-              </WsFlex>
-            </WsAccordion>
           </View>
         </ScrollView>
       </SafeAreaView>

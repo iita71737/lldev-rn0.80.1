@@ -384,6 +384,8 @@ import LlArticleCheckCard001 from './LlArticleCheckCard001'
 import LlRelatedModuleModalPicker from './LlRelatedModuleModalPicker'
 import LlNewsCard from './LlNewsCard'
 import LlStatisticsCard001 from './LlStatisticsCard001'
+import LlSectionList from './LlSectionList'
+import LlStatisticsQuestionCard001 from './LlStatisticsQuestionCard001'
 
 export {
   WsPopup,
@@ -772,5 +774,6 @@ export {
   LlRelatedModuleModalPicker,
   LlNewsCard,
   LlStatisticsCard001,
-
+  LlSectionList,
+  LlStatisticsQuestionCard001
 }

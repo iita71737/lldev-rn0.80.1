@@ -18,7 +18,7 @@ import {
   WsText
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
-import { DEMO_CHECKLIST_QUESTIONS, ChecklistItem } from './mock/checklistQuestions';
+import { DEMO_CHECKLIST_QUESTIONS, ChecklistItem } from './mock/questions';
 
 // Android 啟用 LayoutAnimation
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {

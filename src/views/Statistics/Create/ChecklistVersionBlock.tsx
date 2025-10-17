@@ -5,183 +5,99 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
-  ViewStyle,
-  TextStyle,
   FlatList,
-  Dimensions
 } from 'react-native';
 import {
-  WsBtn,
   WsPaddingContainer,
-  WsTitle,
-  WsInfoUser,
-  WsFlex,
-  WsIcon,
-  WsText,
-  WsTabView,
-  WsCard,
-  LlAuditSortedResultDraftCard001,
-  WsSkeleton,
-  WsGradientButton,
-  WsNavCheck,
-  WsLoading,
-  WsPopup,
-  WsInfo,
-  WsAccordion,
-  LlCheckListQuestionCard005
-} from '@/components'
-import { useSelector } from 'react-redux'
-import $color from '@/__reactnative_stone/global/color'
-import { useTranslation } from 'react-i18next'
-import { useNavigation } from '@react-navigation/native'
-// import moment from 'moment'
-import moment from 'moment-timezone';
-import { DEMO_CHECKLIST_QUESTIONS, ChecklistItem } from './mock/checklistQuestions';
+  LlStatisticsQuestionCard001
+} from '@/components';
+import $color from '@/__reactnative_stone/global/color';
+import { RAW_QUESTIONS } from './mock/questions';
 import FormulaRelationsMobileDemo from './RelationshipFormulaBlock';
 
 export type ChipItem = { key: string; label: string; withInput?: boolean };
 
 type Version3BlockProps = {
-  /* 受控 / 不受控：公式 */
-  formulas?: string[];
-  onFormulasChange?: (next: string[]) => void;
+  /** 0：題目清單；1：公式區塊 */
   step?: number;
-  /* 受控 / 不受控：已選題目 */
+
+  /** 已選題目（受控/不受控） */
   chips?: ChipItem[];
   onChipsChange?: (next: ChipItem[]) => void;
 
-  /* 行為 callback（外層可接管） */
-  onSelectSource?: (index: number) => void;      // 點「選取原始資料」
-  onRemoveFormula?: (index: number) => void;     // 刪除某條公式
-  onAddFormula?: () => void;                     // 按「＋」
-  onRemoveChip?: (key: string) => void;          // 刪除 chip
-  onChipInputChange?: (key: string, value: string) => void; // chip 內的小輸入框
+  /** Chip 行為 */
+  onRemoveChip?: (key: string) => void;
+  onChipInputChange?: (key: string, value: string) => void;
+
+  /** 公式編輯彈窗（父層開關） */
   setModalVisibleSourceData?: () => void;
-  setModalActiveFormula?: () => void;
 
-  /* 標題/文案 */
-  title?: string;                // 默認：題目之間的關係公式
-  addLabel?: string;             // 默認：＋
-  selectSourceLabel?: string;    // 默認：選取原始資料
-  deleteLabel?: string;          // 默認：刪除
-  selectedTitle?: string;        // 默認：已選擇的題目
-
-  /* 檔案列 / 分頁（可選） */
-  showFilePanel?: boolean;       // 是否顯示底下示意的檔案列
-  fileTitle?: string;            // 檔案列標題
-  pageTotal?: number;            // 總頁數
-  pageInit?: number;             // 初始頁碼
-  onGoPage?: (page: number) => void;
-  goLabel?: string;              // 默認：前往
-  pageTextBuilder?: (current: number, total: number) => string; // 自訂「第 1-1 筆 共 1 筆」
-
-  /* 樣式覆寫（必要時） */
-  style?: ViewStyle;
-  formulaPillStyle?: ViewStyle;
-  actionButtonStyle?: ViewStyle;
-  actionButtonTextStyle?: TextStyle;
+  /** 標題文案 */
+  selectedTitle?: string;
 };
 
 export default function Version3Block({
-  // 受控 / 不受控資料
-  formulas: cFormulas,
-  onFormulasChange,
+  step,
   chips: cChips,
   onChipsChange,
-  step,
-
-  // 行為
-  onSelectSource,
-  onRemoveFormula,
-  onAddFormula,
   onRemoveChip,
   onChipInputChange,
   setModalVisibleSourceData,
-  setModalActiveFormula,
-
-  // 文案
-  title = '題目之間的關係公式',
-  addLabel = '＋',
-  selectSourceLabel = '選取原始資料',
-  deleteLabel = '刪除',
   selectedTitle = '已選擇的題目',
-
-  // 檔案列 / 分頁
-  showFilePanel = true,
-  fileTitle = '共享檔案來自大陸廠-改檔名',
-  pageTotal = 1,
-  pageInit = 1,
-  onGoPage,
-  goLabel = '前往',
-  pageTextBuilder = (c, t) => `第 ${c}-${c} 筆 共 ${t} 筆`,
-
-  // 樣式
-  style,
-  formulaPillStyle,
-  actionButtonStyle,
-  actionButtonTextStyle,
 }: Version3BlockProps) {
-  const { width, height } = Dimensions.get('window')
-  const { t, i18n } = useTranslation()
-  const navigation = useNavigation()
+  /** 內部不受控 chips（外部沒給時使用） */
+  const [uChips, setUChips] = React.useState<ChipItem[]>([]);
 
-  /* ===== 內部 state（當外部不受控時使用） ===== */
-  const [uFormulas, setUFormulas] = React.useState<string[]>([
-    '(A - B) + (C - D) + E',
-    'A + E',
-  ]);
-  const [uChips, setUChips] = React.useState<ChipItem[]>([
-    { key: 'A', label: '作廠版本測試', withInput: true },
-    { key: 'B', label: 'ISO 14001', withInput: true },
-    { key: 'C', label: '7.1 to 1mb', withInput: true },
-    { key: 'D', label: 'wmv' },
-    { key: 'E', label: 'webm', withInput: true },
-  ]);
-  const [page, setPage] = React.useState<number>(pageInit);
-
-  /* 同步外部受控值 */
-  React.useEffect(() => { if (cFormulas) setUFormulas(cFormulas); }, [cFormulas]);
-  React.useEffect(() => { if (cChips) setUChips(cChips); }, [cChips]);
-  React.useEffect(() => { setPage(pageInit); }, [pageInit]);
-
-  /* 取得目前實際使用的資料源 */
-  const formulas = cFormulas ?? uFormulas;
+  /** 受控 / 不受控合併 */
   const chips = cChips ?? uChips;
 
-  /* 寫入工具：若受控則呼叫外部 onChange，否則寫入內部 state */
-  const updateFormulas = (next: string[]) => {
-    onFormulasChange ? onFormulasChange(next) : setUFormulas(next);
-  };
+  /** 共用更新工具 */
   const updateChips = (next: ChipItem[]) => {
     onChipsChange ? onChipsChange(next) : setUChips(next);
   };
 
-  /* 行為實作（提供預設） */
-  const addFormula = () => {
-    if (onAddFormula) return onAddFormula();
-    updateFormulas([...formulas, '']);
-  };
-  const removeFormula = (idx: number) => {
-    if (onRemoveFormula) return onRemoveFormula(idx);
-    updateFormulas(formulas.filter((_, i) => i !== idx));
-  };
+  /** 刪除 chip（可被父層接管） */
   const removeChip = (k: string) => {
     if (onRemoveChip) return onRemoveChip(k);
     updateChips(chips.filter(c => c.key !== k));
   };
 
-  const handleGo = () => {
-    const next = Math.min(Math.max(1, page), pageTotal || 1);
-    setPage(next);
-    onGoPage?.(next);
-  };
+  /** 判斷是否已在 chips 內 */
+  const hasChip = React.useCallback((key: string) => {
+    return chips.some(c => c.key === key);
+  }, [chips]);
 
-  const _test = moment().tz('Asia/Taipei').subtract(1, 'months').startOf('month').format('YYYY-MM-DD HH:mm:ss [GMT]Z')
-  console.log(_test, '_test');
+  /** 勾選題目後：加入/移除 chips */
+  const handleToggleQuestion = React.useCallback((payloadOrItem) => {
+    // 來自卡片的 checkboxOnPress 會回傳 {...answer, checked}
+    const item = payloadOrItem?.id ? payloadOrItem : null;
+    const isChecked = !!payloadOrItem?.checked;
+
+    // 從 RAW_QUESTIONS 查資料（或直接用回傳的 item）
+    const id = item?.id ?? payloadOrItem?.id;
+    if (!id) return;
+
+    const src = RAW_QUESTIONS.find(q => q.id === id) || item;
+    if (!src) return;
+
+    const key = src.id;
+    const label = src.title ?? '';
+
+    if (isChecked) {
+      // 勾選：加入（去重）
+      if (!hasChip(key)) {
+        updateChips([...chips, { key, label }]);
+      }
+    } else {
+      // 取消勾選：移除
+      if (hasChip(key)) {
+        updateChips(chips.filter(c => c.key !== key));
+      }
+    }
+  }, [chips, hasChip, updateChips]);
 
   return (
-    <View style={[styles.root, style]}>
-
+    <View style={styles.root}>
       {/* 已選擇的題目 */}
       <Text style={[styles.sectionTitle, { marginTop: 4 }]}>{selectedTitle}</Text>
       <View style={styles.chipsWrap}>
@@ -190,52 +106,37 @@ export default function Version3Block({
             key={c.key}
             prefix={String.fromCharCode(65 + idx)} // A/B/C...
             label={c.label}
-            withInput={c.withInput}
             onRemove={() => removeChip(c.key)}
             onInputChange={(v) => onChipInputChange?.(c.key, v)}
           />
         ))}
       </View>
 
+      {/* step=0 顯示題目清單 */}
       {step === 0 && (
         <FlatList
-          data={DEMO_CHECKLIST_QUESTIONS}
-          keyExtractor={(item, index) => item.id}
-          renderItem={({ item, index }) => {
-            return (
-              <LlCheckListQuestionCard005
-                key={item.id}
-                checkboxVisible={true}
-                checkboxOnPress={(answer) => {
-                }}
-                onPress={() => {
-                }}
-                style={{
-                  marginTop: 8
-                }}
-                no={index + 1}
-                answer={item}
-                title={item.title}
-                score={item.score}
-              />
-            )
-          }}
-          ListHeaderComponent={() => {
-            return (
-              <>
-              </>
-            )
-          }}
-          ListFooterComponent={
-            () => {
-              return (
-                <></>
-              )
-            }
-          }
+          data={RAW_QUESTIONS}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (
+            <LlStatisticsQuestionCard001
+              key={item.id}
+              checkboxVisible={true}
+              // 讓卡片知道目前是否已選（受控）
+              checked={hasChip(item.id)}
+              // 勾/取消勾 → 同步 chips
+              checkboxOnPress={handleToggleQuestion}
+              onPress={() => {}}
+              style={{ marginTop: 8 }}
+              no={index + 1}
+              answer={item}
+              title={item.title}
+              score={item.score}
+            />
+          )}
         />
       )}
 
+      {/* step=1 顯示公式區塊 */}
       {step === 1 && (
         <WsPaddingContainer
           padding={0}
@@ -246,41 +147,19 @@ export default function Version3Block({
           }}
         >
           <FormulaRelationsMobileDemo
-            // data={...可自行丟入 API 結果整理後的陣列}
-            onEdit={(f) => {
-              console.log('edit:', f)
-              setModalVisibleSourceData(true)
+            onEdit={() => {
+              setModalVisibleSourceData?.();
             }}
-            onPreviewAndDeleteData={(f) => console.log('preview&delete data:', f)}
-            onDelete={(f) => console.log('delete formula:', f)}
+            onPreviewAndDeleteData={() => {}}
+            onDelete={() => {}}
           />
         </WsPaddingContainer>
       )}
-
-
     </View>
   );
 }
 
-/* ===== 小元件 ===== */
-function OutlineBtn({
-  label,
-  onPress,
-  style,
-  textStyle,
-}: {
-  label: string;
-  onPress: () => void;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
-}) {
-  return (
-    <TouchableOpacity onPress={onPress} style={[styles.outlineBtn, style]}>
-      <Text style={[styles.outlineBtnTxt, textStyle]}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
+/* ===== 小元件：Chip ===== */
 function Chip({
   prefix,
   label,
@@ -301,7 +180,7 @@ function Chip({
           <Text style={styles.chipPrefixTxt}>{prefix}</Text>
         </View>
       )}
-      <Text style={styles.chipLabel} numberOfLines={1}>{label}</Text>
+      <Text style={styles.chipLabel} numberOfLines={2}>{label}</Text>
       {withInput && (
         <View style={styles.chipSmallInput}>
           <TextInput
@@ -323,33 +202,13 @@ const styles = StyleSheet.create({
   root: { paddingTop: 2 },
   sectionTitle: { fontSize: 16, color: '#111', marginBottom: 6 },
 
-  /* 公式 */
-  formulaRow: { flexDirection: 'column', alignItems: 'stretch', marginBottom: 8 },
-  formulaPill: {
-    borderWidth: 2, borderColor: '#111', borderRadius: 6,
-    backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 6,
-    width: '100%', minWidth: 0,
-  },
-  formulaText: { fontSize: 16, color: '#111', lineHeight: 22 },
-  actionGroupRow: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8, alignSelf: 'flex-start',
-  },
-  outlineBtn: {
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderWidth: 2, borderColor: '#111', borderRadius: 16, backgroundColor: '#fff',
-  },
-  outlineBtnTxt: { color: '#111' },
-
-  /* 加號 */
-  addRow: { paddingVertical: 2, paddingHorizontal: 4, marginBottom: 8 },
-  addPlus: { fontSize: 28, color: '#111' },
-
   /* Chips */
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   chip: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#f7f9fb', borderWidth: 1, borderColor: '#d9dbe2',
     borderRadius: 999, paddingHorizontal: 8, paddingVertical: 6,
+    marginRight: 8, marginTop: 8,
   },
   chipPrefix: {
     width: 24, height: 24, borderRadius: 12,
@@ -368,17 +227,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#e9edf2', alignItems: 'center', justifyContent: 'center',
   },
   chipCloseTxt: { color: '#111', fontSize: 14, lineHeight: 18 },
-
-  /* 檔案列 & 分頁 */
-  fileCard: {
-    backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#e5e8ef', overflow: 'hidden',
-  },
-  fileRow: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 },
-  checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 2, borderColor: '#1e88e5' },
-  fileTitle: { flex: 1, fontSize: 16, color: '#111' },
-  pagerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingBottom: 12, gap: 8 },
-  pagerTxt: { color: '#555' },
-  pageInput: { borderWidth: 1, borderColor: '#d9dbe2', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, minWidth: 46 },
-  pageInputTxt: { padding: 0, margin: 0, textAlign: 'center', color: '#111' },
-  goBtn: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#1e88e5', borderRadius: 16 },
 });

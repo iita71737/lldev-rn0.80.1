@@ -1,21 +1,17 @@
 import React from 'react'
-import { View } from 'react-native'
 import {
-  WsFilter,
-  LlBtn002,
-  WsPaddingContainer,
-  // LlTrainingCard001,
+  View,
+  FlatList
+} from 'react-native'
+import {
   WsPageIndex,
   WsIconBtn,
-  WsModal,
   LlStatisticsCard001
 } from '@/components'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import $color from '@/__reactnative_stone/global/color'
 import AsyncStorage from '@react-native-community/async-storage'
-import S_SystemClass from '@/__reactnative_stone/services/api/v1/system_class'
-import PickTemplate from '@/views/Training/Create/PickTemplate'
 
 interface TrainingListProps {
   tabIndex: number;
@@ -33,13 +29,11 @@ const TrainingList: React.FC<TrainingListProps> = props => {
 
   // Props
   const {
-    tabIndex,
     searchValue,
     defaultFilter
   } = props
 
   // STATES
-  const [stateModal, setStateModal] = React.useState(false)
 
   // MEMO
   const params = React.useMemo(() => {
@@ -120,10 +114,27 @@ const TrainingList: React.FC<TrainingListProps> = props => {
     $_setNavigationOption()
   }, [])
 
+  // -------------
+  const [demoData, setDemoData] = React.useState([])
+  const loadStatistics = async () => {
+    try {
+      const jsonValue = await AsyncStorage.getItem('@statistics_data');
+      const parsed = JSON.parse(jsonValue);
+      const newArray = [parsed]; // ✅ 包成一個陣列
+      setDemoData(newArray);
+    } catch (e) {
+      console.error('讀取錯誤:', e);
+    }
+  };
+
+  React.useEffect(() => {
+    loadStatistics()
+  }, [])
+
   return (
     <>
-      <WsPageIndex
-        modelName={'internal_training'}
+      {/* <WsPageIndex
+        modelName={'statistics'}
         params={params}
         extendParams={searchValue}
         filterFields={filterFields}
@@ -152,7 +163,36 @@ const TrainingList: React.FC<TrainingListProps> = props => {
           />
         )}
       >
-      </WsPageIndex>
+      </WsPageIndex> */}
+
+      <FlatList
+        data={demoData}
+        keyExtractor={(item, index) => index}
+        renderItem={({ item, index }) => {
+          return (
+            <LlStatisticsCard001
+              item={item}
+              style={[
+                index != 0
+                  ? {
+                    marginTop: 8
+                  }
+                  : {
+                    marginTop: 8
+                  }
+              ]}
+              onPress={() => {
+                navigation.push('RoutesStatistics', {
+                  screen: 'StatisticsShow',
+                  params: {
+                    id: item.id
+                  }
+                })
+              }}
+            />
+          )
+        }}
+      />
     </>
   )
 }

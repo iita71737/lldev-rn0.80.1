@@ -28,12 +28,12 @@ import store from '@/store'
 import {
   setOfflineMsg
 } from '@/store/data'
-// import AsyncStorage from '@react-native-async-storage/async-storage';
 import ViewDashboardEvent from '@/views/DashboardFactory/Event'
 import ViewDashboardEventList from '@/views/DashboardFactory/DashboardEventListTab'
 const StackSetting = createStackNavigator()
 import StatisticsShow from '@/views/Statistics/Show'
 import StatisticsRecordCreate from '@/views/Statistics/Create/StatisticsRecordCreate'
+import AsyncStorage from '@react-native-community/async-storage'
 
 const RoutesStatistics = ({ navigation }) => {
   // i18n
@@ -126,7 +126,7 @@ const RoutesStatistics = ({ navigation }) => {
         }
       }
     },
-    improvement_limited_period: {
+    time_unit: {
       label: t('時間單位'),
       type: 'picker',
       rules: 'required',
@@ -218,7 +218,7 @@ const RoutesStatistics = ({ navigation }) => {
             'remark',
             'date_picker_type',
             'dynamic_data_time',
-            'improvement_limited_period',
+            'time_unit',
             'start_time',
             'end_time',
             'system_subclasses',
@@ -369,6 +369,18 @@ const RoutesStatistics = ({ navigation }) => {
   // 新增事件
   const submitStatisticsCreate = async (data, navigation) => {
     console.log(data, 'data--');
+    try {
+      // 1️⃣ 將物件轉成字串
+      const jsonValue = JSON.stringify(data);
+      // 2️⃣ 寫入本地儲存
+      await AsyncStorage.setItem('@statistics_data', jsonValue);
+      console.log('✅ 資料已成功儲存');
+      // 3️⃣ （選用）導向其他頁面
+      navigation.navigate('StatisticsIndex', { data });
+    } catch (e) {
+      console.error('❌ 儲存失敗:', e);
+    }
+
     // const _data = await S_Event.getFormattedData(data, currentUser)
     // console.log(_data, '_data--');
     // try {
