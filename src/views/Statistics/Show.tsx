@@ -81,9 +81,11 @@ export type SectionItem = {
 // ✅ 註冊 Renderer + 圖表 + 元件
 echarts.use([SkiaRenderer, ELineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent]);
 
-const Show = () => {
+const Show = (props) => {
   const { t, i18n } = useTranslation()
   const navigation = useNavigation()
+
+  const _id = props?.route?.params?.id || 'unknown'
 
   const [chartInfo, setChartInfo] = useState({
     name: '',
@@ -194,7 +196,7 @@ const Show = () => {
   const [demoData, setDemoData] = React.useState([])
   const loadStatistics = async () => {
     try {
-      const jsonValue = await AsyncStorage.getItem('@statistics_data');
+      const jsonValue = await AsyncStorage.getItem(`@statistics_data`);
       const parsed = JSON.parse(jsonValue);
       setDemoData(parsed);
     } catch (e) {
@@ -204,7 +206,7 @@ const Show = () => {
 
   React.useEffect(() => {
     loadStatistics()
-  }, [])
+  }, [_id])
 
   return (
     <>
@@ -288,7 +290,7 @@ const Show = () => {
               <WsInfo
                 labelWidth={100}
                 label={t('名稱')}
-                value={demoData.name}
+                value={demoData?.name}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -357,7 +359,7 @@ ${demoData?.end_time}`
               <WsInfo
                 labelWidth={100}
                 label={t('時間單位')}
-                value={demoData.time_unit === 'day' ? t('天') : t('')}
+                value={demoData?.time_unit === 'day' ? t('天') : t('')}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -409,7 +411,7 @@ ${demoData?.end_time}`
                 labelWidth={100}
                 label={t('備註')}
                 value={
-                  demoData.remark ? demoData.remark : t('')
+                  demoData?.remark ? demoData.remark : t('')
                 }
                 style={{
                   flexDirection: 'row',
@@ -441,7 +443,7 @@ ${demoData?.end_time}`
                 }}
                 type="tags"
                 label={t('標籤')}
-                value={demoData.factory_tags ? demoData.factory_tags : []}
+                value={demoData?.factory_tags ? demoData.factory_tags : []}
               />
             </View>
           </WsPaddingContainer>
@@ -519,7 +521,7 @@ ${demoData?.end_time}`
             }}
           >
             <SingleChart
-              timeUnit={demoData.time_unit ? demoData.time_unit : 'month'}
+              timeUnit={demoData?.time_unit ? demoData.time_unit : 'month'}
               dsA={Array.from({ length: 30 }, () => Math.floor(Math.random() * 100))}
               dsB={Array.from({ length: 30 }, () => Math.floor(Math.random() * 100))}
               seriesNames={{ a: '收入', b: '成本' }}
@@ -827,7 +829,7 @@ ${demoData?.end_time}`
               style={{
                 marginVertical: 8
               }}
-              label={t('公式名稱​')}
+              label={t('公式名稱')}
               placeholder={t('輸入')}
               value={formulaData?.name}
               onChange={
@@ -839,7 +841,7 @@ ${demoData?.end_time}`
               style={{
                 marginVertical: 8
               }}
-              label={t('結果​欄​位​名稱')}
+              label={t('結果欄位名稱')}
               placeholder={t('輸入')}
               value={formulaData?.resultFieldName}
               onChange={(resultFieldName: string) => {
@@ -851,7 +853,7 @@ ${demoData?.end_time}`
               style={{
                 marginVertical: 8
               }}
-              label={t('結果​單位​')}
+              label={t('結果單位')}
               placeholder={t('輸入')}
               value={formulaData?.resultFieldUnit}
               onChange={(resultFieldUnit: string) => {
@@ -901,6 +903,7 @@ ${demoData?.end_time}`
       >
         <PickType
           setModalAddRecord={setModalAddRecord}
+          statisticsId={demoData?.id}
         ></PickType>
       </WsModal>
 

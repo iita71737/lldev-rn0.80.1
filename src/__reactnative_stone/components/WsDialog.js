@@ -63,15 +63,17 @@ const WsDialog = props => {
           }
         >
           <>
-            <Dialog.Title
-              style={{
-                color: $color.black,
-                letterSpacing: 1,
-                fontWeight: 'normal',
-                fontSize: 18,
-              }}>
-              {title}
-            </Dialog.Title>
+            {title && (
+              <Dialog.Title
+                style={{
+                  color: $color.black,
+                  letterSpacing: 1,
+                  fontWeight: 'normal',
+                  fontSize: 18,
+                }}>
+                {title}
+              </Dialog.Title>
+            )}
             {title && (
               <TouchableOpacity
                 style={{

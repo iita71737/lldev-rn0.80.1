@@ -77,12 +77,17 @@ const STEPS = {
 } as const
 type StepKey = keyof typeof STEPS
 
-const StatisticsRecordCreate = () => {
+const StatisticsRecordCreate = (props) => {
   const { t } = useTranslation()
   const { width } = Dimensions.get('window')
   const navigation = useNavigation()
 
-  const [statistcsName, setStatisticsName] = React.useState('')
+  const _checklist = props?.route?.params?.checklist
+  const _statisticsId = props?.route?.params?.statisticsId
+  // console.log(_statisticsId,'_statisticsId--')
+
+  // states
+  const [statistcsName, setStatisticsName] = React.useState(_checklist ? _checklist.name : '')
 
   /** —— Modal 狀態 —— */
   const [modalActiveFormula, setModalActiveFormula] = React.useState(false)  // 共用：編輯公式
@@ -176,10 +181,9 @@ const StatisticsRecordCreate = () => {
 
   // -------------
   const [demoData, setDemoData] = React.useState([])
-
   const loadStatistics = async () => {
     try {
-      const jsonValue = await AsyncStorage.getItem('@statistics_data');
+      const jsonValue = await AsyncStorage.getItem(`@statistics_data`);
       const parsed = JSON.parse(jsonValue);
       setDemoData(parsed);
     } catch (e) {
@@ -287,7 +291,6 @@ const StatisticsRecordCreate = () => {
     console.log('Chart:', row.label)
   }, [])
 
-
   return (
     <>
       <ScrollView>
@@ -329,13 +332,15 @@ const StatisticsRecordCreate = () => {
                 {sections.map(section => (
                   <WsAccordion
                     key={section.id}
-                    title={section.title}                 // 直接吃你在 sections 裡塞好的 ReactNode
+                    title={section.title}
                     defaultOpen={section.defaultOpen}
                   >
                     <ChecklistVersionBlock
                       setModalVisibleSourceData={setModalVisibleSourceData}
                       setModalActiveFormula={setModalActiveFormula}
-                      step={step}                         // 跟著目前頁籤步驟走
+                      step={step}
+                      section={section}
+                      statisticsId={_statisticsId}
                     />
                   </WsAccordion>
                 ))}
@@ -363,26 +368,22 @@ const StatisticsRecordCreate = () => {
 
               {/* 版本/題目選擇（沿用你的 Accordion + Block） */}
               <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
-                <WsAccordion title="版本1" defaultOpen>
-                  <WsText color={$color.gray}>表 1 內容…</WsText>
-                </WsAccordion>
 
-                <WsAccordion title="版本2">
-                  <WsText color={$color.gray}>表 2 內容…</WsText>
-                </WsAccordion>
-
-                <WsAccordion
-                  title={<Text style={{ fontSize: 14, fontWeight: '500' }}>版本 3</Text>}
-                  defaultOpen
-                  style={{ borderWidth: 1, borderRadius: 10 }}
-                  contentStyle={{ backgroundColor: '#fff' }}
-                >
-                  <ChecklistVersionBlock
-                    setModalVisibleSourceData={setModalVisibleSourceData}
-                    setModalActiveFormula={setModalActiveFormula}
-                    step={STEPS.BETWEEN}
-                  />
-                </WsAccordion>
+                {sections.map(section => (
+                  <WsAccordion
+                    key={section.id}
+                    title={section.title}
+                    defaultOpen={section.defaultOpen}
+                  >
+                    <ChecklistVersionBlock
+                      setModalVisibleSourceData={setModalVisibleSourceData}
+                      setModalActiveFormula={setModalActiveFormula}
+                      step={STEPS.BETWEEN}
+                      section={section}
+                      statisticsId={_statisticsId}
+                    />
+                  </WsAccordion>
+                ))}
 
                 <FooterNav />
               </WsPaddingContainer>

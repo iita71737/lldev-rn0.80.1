@@ -54,6 +54,7 @@
     "mathjs": "14.6.0",
     "moment": "^2.29.1",
     "moment-timezone": "0.5.43",
+    "nanoid": "^5.1.6",
     "patch-package": "8.0.0",
     "postinstall-postinstall": "2.1.0",
     "rainbowvis.js": "^1.0.1",

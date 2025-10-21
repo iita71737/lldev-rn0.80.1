@@ -52,6 +52,7 @@ import S_DeviceToken from '@/__reactnative_stone/services/api/v1/device_token'
 import AsyncStorage from '@react-native-community/async-storage'
 import ViewAlertIndex from '@/views/Alert/Index'
 import ViewMy from '@/views/My'
+import Homepage from '@/views/Homepage';
 
 const RoutesFactory = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
@@ -242,6 +243,22 @@ const RoutesFactory = ({ navigation, route }) => {
             : undefined,
         })}
       >
+        {/* <Tab.Screen
+          name="Homepage"
+          component={Homepage}
+          options={{
+            unmountOnBlur: true,
+            tabBarIcon: ({ focused, color, size }) => (
+              <WsIcon
+                name={focused ? 'md-home' : 'md-home'}
+                color={color}
+                size={32}
+              />
+            ),
+          }}
+          backBehavior={'history'}
+        /> */}
+
         <Tab.Screen
           name="DashboardFactory"
           component={ViewDashboardFactory}

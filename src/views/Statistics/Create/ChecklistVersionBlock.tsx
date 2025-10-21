@@ -13,27 +13,22 @@ import {
 } from '@/components';
 import $color from '@/__reactnative_stone/global/color';
 import { RAW_QUESTIONS } from './mock/questions';
-import FormulaRelationsMobileDemo from './RelationshipFormulaBlock';
+import RelationshipFormulaBlock from './RelationshipFormulaBlock';
+import AsyncStorage from '@react-native-community/async-storage';
 
 export type ChipItem = { key: string; label: string; withInput?: boolean };
+export type ChipsData = { selected_questions: ChipItem[] };
 
 type Version3BlockProps = {
-  /** 0：題目清單；1：公式區塊 */
   step?: number;
-
-  /** 已選題目（受控/不受控） */
-  chips?: ChipItem[];
-  onChipsChange?: (next: ChipItem[]) => void;
-
-  /** Chip 行為 */
+  chips?: ChipsData;
+  onChipsChange?: (next: ChipsData) => void;
   onRemoveChip?: (key: string) => void;
   onChipInputChange?: (key: string, value: string) => void;
-
-  /** 公式編輯彈窗（父層開關） */
   setModalVisibleSourceData?: () => void;
-
-  /** 標題文案 */
   selectedTitle?: string;
+  section?: string;
+  statisticsId?: string;
 };
 
 export default function Version3Block({
@@ -44,36 +39,36 @@ export default function Version3Block({
   onChipInputChange,
   setModalVisibleSourceData,
   selectedTitle = '已選擇的題目',
+  section,
+  statisticsId
 }: Version3BlockProps) {
-  /** 內部不受控 chips（外部沒給時使用） */
-  const [uChips, setUChips] = React.useState<ChipItem[]>([]);
 
-  /** 受控 / 不受控合併 */
+  /** ✅ 不受控 chips 預設結構 */
+  const [uChips, setUChips] = React.useState<ChipsData>();
+  /** ✅ 受控 / 不受控合併 */
   const chips = cChips ?? uChips;
 
-  /** 共用更新工具 */
-  const updateChips = (next: ChipItem[]) => {
+  /** ✅ 更新 chips（確保結構不破壞） */
+  const updateChips = (next: ChipsData) => {
     onChipsChange ? onChipsChange(next) : setUChips(next);
   };
 
-  /** 刪除 chip（可被父層接管） */
-  const removeChip = (k: string) => {
-    if (onRemoveChip) return onRemoveChip(k);
-    updateChips(chips.filter(c => c.key !== k));
-  };
-
-  /** 判斷是否已在 chips 內 */
+  /** ✅ 判斷是否已在 chips 內 */
   const hasChip = React.useCallback((key: string) => {
-    return chips.some(c => c.key === key);
+    return chips?.selected_questions?.some(c => c.key === key);
   }, [chips]);
 
-  /** 勾選題目後：加入/移除 chips */
-  const handleToggleQuestion = React.useCallback((payloadOrItem) => {
-    // 來自卡片的 checkboxOnPress 會回傳 {...answer, checked}
+  /** ✅ 刪除單一 chip */
+  const removeChip = (k: string) => {
+    if (onRemoveChip) return onRemoveChip(k);
+    const filtered = chips.selected_questions.filter(c => c.key !== k);
+    updateChips({ selected_questions: filtered });
+  };
+
+  /** ✅ 勾選題目後：加入 / 移除 chips */
+  const handleToggleQuestion = React.useCallback(async (payloadOrItem) => {
     const item = payloadOrItem?.id ? payloadOrItem : null;
     const isChecked = !!payloadOrItem?.checked;
-
-    // 從 RAW_QUESTIONS 查資料（或直接用回傳的 item）
     const id = item?.id ?? payloadOrItem?.id;
     if (!id) return;
 
@@ -81,38 +76,72 @@ export default function Version3Block({
     if (!src) return;
 
     const key = src.id;
-    const label = src.title ?? '';
+    const label = `${src.title} ${section?.id}` ?? '';
+
+    let nextQuestions = [...(chips.selected_questions || [])];
 
     if (isChecked) {
       // 勾選：加入（去重）
       if (!hasChip(key)) {
-        updateChips([...chips, { key, label }]);
+        nextQuestions.push({ key, label });
       }
     } else {
       // 取消勾選：移除
-      if (hasChip(key)) {
-        updateChips(chips.filter(c => c.key !== key));
-      }
+      nextQuestions = nextQuestions.filter(c => c.key !== key);
     }
-  }, [chips, hasChip, updateChips]);
+
+    const nextChips = { selected_questions: nextQuestions };
+    updateChips(nextChips);
+
+    // ✅ 同步存到 AsyncStorage
+    try {
+      await AsyncStorage.setItem(`${statisticsId}-${section?.id}-@dataSet`, JSON.stringify(nextChips));
+    } catch (err) {
+      console.warn('儲存已選題目失敗：', err);
+    }
+
+  }, [chips, hasChip, updateChips, section, statisticsId]);
+
+  /** ✅ 初始讀取 AsyncStorage */
+  React.useEffect(() => {
+    const loadSavedChips = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(`${statisticsId}-${section?.id}-@dataSet`);
+        if (saved) {
+          const parsed: ChipsData = JSON.parse(saved);
+          if (parsed?.selected_questions) {
+            updateChips(parsed);
+          }
+          // console.log(parsed,'parsed---')
+        }
+      } catch (err) {
+        console.warn('載入已選題目失敗：', err);
+      }
+    };
+    loadSavedChips();
+  }, []);
 
   return (
     <View style={styles.root}>
-      {/* 已選擇的題目 */}
       <Text style={[styles.sectionTitle, { marginTop: 4 }]}>{selectedTitle}</Text>
+
+      {/* ✅ 顯示 chips */}
       <View style={styles.chipsWrap}>
-        {chips.map((c, idx) => (
-          <Chip
-            key={c.key}
-            prefix={String.fromCharCode(65 + idx)} // A/B/C...
-            label={c.label}
-            onRemove={() => removeChip(c.key)}
-            onInputChange={(v) => onChipInputChange?.(c.key, v)}
-          />
-        ))}
+        {chips?.selected_questions?.length > 0 ? (
+          chips.selected_questions.map((c, idx) => (
+            <Chip
+              key={c.key}
+              label={c.label}
+              onRemove={() => removeChip(c.key)}
+              onInputChange={(v) => onChipInputChange?.(c.key, v)}
+            />
+          ))
+        ) : (
+          <Text style={{ color: '#999', marginTop: 8 }}>尚未選擇題目</Text>
+        )}
       </View>
 
-      {/* step=0 顯示題目清單 */}
+      {/* ✅ 題目清單 */}
       {step === 0 && (
         <FlatList
           data={RAW_QUESTIONS}
@@ -121,22 +150,20 @@ export default function Version3Block({
             <LlStatisticsQuestionCard001
               key={item.id}
               checkboxVisible={true}
-              // 讓卡片知道目前是否已選（受控）
               checked={hasChip(item.id)}
-              // 勾/取消勾 → 同步 chips
               checkboxOnPress={handleToggleQuestion}
-              onPress={() => {}}
+              onPress={() => { }}
               style={{ marginTop: 8 }}
               no={index + 1}
               answer={item}
-              title={item.title}
+              title={`${item.title} ${section?.id}`}
               score={item.score}
             />
           )}
         />
       )}
 
-      {/* step=1 顯示公式區塊 */}
+      {/* ✅ 公式區塊 */}
       {step === 1 && (
         <WsPaddingContainer
           padding={0}
@@ -146,12 +173,11 @@ export default function Version3Block({
             borderRadius: 10,
           }}
         >
-          <FormulaRelationsMobileDemo
-            onEdit={() => {
-              setModalVisibleSourceData?.();
-            }}
-            onPreviewAndDeleteData={() => {}}
-            onDelete={() => {}}
+          <RelationshipFormulaBlock
+            onEdit={() => setModalVisibleSourceData?.()}
+            onPreviewAndDeleteData={() => { }}
+            onDelete={() => { }}
+            chips={chips}
           />
         </WsPaddingContainer>
       )}
@@ -159,7 +185,7 @@ export default function Version3Block({
   );
 }
 
-/* ===== 小元件：Chip ===== */
+/* ===== Chip 元件 ===== */
 function Chip({
   prefix,
   label,
@@ -201,14 +227,12 @@ function Chip({
 const styles = StyleSheet.create({
   root: { paddingTop: 2 },
   sectionTitle: { fontSize: 16, color: '#111', marginBottom: 6 },
-
-  /* Chips */
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   chip: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#f7f9fb', borderWidth: 1, borderColor: '#d9dbe2',
     borderRadius: 999, paddingHorizontal: 8, paddingVertical: 6,
-    marginRight: 8, marginTop: 8,
+    marginRight: 8, marginTop: 8
   },
   chipPrefix: {
     width: 24, height: 24, borderRadius: 12,
@@ -216,7 +240,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   chipPrefixTxt: { color: '#0b5aaa', fontSize: 12 },
-  chipLabel: { color: '#111', maxWidth: 160 },
+  chipLabel: { color: '#111', maxWidth: 160, paddingHorizontal: 8 },
   chipSmallInput: {
     marginLeft: 6, borderWidth: 1, borderColor: '#d9dbe2',
     borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, minWidth: 40, backgroundColor: '#fff',

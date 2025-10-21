@@ -37,7 +37,8 @@ const LicensePickTypeTemplate = (props) => {
 
   const {
     title,
-    setModalAddRecord
+    setModalAddRecord,
+    statisticsId
   } = props
 
   // STATES
@@ -266,6 +267,7 @@ const LicensePickTypeTemplate = (props) => {
           <CheckLists
             setModalAddRecord={setModalAddRecord}
             setStateModal001={setStateModal001}
+            statisticsId={statisticsId}
           ></CheckLists>
         </View>
       </WsModal >

@@ -51,7 +51,8 @@ const LlStatisticsQuestionCard001 = (props) => {
     checkboxOnPress,
     checked,
     done,
-    testID
+    testID,
+    title,
   } = props
 
   const currentUser = useSelector(state => state.data.currentUser)
@@ -232,111 +233,10 @@ const LlStatisticsQuestionCard001 = (props) => {
                 {answer?.sequence}{' .'}
               </WsText>
               <WsText fontWeight="bold" size={14}>
-                {answer?.title}
+                {title}
               </WsText>
             </WsFlex>
           </WsFlex>
-
-          {/* 答題者 */}
-          {/* <WsFlex style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center' }}>
-            <WsText size={14} fontWeight="600" style={{ width: 68 }}>
-              {t('答題者')}
-            </WsText>
-
-            {answer?.updated_user ? (
-              <WsFlex>
-                <WsAvatar size={32} isUri source={answer.updated_user?.avatar ?? null} />
-                <View style={{ justifyContent: 'center' }}>
-                  <WsText size={12} style={{ paddingLeft: 8 }}>
-                    {answer.updated_user?.name}
-                  </WsText>
-                  {answer.updated_at && (
-                    <WsFlex style={{ paddingLeft: 8 }}>
-                      <WsTag>{t('已完成')}</WsTag>
-                      <WsDes style={{ padding: 4 }}>
-                        {moment(answer.updated_at).format('YYYY-MM-DD HH:mm')}
-                      </WsDes>
-                    </WsFlex>
-                  )}
-                </View>
-              </WsFlex>
-            ) : (
-              <WsInfo
-                style={{ flexDirection: 'row', alignItems: 'center', width: 120 }}
-                type={
-                  (answer?.question_setting?.checkers?.length ?? 0) > 0 ? 'users' : 'user'
-                }
-                isUri
-                value={
-                  (answer?.question_setting?.checkers?.length ?? 0) > 0
-                    ? answer?.question_setting?.checkers
-                    : currentUser
-                }
-              />
-            )}
-          </WsFlex> */}
-
-          {/* 位置連結 */}
-          {/* {answer?.latLng?.latitude && answer?.latLng?.longitude && (
-            <View style={{ marginTop: 8 }}>
-              <WsInfo
-                type="link"
-                label={t('答題位置')}
-                value={`${answer.latLng.latitude}, ${answer.latLng.longitude}`}
-                onPress={openMap}
-                style={{ flexDirection: 'row', flexWrap: 'wrap' }}
-              />
-            </View>
-          )} */}
-
-          {/* 分數 */}
-          {/* <WsFlex alignItems="center" style={{ marginTop: 8 }}>
-            <WsIcon name={scoreIcon()} size={20} color={scoreIconColor()} />
-            <WsText style={{ marginLeft: 8 }} size={14} fontWeight="600">
-              {scoreText()}
-            </WsText>
-          </WsFlex> */}
-
-          {/* 風險 */}
-          {/* {answer?.effects?.length > 0 && (
-            <>
-              <WsFlex>
-                <WsIcon color={$color.danger} name="md-info-outline" />
-                <WsText
-                  style={{ marginTop: 8, marginLeft: 8, marginRight: 8 }}
-                  color={$color.danger}
-                  size={14}
-                  fontWeight="600"
-                >
-                  {t('風險')}
-                </WsText>
-              </WsFlex>
-              <WsFlex>
-                <WsFlex flexWrap="wrap" style={{ width: width - 72 }}>
-                  {answer.effects.map((item, index) => (
-                    <WsTag
-                      key={index}
-                      backgroundColor={$color.danger10l}
-                      textColor={$color.danger}
-                      style={{ marginTop: 4, marginRight: 8 }}
-                    >
-                      {item.name}
-                    </WsTag>
-                  ))}
-                  {answer.factory_effects?.map((item, index) => (
-                    <WsTag
-                      key={`f-${index}`}
-                      backgroundColor={$color.danger10l}
-                      textColor={$color.danger}
-                      style={{ marginTop: 4, marginRight: 8 }}
-                    >
-                      {item.name}
-                    </WsTag>
-                  ))}
-                </WsFlex>
-              </WsFlex>
-            </>
-          )} */}
 
           {/* 必填提醒 */}
           {needRemark() && !answer?.remark && (

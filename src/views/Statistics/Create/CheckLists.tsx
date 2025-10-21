@@ -39,7 +39,8 @@ const CheckLists: React.FC<CheckListFrequencyProps> = (props) => {
     defaultFilter,
     type,
     setStateModal001,
-    setModalAddRecord
+    setModalAddRecord,
+    statisticsId
   } = props
 
   // REDUX
@@ -317,6 +318,10 @@ const CheckLists: React.FC<CheckListFrequencyProps> = (props) => {
                 InteractionManager.runAfterInteractions(() => {
                   navigation.push('RoutesStatistics', {
                     screen: 'StatisticsRecordCreate',
+                    params: {
+                      checklist: item,
+                      statisticsId: statisticsId
+                    }
                   });
                 });
               }}

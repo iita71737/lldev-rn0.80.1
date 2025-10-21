@@ -118,7 +118,7 @@ const TrainingList: React.FC<TrainingListProps> = props => {
   const [demoData, setDemoData] = React.useState([])
   const loadStatistics = async () => {
     try {
-      const jsonValue = await AsyncStorage.getItem('@statistics_data');
+      const jsonValue = await AsyncStorage.getItem(`@statistics_data`);
       const parsed = JSON.parse(jsonValue);
       const newArray = [parsed]; // ✅ 包成一個陣列
       setDemoData(newArray);

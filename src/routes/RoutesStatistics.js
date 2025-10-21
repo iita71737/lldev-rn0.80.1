@@ -34,6 +34,7 @@ const StackSetting = createStackNavigator()
 import StatisticsShow from '@/views/Statistics/Show'
 import StatisticsRecordCreate from '@/views/Statistics/Create/StatisticsRecordCreate'
 import AsyncStorage from '@react-native-community/async-storage'
+import { nanoid } from 'nanoid/non-secure';
 
 const RoutesStatistics = ({ navigation }) => {
   // i18n
@@ -368,46 +369,25 @@ const RoutesStatistics = ({ navigation }) => {
 
   // 新增事件
   const submitStatisticsCreate = async (data, navigation) => {
-    console.log(data, 'data--');
+    const _id = nanoid()
     try {
-      // 1️⃣ 將物件轉成字串
-      const jsonValue = JSON.stringify(data);
-      // 2️⃣ 寫入本地儲存
-      await AsyncStorage.setItem('@statistics_data', jsonValue);
-      console.log('✅ 資料已成功儲存');
-      // 3️⃣ （選用）導向其他頁面
-      navigation.navigate('StatisticsIndex', { data });
+      // 1️⃣ 為每筆資料加上唯一 ID（不影響原物件）
+      const withId = {
+        ...data,
+        id: _id, // ✅ 自動產生 UUID
+        created_at: new Date().toISOString(), // （可選）附上建立時間
+      };
+      console.log(withId, '📦 儲存資料物件');
+      // 2️⃣ 將物件轉成 JSON
+      const jsonValue = JSON.stringify(withId);
+      // 3️⃣ 寫入本地儲存
+      await AsyncStorage.setItem(`@statistics_data`, jsonValue);
+      console.log(jsonValue, '✅ 資料已成功儲存');
+      // 4️⃣ 導向其他頁面
+      navigation.navigate('StatisticsIndex', { data: withId });
     } catch (e) {
       console.error('❌ 儲存失敗:', e);
     }
-
-    // const _data = await S_Event.getFormattedData(data, currentUser)
-    // console.log(_data, '_data--');
-    // try {
-    //   const res = await S_Event.create({
-    //     data: _data
-    //   }).then(res => {
-    //     // https://gitlab.com/ll_esh/ll_esh_lobby/ll_esh_lobby_app_issue/-/issues/1886
-    //     navigation.reset({
-    //       index: 1,
-    //       routes: [
-    //         {
-    //           name: 'EventIndex',
-    //         },
-    //         {
-    //           name: 'EventShow',
-    //           params: {
-    //             id: res.id
-    //           }
-    //         }
-    //       ],
-    //       key: null
-    //     })
-    //   })
-    // } catch (e) {
-    //   console.error(e);
-    //   navigation.navigate('EventIndex')
-    // }
   }
 
   // 編輯事件

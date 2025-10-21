@@ -1009,6 +1009,7 @@ const WsState = React.forwardRef((props, ref) => {
             isError={isError}
             params={params}
             records={records}
+            style={style}
           />
         </>
       )}
