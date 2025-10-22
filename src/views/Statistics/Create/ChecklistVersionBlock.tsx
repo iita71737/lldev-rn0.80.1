@@ -33,6 +33,7 @@ type Version3BlockProps = {
 
 export default function ChecklistVersionBlock({
   isOpen,
+  onPreview,
   step,
   chips: cChips,
   onChipsChange,
@@ -113,7 +114,7 @@ export default function ChecklistVersionBlock({
           if (parsed?.selected_questions) {
             updateChips(parsed);
           }
-          console.log(parsed,'parsed---')
+          console.log(parsed, 'parsed---')
         }
       } catch (err) {
         console.warn('載入已選題目失敗：', err);
@@ -175,8 +176,8 @@ export default function ChecklistVersionBlock({
           }}
         >
           <RelationshipFormulaBlock
-            onEdit={() => setModalVisibleSourceData?.()}
-            onPreviewAndDeleteData={() => { }}
+            onPreviewAndDeleteData={setModalVisibleSourceData}
+            onEdit={() => {}}
             onDelete={() => { }}
             chips={chips}
             statisticsId={statisticsId}

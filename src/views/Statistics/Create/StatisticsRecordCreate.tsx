@@ -431,6 +431,7 @@ const StatisticsRecordCreate = (props) => {
                 onCreate={(expr) => setRules(xs => [{ id: String(Date.now()), expression: expr }, ...xs])}
                 onEditFormula={() => setModalActiveFormula(true)}
                 statisticsId={_statisticsId}
+                sections={sections}
               />
 
               {/* 版本/題目選擇（沿用你的 Accordion + Block） */}

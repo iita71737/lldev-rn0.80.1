@@ -19,7 +19,7 @@ import {
 } from "@/components";
 import $color from "@/__reactnative_stone/global/color";
 import { useTranslation } from "react-i18next";
-import { params, records } from "./mock/records";
+import { records } from "./mock/records";
 import AsyncStorage from '@react-native-community/async-storage';
 
 // Android 啟用 LayoutAnimation
@@ -230,7 +230,7 @@ export default function FormulaRelationsMobileDemo({
                 size={28}
                 name="ws-outline-filter-outline"
                 label="瀏覽並刪除資料"
-                onPress={() => onPreviewAndDeleteData?.(item)}
+                onPress={() => onPreviewAndDeleteData(true)}
               />
               <WsIconBtn
                 padding={0}
@@ -298,6 +298,10 @@ export default function FormulaRelationsMobileDemo({
       }
     })();
   }, [statisticsId, sectionId]);
+
+
+  // console.log('qs : ',chips?.selected_questions)
+  // console.log('records: ', records)
 
 
   return (

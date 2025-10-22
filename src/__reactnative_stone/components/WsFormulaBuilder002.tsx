@@ -92,14 +92,18 @@ export default function WsFormulaBuilder002({
   const [previewResults, setPreviewResults] = React.useState<any[]>([]);
   const inputRef = React.useRef<TextInput>(null);
 
+  // console.log('displayExpression: ', displayExpression)
+  // console.log('realExpression: ', realExpression)
+  // console.log('previewResults: ', previewResults)
+
   // ====== 追蹤「使用者點選過」的參數（含當下自訂名）======
   const [usedParams, setUsedParams] = React.useState<ParamItem[]>([]);
 
   const fnDefs = [
-    { key: "SUM", label: "加總", insert: "SUM(題目A, 題目B)" },
-    { key: "MAX", label: "最大值", insert: "MAX(題目A, 題目B)" },
-    { key: "MIN", label: "最小值", insert: "MIN(題目A, 題目B)" },
-    { key: "AVERAGE", label: "平均值", insert: "AVERAGE(題目A, 題目B)" },
+    { key: "SUM", label: "加總", insert: "SUM(A, B)" },
+    { key: "MAX", label: "最大值", insert: "MAX(A, B)" },
+    { key: "MIN", label: "最小值", insert: "MIN(A, B)" },
+    { key: "AVERAGE", label: "平均值", insert: "AVERAGE(A, B)" },
   ];
 
   // === 使用者可編輯的自訂名稱清單（僅影響顯示 / 解析） ===
@@ -317,6 +321,7 @@ export default function WsFormulaBuilder002({
         } catch {
           // 友善提示：找出 realExpression 中 ctx 未知符號
           const tokens = Array.from(new Set(realExpression.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []));
+          console.log(tokens,'tokens')
           const knownFns = new Set(["SUM", "MAX", "MIN", "AVERAGE"]);
           const unknown = tokens.filter(tok => !knownFns.has(tok) && !(tok in ctx));
           result = unknown.length ? `未識別: ${unknown.join(", ")}` : "❌";

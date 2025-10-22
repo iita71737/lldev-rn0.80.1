@@ -1,16 +1,13 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
-  Pressable,
   FlatList,
-  Platform,
   ViewStyle,
   TextStyle,
   TouchableOpacity,
-  ScrollView
+  ScrollView,
 } from 'react-native';
 import {
   WsState,
@@ -21,10 +18,16 @@ import {
 } from "@/components";
 import { useTranslation } from "react-i18next";
 import $color from "@/__reactnative_stone/global/color";
+import AsyncStorage from '@react-native-community/async-storage';
 
 export type FormulaRule = {
   id: string;
   expression: string; // 例如: "sum(result)"
+};
+
+type SectionLike = {
+  id: string | number;          // 例如 'v1' | 'v2' | 'v3'
+  title?: string | React.ReactNode;
 };
 
 type Props = {
@@ -33,11 +36,17 @@ type Props = {
   rules: FormulaRule[];
   onPreview?: (rule: FormulaRule) => void;
   onDelete?: (rule: FormulaRule) => void;
-  onCreate?: (expression: string) => void; // 按新增時回傳新字串，外層可決定是否接手存檔
+  onCreate?: (expression: string) => void;
   onEditFormula?: (rule: FormulaRule) => void;
   style?: ViewStyle;
   pillTextStyle?: TextStyle;
   expressionBoxStyle?: ViewStyle;
+
+  /** 讀取 localstorage key 用：`${statisticsId}-${sectionId}-@dataSet` */
+  statisticsId?: string | number;
+
+  /** 從外層傳入所有 sections（至少要有 id） */
+  sections?: SectionLike[];
 };
 
 export default function FormulaTimeUnitList({
@@ -51,38 +60,118 @@ export default function FormulaTimeUnitList({
   style,
   expressionBoxStyle,
   statisticsId,
+  sections = [],
 }: Props) {
   const { t } = useTranslation();
 
-  const [modalActiveFormula, setModalActiveFormula] = React.useState(false)
+  const [modalActiveFormula, setModalActiveFormula] = useState(false);
   const [formulaData, setFormulaData] = useState<any>(null);
 
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState(''); // 新增輸入
+  /** ✅ 每個 section 的 A / B 結果 */
+  const [perSectionParams, setPerSectionParams] = useState<Record<string, Array<{ key: string; label: string }>>>({});
+  const [perSectionRecords, setPerSectionRecords] = useState<Record<string, Array<{ created_at: string; 公式結果: number }>>>({});
 
-  const canSubmit = draft.trim().length > 0;
+  /** ✅ 合併給 WsFormulaBuilder002 用 */
+  const paramsForBuilder = useMemo(
+    () => sections.flatMap(s => perSectionParams[String(s.id)] ?? []),
+    [sections, perSectionParams]
+  );
+  const recordsForBuilder = useMemo(
+    () => sections.flatMap(s => perSectionRecords[String(s.id)] ?? []),
+    [sections, perSectionRecords]
+  );
 
-  const handleAddPress = useCallback(() => {
-    setAdding(true);
-    setDraft('');
-  }, []);
+  const [loading, setLoading] = useState(false);
 
-  const handleCreate = useCallback(() => {
-    if (!canSubmit) return;
-    onCreate?.(draft.trim());
-    setAdding(false);
-    setDraft('');
-  }, [canSubmit, draft, onCreate]);
+  /** 產生儲存鍵 */
+  const buildDatasetKey = useCallback(
+    (statisticsId?: string | number, sectionId?: string | number) =>
+      `${statisticsId}-${sectionId}-@dataSet`,
+    []
+  );
 
-  const handleCancel = useCallback(() => {
-    setAdding(false);
-    setDraft('');
-  }, []);
+  /** 正規化一列 previewResult → { created_at, 公式結果 }，不變更時區、不截斷 */
+  const normalizePreviewRow = (row: any) => {
+    const t = row?.created_at || row?.time || row?.紀錄時間 || row?.日期 || null;
+    const v = Number(row?.['公式結果']);
+    if (!t || !Number.isFinite(v)) return null;
+    return { created_at: String(t), 公式結果: v };
+  };
 
+  /** 讀一個 section，做出該 section 的 A / B */
+  const readOneSectionAB = useCallback(async (sectionId: string | number) => {
+    if (statisticsId == null || sectionId == null) return { A: [], B: [] as any[] };
+
+    const key = buildDatasetKey(statisticsId, sectionId);
+    const raw = await AsyncStorage.getItem(key);
+    const ds = raw ? JSON.parse(raw) : null;
+
+    const formulas: any[] = Array.isArray(ds?.formulas) ? ds.formulas : [];
+
+    // A：[{ key: formula.id, label: `[v1] Summmm` }]
+    const A = formulas
+      .filter(f => f?.id)
+      .map(f => ({
+        key: String(f.id),
+        label: `[${String(sectionId)}] ${String(f?.name ?? f.id)}`
+      }));
+
+    // B：攤平所有 formulas 的 previewResults → { created_at, 公式結果 }（不聚合、不截斷時間）
+    const B: Array<{ created_at: string; 公式結果: number }> = [];
+    for (const f of formulas) {
+      const list: any[] = Array.isArray(f?.previewResults) ? f.previewResults : [];
+      for (const row of list) {
+        const norm = normalizePreviewRow(row);
+        if (norm) B.push(norm);
+      }
+    }
+
+    return { A, B };
+  }, [statisticsId, buildDatasetKey]);
+
+  /** 載入所有 sections 的 A / B，並填入 perSection 狀態與合併結果 */
+  const loadAllSectionsAB = useCallback(async () => {
+    if (statisticsId == null || !sections.length) {
+      setPerSectionParams({});
+      setPerSectionRecords({});
+      return;
+    }
+    setLoading(true);
+    try {
+      const paramsMap: Record<string, Array<{ key: string; label: string }>> = {};
+      const recordsMap: Record<string, Array<{ created_at: string; 公式結果: number }>> = {};
+
+      for (const s of sections) {
+        const { A, B } = await readOneSectionAB(s.id);
+        paramsMap[String(s.id)] = A;
+        recordsMap[String(s.id)] = B;
+      }
+
+      setPerSectionParams(paramsMap);
+      setPerSectionRecords(recordsMap);
+
+      // 🔍 debug
+      console.log('[FormulaTimeUnitList] perSectionParams:', JSON.stringify(paramsMap));
+      console.log('[FormulaTimeUnitList] perSectionRecords:', JSON.stringify(recordsMap));
+      console.log('[FormulaTimeUnitList] paramsForBuilder:', JSON.stringify(sections.flatMap(s => paramsMap[String(s.id)] ?? [])));
+      console.log('[FormulaTimeUnitList] recordsForBuilder:', JSON.stringify(sections.flatMap(s => recordsMap[String(s.id)] ?? [])));
+    } catch (err) {
+      console.warn('載入 sections A/B 失敗：', err);
+      setPerSectionParams({});
+      setPerSectionRecords({});
+    } finally {
+      setLoading(false);
+    }
+  }, [sections, statisticsId, readOneSectionAB]);
+
+  useEffect(() => {
+    loadAllSectionsAB();
+  }, [loadAllSectionsAB]);
+
+  /** 單列渲染（操作按鈕放在公式名稱下方） */
   const renderItem = useCallback(
     ({ item, index }: { item: FormulaRule; index: number }) => (
       <View style={styles.item}>
-        {/* 上：公式名稱 + 表達式（整塊可點進編輯） */}
         <TouchableOpacity
           style={[styles.exprBox, expressionBoxStyle]}
           onPress={() => onEditFormula?.(item)}
@@ -93,55 +182,62 @@ export default function FormulaTimeUnitList({
           </Text>
         </TouchableOpacity>
 
-        <WsFlex justifyContent={"space-between"}>
-          <View style={styles.actionBar}>
-            {/* <WsIconBtn
-              padding={0}
-              style={{
-              }}
-              size={28}
-              name="md-edit"
-              label="編輯"
-              onPress={() =>
-                setModalActiveFormula(true)
-              }
-            /> */}
-            <WsIconBtn
-              padding={0}
-              style={{ marginLeft: 8 }}
-              size={28}
-              name="ws-outline-filter-outline"
-              label="瀏覽並刪除資料"
-              onPress={() => { }}
-            />
-            <WsIconBtn
-              padding={0}
-              style={{ marginLeft: 8 }}
-              size={28}
-              color={$color.danger}
-              name="md-delete"
-              label="刪除"
-              onPress={() => { }}
-            />
-          </View>
+        <WsFlex justifyContent="flex-start" style={styles.actionsBar}>
+          <WsIconBtn
+            padding={0}
+            size={28}
+            name="md-create"
+            label="編輯"
+            onPress={() => onEditFormula?.(item)}
+          />
+          <WsIconBtn
+            padding={0}
+            size={28}
+            style={{ marginLeft: 8 }}
+            name="ws-outline-filter-outline"
+            label="預覽"
+            onPress={() => onPreview?.(item)}
+          />
+          <WsIconBtn
+            padding={0}
+            size={28}
+            style={{ marginLeft: 8 }}
+            color={$color.danger}
+            name="md-delete"
+            label="刪除"
+            onPress={() => onDelete?.(item)}
+          />
         </WsFlex>
-
       </View>
     ),
     [expressionBoxStyle, onDelete, onPreview, onEditFormula]
   );
-
-
 
   const keyExtractor = useCallback((r: FormulaRule) => r.id, []);
 
   return (
     <>
       <View style={[styles.container, style]}>
-
+        {/* 標題區 */}
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
+        <Text style={styles.subtitle}>
+          {subtitle}
+          {loading ? '（讀取中…）' : ''}
+          {!!recordsForBuilder.length && `（已彙整 ${recordsForBuilder.length} 筆 previewResults）`}
+        </Text>
 
+        {/* 快速工具列 */}
+        <WsFlex style={{ marginBottom: 8, flexWrap: 'wrap' }}>
+          <WsIconBtn
+            padding={0}
+            size={24}
+            name="md-refresh"
+            label="重讀所有區塊"
+            onPress={loadAllSectionsAB}
+          />
+        </WsFlex>
+
+        {/* 你的 rules 清單 */}
         <FlatList
           data={rules}
           keyExtractor={keyExtractor}
@@ -151,162 +247,96 @@ export default function FormulaTimeUnitList({
           showsVerticalScrollIndicator={false}
         />
 
-        {/* 新增區域 */}
+        {/* 開啟公式編輯 Modal（會把 paramsForBuilder / recordsForBuilder 餵給 WsFormulaBuilder002） */}
         <WsIconBtn
           padding={0}
           name="md-add"
           size={24}
-          style={{
-          }}
           onPress={() => {
-            setModalActiveFormula(!modalActiveFormula)
+            setModalActiveFormula(true);
           }}
         />
-
       </View>
 
-      {/* 編輯公式語公式名稱 */}
+      {/* 編輯公式與其屬性（Modal） */}
       <WsModal
         visible={modalActiveFormula}
-        onBackButtonPress={() => {
-          setModalActiveFormula(false)
-        }}
-        headerLeftOnPress={() => {
-          setModalActiveFormula(false)
-        }}
+        onBackButtonPress={() => setModalActiveFormula(false)}
+        headerLeftOnPress={() => setModalActiveFormula(false)}
         headerRightOnPress={() => {
-          // $_submit()
-          // setModalActiveFormula(false)
+          setModalActiveFormula(false);
         }}
-        // RightOnPressIsDisabled={$_validation()}
         headerRightText={t('送出')}
         title={t('編輯公式')}
       >
         <ScrollView>
           <WsPaddingContainer>
-
+            {/* ⬇️ 直接把合併好的 A/B 傳給 WsFormulaBuilder002 */}
             <WsState
               type="formula"
-              style={{
-                marginVertical: 8,
-              }}
+              style={{ marginVertical: 8 }}
               label={t('公式​')}
               placeholder={t('輸入')}
               value={formulaData?.expression}
-              params={[]}
-              records={[]}
-              uniqueKey={'key'}
-              onChange={(p) =>
-                setFormulaData(p)
-              }
+              params={paramsForBuilder}          // 例：[{ key: '176110...', label: '[v1] Summmm' }, ...]
+              records={recordsForBuilder}        // 例：[{ created_at:'2025-08-01T01:00:00+08:00', 公式結果:21 }, ...]
+              uniqueKey={'created_at'}
+              onChange={(p) => setFormulaData(p)}
               statisticsId={statisticsId}
             />
 
             <WsState
-              style={{
-                marginVertical: 8
-              }}
+              style={{ marginVertical: 8 }}
               label={t('公式名稱')}
               placeholder={t('輸入')}
               value={formulaData?.name}
-              onChange={
-                (name: string) => setFormulaData((prev) => ({ ...prev, name }))
+              onChange={(name: string) =>
+                setFormulaData((prev: any) => ({ ...prev, name }))
               }
             />
 
             <WsState
-              style={{
-                marginVertical: 8
-              }}
+              style={{ marginVertical: 8 }}
               label={t('結果欄位名稱')}
               placeholder={t('輸入')}
               value={formulaData?.resultFieldName}
-              onChange={(resultFieldName: string) => {
-                setFormulaData((prev) => ({ ...prev, resultFieldName }))
-              }}
+              onChange={(resultFieldName: string) =>
+                setFormulaData((prev: any) => ({ ...prev, resultFieldName }))
+              }
             />
 
             <WsState
-              style={{
-                marginVertical: 8
-              }}
+              style={{ marginVertical: 8 }}
               label={t('結果單位')}
               placeholder={t('輸入')}
               value={formulaData?.resultFieldUnit}
-              onChange={(resultFieldUnit: string) => {
-                setFormulaData((prev) => ({ ...prev, resultFieldUnit }))
-              }}
+              onChange={(resultFieldUnit: string) =>
+                setFormulaData((prev: any) => ({ ...prev, resultFieldUnit }))
+              }
             />
 
             <WsState
               label={t('備註')}
               multiline={true}
-              style={{
-              }}
               placeholder={t('輸入')}
               value={formulaData?.remark}
-              onChange={(remark: string) => {
-                setFormulaData((prev) => ({ ...prev, remark }))
-              }}
+              onChange={(remark: string) =>
+                setFormulaData((prev: any) => ({ ...prev, remark }))
+              }
             />
 
             <WsState
-              style={{
-                marginTop: 8
-              }}
+              style={{ marginTop: 8 }}
               modelName="checklist_record_answer"
               type="Ll_filesAndImages"
               label={t('附件')}
               value={formulaData?.images}
-              onChange={() => {
-              }}
+              onChange={() => {}}
             />
-
           </WsPaddingContainer>
         </ScrollView>
       </WsModal>
-
     </>
-  );
-}
-
-function Pill({
-  label,
-  onPress,
-  danger,
-  disabled,
-  style,
-}: {
-  label: string;
-  onPress?: () => void;
-  danger?: boolean;
-  disabled?: boolean;
-  style?: ViewStyle;
-}) {
-  return (
-    <Pressable
-      onPress={disabled ? undefined : onPress}
-      style={({ pressed }) => [
-        styles.pill,
-        danger && styles.pillDanger,
-        disabled && styles.pillDisabled,
-        pressed && !disabled && { opacity: 0.75, transform: [{ scale: 0.98 }] },
-        style,
-      ]}
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      accessibilityLabel={label}
-    >
-      <Text
-        style={[
-          styles.pillText,
-          danger && styles.pillTextDanger,
-          disabled && styles.pillTextDisabled,
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
   );
 }
 
@@ -320,24 +350,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // 斜虛線
-  diagonal: {
-    position: 'absolute',
-    top: -40,
-    right: -120,
-    width: 320,
-    height: 0,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: '#9aa0a6',
-    transform: [{ rotate: '25deg' }],
-    opacity: 0.5,
-  },
-  diagonal2: {
-    top: 24,
-    right: -160,
-  },
-
   title: {
     fontSize: 18,
     color: '#111',
@@ -349,71 +361,10 @@ const styles = StyleSheet.create({
     color: '#4f5561',
     marginBottom: 10,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  addRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 8,
-  },
-  input: {
-    paddingVertical: 0,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1.5,
-    borderRadius: 999,
-    borderColor: '#111',
-    backgroundColor: '#fff',
-  },
-  pillDanger: {
-    borderColor: '#111',
-  },
-  pillDisabled: {
-    opacity: 0.45,
-  },
-  pillText: {
-    fontSize: 13,
-    color: '#111',
-    fontWeight: '600',
-  },
-  pillTextDanger: {
-    color: '#111',
-  },
-  pillTextDisabled: {
-    color: '#555',
-  },
 
-  addButton: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderColor: '#111',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  plus: {
-    fontSize: 20,
-    lineHeight: 20,
-    color: '#111',
-    fontWeight: '800',
-  },
   item: {
     paddingVertical: 10,
-    paddingHorizontal: 0,     // 視你的列表外距調整
+    paddingHorizontal: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.06)',
   },
@@ -427,12 +378,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#222',
   },
-  actionsRow: {
+
+  actionsBar: {
     flexDirection: 'row',
-    flexWrap: 'wrap',         // 夠窄時自動換行
     alignItems: 'center',
-    gap: 8,                   // RN 0.71+ 可用；若舊版改用 marginRight
-    alignSelf: 'flex-start',
+    marginTop: 4,
   },
-  actionBar: { flexDirection: "row", flexWrap: "wrap" },
 });
