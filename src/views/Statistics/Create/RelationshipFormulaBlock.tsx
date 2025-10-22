@@ -42,6 +42,7 @@ type FormulaItem = {
     score?: number;
   }[];
   expanded?: boolean;
+  formula_used_params?: Array<{ key: string; label?: string; customLabel?: string }>;
 };
 
 type Props = {
@@ -101,20 +102,23 @@ export default function FormulaRelationsMobileDemo({
       const displayText = typeof fb?.displayExpression === "string" ? fb.displayExpression : "";
       const expression = typeof fb?.realExpression === "string" ? fb.realExpression : "";
       const previewResultsFromFB = Array.isArray(fb?.previewResults) ? fb.previewResults : [];
+      const usedParamsFromFB = Array.isArray(fb?.formula_used_params) ? fb.formula_used_params : [];
 
       // 3) 用本步頁面的欄位 + 公式欄位，組成一筆要追加/覆蓋的 formula
       const newFormula = {
-        id: formulaData?.id ?? `${Date.now()}`,                 // 沒 id 就用時間戳
+        id: formulaData?.id ?? `${Date.now()}`,
         name: formulaData?.name ?? "",
-        expression,                                              // ← 來自 formula_builder
-        displayText,                                             // ← 來自 formula_builder
-        previewResults: previewResultsFromFB,                    // ← 來自 formula_builder
+        expression,
+        displayText,
+        previewResults: previewResultsFromFB,
         resultFieldName: formulaData?.resultFieldName ?? "",
         resultFieldUnit: formulaData?.resultFieldUnit ?? "",
         remark: formulaData?.remark ?? "",
         images: formulaData?.images ?? [],
         createdAt: formulaData?.createdAt ?? nowIso,
         updatedAt: nowIso,
+        // ★ 關鍵：把用到的參數直接存進每一筆 formula
+        formula_used_params: usedParamsFromFB,
       };
 
       // 4) 讀出既有 formulas（若沒有就空陣列），同 id 覆蓋、否則追加
@@ -132,7 +136,7 @@ export default function FormulaRelationsMobileDemo({
       const next = { ...obj, formulas: nextFormulas };
       await AsyncStorage.setItem(storageKey, JSON.stringify(next));
 
-      console.log("✅ 已追加/更新公式：", JSON.stringify(newFormula));
+      console.log("✅ 已追加/更新公式：", JSON.stringify(next));
 
       // 6) （可選）即時更新列表 UI
       setList(curr => {
@@ -143,6 +147,8 @@ export default function FormulaRelationsMobileDemo({
             ...cloned[pos],
             name: newFormula.name,
             formulaString: newFormula.displayText || newFormula.expression,
+            // ★ 這裡改成用 newFormula 上的欄位
+            formula_used_params: newFormula.formula_used_params || [],
           };
           return cloned;
         }
@@ -154,6 +160,8 @@ export default function FormulaRelationsMobileDemo({
             formulaString: newFormula.displayText || newFormula.expression,
             chips: [],
             expanded: false,
+            // ★ 新增
+            formula_used_params: newFormula.formula_used_params || [],
           }
         ];
       });
@@ -253,49 +261,14 @@ export default function FormulaRelationsMobileDemo({
         </View>
 
         {/* 內容（收合） */}
-        {item.expanded && (
-          <View style={styles.body}>
-            {/* 題目方塊 */}
-            {item.chips?.selected_questions?.length > 0 ? (
-              <FlatList
-                data={[]}
-                keyExtractor={(item, index) => item.id}
-                renderItem={({ item, index }) => {
-                  return (
-                    <LlCheckListQuestionCard005
-                      key={item.id}
-                      checkboxVisible={true}
-                      checkboxOnPress={(answer) => {
-                      }}
-                      onPress={() => {
-                      }}
-                      style={{
-                        marginTop: 8
-                      }}
-                      no={index + 1}
-                      answer={item}
-                      title={item.title}
-                      score={item.score}
-                    />
-                  )
-                }}
-                ListHeaderComponent={() => {
-                  return (
-                    <>
-                    </>
-                  )
-                }}
-                ListFooterComponent={
-                  () => {
-                    return (
-                      <></>
-                    )
-                  }
-                }
-              />
-            ) : (
-              <Text style={styles.emptyText}>尚未選擇題目</Text>
-            )}
+        {Array.isArray(item.formula_used_params) && item.formula_used_params.length > 0 && (
+          <View style={{ paddingTop: 16, paddingHorizontal: 16, paddingBottom: 12 }}>
+            <Text style={{ color: "#0d0d0dff", marginBottom: 4 }}>使用的參數：</Text>
+            {item.formula_used_params.map((p, i) => (
+              <Text key={`${item.id}-p-${p.key}-${i}`} style={{ fontSize: 12, color: "#333" }}>
+                • {p.customLabel || p.label}
+              </Text>
+            ))}
           </View>
         )}
 
@@ -303,7 +276,29 @@ export default function FormulaRelationsMobileDemo({
     );
   };
 
-  // console.log(chips?.selected_questions, 'chips?.selected_questions--')
+
+  React.useEffect(() => {
+    (async () => {
+      if (!statisticsId || !sectionId) return;
+      const storageKey = `${statisticsId}-${sectionId}-@dataSet`;
+      try {
+        const raw = await AsyncStorage.getItem(storageKey);
+        const obj = raw ? JSON.parse(raw) : {};
+        const arr: any[] = Array.isArray(obj.formulas) ? obj.formulas : [];
+        setList(arr.map(f => ({
+          id: String(f.id),
+          name: String(f.name || ""),
+          formulaString: String(f.displayText || f.expression || ""),
+          chips: [],
+          expanded: false,
+          formula_used_params: Array.isArray(f.formula_used_params) ? f.formula_used_params : [],
+        })));
+      } catch (e) {
+        console.warn("載入 formulas 失敗：", e);
+      }
+    })();
+  }, [statisticsId, sectionId]);
+
 
   return (
     <ScrollView

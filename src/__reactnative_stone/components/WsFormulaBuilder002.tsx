@@ -81,7 +81,6 @@ export default function WsFormulaBuilder002({
     `${statisticsId}-${sectionId}-@dataSet`;
   const FORMULA_FIELD = "formula_builder"; // 存放公式資訊的欄位名
 
-
   const [visible, setVisible] = React.useState(false);
   const [tableVisible, setTableVisible] = React.useState(false);
 
@@ -93,9 +92,8 @@ export default function WsFormulaBuilder002({
   const [previewResults, setPreviewResults] = React.useState<any[]>([]);
   const inputRef = React.useRef<TextInput>(null);
 
-  // console.log('displayExpression: ', displayExpression)
-  // console.log('realExpression: ', realExpression)
-  // console.log('previewResults: ', previewResults)
+  // ====== 追蹤「使用者點選過」的參數（含當下自訂名）======
+  const [usedParams, setUsedParams] = React.useState<ParamItem[]>([]);
 
   const fnDefs = [
     { key: "SUM", label: "加總", insert: "SUM(題目A, 題目B)" },
@@ -126,7 +124,7 @@ export default function WsFormulaBuilder002({
     const idToVar = new Map<string, string>();
     const aliasToVar = new Map<string, string>(); // 需要 A1/A2… 再開
 
-    sorted.forEach((p: any, idx: number) => {
+    sorted.forEach((p: any) => {
       const id = p?.[uniqueKey] ?? p?.question_id ?? p?.key;
       if (!id) return;
       const safe = toSafeVar(String(id));
@@ -136,9 +134,6 @@ export default function WsFormulaBuilder002({
       // ✅ 同一參數：label 與 customLabel 都映射到同一個安全變數名
       if (p.label) labelToVar.set(String(p.label), safe);
       if (p.customLabel) labelToVar.set(String(p.customLabel), safe);
-
-      // 如需 A1/A2… 再打開
-      // aliasToVar.set(`A${idx + 1}`, safe);
     });
 
     return { labelToVar, idToVar, aliasToVar };
@@ -200,6 +195,63 @@ export default function WsFormulaBuilder002({
     return out.replace(/\s+/g, " ").trim();
   };
 
+  /** 從顯示用公式中，精準擷取用到的參數（支援 label 與 customLabel；避免子字串誤撞） */
+  const extractUsedParamsFromDisplay = (
+    display: string,
+    allParams: Array<{ key: string; label?: string; customLabel?: string }>
+  ): ParamItem[] => {
+    if (!display?.trim() || !allParams?.length) return [];
+
+    // 依文字長度由長到短，避免「pH值」先吃到「pH值 v1」
+    const candidates: Array<{ key: string; from: string; label?: string; customLabel?: string }> = [];
+    for (const p of allParams) {
+      if (p.label) candidates.push({ key: p.key, from: String(p.label), label: p.label, customLabel: p.customLabel });
+      if (p.customLabel) candidates.push({ key: p.key, from: String(p.customLabel), label: p.label, customLabel: p.customLabel });
+    }
+    candidates.sort((a, b) => b.from.length - a.from.length);
+
+    const isWordChar = (ch: string) => /[A-Za-z0-9_]/.test(ch || "");
+
+    const usedMap = new Map<string, ParamItem>(); // key -> ParamItem
+    let i = 0;
+    while (i < display.length) {
+      let matched = false;
+
+      for (const c of candidates) {
+        if (!c.from) continue;
+        if (display.startsWith(c.from, i)) {
+          const prev = display[i - 1] || "";
+          const next = display[i + c.from.length] || "";
+
+          // 邊界：避免命中更大詞的一部分
+          if (!isWordChar(prev) && !isWordChar(next)) {
+            // 收進結果（相同 key 只保留一次；customLabel 以當下為準）
+            if (!usedMap.has(c.key)) {
+              usedMap.set(c.key, {
+                key: c.key,
+                label: c.label || c.from,
+                ...(c.customLabel ? { customLabel: c.customLabel } : {}),
+              });
+            } else if (c.customLabel) {
+              // 已存在但這次命中有 customLabel，就覆蓋 customLabel（保留最新）
+              const prevItem = usedMap.get(c.key)!;
+              usedMap.set(c.key, { ...prevItem, customLabel: c.customLabel });
+            }
+
+            i += c.from.length;
+            matched = true;
+            break;
+          }
+        }
+      }
+
+      if (!matched) i += 1;
+    }
+
+    return Array.from(usedMap.values());
+  };
+
+
   const [inputValue, setInputValue] = React.useState("");
   const [modalVisible, setModalVisible] = React.useState(false);
   const [editingParam, setEditingParam] = React.useState<{
@@ -221,6 +273,12 @@ export default function WsFormulaBuilder002({
         p.key === (editingParam as any).key ? { ...p, customLabel: inputValue } : p
       )
     );
+    // ★ 同步更新 usedParams 內對應項目的 customLabel
+    setUsedParams((prev) =>
+      prev.map((p) =>
+        p.key === (editingParam as any).key ? { ...p, customLabel: inputValue } : p
+      )
+    );
     setModalVisible(false);
   };
 
@@ -234,8 +292,6 @@ export default function WsFormulaBuilder002({
     try {
       const newResults = records.map((r) => {
         const ctx: Record<string, number> = {};
-        // 若想顯示缺值提示，打開此行蒐集缺值
-        // const missing: string[] = [];
 
         effectiveParams.forEach((p: any) => {
           const id = p?.[uniqueKey] ?? p?.question_id ?? p?.key;
@@ -247,8 +303,7 @@ export default function WsFormulaBuilder002({
           const vname = paramMaps.idToVar.get(String(id)) || toSafeVar(String(id));
           const num = Number(raw);
           if (!Number.isFinite(num)) {
-            // 若想改為顯示缺值提示，改成：missing.push(p.customLabel || p.label || String(id));
-            ctx[vname] = 0; // ← 這裡採用「缺值當 0」策略，確保能照算
+            ctx[vname] = 0; // 缺值當 0
           } else {
             ctx[vname] = num;
           }
@@ -334,6 +389,25 @@ export default function WsFormulaBuilder002({
       cursorPos > 0 && !["+", "-", "*", "/", "(", ",", " "].includes(leftChar);
 
     insertAtCursor((needsPlus ? " + " : "") + displayName);
+
+    // ★ 記錄被點選過的參數（含當下 customLabel），避免重複 by key
+    setUsedParams((prev) => {
+      const merged: ParamItem = {
+        key: anyItem.key,
+        label: anyItem.label,
+        customLabel:
+          typeof anyItem.customLabel === "string" && anyItem.customLabel.trim()
+            ? anyItem.customLabel
+            : undefined,
+      };
+      const idx = prev.findIndex(p => p.key === anyItem.key);
+      if (idx >= 0) {
+        const clone = [...prev];
+        clone[idx] = { ...clone[idx], ...merged };
+        return clone;
+      }
+      return [...prev, merged];
+    });
   };
 
   // 🔘 插入函數（示例內的 label/customLabel 也會被 convertToReal 轉換）
@@ -345,6 +419,7 @@ export default function WsFormulaBuilder002({
     setDisplayExpression("");
     setRealExpression("");
     setPreviewResults([]);
+    setUsedParams([]); // 清空已選參數追蹤（依你的需求可保留或清空）
   };
 
   // 📊 預覽表格 headers：用 { key, label }，取值用 key（UUID/time/公式結果），顯示用 label（customLabel||label）
@@ -359,9 +434,9 @@ export default function WsFormulaBuilder002({
       ) ?? [];
 
     const labelMap = Object.fromEntries(
-      effectiveParams.map((p: any) => [
+      (params as any[]).map((p: any) => [
         p?.[uniqueKey] ?? p?.key,
-        p.customLabel || p.label, // 顯示優先用 customLabel
+        (p.customLabel ?? p.label),
       ])
     );
 
@@ -374,19 +449,32 @@ export default function WsFormulaBuilder002({
       cols.push({ key: "公式結果", label: "公式結果" });
     }
     return cols;
-  }, [previewResults, records, effectiveParams, uniqueKey]);
+  }, [previewResults, records, params, uniqueKey]);
 
   // 算欄寬用 label 長度
   const columnWidths = headers.map((h) =>
     h.key === "created_at" ? 200 : Math.max(h.label.length * 10 + 40, 100)
   );
 
-  // 套用並關閉
+  // 套用並關閉：把 usedParams 存入 formula_builder.formula_used_params
   const handleApplyAndClose = React.useCallback(async () => {
+    // 直接從使用者的顯示公式解析出「實際用到的參數（含當下自訂名）」
+    const usedFromFormula = extractUsedParamsFromDisplay(
+      displayExpression,
+      effectiveParams as any   // 帶入目前可用參數（含 customLabel）
+    );
+    setUsedParams(usedFromFormula); // 若之後 UI 要用得到
+
     const formulaPayload = {
-      displayExpression,          // 使用者看到/編輯的公式
-      realExpression,             // 轉換後可計算的公式
-      previewResults,             // 當前預覽的結果（陣列）
+      displayExpression,
+      realExpression,
+      previewResults,
+      // 存在 formula_builder 物件內
+      formula_used_params: usedFromFormula.map(p => ({
+        key: p.key,
+        label: p.label,
+        ...(p.customLabel ? { customLabel: p.customLabel } : {}),
+      })),
       updatedAt: new Date().toISOString(),
     };
 
@@ -394,17 +482,11 @@ export default function WsFormulaBuilder002({
       if (statisticsId != null && sectionId != null) {
         const storageKey = buildDatasetKey(statisticsId, sectionId);
 
-        // 1) 取出既有物件
         const raw = await AsyncStorage.getItem(storageKey);
         let obj: any = {};
-        if (raw) {
-          try { obj = JSON.parse(raw) ?? {}; } catch { obj = {}; }
-        }
+        if (raw) { try { obj = JSON.parse(raw) ?? {}; } catch { obj = {}; } }
 
-        // 2) 合併：保留 selected_questions 等欄位，追加/覆蓋 formula 欄位
         const next = { ...obj, [FORMULA_FIELD]: formulaPayload };
-
-        // 3) 寫回
         await AsyncStorage.setItem(storageKey, JSON.stringify(next));
       }
     } catch (err) {
@@ -413,10 +495,19 @@ export default function WsFormulaBuilder002({
 
     onChange?.({ expression: realExpression, value: 0, displayText: displayExpression });
     setVisible(false);
-  }, [displayExpression, realExpression, previewResults, statisticsId, sectionId, onChange]);
+  }, [
+    displayExpression,
+    realExpression,
+    previewResults,
+    effectiveParams,
+    statisticsId,
+    sectionId,
+    onChange
+  ]);
 
 
-  ////
+
+  // 初始讀取：把 formula_builder & formula_builder.formula_used_params 帶回
   React.useEffect(() => {
     const loadSaved = async () => {
       try {
@@ -427,27 +518,34 @@ export default function WsFormulaBuilder002({
 
         const parsed: any = JSON.parse(saved);
 
-        // 你原本的 selected_questions 流程
-        if (parsed?.selected_questions) {
-          console.log(parsed, 'parsed--');
-          // updateChips(parsed) // 若此元件需要就呼叫，否則略過
-        }
-
-        // ★ 新增：帶回已存的公式
+        // ★ 帶回已存的公式
         const fb = parsed?.[FORMULA_FIELD];
         if (fb) {
           if (typeof fb.displayExpression === "string") setDisplayExpression(fb.displayExpression);
           if (typeof fb.realExpression === "string") setRealExpression(fb.realExpression);
           if (Array.isArray(fb.previewResults)) setPreviewResults(fb.previewResults);
+
+          // ★ 從 formula_builder 內讀回 used params
+          const used = Array.isArray(fb.formula_used_params) ? fb.formula_used_params : [];
+          if (used.length) {
+            setUsedParams(used as ParamItem[]);
+            // 合併 customLabel 回參數清單（key 對得上才覆蓋）
+            setParamList(prev => {
+              if (!prev?.length) return prev;
+              const map = new Map(used.map((u: any) => [u.key, u]));
+              return prev.map(p => {
+                const u = map.get(p.key);
+                return u?.customLabel ? { ...p, customLabel: u.customLabel } : p;
+              });
+            });
+          }
         }
       } catch (err) {
         console.warn('載入已存資料失敗：', err);
       }
     };
     loadSaved();
-    // 依 ID 變化重載（避免 [] 只載一次）
   }, [statisticsId, sectionId]);
-
 
   return (
     <>

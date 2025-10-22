@@ -10,7 +10,17 @@ import {
   ViewStyle,
   TextStyle,
   TouchableOpacity,
+  ScrollView
 } from 'react-native';
+import {
+  WsState,
+  WsModal,
+  WsPaddingContainer,
+  WsFlex,
+  WsIconBtn
+} from "@/components";
+import { useTranslation } from "react-i18next";
+import $color from "@/__reactnative_stone/global/color";
 
 export type FormulaRule = {
   id: string;
@@ -30,9 +40,6 @@ type Props = {
   expressionBoxStyle?: ViewStyle;
 };
 
-const MONO_FONT =
-  Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }) || undefined;
-
 export default function FormulaTimeUnitList({
   title = '點檢表名稱',
   subtitle = '單位時間內的關係公式',
@@ -42,9 +49,14 @@ export default function FormulaTimeUnitList({
   onCreate,
   onEditFormula,
   style,
-  pillTextStyle,
   expressionBoxStyle,
+  statisticsId,
 }: Props) {
+  const { t } = useTranslation();
+
+  const [modalActiveFormula, setModalActiveFormula] = React.useState(false)
+  const [formulaData, setFormulaData] = useState<any>(null);
+
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState(''); // 新增輸入
 
@@ -68,77 +80,193 @@ export default function FormulaTimeUnitList({
   }, []);
 
   const renderItem = useCallback(
-    ({ item }: { item: FormulaRule }) => (
-      <View style={styles.row}>
-        {/* 公式方塊 */}
+    ({ item, index }: { item: FormulaRule; index: number }) => (
+      <View style={styles.item}>
+        {/* 上：公式名稱 + 表達式（整塊可點進編輯） */}
         <TouchableOpacity
           style={[styles.exprBox, expressionBoxStyle]}
           onPress={() => onEditFormula?.(item)}
+          activeOpacity={0.8}
         >
-          <Text style={styles.exprText} numberOfLines={1}>
-            {item.expression}
+          <Text style={styles.exprText} numberOfLines={2}>
+            公式名稱 {index + 1} {item.expression}
           </Text>
         </TouchableOpacity>
 
-        {/* 操作按鈕 */}
-        <View style={styles.actions}>
-          <Pill onPress={() => onPreview?.(item)} label="預覽" />
-          <Pill onPress={() => onDelete?.(item)} label="刪除" danger />
-        </View>
+        <WsFlex justifyContent={"space-between"}>
+          <View style={styles.actionBar}>
+            {/* <WsIconBtn
+              padding={0}
+              style={{
+              }}
+              size={28}
+              name="md-edit"
+              label="編輯"
+              onPress={() =>
+                setModalActiveFormula(true)
+              }
+            /> */}
+            <WsIconBtn
+              padding={0}
+              style={{ marginLeft: 8 }}
+              size={28}
+              name="ws-outline-filter-outline"
+              label="瀏覽並刪除資料"
+              onPress={() => { }}
+            />
+            <WsIconBtn
+              padding={0}
+              style={{ marginLeft: 8 }}
+              size={28}
+              color={$color.danger}
+              name="md-delete"
+              label="刪除"
+              onPress={() => { }}
+            />
+          </View>
+        </WsFlex>
+
       </View>
     ),
-    [expressionBoxStyle, onDelete, onPreview]
+    [expressionBoxStyle, onDelete, onPreview, onEditFormula]
   );
+
+
 
   const keyExtractor = useCallback((r: FormulaRule) => r.id, []);
 
   return (
-    <View style={[styles.container, style]}>
+    <>
+      <View style={[styles.container, style]}>
 
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
 
-      <FlatList
-        data={rules}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-        contentContainerStyle={{ paddingTop: 8, paddingBottom: 12 }}
-        showsVerticalScrollIndicator={false}
-      />
+        <FlatList
+          data={rules}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 12 }}
+          showsVerticalScrollIndicator={false}
+        />
 
-      {/* 新增區域 */}
-      {adding ? (
-        <View style={styles.addRow}>
-          <View style={[styles.exprBox, expressionBoxStyle, { flex: 1 }]}>
-            <TextInput
-              value={draft}
-              onChangeText={setDraft}
-              placeholder="輸入公式，如：sum(result)"
-              placeholderTextColor="#9aa0a6"
-              style={[styles.exprText, styles.input]}
-              autoFocus
+        {/* 新增區域 */}
+        <WsIconBtn
+          padding={0}
+          name="md-add"
+          size={24}
+          style={{
+          }}
+          onPress={() => {
+            setModalActiveFormula(!modalActiveFormula)
+          }}
+        />
+
+      </View>
+
+      {/* 編輯公式語公式名稱 */}
+      <WsModal
+        visible={modalActiveFormula}
+        onBackButtonPress={() => {
+          setModalActiveFormula(false)
+        }}
+        headerLeftOnPress={() => {
+          setModalActiveFormula(false)
+        }}
+        headerRightOnPress={() => {
+          // $_submit()
+          // setModalActiveFormula(false)
+        }}
+        // RightOnPressIsDisabled={$_validation()}
+        headerRightText={t('送出')}
+        title={t('編輯公式')}
+      >
+        <ScrollView>
+          <WsPaddingContainer>
+
+            <WsState
+              type="formula"
+              style={{
+                marginVertical: 8,
+              }}
+              label={t('公式​')}
+              placeholder={t('輸入')}
+              value={formulaData?.expression}
+              params={[]}
+              records={[]}
+              uniqueKey={'key'}
+              onChange={(p) =>
+                setFormulaData(p)
+              }
+              statisticsId={statisticsId}
             />
-          </View>
-          <View style={styles.actions}>
-            <Pill label="新增" onPress={handleCreate} disabled={!canSubmit} />
-            <Pill label="取消" onPress={handleCancel} />
-          </View>
-        </View>
-      ) : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="新增公式"
-          onPress={handleAddPress}
-          style={({ pressed }) => [
-            styles.addButton,
-            pressed && { opacity: 0.7, transform: [{ scale: 0.98 }] },
-          ]}
-        >
-          <Text style={styles.plus}>＋</Text>
-        </Pressable>
-      )}
-    </View>
+
+            <WsState
+              style={{
+                marginVertical: 8
+              }}
+              label={t('公式名稱')}
+              placeholder={t('輸入')}
+              value={formulaData?.name}
+              onChange={
+                (name: string) => setFormulaData((prev) => ({ ...prev, name }))
+              }
+            />
+
+            <WsState
+              style={{
+                marginVertical: 8
+              }}
+              label={t('結果欄位名稱')}
+              placeholder={t('輸入')}
+              value={formulaData?.resultFieldName}
+              onChange={(resultFieldName: string) => {
+                setFormulaData((prev) => ({ ...prev, resultFieldName }))
+              }}
+            />
+
+            <WsState
+              style={{
+                marginVertical: 8
+              }}
+              label={t('結果單位')}
+              placeholder={t('輸入')}
+              value={formulaData?.resultFieldUnit}
+              onChange={(resultFieldUnit: string) => {
+                setFormulaData((prev) => ({ ...prev, resultFieldUnit }))
+              }}
+            />
+
+            <WsState
+              label={t('備註')}
+              multiline={true}
+              style={{
+              }}
+              placeholder={t('輸入')}
+              value={formulaData?.remark}
+              onChange={(remark: string) => {
+                setFormulaData((prev) => ({ ...prev, remark }))
+              }}
+            />
+
+            <WsState
+              style={{
+                marginTop: 8
+              }}
+              modelName="checklist_record_answer"
+              type="Ll_filesAndImages"
+              label={t('附件')}
+              value={formulaData?.images}
+              onChange={() => {
+              }}
+            />
+
+          </WsPaddingContainer>
+        </ScrollView>
+      </WsModal>
+
+    </>
   );
 }
 
@@ -188,7 +316,6 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#fff',
     borderColor: '#111',
-    borderWidth: 1,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -212,17 +339,16 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#111',
-    fontWeight: '700',
-    marginBottom: 6,
+    fontWeight: '600',
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 13,
     color: '#4f5561',
     marginBottom: 10,
   },
-
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -234,31 +360,14 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 8,
   },
-
-  exprBox: {
-    minWidth: 160,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1.5,
-    borderColor: '#111',
-    borderRadius: 6,
-    backgroundColor: '#fff',
-  },
-  exprText: {
-    color: '#111',
-    fontSize: 15,
-    fontFamily: MONO_FONT,
-  },
   input: {
     paddingVertical: 0,
   },
-
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-
   pill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -302,4 +411,28 @@ const styles = StyleSheet.create({
     color: '#111',
     fontWeight: '800',
   },
+  item: {
+    paddingVertical: 10,
+    paddingHorizontal: 0,     // 視你的列表外距調整
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  exprBox: {
+    width: '100%',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  exprText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#222',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',         // 夠窄時自動換行
+    alignItems: 'center',
+    gap: 8,                   // RN 0.71+ 可用；若舊版改用 marginRight
+    alignSelf: 'flex-start',
+  },
+  actionBar: { flexDirection: "row", flexWrap: "wrap" },
 });

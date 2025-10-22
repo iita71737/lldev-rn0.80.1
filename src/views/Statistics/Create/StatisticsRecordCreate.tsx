@@ -109,6 +109,16 @@ const StatisticsRecordCreate = (props) => {
     { id: '2', expression: 'avg(result)' },
   ])
 
+  // 1) 新增：記住每個 section 的展開狀態
+  const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({});
+  // 2) 切換時更新狀態
+  const handleToggle = (id: string, open: boolean) => {
+    setOpenSections(prev => ({ ...prev, [id]: open }));
+    // 想要當下就 Console 也可以
+    const key = `${_statisticsId}-${id}-@dataSet`;
+    console.log(`Section [${id}] ${open ? '展開' : '收合'}，對應 storage key: ${key}`);
+  };
+
   /** —— 導覽控制 —— */
   const maxStep = STEPS.TIMEUNIT
   const goNext = () => setStep(s => Math.min(s + 1, maxStep))
@@ -329,21 +339,28 @@ const StatisticsRecordCreate = (props) => {
                   placeholder={t('輸入')}
                 />
 
-                {sections.map(section => (
-                  <WsAccordion
-                    key={section.id}
-                    title={section.title}
-                    defaultOpen={section.defaultOpen}
-                  >
-                    <ChecklistVersionBlock
-                      setModalVisibleSourceData={setModalVisibleSourceData}
-                      setModalActiveFormula={setModalActiveFormula}
-                      step={step}
-                      section={section}
-                      statisticsId={_statisticsId}
-                    />
-                  </WsAccordion>
-                ))}
+                {sections.map(section => {
+                  const isOpen = openSections[section.id] ?? !!section.defaultOpen;
+                  return (
+                    <WsAccordion
+                      key={section.id}
+                      title={section.title}
+                      open={isOpen}                     // ← 受控：目前是否展開（若你的 API 名是 `expanded` 就改那個）
+                      onOpenChange={(open: boolean) => // ← 受控回呼（若你的 API 名是 `onToggle` 就改那個）
+                        handleToggle(section.id, open)
+                      }
+                    >
+                      <ChecklistVersionBlock
+                        setModalVisibleSourceData={setModalVisibleSourceData}
+                        setModalActiveFormula={setModalActiveFormula}
+                        step={step}
+                        section={section}
+                        statisticsId={_statisticsId}
+                        isOpen={isOpen}                 // ← 告知子元件目前展開狀態
+                      />
+                    </WsAccordion>
+                  );
+                })}
 
                 <FooterNav />
               </WsPaddingContainer>
@@ -413,30 +430,33 @@ const StatisticsRecordCreate = (props) => {
                 onDelete={(r) => setRules(xs => xs.filter(x => x.id !== r.id))}
                 onCreate={(expr) => setRules(xs => [{ id: String(Date.now()), expression: expr }, ...xs])}
                 onEditFormula={() => setModalActiveFormula(true)}
+                statisticsId={_statisticsId}
               />
 
               {/* 版本/題目選擇（沿用你的 Accordion + Block） */}
               <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
-                <WsAccordion title="版本1" defaultOpen>
-                  <WsText color={$color.gray}>表 1 內容…</WsText>
-                </WsAccordion>
-
-                <WsAccordion title="版本2">
-                  <WsText color={$color.gray}>表 2 內容…</WsText>
-                </WsAccordion>
-
-                <WsAccordion
-                  title={<Text style={{ fontSize: 14, fontWeight: '500' }}>版本 3</Text>}
-                  defaultOpen
-                  style={{ borderWidth: 1, borderRadius: 10 }}
-                  contentStyle={{ backgroundColor: '#fff' }}
-                >
-                  <ChecklistVersionBlock
-                    setModalVisibleSourceData={setModalVisibleSourceData}
-                    setModalActiveFormula={setModalActiveFormula}
-                    step={STEPS.BETWEEN}
-                  />
-                </WsAccordion>
+                {sections.map(section => {
+                  const isOpen = openSections[section.id] ?? !!section.defaultOpen;
+                  return (
+                    <WsAccordion
+                      key={section.id}
+                      title={section.title}
+                      open={isOpen}                     // ← 受控：目前是否展開（若你的 API 名是 `expanded` 就改那個）
+                      onOpenChange={(open: boolean) => // ← 受控回呼（若你的 API 名是 `onToggle` 就改那個）
+                        handleToggle(section.id, open)
+                      }
+                    >
+                      <ChecklistVersionBlock
+                        setModalVisibleSourceData={setModalVisibleSourceData}
+                        setModalActiveFormula={setModalActiveFormula}
+                        step={STEPS.BETWEEN}
+                        section={section}
+                        statisticsId={_statisticsId}
+                        isOpen={isOpen}                 // ← 告知子元件目前展開狀態
+                      />
+                    </WsAccordion>
+                  );
+                })}
 
                 <FooterNav />
               </WsPaddingContainer>

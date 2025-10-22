@@ -31,7 +31,8 @@ type Version3BlockProps = {
   statisticsId?: string;
 };
 
-export default function Version3Block({
+export default function ChecklistVersionBlock({
+  isOpen,
   step,
   chips: cChips,
   onChipsChange,
@@ -40,7 +41,7 @@ export default function Version3Block({
   setModalVisibleSourceData,
   selectedTitle = '已選擇的題目',
   section,
-  statisticsId
+  statisticsId,
 }: Version3BlockProps) {
 
   /** ✅ 不受控 chips 預設結構 */
@@ -100,7 +101,7 @@ export default function Version3Block({
       console.warn('儲存已選題目失敗：', err);
     }
 
-  }, [chips, hasChip, updateChips, section, statisticsId]);
+  }, [chips, hasChip, updateChips, section?.id, statisticsId, isOpen]);
 
   /** ✅ 初始讀取 AsyncStorage */
   React.useEffect(() => {
@@ -112,14 +113,14 @@ export default function Version3Block({
           if (parsed?.selected_questions) {
             updateChips(parsed);
           }
-          // console.log(parsed,'parsed---')
+          console.log(parsed,'parsed---')
         }
       } catch (err) {
         console.warn('載入已選題目失敗：', err);
       }
     };
     loadSavedChips();
-  }, []);
+  }, [section?.id, statisticsId, isOpen]);
 
   return (
     <View style={styles.root}>
