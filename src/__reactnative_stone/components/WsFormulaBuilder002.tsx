@@ -77,7 +77,7 @@ export default function WsFormulaBuilder002({
 
   // === 雙 state ===
   const [displayExpression, setDisplayExpression] = React.useState(""); // 顯示 label / A1
-  const [realExpression, setRealExpression] = React.useState("");       // 運算式（安全變數名）
+  const [realExpression, setRealExpression] = React.useState("");       // 運算式（安全變數名)
 
   const [selection, setSelection] = React.useState({ start: 0, end: 0 });
   const [previewResults, setPreviewResults] = React.useState<any[]>([]);
@@ -349,11 +349,9 @@ export default function WsFormulaBuilder002({
     h.key === "紀錄時間" ? 200 : Math.max(h.label.length * 10 + 40, 100)
   );
 
-
-
-  // console.log('displayExpression', displayExpression)
-  // console.log('realExpression', realExpression)
-  console.log('previewResults', previewResults)
+  // console.log('displayExpression:', displayExpression)
+  // console.log('realExpression:', realExpression)
+  // console.log('previewResults', previewResults)
 
   return (
     <>
