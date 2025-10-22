@@ -92,7 +92,6 @@ export default function WsFormulaBuilder002({
 
   // ========== NEW: 建立參數映射（安全變數名 + A1/A2... 別名）==========
   const paramMaps = React.useMemo(() => {
-    // 長字串優先，避免「pH值」先吃到「pH值 v1」
     const sorted = [...params].sort(
       (a: any, b: any) => ((b.label?.length || 0) - (a.label?.length || 0))
     );
@@ -107,15 +106,15 @@ export default function WsFormulaBuilder002({
       const safe = toSafeVar(String(id));
       idToVar.set(String(id), safe);
 
-      if (p.label) labelToVar.set(String(p.label), safe);
-      if (p.customLabel) labelToVar.set(String(p.customLabel), safe);
+      if (p.label) labelToVar.set(String(p.label), safe);   // ✅ 只放 label
+      // if (p.customLabel) labelToVar.set(String(p.customLabel), safe); // ❌ 拿掉
 
-      // Excel 風格別名：A1/A2/A3…（依 params 順序）
-      // aliasToVar.set(`A${idx + 1}`, safe);
+      // aliasToVar.set(`A${idx + 1}`, safe); // 需要 A1/A2 才打開
     });
 
     return { labelToVar, idToVar, aliasToVar };
   }, [params, uniqueKey]);
+
 
   // ========== UPDATED: 顯示式 → 安全 realExpression ==========
   // 放在元件內（替換你原本的 convertToReal）
@@ -219,7 +218,6 @@ export default function WsFormulaBuilder002({
 
           const val =
             r[p.label] ??
-            r[p.customLabel] ??
             r[id] ??
             r[p.key] ??
             0;
@@ -299,18 +297,12 @@ export default function WsFormulaBuilder002({
 
     if (!id) return;
 
-    const displayName =
-      (typeof anyItem.customLabel === "string" && anyItem.customLabel.trim()) ||
-      anyItem.label ||
-      "";
+    const displayName = anyItem.label || "";  //
 
     const cursorPos = selection.start ?? displayExpression.length;
     const leftChar = displayExpression[cursorPos - 1];
     const needsPlus =
       cursorPos > 0 && !["+", "-", "*", "/", "(", ",", " "].includes(leftChar);
-
-    // 真正要插入的變數：安全變數名
-    const safeVar = paramMaps.idToVar.get(String(id)) || toSafeVar(String(id));
 
     insertAtCursor((needsPlus ? " + " : "") + displayName);
   };
@@ -329,28 +321,34 @@ export default function WsFormulaBuilder002({
   // 📊 預覽表格 headers（不顯示唯一識別欄，確保包含「公式結果」）
   const headers = React.useMemo(() => {
     const base = previewResults.length ? previewResults : records;
-    if (!base.length) return ["公式結果"];
+    if (!base.length) return [{ key: "公式結果", label: "公式結果" }];
 
-    const rawKeys =
-      Object.keys(base[0])?.filter(
-        (k) => k !== uniqueKey && k !== "key"
-      ) ?? [];
+    const rawKeys = Object.keys(base[0]).filter(k => k !== uniqueKey && k !== "key");
 
-    // 將 key 轉顯示 label
     const labelMap = Object.fromEntries(
-      params.map((p: any) => [p.key, p.customLabel || p.label])
+      params.map((p: any) => [
+        p?.[uniqueKey] ?? p?.key,
+        p.customLabel || p.label,      // ✅ 顯示用 customLabel 優先
+      ])
     );
 
-    const mappedHeaders = rawKeys.map((k) => labelMap[k] || k);
+    const cols = rawKeys.map(k => ({
+      key: k,                          // ✅ 拿值用 UUID 或 time / 公式結果
+      label: labelMap[k] || k,         // ✅ 顯示用
+    }));
 
-    if (!mappedHeaders.includes("公式結果")) mappedHeaders.push("公式結果");
-    return mappedHeaders;
+    if (!cols.find(c => c.key === "公式結果")) {
+      cols.push({ key: "公式結果", label: "公式結果" });
+    }
+    return cols;
   }, [previewResults, records, params, uniqueKey]);
 
+
   // 算欄寬
-  const columnWidths = headers.map((h) =>
-    h === "time" ? 160 : Math.max(h.length * 10 + 40, 100)
+  const columnWidths = headers.map(h =>
+    h.key === "紀錄時間" ? 200 : Math.max(h.label.length * 10 + 40, 100)
   );
+
 
 
   // console.log('displayExpression', displayExpression)
@@ -407,7 +405,7 @@ export default function WsFormulaBuilder002({
                   onSelectionChange={(e) =>
                     setSelection(e.nativeEvent.selection)
                   }
-                  placeholder="例如：SUM(題目A, 題目B) 或 (題目A + 題目B) * 2；也支援 A1/A2/A3…"
+                  placeholder={t('輸入')}
                   placeholderTextColor="rgba(185,184,184,0.5)"
                   multiline
                 />
@@ -567,40 +565,24 @@ export default function WsFormulaBuilder002({
                 <View
                   style={{ borderWidth: 1, borderColor: "#ddd", borderRadius: 8 }}
                 >
-                  <View
-                    style={[styles.tableRow, { backgroundColor: "#eef4ff" }]}
-                  >
+                  <View style={[styles.tableRow, { backgroundColor: "#eef4ff" }]}>
                     {headers.map((h, idx) => (
-                      <Text
-                        key={h}
-                        style={[
-                          styles.cell,
-                          styles.headerCell,
-                          { width: columnWidths[idx] },
-                        ]}
-                      >
-                        {h}
+                      <Text key={h.key} style={[styles.cell, styles.headerCell, { width: columnWidths[idx] }]}>
+                        {h.label}
                       </Text>
                     ))}
                   </View>
+
                   {previewResults.map((r, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.tableRow,
-                        { backgroundColor: i % 2 ? "#fafafa" : "#fff" },
-                      ]}
-                    >
+                    <View key={i} style={[styles.tableRow, { backgroundColor: i % 2 ? "#fafafa" : "#fff" }]}>
                       {headers.map((h, idx) => (
-                        <Text
-                          key={h}
-                          style={[styles.cell, { width: columnWidths[idx] }]}
-                        >
-                          {String(r[h] ?? "")}
+                        <Text key={h.key} style={[styles.cell, { width: columnWidths[idx] }]}>
+                          {String(r[h.key] ?? "")}   {/* ✅ 用 key 取值 */}
                         </Text>
                       ))}
                     </View>
                   ))}
+
                 </View>
               </ScrollView>
             </View>
