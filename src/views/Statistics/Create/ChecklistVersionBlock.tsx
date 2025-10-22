@@ -178,6 +178,8 @@ export default function Version3Block({
             onPreviewAndDeleteData={() => { }}
             onDelete={() => { }}
             chips={chips}
+            statisticsId={statisticsId}
+            sectionId={section?.id}
           />
         </WsPaddingContainer>
       )}

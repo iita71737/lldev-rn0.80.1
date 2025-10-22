@@ -180,7 +180,9 @@ const WsState = React.forwardRef((props, ref) => {
     pagination,
     customizedNameKey,
     values,
-    records
+    records,
+    statisticsId,
+    sectionId
   } = props
 
   // i18n
@@ -1010,6 +1012,8 @@ const WsState = React.forwardRef((props, ref) => {
             params={params}
             records={records}
             style={style}
+            statisticsId={statisticsId}
+            sectionId={sectionId}
           />
         </>
       )}

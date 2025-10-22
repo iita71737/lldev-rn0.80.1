@@ -19,6 +19,8 @@ import {
 } from "@/components";
 import $color from "@/__reactnative_stone/global/color";
 import { useTranslation } from "react-i18next";
+import { params, records } from "./mock/records";
+import AsyncStorage from '@react-native-community/async-storage';
 
 // Android 啟用 LayoutAnimation
 if (
@@ -62,6 +64,8 @@ export default function FormulaRelationsMobileDemo({
   onPreviewAndDeleteData,
   onDelete,
   chips,
+  statisticsId,
+  sectionId
 }: Props) {
   const { t } = useTranslation();
 
@@ -69,67 +73,139 @@ export default function FormulaRelationsMobileDemo({
   const [formulaData, setFormulaData] = useState<any>(null);
   const [list, setList] = useState<FormulaItem[]>(() => {
     return [
-      // {
-      //   id: "f1",
-      //   name: "公式名稱 1",
-      //   formulaString: "A-B",
-      //   chips,
-      //   expanded: true,
-      // },
-      // {
-      //   id: "f2",
-      //   name: "公式名稱 2",
-      //   formulaString: "A+B",
-      //   chips,
-      //   expanded: true,
-      // },
-      // {
-      //   id: "f3",
-      //   name: "公式名稱 3",
-      //   formulaString: "A/B",
-      //   chips,
-      //   expanded: false,
-      // },
     ];
   });
 
-  // 🔹 模擬答題紀錄
-  const records = useMemo(
-    () => [
-      {
-        "紀錄時間": "2025/08/01 01:00:00",
-        "調勻池pH值 v1": 7.2, // 調勻池pH值 v1
-        "初級沉澱池pH值 v1": 6.8, // 初級沉澱池pH值 v1
-        "混凝池（快混）-pH值 v1": 7.0, // 混凝池（快混）-pH值 v1
-      },
-      {
-        "紀錄時間": "2025/08/01 02:00:00",
-        "調勻池pH值 v1": 7.1,
-        "初級沉澱池pH值 v1": 6.9,
-        "混凝池（快混）-pH值 v1": 7.1,
-      },
-      {
-        "紀錄時間": "2025/08/01 03:00:00",
-        "調勻池pH值 v1": 7.3,
-        "初級沉澱池pH值 v1": 7.0,
-        "混凝池（快混）-pH值 v1": 7.2,
-      },
-    ],
-    []
-  );
+
+  // 取代你的 $_submit
+  const $_submit = async () => {
+    if (!statisticsId || !sectionId) {
+      console.warn("缺少 statisticsId 或 sectionId，無法儲存。");
+      return;
+    }
+
+    const storageKey = `${statisticsId}-${sectionId}-@dataSet`;
+    const nowIso = new Date().toISOString();
+
+    try {
+      // 1) 取出同一把 key 的整個物件
+      const raw = await AsyncStorage.getItem(storageKey);
+      let obj: any = {};
+      if (raw) {
+        try { obj = JSON.parse(raw) ?? {}; } catch { obj = {}; }
+      }
+
+      // 2) 從 formula_builder 取出 display/real/preview
+      const FORMULA_FIELD = "formula_builder";
+      const fb = obj?.[FORMULA_FIELD];
+      const displayText = typeof fb?.displayExpression === "string" ? fb.displayExpression : "";
+      const expression = typeof fb?.realExpression === "string" ? fb.realExpression : "";
+      const previewResultsFromFB = Array.isArray(fb?.previewResults) ? fb.previewResults : [];
+
+      // 3) 用本步頁面的欄位 + 公式欄位，組成一筆要追加/覆蓋的 formula
+      const newFormula = {
+        id: formulaData?.id ?? `${Date.now()}`,                 // 沒 id 就用時間戳
+        name: formulaData?.name ?? "",
+        expression,                                              // ← 來自 formula_builder
+        displayText,                                             // ← 來自 formula_builder
+        previewResults: previewResultsFromFB,                    // ← 來自 formula_builder
+        resultFieldName: formulaData?.resultFieldName ?? "",
+        resultFieldUnit: formulaData?.resultFieldUnit ?? "",
+        remark: formulaData?.remark ?? "",
+        images: formulaData?.images ?? [],
+        createdAt: formulaData?.createdAt ?? nowIso,
+        updatedAt: nowIso,
+      };
+
+      // 4) 讀出既有 formulas（若沒有就空陣列），同 id 覆蓋、否則追加
+      const prevFormulas: any[] = Array.isArray(obj.formulas) ? obj.formulas : [];
+      const idx = prevFormulas.findIndex(f => f?.id === newFormula.id);
+      let nextFormulas: any[];
+      if (idx >= 0) {
+        nextFormulas = [...prevFormulas];
+        nextFormulas[idx] = { ...prevFormulas[idx], ...newFormula };
+      } else {
+        nextFormulas = [...prevFormulas, newFormula];
+      }
+
+      // 5) 合併回去（保留 selected_questions 等其餘欄位）
+      const next = { ...obj, formulas: nextFormulas };
+      await AsyncStorage.setItem(storageKey, JSON.stringify(next));
+
+      console.log("✅ 已追加/更新公式：", JSON.stringify(newFormula));
+
+      // 6) （可選）即時更新列表 UI
+      setList(curr => {
+        const pos = curr.findIndex(it => it.id === newFormula.id);
+        if (pos >= 0) {
+          const cloned = [...curr];
+          cloned[pos] = {
+            ...cloned[pos],
+            name: newFormula.name,
+            formulaString: newFormula.displayText || newFormula.expression,
+          };
+          return cloned;
+        }
+        return [
+          ...curr,
+          {
+            id: newFormula.id,
+            name: newFormula.name || `公式 ${nextFormulas.length}`,
+            formulaString: newFormula.displayText || newFormula.expression,
+            chips: [],
+            expanded: false,
+          }
+        ];
+      });
+
+      // 關閉編輯 Modal
+      setModalActiveFormula(false);
+    } catch (err) {
+      console.warn("❌ 儲存公式失敗：", err);
+    }
+  };
+
+  // 刪除
+  const handleDelete = async (target: FormulaItem) => {
+    // 先刪除畫面上的列表
+    setList(curr => curr.filter(it => it.id !== target.id));
+
+    // （可選）同步刪掉 localStorage 裡的那筆公式
+    try {
+      if (!statisticsId || !sectionId) return;
+      const storageKey = `${statisticsId}-${sectionId}-@dataSet`;
+      const raw = await AsyncStorage.getItem(storageKey);
+      const obj = raw ? JSON.parse(raw) : {};
+      const prevFormulas: any[] = Array.isArray(obj.formulas) ? obj.formulas : [];
+      const nextFormulas = prevFormulas.filter(f => f?.id !== target.id);
+      await AsyncStorage.setItem(storageKey, JSON.stringify({ ...obj, formulas: nextFormulas }));
+    } catch (err) {
+      console.warn("刪除公式（localStorage）失敗：", err);
+    }
+  };
+
+
 
   const renderItem = ({ item }: { item: FormulaItem }) => {
     return (
       <View style={styles.card}>
         {/* 標題列 */}
+        <Text
+          style={{
+            paddingTop: 16,
+            paddingHorizontal: 16,
+          }}
+        >
+          {`公式名稱:`}
+        </Text>
         <View style={styles.headerRow}>
           <Text style={styles.title} numberOfLines={2}>
-            {item.name}
+            {`${item.name}`}
           </Text>
 
           <WsFlex justifyContent={"space-between"}>
             <View style={styles.actionBar}>
-              <WsIconBtn
+              {/* <WsIconBtn
                 padding={0}
                 style={{
                 }}
@@ -137,10 +213,9 @@ export default function FormulaRelationsMobileDemo({
                 name="md-edit"
                 label="編輯"
                 onPress={() =>
-                  // onEdit?.(item)
                   setModalActiveFormula(true)
                 }
-              />
+              /> */}
               <WsIconBtn
                 padding={0}
                 style={{ marginLeft: 8 }}
@@ -156,12 +231,21 @@ export default function FormulaRelationsMobileDemo({
                 color={$color.danger}
                 name="md-delete"
                 label="刪除"
-                onPress={() => onDelete?.(item)}
+                onPress={() => handleDelete(item)}
               />
             </View>
           </WsFlex>
         </View>
 
+
+        <Text
+          style={{
+            paddingTop: 16,
+            paddingHorizontal: 16,
+          }}
+        >
+          {`公式:`}
+        </Text>
         <View style={styles.formulaRow}>
           <Text style={styles.formula} numberOfLines={2}>
             {item.formulaString}
@@ -219,7 +303,7 @@ export default function FormulaRelationsMobileDemo({
     );
   };
 
-  console.log(chips?.selected_questions, 'chips?.selected_questions--')
+  // console.log(chips?.selected_questions, 'chips?.selected_questions--')
 
   return (
     <ScrollView
@@ -264,8 +348,8 @@ export default function FormulaRelationsMobileDemo({
           setModalActiveFormula(false)
         }}
         headerRightOnPress={() => {
-          // $_submit()
-          setModalActiveFormula(false)
+          $_submit()
+          // setModalActiveFormula(false)
         }}
         // RightOnPressIsDisabled={$_validation()}
         headerRightText={t('送出')}
@@ -288,6 +372,8 @@ export default function FormulaRelationsMobileDemo({
               onChange={(p) =>
                 setFormulaData(p)
               }
+              statisticsId={statisticsId}
+              sectionId={sectionId}
             />
 
             <WsState
@@ -328,13 +414,14 @@ export default function FormulaRelationsMobileDemo({
 
             <WsState
               label={t('備註')}
-              // labelIcon={'ws-outline-edit-pencil'}
               multiline={true}
               style={{
               }}
               placeholder={t('輸入')}
               value={formulaData?.remark}
-              onChange={() => { }}
+              onChange={(remark: string) => {
+                setFormulaData((prev) => ({ ...prev, remark }))
+              }}
             />
 
             <WsState
@@ -395,7 +482,7 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     color: "#222",
     paddingRight: 8,

@@ -25,6 +25,7 @@ import {
 } from '@/components'
 import { useTranslation } from "react-i18next";
 import $color from '@/__reactnative_stone/global/color'
+import AsyncStorage from '@react-native-community/async-storage'
 
 // type
 type ParamItem = {
@@ -44,7 +45,7 @@ math.import(
   { override: true }
 );
 
-// ========== NEW: 把任何 id 轉成 mathjs 安全變數名 ==========
+// ========== 把任何 id 轉成 mathjs 安全變數名 ==========
 const toSafeVar = (id: string) => {
   const cleaned = String(id).replace(/[^A-Za-z0-9_]/g, "_"); // 把 - 等符號轉 _
   return `v_${cleaned}`; // 以字母/底線開頭，避免與函數名衝突
@@ -55,12 +56,14 @@ export default function WsFormulaBuilder002({
   placeholder = "點擊以建立或編輯公式…",
   params = [],
   records = [],
-  uniqueKey = "question_id", // 可外部指定唯一識別欄位
+  uniqueKey = "question_id", // 你的資料是 key=UUID 時請設 "key"
   onChange,
+  statisticsId,
+  sectionId,
 }: {
   style?: any;
   placeholder?: string;
-  params?: Record<string, any>[]; // 可含 question_id 或 key
+  params?: Record<string, any>[];
   records?: { [key: string]: any }[];
   uniqueKey?: string;
   onChange?: (payload: {
@@ -68,20 +71,31 @@ export default function WsFormulaBuilder002({
     value: number;
     displayText: string;
   }) => void;
+  statisticsId?: string;
+  sectionId?: string
 }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+
+  const buildDatasetKey = (statisticsId?: string | number, sectionId?: string | number) =>
+    `${statisticsId}-${sectionId}-@dataSet`;
+  const FORMULA_FIELD = "formula_builder"; // 存放公式資訊的欄位名
+
 
   const [visible, setVisible] = React.useState(false);
   const [tableVisible, setTableVisible] = React.useState(false);
 
   // === 雙 state ===
-  const [displayExpression, setDisplayExpression] = React.useState(""); // 顯示 label / A1
-  const [realExpression, setRealExpression] = React.useState("");       // 運算式（安全變數名)
+  const [displayExpression, setDisplayExpression] = React.useState(""); // 顯示 label / customLabel
+  const [realExpression, setRealExpression] = React.useState("");       // 運算式（安全變數名）
 
   const [selection, setSelection] = React.useState({ start: 0, end: 0 });
   const [previewResults, setPreviewResults] = React.useState<any[]>([]);
   const inputRef = React.useRef<TextInput>(null);
+
+  // console.log('displayExpression: ', displayExpression)
+  // console.log('realExpression: ', realExpression)
+  // console.log('previewResults: ', previewResults)
 
   const fnDefs = [
     { key: "SUM", label: "加總", insert: "SUM(題目A, 題目B)" },
@@ -90,38 +104,50 @@ export default function WsFormulaBuilder002({
     { key: "AVERAGE", label: "平均值", insert: "AVERAGE(題目A, 題目B)" },
   ];
 
-  // ========== NEW: 建立參數映射（安全變數名 + A1/A2... 別名）==========
+  // === 使用者可編輯的自訂名稱清單（僅影響顯示 / 解析） ===
+  const [paramList, setParamList] = useState<ParamItem[]>(
+    params.map((p: any) => ({ ...p, customLabel: p.customLabel ?? "" }))
+  );
+
+  // ✅ 用「有效參數」作為解析與取值的來源：有 paramList 就用（包含最新 customLabel），否則用 params
+  const effectiveParams = React.useMemo(
+    () => (paramList && paramList.length ? paramList : params),
+    [paramList, params]
+  );
+
+  // ========== 建立參數映射（label/customLabel → 同一安全變數名；id → 安全變數名）==========
   const paramMaps = React.useMemo(() => {
-    const sorted = [...params].sort(
+    // 長字串優先，避免「pH值」先吃到「pH值 v1」
+    const sorted = [...effectiveParams].sort(
       (a: any, b: any) => ((b.label?.length || 0) - (a.label?.length || 0))
     );
 
     const labelToVar = new Map<string, string>();
     const idToVar = new Map<string, string>();
-    const aliasToVar = new Map<string, string>();
+    const aliasToVar = new Map<string, string>(); // 需要 A1/A2… 再開
 
     sorted.forEach((p: any, idx: number) => {
       const id = p?.[uniqueKey] ?? p?.question_id ?? p?.key;
       if (!id) return;
       const safe = toSafeVar(String(id));
+
       idToVar.set(String(id), safe);
 
-      if (p.label) labelToVar.set(String(p.label), safe);   // ✅ 只放 label
-      // if (p.customLabel) labelToVar.set(String(p.customLabel), safe); // ❌ 拿掉
+      // ✅ 同一參數：label 與 customLabel 都映射到同一個安全變數名
+      if (p.label) labelToVar.set(String(p.label), safe);
+      if (p.customLabel) labelToVar.set(String(p.customLabel), safe);
 
-      // aliasToVar.set(`A${idx + 1}`, safe); // 需要 A1/A2 才打開
+      // 如需 A1/A2… 再打開
+      // aliasToVar.set(`A${idx + 1}`, safe);
     });
 
     return { labelToVar, idToVar, aliasToVar };
-  }, [params, uniqueKey]);
+  }, [effectiveParams, uniqueKey]);
 
-
-  // ========== UPDATED: 顯示式 → 安全 realExpression ==========
-  // 放在元件內（替換你原本的 convertToReal）
+  // ========== 顯示式 → 安全 realExpression（單趟掃描、邊界檢查、不連環替換）==========
   const convertToReal = (txt: string) => {
     if (!txt) return "";
 
-    // 建立可匹配對 (from -> to)，同時支援 label/customLabel 與 A1/A2...
     type Pair = { from: string; to: string };
     const pairs: Pair[] = [];
 
@@ -139,7 +165,7 @@ export default function WsFormulaBuilder002({
 
     const isWordChar = (ch: string) => /[A-Za-z0-9_]/.test(ch || "");
 
-    // 單趟掃描原始輸入字串，不在已產生的輸出上再做替換（杜絕黏連/重複替換）
+    // 單趟掃描原始輸入，不在已產生的輸出上再替換
     let i = 0;
     const n = txt.length;
     let out = "";
@@ -156,7 +182,7 @@ export default function WsFormulaBuilder002({
 
           // 邊界判斷：前後不能是 [A-Za-z0-9_]
           if (!isWordChar(prev) && !isWordChar(next)) {
-            out += ` ${to} `;       // 兩側補空白，避免和其他變數黏在一起
+            out += ` ${to} `;       // 兩側補空白避免黏連
             i += from.length;       // 游標跳過已匹配片段
             matched = true;
             break;
@@ -174,9 +200,6 @@ export default function WsFormulaBuilder002({
     return out.replace(/\s+/g, " ").trim();
   };
 
-  const [paramList, setParamList] = useState<ParamItem[]>(
-    params.map((p: any) => ({ ...p, customLabel: p.customLabel ?? "" }))
-  );
   const [inputValue, setInputValue] = React.useState("");
   const [modalVisible, setModalVisible] = React.useState(false);
   const [editingParam, setEditingParam] = React.useState<{
@@ -190,7 +213,7 @@ export default function WsFormulaBuilder002({
     setInputValue(item.customLabel || item.label);
     setModalVisible(true);
   };
-  /** 儲存使用者輸入的 customLabel */
+  /** 儲存使用者輸入的 customLabel（只影響顯示與解析，不影響取值） */
   const handleSaveLabel = () => {
     if (!editingParam) return;
     setParamList((prev) =>
@@ -201,7 +224,7 @@ export default function WsFormulaBuilder002({
     setModalVisible(false);
   };
 
-  // 🧮 預覽計算（用安全變數名建立 ctx）
+  // 🧮 預覽計算（ctx 只用唯一鍵/UUID 取值；缺值當 0 計算）
   React.useEffect(() => {
     if (!realExpression || !records?.length) {
       setPreviewResults([]);
@@ -211,19 +234,24 @@ export default function WsFormulaBuilder002({
     try {
       const newResults = records.map((r) => {
         const ctx: Record<string, number> = {};
+        // 若想顯示缺值提示，打開此行蒐集缺值
+        // const missing: string[] = [];
 
-        params.forEach((p: any) => {
+        effectiveParams.forEach((p: any) => {
           const id = p?.[uniqueKey] ?? p?.question_id ?? p?.key;
           if (!id) return;
 
-          const val =
-            r[p.label] ??
-            r[id] ??
-            r[p.key] ??
-            0;
+          // ✅ 取值只用唯一鍵（通常是 UUID），避免顯示名稱影響
+          const raw = r[id];
 
           const vname = paramMaps.idToVar.get(String(id)) || toSafeVar(String(id));
-          ctx[vname] = Number(val) || 0;
+          const num = Number(raw);
+          if (!Number.isFinite(num)) {
+            // 若想改為顯示缺值提示，改成：missing.push(p.customLabel || p.label || String(id));
+            ctx[vname] = 0; // ← 這裡採用「缺值當 0」策略，確保能照算
+          } else {
+            ctx[vname] = num;
+          }
         });
 
         let result: any = "❌";
@@ -236,10 +264,9 @@ export default function WsFormulaBuilder002({
           const tokens = Array.from(new Set(realExpression.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []));
           const knownFns = new Set(["SUM", "MAX", "MIN", "AVERAGE"]);
           const unknown = tokens.filter(tok => !knownFns.has(tok) && !(tok in ctx));
-          result = unknown.length ? `未識別: ${unknown.join(",")}` : "❌";
+          result = unknown.length ? `未識別: ${unknown.join(", ")}` : "❌";
         }
-        console.log('realExpression: ', realExpression);
-        console.log('ctx keys:', Object.keys(ctx));
+
         return { ...r, 公式結果: result };
       });
 
@@ -248,9 +275,9 @@ export default function WsFormulaBuilder002({
       setPreviewResults(records.map((r) => ({ ...r, 公式結果: "❌" })));
     }
 
-  }, [realExpression, records, params, uniqueKey, paramMaps]);
+  }, [realExpression, records, effectiveParams, uniqueKey, paramMaps]);
 
-  // ✏️ 使用者輸入（中文/別名公式）
+  // ✏️ 使用者輸入（中文/自訂名公式）
   const onDisplayChange = (txt: string) => {
     setDisplayExpression(txt);
     setRealExpression(convertToReal(txt));
@@ -262,7 +289,7 @@ export default function WsFormulaBuilder002({
     setVisible(true);
   };
 
-  // 🧩 插入游標位置
+  // 🧩 插入游標位置（只改 display，real 由 convertToReal 重算）
   const insertAtCursor = (displayPiece: string) => {
     const start = selection.start ?? 0;
     const end = selection.end ?? 0;
@@ -277,13 +304,11 @@ export default function WsFormulaBuilder002({
 
     const newPos = start + displayPiece.length;
     setSelection({ start: newPos, end: newPos });
-
-    // 讓 TextInput 保持焦點
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-
-  // 🔘 點選參數插入（顯示插 label，real 插安全變數名）
+  // 🔘 點選參數插入
+  // 沒自訂 → 插題目名稱；有自訂 → 插自訂名稱；real 由 convertToReal 解析成同一安全變數名
   const onSelectParam = (item?: ParamItem | Record<string, any>) => {
     if (!item) return;
 
@@ -297,7 +322,11 @@ export default function WsFormulaBuilder002({
 
     if (!id) return;
 
-    const displayName = anyItem.label || "";  //
+    // 顯示用：customLabel 優先，否則 label
+    const displayName =
+      (typeof anyItem.customLabel === "string" && anyItem.customLabel.trim()) ||
+      anyItem.label ||
+      "";
 
     const cursorPos = selection.start ?? displayExpression.length;
     const leftChar = displayExpression[cursorPos - 1];
@@ -307,9 +336,9 @@ export default function WsFormulaBuilder002({
     insertAtCursor((needsPlus ? " + " : "") + displayName);
   };
 
-  // 🔘 插入函數（將函數示例內的 label 也轉為安全變數名）
+  // 🔘 插入函數（示例內的 label/customLabel 也會被 convertToReal 轉換）
   const onInsertFunction = (fInsert: string) => {
-    insertAtCursor(fInsert); // 顯示層插 demo 片段，real 由 insertAtCursor 內重算
+    insertAtCursor(fInsert);
   };
 
   const clearExpression = () => {
@@ -318,40 +347,107 @@ export default function WsFormulaBuilder002({
     setPreviewResults([]);
   };
 
-  // 📊 預覽表格 headers（不顯示唯一識別欄，確保包含「公式結果」）
-  const headers = React.useMemo(() => {
+  // 📊 預覽表格 headers：用 { key, label }，取值用 key（UUID/time/公式結果），顯示用 label（customLabel||label）
+  type HeaderCol = { key: string; label: string };
+  const headers: HeaderCol[] = React.useMemo(() => {
     const base = previewResults.length ? previewResults : records;
     if (!base.length) return [{ key: "公式結果", label: "公式結果" }];
 
-    const rawKeys = Object.keys(base[0]).filter(k => k !== uniqueKey && k !== "key");
+    const rawKeys =
+      Object.keys(base[0])?.filter(
+        (k) => k !== uniqueKey && k !== "key"
+      ) ?? [];
 
     const labelMap = Object.fromEntries(
-      params.map((p: any) => [
+      effectiveParams.map((p: any) => [
         p?.[uniqueKey] ?? p?.key,
-        p.customLabel || p.label,      // ✅ 顯示用 customLabel 優先
+        p.customLabel || p.label, // 顯示優先用 customLabel
       ])
     );
 
-    const cols = rawKeys.map(k => ({
-      key: k,                          // ✅ 拿值用 UUID 或 time / 公式結果
-      label: labelMap[k] || k,         // ✅ 顯示用
+    const cols = rawKeys.map((k) => ({
+      key: k,                   // 取值用
+      label: (labelMap as any)[k] || k, // 顯示用
     }));
 
-    if (!cols.find(c => c.key === "公式結果")) {
+    if (!cols.find((c) => c.key === "公式結果")) {
       cols.push({ key: "公式結果", label: "公式結果" });
     }
     return cols;
-  }, [previewResults, records, params, uniqueKey]);
+  }, [previewResults, records, effectiveParams, uniqueKey]);
 
-
-  // 算欄寬
-  const columnWidths = headers.map(h =>
-    h.key === "紀錄時間" ? 200 : Math.max(h.label.length * 10 + 40, 100)
+  // 算欄寬用 label 長度
+  const columnWidths = headers.map((h) =>
+    h.key === "created_at" ? 200 : Math.max(h.label.length * 10 + 40, 100)
   );
 
-  // console.log('displayExpression:', displayExpression)
-  // console.log('realExpression:', realExpression)
-  // console.log('previewResults', previewResults)
+  // 套用並關閉
+  const handleApplyAndClose = React.useCallback(async () => {
+    const formulaPayload = {
+      displayExpression,          // 使用者看到/編輯的公式
+      realExpression,             // 轉換後可計算的公式
+      previewResults,             // 當前預覽的結果（陣列）
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      if (statisticsId != null && sectionId != null) {
+        const storageKey = buildDatasetKey(statisticsId, sectionId);
+
+        // 1) 取出既有物件
+        const raw = await AsyncStorage.getItem(storageKey);
+        let obj: any = {};
+        if (raw) {
+          try { obj = JSON.parse(raw) ?? {}; } catch { obj = {}; }
+        }
+
+        // 2) 合併：保留 selected_questions 等欄位，追加/覆蓋 formula 欄位
+        const next = { ...obj, [FORMULA_FIELD]: formulaPayload };
+
+        // 3) 寫回
+        await AsyncStorage.setItem(storageKey, JSON.stringify(next));
+      }
+    } catch (err) {
+      console.warn("Failed to save formula to storage:", err);
+    }
+
+    onChange?.({ expression: realExpression, value: 0, displayText: displayExpression });
+    setVisible(false);
+  }, [displayExpression, realExpression, previewResults, statisticsId, sectionId, onChange]);
+
+
+  ////
+  React.useEffect(() => {
+    const loadSaved = async () => {
+      try {
+        if (statisticsId == null || sectionId == null) return;
+        const storageKey = buildDatasetKey(statisticsId, sectionId);
+        const saved = await AsyncStorage.getItem(storageKey);
+        if (!saved) return;
+
+        const parsed: any = JSON.parse(saved);
+
+        // 你原本的 selected_questions 流程
+        if (parsed?.selected_questions) {
+          console.log(parsed, 'parsed--');
+          // updateChips(parsed) // 若此元件需要就呼叫，否則略過
+        }
+
+        // ★ 新增：帶回已存的公式
+        const fb = parsed?.[FORMULA_FIELD];
+        if (fb) {
+          if (typeof fb.displayExpression === "string") setDisplayExpression(fb.displayExpression);
+          if (typeof fb.realExpression === "string") setRealExpression(fb.realExpression);
+          if (Array.isArray(fb.previewResults)) setPreviewResults(fb.previewResults);
+        }
+      } catch (err) {
+        console.warn('載入已存資料失敗：', err);
+      }
+    };
+    loadSaved();
+    // 依 ID 變化重載（避免 [] 只載一次）
+  }, [statisticsId, sectionId]);
+
 
   return (
     <>
@@ -403,7 +499,7 @@ export default function WsFormulaBuilder002({
                   onSelectionChange={(e) =>
                     setSelection(e.nativeEvent.selection)
                   }
-                  placeholder={t('輸入')}
+                  placeholder="例如：SUM(題目A, 題目B) 或 (題目A + 題目B) * 2；支援自訂名稱"
                   placeholderTextColor="rgba(185,184,184,0.5)"
                   multiline
                 />
@@ -520,14 +616,7 @@ export default function WsFormulaBuilder002({
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.calcBtn}
-                    onPress={() => {
-                      onChange?.({
-                        expression: realExpression,
-                        value: 0,
-                        displayText: displayExpression,
-                      });
-                      setVisible(false);
-                    }}
+                    onPress={handleApplyAndClose}
                   >
                     <Text style={{ color: "#fff" }}>{t("套用並關閉")}</Text>
                   </TouchableOpacity>
@@ -554,33 +643,44 @@ export default function WsFormulaBuilder002({
                 </TouchableOpacity>
               </View>
 
-              {/* 方便除錯：目前運算式 */}
-              {/* <Text style={{ marginBottom: 8, color: "#666" }}>
-                {t("實際運算式")}: {realExpression || "—"}
-              </Text> */}
-
               <ScrollView horizontal>
                 <View
                   style={{ borderWidth: 1, borderColor: "#ddd", borderRadius: 8 }}
                 >
-                  <View style={[styles.tableRow, { backgroundColor: "#eef4ff" }]}>
+                  <View
+                    style={[styles.tableRow, { backgroundColor: "#eef4ff" }]}
+                  >
                     {headers.map((h, idx) => (
-                      <Text key={h.key} style={[styles.cell, styles.headerCell, { width: columnWidths[idx] }]}>
+                      <Text
+                        key={h.key}
+                        style={[
+                          styles.cell,
+                          styles.headerCell,
+                          { width: columnWidths[idx] },
+                        ]}
+                      >
                         {h.label}
                       </Text>
                     ))}
                   </View>
-
                   {previewResults.map((r, i) => (
-                    <View key={i} style={[styles.tableRow, { backgroundColor: i % 2 ? "#fafafa" : "#fff" }]}>
+                    <View
+                      key={i}
+                      style={[
+                        styles.tableRow,
+                        { backgroundColor: i % 2 ? "#fafafa" : "#fff" },
+                      ]}
+                    >
                       {headers.map((h, idx) => (
-                        <Text key={h.key} style={[styles.cell, { width: columnWidths[idx] }]}>
-                          {String(r[h.key] ?? "")}   {/* ✅ 用 key 取值 */}
+                        <Text
+                          key={h.key}
+                          style={[styles.cell, { width: columnWidths[idx] }]}
+                        >
+                          {String(r[h.key] ?? "")}
                         </Text>
                       ))}
                     </View>
                   ))}
-
                 </View>
               </ScrollView>
             </View>
@@ -649,7 +749,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tableTitle: { fontSize: 16, fontWeight: "700" },
-  tableRow: { flexDirection: "row", borderBottomWidth: 1, borderColor: "#eee" },
+  tableRow: { flexDirection: "row", borderBottomWidth: 1, borderColor: "rgba(0,0,0,0.06)" },
   cell: { paddingVertical: 6, paddingHorizontal: 8, textAlign: "center" },
   headerCell: { fontWeight: "700" },
   rowWrap: {
@@ -659,14 +759,14 @@ const styles = StyleSheet.create({
   paramBtn: {
     margin: 6,
     padding: 8,
-    backgroundColor: "#ffffffff",
+    backgroundColor: "#fff",
     borderRadius: 8,
     borderWidth: 0.5,
     justifyContent: 'space-between'
   },
   container: { padding: 12 },
   originalLabel: { color: "#5d5d5d", fontSize: 12 },
-  customLabel: { color: "#0a0a0aff", fontSize: 12, marginTop: 4, borderTopWidth: 0.5 },
+  customLabel: { color: "#0a0a0a", fontSize: 12, marginTop: 4, borderTopWidth: 0.5 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(144, 142, 142, 0.5)",
@@ -676,11 +776,11 @@ const styles = StyleSheet.create({
   modalBox: {
     width: "80%",
     height: 260,
-    backgroundColor: "#ffffffff",
+    backgroundColor: "#fff",
     borderRadius: 10,
     padding: 16,
   },
-  modalTitle: { color: "#090909ff", fontSize: 14, marginBottom: 8 },
+  modalTitle: { color: "#090909", fontSize: 14, marginBottom: 8 },
   btnRow: {
     flexDirection: "row",
     justifyContent: "space-between",
