@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   TextStyle,
   TouchableOpacity,
   ScrollView,
-  Alert, // ⭐ 新增
+  Alert,
 } from 'react-native';
 import {
   WsState,
@@ -49,6 +49,9 @@ type Props = {
   /** 從外層傳入所有 sections（至少要有 id） */
   sections?: SectionLike[];
   step?: string | number;
+
+  /** 時間單位（例如 'day'）；若為 'day' 會依日期聚合 */
+  timeUnit?: string;
 };
 
 /** timeUnit-@dataSet 專用的顯示型別（轉成 FlatList 用） */
@@ -72,7 +75,8 @@ export default function FormulaTimeUnitList({
   expressionBoxStyle,
   statisticsId,
   sections = [],
-  step
+  step,
+  timeUnit,
 }: Props) {
   const { t } = useTranslation();
 
@@ -101,7 +105,7 @@ export default function FormulaTimeUnitList({
       .replace(/\s+/g, '')
       .trim();
 
-  /** 正規化 previewResults 的每列 → { created_at, value } */
+  /** 正規化 previewResults 的每列 → { created_at, value }（預設逐筆 scalar 模式用） */
   const normalizePreviewRow = (row: any) => {
     if (!row || typeof row !== 'object') return null;
     const created = row.created_at || row.time || row.紀錄時間 || row.日期;
@@ -110,8 +114,116 @@ export default function FormulaTimeUnitList({
     return { created_at: String(created), value: val };
   };
 
-  /** 一次載入所有 section 的所有公式，把 params/records 建好（以 formula.id 當 key） */
-  const loadAllForBuilder = useCallback(async () => {
+  /** 讀取 `${statisticsId}-timeUnit-@dataSet`，並轉為 timeUnitRules */
+  const loadTimeUnitRules = useCallback(async () => {
+    if (statisticsId == null) {
+      setTimeUnitRules([]);
+      return;
+    }
+    try {
+      const key = `${statisticsId}-timeUnit-@dataSet`;
+      const raw = await AsyncStorage.getItem(key);
+      const ds = raw ? JSON.parse(raw) : null;
+
+      // 預期格式：{ formula_builder: { displayExpression, realExpression, previewResults, ... } }
+      const fb = ds?.formula_builder;
+      if (fb && (typeof fb.displayExpression === 'string' || typeof fb.realExpression === 'string')) {
+        const one: TimeUnitRule = {
+          id: 'timeUnit',
+          name: '公式名稱',
+          expression: String(fb.displayExpression ?? ''),
+          realExpression: String(fb.realExpression ?? ''),
+          previewResults: Array.isArray(fb.previewResults) ? fb.previewResults : [],
+        };
+        setTimeUnitRules([one]);
+      } else {
+        setTimeUnitRules([]);
+      }
+    } catch (err) {
+      console.warn('讀取 timeUnit @dataSet 失敗：', err);
+      setTimeUnitRules([]);
+    }
+  }, [statisticsId]);
+
+  /** 依「天」做聚合：把各 section 的 formulas.previewResults 以 YYYY-MM-DD 分組，組出 params/records */
+  const preprocessAllSectionsByDay = useCallback(async () => {
+    if (statisticsId == null || !sections.length) {
+      setParamsForBuilder([]);
+      setRecordsForBuilder([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 先把所有 section 的 formulas 與其 rows 讀出來
+      type F = { id: string; name: string; rows: Array<Record<string, any>> };
+      const allFormulas: F[] = [];
+
+      for (const s of sections) {
+        const sid = String(s.id);
+        const key = buildDatasetKey(statisticsId, sid);
+        const raw = await AsyncStorage.getItem(key);
+        const ds = raw ? JSON.parse(raw) : null;
+        const formulas: any[] = Array.isArray(ds?.formulas) ? ds.formulas : [];
+        if (!formulas.length) continue;
+
+        for (const f of formulas) {
+          const fid = String(f?.id ?? '');
+          if (!fid) continue;
+          const name = sanitizeLabel(f?.name ?? f?.displayText ?? fid);
+          const rows: any[] = Array.isArray(f?.previewResults) ? f.previewResults : [];
+          allFormulas.push({ id: fid, name, rows });
+        }
+      }
+
+      // params：所有公式（id/name）
+      const params = allFormulas.map(f => ({ key: f.id, label: f.name }));
+
+      // 用 dayKey => 每天一筆 record
+      const dayMap: Map<string, Record<string, any>> = new Map();
+
+      // 走過每條公式，把該公式 rows 依天整理成陣列
+      for (const f of allFormulas) {
+        for (const r of f.rows) {
+          const createdAt = String(r?.created_at ?? r?.time ?? '');
+          if (!createdAt) continue;
+          const dayKey = createdAt.slice(0, 10); // 'YYYY-MM-DD'
+
+          // 取出此列的「數值欄位」，排除 created_at 和 公式結果
+          const values: number[] = [];
+          for (const [k, v] of Object.entries(r)) {
+            if (k === 'created_at' || k === '公式結果') continue;
+            const num = Number(v);
+            if (Number.isFinite(num)) values.push(num);
+          }
+
+          // 取/設此天的聚合物件
+          const rec = dayMap.get(dayKey) ?? { created_at: dayKey };
+          // 把該天、該 formula.id 的數值 push（同一天可能有多列）
+          const existed = Array.isArray((rec as any)[f.id]) ? (rec as any)[f.id] : [];
+          (rec as any)[f.id] = existed.concat(values);
+          dayMap.set(dayKey, rec);
+        }
+      }
+
+      // 排序天數（字串排序 YYYY-MM-DD 可用）
+      const records = Array.from(dayMap.keys())
+        .sort((a, b) => a.localeCompare(b))
+        .map(day => dayMap.get(day)!);
+
+      setParamsForBuilder(params);
+      setRecordsForBuilder(records);
+    } catch (err) {
+      console.warn('以天聚合 sections/formulas 失敗：', err);
+      setParamsForBuilder([]);
+      setRecordsForBuilder([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [statisticsId, sections, buildDatasetKey]);
+
+  /** 舊的逐時序（每列一筆 scalar 值）合併：非 day 時使用 */
+  const preprocessAllSectionsDefault = useCallback(async () => {
     if (statisticsId == null || !sections.length) {
       setParamsForBuilder([]);
       setRecordsForBuilder([]);
@@ -122,8 +234,6 @@ export default function FormulaTimeUnitList({
     try {
       const params: Array<{ key: string; label: string }> = [];
       const timeSet: Set<string> = new Set();
-
-      // formulaId -> Map<created_at, value>
       const mapByFormulaId: Record<string, Map<string, number>> = {};
 
       for (const s of sections) {
@@ -159,7 +269,7 @@ export default function FormulaTimeUnitList({
         const row: Record<string, any> = { created_at };
         Object.entries(mapByFormulaId).forEach(([fid, m]) => {
           const v = m.get(created_at);
-          if (Number.isFinite(v as number)) row[fid] = v;
+          if (Number.isFinite(v as number)) (row as any)[fid] = v;
         });
         return row;
       });
@@ -174,37 +284,6 @@ export default function FormulaTimeUnitList({
       setLoading(false);
     }
   }, [sections, statisticsId, buildDatasetKey]);
-
-  /** 讀取 `${statisticsId}-timeUnit-@dataSet`，並轉為 timeUnitRules */
-  const loadTimeUnitRules = useCallback(async () => {
-    if (statisticsId == null) {
-      setTimeUnitRules([]);
-      return;
-    }
-    try {
-      const key = `${statisticsId}-timeUnit-@dataSet`;
-      const raw = await AsyncStorage.getItem(key);
-      const ds = raw ? JSON.parse(raw) : null;
-
-      // 預期格式：{ formula_builder: { displayExpression, realExpression, previewResults, ... } }
-      const fb = ds?.formula_builder;
-      if (fb && (typeof fb.displayExpression === 'string' || typeof fb.realExpression === 'string')) {
-        const one: TimeUnitRule = {
-          id: 'timeUnit',
-          name: '公式名稱',
-          expression: String(fb.displayExpression ?? ''),
-          realExpression: String(fb.realExpression ?? ''),
-          previewResults: Array.isArray(fb.previewResults) ? fb.previewResults : [],
-        };
-        setTimeUnitRules([one]);
-      } else {
-        setTimeUnitRules([]);
-      }
-    } catch (err) {
-      console.warn('讀取 timeUnit @dataSet 失敗：', err);
-      setTimeUnitRules([]);
-    }
-  }, [statisticsId]);
 
   /** 刪除 `${statisticsId}-timeUnit-@dataSet` 裡的 formula_builder */
   const handleDeleteTimeUnit = useCallback(() => {
@@ -223,22 +302,18 @@ export default function FormulaTimeUnitList({
               const key = `${statisticsId}-timeUnit-@dataSet`;
               const raw = await AsyncStorage.getItem(key);
               if (!raw) {
-                // 本來就沒有 => 清空畫面即可
                 setTimeUnitRules([]);
                 return;
               }
               let obj: any = {};
               try { obj = JSON.parse(raw) ?? {}; } catch { obj = {}; }
 
-              // 只刪除 formula_builder，其它欄位不動
               if ('formula_builder' in obj) {
                 delete obj.formula_builder;
                 await AsyncStorage.setItem(key, JSON.stringify(obj));
               }
 
               setTimeUnitRules([]);
-
-              // 如果需要對外通知：
               onDelete?.({ id: 'timeUnit', expression: '' });
             } catch (e) {
               console.warn('刪除 timeUnit 失敗：', e);
@@ -249,13 +324,18 @@ export default function FormulaTimeUnitList({
     );
   }, [statisticsId, t, onDelete]);
 
+  // === 載入 ===
   useEffect(() => {
-    loadAllForBuilder();
-  }, [loadAllForBuilder]);
-
-  useEffect(() => {
+    // 1) timeUnit rule（單位時間公式本身）
     loadTimeUnitRules();
-  }, [loadTimeUnitRules]);
+
+    // 2) 參數 & 資料預處理
+    if (String(timeUnit).toLowerCase() === 'day') {
+      preprocessAllSectionsByDay();
+    } else {
+      preprocessAllSectionsDefault();
+    }
+  }, [loadTimeUnitRules, preprocessAllSectionsByDay, preprocessAllSectionsDefault, timeUnit]);
 
   /** 單列渲染 timeUnit（操作按鈕放在公式名稱下方） */
   const renderTimeUnitItem = useCallback(
@@ -274,14 +354,6 @@ export default function FormulaTimeUnitList({
           </TouchableOpacity>
 
           <WsFlex justifyContent="flex-start" style={styles.actionsBar}>
-            {/* 若要開放編輯，可打開下一段 */}
-            {/* <WsIconBtn
-              padding={0}
-              size={28}
-              name="md-create"
-              label="編輯"
-              onPress={() => onEditFormula?.(ruleLike)}
-            /> */}
             <WsIconBtn
               padding={0}
               size={28}
@@ -297,7 +369,7 @@ export default function FormulaTimeUnitList({
               color={$color.danger}
               name="md-delete"
               label="刪除"
-              onPress={handleDeleteTimeUnit} // ⭐ 改為呼叫內建刪除
+              onPress={handleDeleteTimeUnit}
             />
           </WsFlex>
         </View>
@@ -310,11 +382,16 @@ export default function FormulaTimeUnitList({
 
   const refreshNow = useCallback(async () => {
     try {
-      await Promise.all([loadTimeUnitRules(), loadAllForBuilder()]);
+      await loadTimeUnitRules();
+      if (String(timeUnit).toLowerCase() === 'day') {
+        await preprocessAllSectionsByDay();
+      } else {
+        await preprocessAllSectionsDefault();
+      }
     } catch (e) {
       console.warn('refreshNow failed:', e);
     }
-  }, [loadTimeUnitRules, loadAllForBuilder]);
+  }, [loadTimeUnitRules, preprocessAllSectionsByDay, preprocessAllSectionsDefault, timeUnit]);
 
   return (
     <>
@@ -337,7 +414,7 @@ export default function FormulaTimeUnitList({
           showsVerticalScrollIndicator={false}
         />
 
-        {/* 開啟公式編輯 Modal（把 paramsForBuilder / recordsForBuilder 餵給 WsFormulaBuilder002） */}
+        {/* 開啟公式編輯 Modal（把預處理好的 params/records 餵給 WsFormulaBuilder002） */}
         <WsIconBtn
           padding={0}
           name="md-add"
@@ -354,15 +431,16 @@ export default function FormulaTimeUnitList({
         onBackButtonPress={() => setModalActiveFormula(false)}
         headerLeftOnPress={() => setModalActiveFormula(false)}
         headerRightOnPress={() => {
+          // 外層「送出」只關閉與重整；真正寫入請在內層編輯器點「套用並關閉」
           setModalActiveFormula(false);
-           setTimeout(() => { refreshNow(); }, 0); 
+          setTimeout(() => { refreshNow(); }, 0);
         }}
         headerRightText={t('送出')}
         title={t('編輯公式')}
       >
         <ScrollView>
           <WsPaddingContainer>
-            {/* 直接把合併好的 A/B 傳給 WsFormulaBuilder002 */}
+            {/* 直接把預處理好的 params/records 傳給 WsFormulaBuilder002 */}
             <WsState
               type="formula"
               style={{ marginVertical: 8 }}
@@ -374,6 +452,7 @@ export default function FormulaTimeUnitList({
               uniqueKey={'created_at'}
               onChange={(p) => setFormulaData(p)}
               statisticsId={statisticsId}
+              sectionId="timeUnit"   // ★★★ 關鍵：統一寫入 ${statisticsId}-timeUnit-@dataSet
               step={step}
             />
 

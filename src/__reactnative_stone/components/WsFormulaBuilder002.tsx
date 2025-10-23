@@ -22,24 +22,25 @@ import {
   WsText,
   WsGradientButton,
   WsIconBtn
-} from '@/components'
+} from '@/components';
 import { useTranslation } from "react-i18next";
-import $color from '@/__reactnative_stone/global/color'
-import AsyncStorage from '@react-native-community/async-storage'
+import $color from '@/__reactnative_stone/global/color';
+import AsyncStorage from '@react-native-community/async-storage';
 
-// ---------- mathjs ----------
+/* ========================= mathjs ========================= */
 const math = create(all, { number: "number" });
+// 自訂函數：支援陣列/巢狀陣列，通通攤平並轉數字
 math.import(
   {
-    SUM: (...args: number[]) => math.sum(args.flat()),
-    MAX: (...args: number[]) => math.max(args.flat()),
-    MIN: (...args: number[]) => math.min(args.flat()),
-    AVERAGE: (...args: number[]) => math.mean(args.flat()),
+    SUM: (...args: any[]) => math.sum(args.flat(Infinity).map(Number)),
+    MAX: (...args: any[]) => math.max(args.flat(Infinity).map(Number)),
+    MIN: (...args: any[]) => math.min(args.flat(Infinity).map(Number)),
+    AVERAGE: (...args: any[]) => math.mean(args.flat(Infinity).map(Number)),
   },
   { override: true }
 );
 
-// ---------- 型別 ----------
+/* ========================= 型別 ========================= */
 type ParamItem = {
   key: string;           // 唯一鍵（通常為 question_id 或 UUID）
   label: string;         // 題目原始名稱
@@ -48,7 +49,7 @@ type ParamItem = {
 
 type HeaderCol = { key: string; label: string };
 
-// ---------- 工具 ----------
+/* ========================= 工具 ========================= */
 const toSafeVar = (id: string) => {
   const cleaned = String(id).replace(/[^A-Za-z0-9_]/g, "_");
   return `v_${cleaned}`;
@@ -65,7 +66,44 @@ const isIdentChar = (ch: string) => {
   return false;
 };
 
-// ---------- 新 Tokenizer ----------
+// 把任意輸入轉為 number | number[]
+const toNumberOrArray = (raw: any): number | number[] => {
+  // 陣列：每個元素轉數字，過濾 NaN
+  if (Array.isArray(raw)) {
+    const arr = raw.map(v => Number(v)).filter(v => Number.isFinite(v));
+    return arr;
+  }
+
+  // CSV 字串：'1,2, 3' → [1,2,3]
+  if (typeof raw === 'string' && raw.includes(',')) {
+    const arr = raw
+      .split(',')
+      .map(s => Number(s.trim()))
+      .filter(v => Number.isFinite(v));
+    return arr;
+  }
+
+  // 單一字串/數字：轉成 number；失敗回 0
+  const num = Number(raw);
+  return Number.isFinite(num) ? num : 0;
+};
+
+// 把 math.js 回傳的結果轉成純 JS：支援 Matrix / Array / Number
+const valueOfMathResult = (val: any): number | number[] | string => {
+  // Matrix 轉陣列
+  if (val && typeof val === 'object' && typeof val.valueOf === 'function') {
+    const v = val.valueOf();
+    if (Array.isArray(v)) return v;
+    const num = Number(v);
+    if (Number.isFinite(num)) return num;
+  }
+  if (Array.isArray(val)) return val;
+  const n = Number(val);
+  if (Number.isFinite(n)) return n;
+  try { return JSON.stringify(val); } catch { return String(val); }
+};
+
+/* ========================= 新 Tokenizer ========================= */
 type NewToken =
   | { type: "number"; text: string }
   | { type: "op"; text: string }        // + - * / ^
@@ -137,7 +175,7 @@ const tokenize = (input: string): NewToken[] => {
   return out;
 };
 
-// tokens → 可運算字串
+// tokens → 可運算字串（把顯示名稱換成變數名）
 const untokenizeToReal = (
   tokens: NewToken[],
   displayNameToParam: Map<string, ParamItem>,
@@ -168,7 +206,7 @@ const untokenizeToReal = (
   return parts.join("");
 };
 
-// ---------- 元件 ----------
+/* ========================= 元件 ========================= */
 export default function WsFormulaBuilder002({
   style,
   placeholder = "點擊以建立或編輯公式…",
@@ -205,12 +243,8 @@ export default function WsFormulaBuilder002({
   const [displayExpression, setDisplayExpression] = useState("");
   const [realExpression, setRealExpression] = useState("");
 
-  // ★ 這次新增：tokens 狀態
+  // tokens 狀態
   const [toks, setToks] = useState<NewToken[]>([]);
-
-  // console.log(displayExpression,'displayExpression')
-  // console.log(realExpression,'realExpression')
-  // console.log(toks,'toks----')
 
   // 實際用到的參數
   const [usedParams, setUsedParams] = useState<Array<{ key: string; label: string; customLabel?: string }>>([]);
@@ -227,10 +261,15 @@ export default function WsFormulaBuilder002({
     { key: "AVERAGE", label: "平均值", insert: "AVERAGE(A, B)" },
   ];
 
-  // 允許編輯自訂名稱
+  // 允許編輯自訂名稱（從 params 來）
   const [paramList, setParamList] = useState<ParamItem[]>(
     (params as any[]).map((p: any) => ({ ...p, customLabel: p.customLabel ?? "" }))
   );
+
+  // 讓外部 props 變動時，同步 paramList（避免只吃初始值）
+  useEffect(() => {
+    setParamList((params as any[]).map((p: any) => ({ ...p, customLabel: p.customLabel ?? "" })));
+  }, [params]);
 
   const effectiveParams = useMemo(
     () => (paramList && paramList.length ? paramList : (params as any[])),
@@ -284,10 +323,10 @@ export default function WsFormulaBuilder002({
     const { real, used, tokens } = convertDisplayToReal(txt);
     setRealExpression(real);
     setUsedParams(used);
-    setToks(tokens); // ★★★ 存成 state
+    setToks(tokens);
   };
 
-  // 預覽運算（以 uniqueKey 取值；缺值→0）
+  /* ========================= 預覽運算 ========================= */
   useEffect(() => {
     if (!realExpression || !records?.length) {
       setPreviewResults([]);
@@ -295,22 +334,31 @@ export default function WsFormulaBuilder002({
     }
     try {
       const newResults = records.map((r) => {
-        const ctx: Record<string, number> = {};
+        const ctx: Record<string, any> = {};
 
+        // 把每個參數（依 uniqueKey 取得對應欄位）放入 ctx（允許 number 或 number[] 或 csv）
         effectiveParams.forEach((p: any) => {
           const id = p?.[uniqueKey] ?? p?.question_id ?? p?.key;
           if (!id) return;
           const raw = r[id];
           const vname = idToVar.get(String(id)) || toSafeVar(String(id));
-          const num = Number(raw);
-          ctx[vname] = Number.isFinite(num) ? num : 0;
+          ctx[vname] = toNumberOrArray(raw);
         });
 
         let result: any = "❌";
         try {
           const val = math.evaluate(realExpression, ctx);
-          const num = Number(val);
-          result = Number.isFinite(num) ? Math.round(num * 100) / 100 : "❌";
+          const v = valueOfMathResult(val); // number | number[] | string
+
+          if (Array.isArray(v)) {
+            result = v
+              .map(n => (Number.isFinite(n) ? Math.round(n * 100) / 100 : n))
+              .join(", ");
+          } else if (Number.isFinite(v as number)) {
+            result = Math.round((v as number) * 100) / 100;
+          } else {
+            result = String(v);
+          }
         } catch {
           const tokens = Array.from(new Set(realExpression.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []));
           const unknown = tokens.filter(tok => !KNOWN_FUNCS.has(tok) && !(tok in ctx));
@@ -325,7 +373,7 @@ export default function WsFormulaBuilder002({
     }
   }, [realExpression, records, effectiveParams, uniqueKey, idToVar]);
 
-  // 插入片段 → 也要更新 toks
+  /* ========================= 插入/選取 ========================= */
   const insertAtCursor = (displayPiece: string) => {
     const start = selection.start ?? 0;
     const end = selection.end ?? 0;
@@ -340,27 +388,23 @@ export default function WsFormulaBuilder002({
     const { real, used, tokens } = convertDisplayToReal(newDisplay);
     setRealExpression(real);
     setUsedParams(used);
-    setToks(tokens); // ★
+    setToks(tokens);
 
     const newPos = start + displayPiece.length;
     setSelection({ start: newPos, end: newPos });
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  // 點參數插入（顯示用）
+  // 點參數插入（只插入名稱，不額外加 + 或空白）
   const onSelectParam = (item?: ParamItem | Record<string, any>) => {
     if (!item) return;
-
     const anyItem: any = item;
     const displayName =
       (typeof anyItem.customLabel === "string" && anyItem.customLabel.trim()) ||
       anyItem.label ||
       "";
-
-    // 直接插入參數名稱，不加任何運算子或空白
     insertAtCursor(displayName);
   };
-
 
   const onInsertFunction = (fInsert: string) => insertAtCursor(fInsert);
 
@@ -370,10 +414,10 @@ export default function WsFormulaBuilder002({
     setRealExpression("");
     setUsedParams([]);
     setPreviewResults([]);
-    setToks([]); // ★
+    setToks([]);
   };
 
-  // 自訂名稱 Modal
+  /* ========================= 自訂名稱 Modal ========================= */
   const [inputValue, setInputValue] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [editingParam, setEditingParam] = useState<{ id: string; label: string } | null>(null);
@@ -396,10 +440,10 @@ export default function WsFormulaBuilder002({
     const { real, used, tokens } = convertDisplayToReal(displayExpression);
     setRealExpression(real);
     setUsedParams(used);
-    setToks(tokens); // ★
+    setToks(tokens);
   };
 
-  // 表頭（顯示 customLabel 優先）
+  /* ========================= 表頭（顯示 customLabel 優先） ========================= */
   const headers: HeaderCol[] = useMemo(() => {
     const base = previewResults.length ? previewResults : records;
     if (!base.length) return [{ key: "公式結果", label: "公式結果" }];
@@ -426,7 +470,7 @@ export default function WsFormulaBuilder002({
   }, [previewResults, records, effectiveParams, uniqueKey]);
 
   const columnWidths = headers.map((h) =>
-    h.key === "created_at" ? 200 : Math.max(h.label.length * 10 + 40, 100)
+    h.key === "created_at" ? 200 : Math.max(h.label.length * 10 + 80, 100)
   );
 
   const openEditor = () => {
@@ -434,14 +478,14 @@ export default function WsFormulaBuilder002({
     setVisible(true);
   };
 
-  // 套用並關閉（寫入 AsyncStorage: formula_builder 四欄位 + toks）
+  /* ========================= 套用並關閉（寫入 storage，含 toks） ========================= */
   const handleApplyAndClose = useCallback(async () => {
     const formulaPayload = {
       displayExpression,
       realExpression,
       previewResults,
       formula_used_params: usedParams,
-      toks, // ★★★ 一起存
+      toks, // ★ 一起存
       updatedAt: new Date().toISOString(),
     };
 
@@ -482,7 +526,7 @@ export default function WsFormulaBuilder002({
           if (typeof fb.realExpression === "string") setRealExpression(fb.realExpression);
           if (Array.isArray(fb.previewResults)) setPreviewResults(fb.previewResults);
           if (Array.isArray(fb.formula_used_params)) setUsedParams(fb.formula_used_params);
-          if (Array.isArray(fb.toks)) setToks(fb.toks as NewToken[]); // ★★★ 載回 toks
+          if (Array.isArray(fb.toks)) setToks(fb.toks as NewToken[]);
         }
       } catch (err) {
         console.warn('載入已存資料失敗：', err);
@@ -702,6 +746,11 @@ export default function WsFormulaBuilder002({
                         <Text key={h.key} style={[styles.cell, { width: columnWidths[idx] }]}>
                           {(() => {
                             const raw = r[h.key];
+                            if (Array.isArray(raw)) {
+                              return raw
+                                .map((n: any) => (Number.isFinite(n) ? Math.round(n * 100) / 100 : n))
+                                .join(", ");
+                            }
                             if (typeof raw === "number" && Number.isFinite(raw)) {
                               return (Math.round(raw * 100) / 100).toString();
                             }

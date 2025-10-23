@@ -245,6 +245,7 @@ const Menu = ({ navigation }) => {
     // LOGOUT
     try {
       await S_Auth.logout()
+      // await AsyncStorage.clear();
       Alert.alert(t('登出成功'))
     } catch (error) {
       console.error(error, 'logout error')
