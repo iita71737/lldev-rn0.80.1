@@ -447,8 +447,23 @@ export default function FormulaTimeUnitList({
               label={t('公式​')}
               placeholder={t('輸入')}
               value={formulaData?.expression}
-              params={paramsForBuilder}
-              records={recordsForBuilder}
+              // params={paramsForBuilder}
+              // records={recordsForBuilder}
+              params={
+                [
+                  { key: "1761199127297", label: "Summmm" },
+                  { key: "1761111578360", label: "平均值值" },
+                  { key: "1761111896201", label: "最大值" },
+                ]}
+              records={
+                [
+                  {
+                    created_at: "2025-08-01T01:00:00+08:00",
+                    "1761111578360": [1, 2, 3, 4, 5],
+                    "1761111896201": [2, 3, 4, 5, 6],
+                    "1761199127297": [3, 4, 5, 6, 7],
+                  }
+                ]}
               uniqueKey={'created_at'}
               onChange={(p) => setFormulaData(p)}
               statisticsId={statisticsId}

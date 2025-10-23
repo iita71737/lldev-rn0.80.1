@@ -521,13 +521,14 @@ ${demoData?.end_time}`
             }}
           >
             <SingleChart
-              timeUnit={demoData?.time_unit ? demoData.time_unit : 'month'}
-              dsA={Array.from({ length: 30 }, () => Math.floor(Math.random() * 100))}
-              dsB={Array.from({ length: 30 }, () => Math.floor(Math.random() * 100))}
-              seriesNames={{ a: '收入', b: '成本' }}
+              timeUnit="month"
+              labelCount={12}                       // 12個月
+              dsA={[2.1, 2.4, 2.0, 2.6, 2.9, 3.1, 2.8, 3.0, 3.3, 3.2, 3.4, 3.1]} // M0→M1 (%)
+              dsB={[0.9, 1.1, 1.0, 1.2, 1.4, 1.6, 1.3, 1.5, 1.7, 1.6, 1.8, 1.7]} // M1→M2 (%)
+              seriesNames={{ a: 'M0→M1 滾動率', b: 'M1→M2 滾動率' }}
               xAxisName="月份"
-              yAxisName="金額"
-              valueSuffix=" 萬"
+              yAxisName="比率"
+              valueSuffix=" %"
             />
 
             <View

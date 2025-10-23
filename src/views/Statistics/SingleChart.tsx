@@ -140,12 +140,12 @@ export default function SingleChart({
     return fallbackLabels
   }, [labelsProp, timeUnit, inferredCount, baseYear, fallbackLabels])
 
-  /** 以 labels 長度為準裁切資料 */
+  /** 以 labels 長度為準裁切資料（用 useMemo 穩定參考，避免 option 無謂重建） */
   const L = labels.length
-  const safeA = rawA.slice(0, L)
-  const safeB = rawB.slice(0, L)
+  const safeA = useMemo(() => rawA.slice(0, L), [rawA, L])
+  const safeB = useMemo(() => rawB.slice(0, L), [rawB, L])
 
-  // helper
+  // helper：x 軸標籤格式化
   const xLabelFormatter = useMemo(() => {
     return (val: string) => {
       // 例如：'1日' -> '1'
@@ -154,12 +154,33 @@ export default function SingleChart({
     }
   }, [timeUnit])
 
+  /** 把當前用於互動的資料放入 ref，提供已綁定事件使用（避免重綁） */
+  const dataRef = useRef({
+    labels,
+    safeA,
+    safeB,
+    L,
+    seriesAName: seriesNames.a ?? 'A1',
+    seriesBName: seriesNames.b ?? 'B',
+  })
+  useEffect(() => {
+    dataRef.current = {
+      labels,
+      safeA,
+      safeB,
+      L,
+      seriesAName: seriesNames.a ?? 'A1',
+      seriesBName: seriesNames.b ?? 'B',
+    }
+  }, [labels, safeA, safeB, L, seriesNames.a, seriesNames.b])
+
   /** ECharts Option */
   const option = useMemo(
     () => ({
       animation: false,
       animationDurationUpdate: 150,
       animationEasingUpdate: 'quartOut',
+      tooltip: { show: false, triggerOn: 'none' }, // 關掉內建 tooltip，改用自訂浮層
       legend: { data: [seriesNames.a ?? 'A1', seriesNames.b ?? 'B'] },
       grid: { left: 40, right: 40, top: 28, bottom: 50 },
       xAxis: {
@@ -212,10 +233,10 @@ export default function SingleChart({
         },
       ],
     }),
-    [labels, safeA, safeB, seriesNames.a, seriesNames.b, xAxisName, yAxisName, valueSuffix]
+    [labels, safeA, safeB, seriesNames.a, seriesNames.b, xAxisName, yAxisName, valueSuffix, xLabelFormatter]
   )
 
-  /** 初始化 + 綁定事件 */
+  /** 初始化（只跑一次），綁定事件：點擊圖區、點擊資料點、crosshair/axisPointer */
   useEffect(() => {
     if (!chartRef.current || instRef.current) return
     const inst = echarts.init(chartRef.current, 'light', {
@@ -229,6 +250,7 @@ export default function SingleChart({
     const zr = inst.getZr()
 
     const getTipByIndex = (dataIndex: number): TipState => {
+      const { labels, safeA, safeB, L, seriesAName, seriesBName } = dataRef.current
       let idx = clamp(Math.round(dataIndex), 0, L - 1)
       const category = labels[idx]
       const aVal = safeA[idx]
@@ -245,8 +267,8 @@ export default function SingleChart({
           category,
           dataIndex: idx,
           series: [
-            { seriesName: seriesNames.a ?? 'A1', value: aVal },
-            { seriesName: seriesNames.b ?? 'B', value: bVal },
+            { seriesName: seriesAName, value: aVal },
+            { seriesName: seriesBName, value: bVal },
           ],
         },
       }
@@ -284,15 +306,22 @@ export default function SingleChart({
       inst.dispose()
       instRef.current = null
     }
-  }, [option, width, height, L, labels, safeA, safeB, seriesNames.a, seriesNames.b])
+    // 僅在掛載/卸載時執行；不要把 option 放進依賴，否則會重綁事件
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  /** 視窗寬度 / 高度 / option 改變時更新圖表 */
+  /** 圖表尺寸變更：resize + 清掉舊 tooltip 位置 */
   useEffect(() => {
     if (!instRef.current) return
     instRef.current.resize({ width, height })
+    setTip(null) // 只在尺寸變時清
+  }, [width, height])
+
+  /** 資料或設定變更：更新 option（不清 tooltip，避免閃掉） */
+  useEffect(() => {
+    if (!instRef.current) return
     instRef.current.setOption(option, { notMerge: true, lazyUpdate: true })
-    setTip(null) // 避免舊位置殘留
-  }, [width, height, option])
+  }, [option])
 
   return (
     <>
