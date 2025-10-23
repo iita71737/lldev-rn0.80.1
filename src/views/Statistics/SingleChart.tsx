@@ -25,29 +25,20 @@ type TipState = {
 } | null
 
 type Props = {
-  /** x 軸標籤，若未提供則依 timeUnit 自動產生 */
   labels?: string[]
-  /** 第一條線資料 */
   dsA?: number[]
-  /** 第二條線資料 */
   dsB?: number[]
-  /** 圖例名稱 */
   seriesNames?: { a?: string; b?: string }
-  /** 圖高（預設 300） */
   height?: number
-  /** y 軸名稱 */
   yAxisName?: string
-  /** x 軸名稱 */
   xAxisName?: string
-  /** y 軸單位字尾，例如 ' k'、' 元' */
   valueSuffix?: string
-  /** 自動產生 labels 的單位 */
   timeUnit?: TimeUnit
-  /** 自動產生 labels 的數量；未指定則以資料長度推斷 */
   labelCount?: number
-  /** timeUnit === 'year' 時用來指定結束年份；未指定則取當年 */
   baseYear?: number
 }
+
+type TraceSelected = { seriesIndex: 0 | 1; dataIndex: number } | null
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max))
 
@@ -102,6 +93,7 @@ export default function SingleChart({
 
   const [modalTraceData, setModalTraceData] = useState(false)
   const [tip, setTip] = useState<TipState>(null)
+  const [selectedForTrace, setSelectedForTrace] = useState<TraceSelected>(null)
 
   /** Demo fallback（外部未提供資料時使用） */
   const fallbackLabels = useMemo(
@@ -115,7 +107,7 @@ export default function SingleChart({
   const rawA = dsAProp?.length ? dsAProp : fallbackA
   const rawB = dsBProp?.length ? dsBProp : fallbackB
 
-  /** 推斷 labelCount：優先採用 props，其次用資料長度，最後依 timeUnit 給預設 */
+  /** 推斷 labelCount */
   const inferredCount = useMemo(() => {
     if (labelCount && labelCount > 0) return labelCount
     const lenA = rawA.length
@@ -133,46 +125,25 @@ export default function SingleChart({
     }
   }, [labelCount, rawA.length, rawB.length, timeUnit])
 
-  /** 最終 labels：優先用傳入的，其次用 timeUnit 自動產生，再不然用 fallback */
+  /** 最終 labels */
   const labels = useMemo(() => {
     if (labelsProp?.length) return labelsProp
     if (timeUnit) return buildAutoLabels({ timeUnit, count: inferredCount, baseYear })
     return fallbackLabels
   }, [labelsProp, timeUnit, inferredCount, baseYear, fallbackLabels])
 
-  /** 以 labels 長度為準裁切資料（用 useMemo 穩定參考，避免 option 無謂重建） */
+  /** 以 labels 長度為準裁切資料（用 useMemo 穩定參考） */
   const L = labels.length
   const safeA = useMemo(() => rawA.slice(0, L), [rawA, L])
   const safeB = useMemo(() => rawB.slice(0, L), [rawB, L])
 
-  // helper：x 軸標籤格式化
+  // x 標籤格式化
   const xLabelFormatter = useMemo(() => {
     return (val: string) => {
-      // 例如：'1日' -> '1'
       if (timeUnit === 'day') return val.replace('日', '')
       return val
     }
   }, [timeUnit])
-
-  /** 把當前用於互動的資料放入 ref，提供已綁定事件使用（避免重綁） */
-  const dataRef = useRef({
-    labels,
-    safeA,
-    safeB,
-    L,
-    seriesAName: seriesNames.a ?? 'A1',
-    seriesBName: seriesNames.b ?? 'B',
-  })
-  useEffect(() => {
-    dataRef.current = {
-      labels,
-      safeA,
-      safeB,
-      L,
-      seriesAName: seriesNames.a ?? 'A1',
-      seriesBName: seriesNames.b ?? 'B',
-    }
-  }, [labels, safeA, safeB, L, seriesNames.a, seriesNames.b])
 
   /** ECharts Option */
   const option = useMemo(
@@ -180,20 +151,14 @@ export default function SingleChart({
       animation: false,
       animationDurationUpdate: 150,
       animationEasingUpdate: 'quartOut',
-      tooltip: { show: false, triggerOn: 'none' }, // 關掉內建 tooltip，改用自訂浮層
+      tooltip: { show: false, triggerOn: 'none' }, // 用自訂浮層
       legend: { data: [seriesNames.a ?? 'A1', seriesNames.b ?? 'B'] },
       grid: { left: 40, right: 40, top: 28, bottom: 50 },
       xAxis: {
         type: 'category',
         boundaryGap: true,
         data: labels,
-        axisLabel: {
-          interval: 0,
-          rotate: 30,
-          margin: 12,
-          hideOverlap: true,
-          formatter: xLabelFormatter,
-        },
+        axisLabel: { interval: 0, rotate: 30, margin: 12, hideOverlap: true, formatter: xLabelFormatter },
         axisTick: { alignWithLabel: true },
         name: xAxisName,
         nameLocation: 'middle',
@@ -202,9 +167,7 @@ export default function SingleChart({
       },
       yAxis: {
         type: 'value',
-        axisLabel: {
-          formatter: `{value}${valueSuffix}`
-        },
+        axisLabel: { formatter: `{value}${valueSuffix}` },
         name: yAxisName,
         splitNumber: 4,
       },
@@ -236,21 +199,16 @@ export default function SingleChart({
     [labels, safeA, safeB, seriesNames.a, seriesNames.b, xAxisName, yAxisName, valueSuffix, xLabelFormatter]
   )
 
-  /** 初始化（只跑一次），綁定事件：點擊圖區、點擊資料點、crosshair/axisPointer */
+  /** 初始化 + 綁定事件 */
   useEffect(() => {
     if (!chartRef.current || instRef.current) return
-    const inst = echarts.init(chartRef.current, 'light', {
-      renderer: 'skia',
-      width,
-      height,
-    })
+    const inst = echarts.init(chartRef.current, 'light', { renderer: 'skia', width, height })
     instRef.current = inst
     inst.setOption(option, { notMerge: true, lazyUpdate: true })
 
     const zr = inst.getZr()
 
     const getTipByIndex = (dataIndex: number): TipState => {
-      const { labels, safeA, safeB, L, seriesAName, seriesBName } = dataRef.current
       let idx = clamp(Math.round(dataIndex), 0, L - 1)
       const category = labels[idx]
       const aVal = safeA[idx]
@@ -267,14 +225,13 @@ export default function SingleChart({
           category,
           dataIndex: idx,
           series: [
-            { seriesName: seriesAName, value: aVal },
-            { seriesName: seriesBName, value: bVal },
+            { seriesName: seriesNames.a ?? 'A1', value: aVal },
+            { seriesName: seriesNames.b ?? 'B', value: bVal },
           ],
         },
       }
     }
 
-    /** 1) 點擊任何圖表區域：就近選取 x 索引 */
     const onZrClick = (e: any) => {
       const pt: [number, number] = [e.offsetX, e.offsetY]
       const from = inst.convertFromPixel({ seriesIndex: 0 }, pt) as [number, number]
@@ -283,7 +240,6 @@ export default function SingleChart({
     }
     zr.on('click', onZrClick)
 
-    /** 2) 點擊實際資料點 */
     const onSeriesClick = (params: any) => {
       if (params?.componentType !== 'series') return
       const idx = params.dataIndex as number
@@ -291,7 +247,6 @@ export default function SingleChart({
     }
     inst.on('click', onSeriesClick)
 
-    /** 3) crosshair/拖曳 dataZoom 時更新浮層位置 */
     const onAxisPointer = (e: any) => {
       const info = e?.axesInfo?.[0]
       if (!info || Number.isNaN(info.value)) return
@@ -306,30 +261,35 @@ export default function SingleChart({
       inst.dispose()
       instRef.current = null
     }
-    // 僅在掛載/卸載時執行；不要把 option 放進依賴，否則會重綁事件
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  /** 圖表尺寸變更：resize + 清掉舊 tooltip 位置 */
+  /** 圖尺寸變動：resize；避免每次 option 變都清掉 tip */
   useEffect(() => {
     if (!instRef.current) return
     instRef.current.resize({ width, height })
-    setTip(null) // 只在尺寸變時清
+    setTip(null) // 尺寸變才清
   }, [width, height])
 
-  /** 資料或設定變更：更新 option（不清 tooltip，避免閃掉） */
+  /** 資料/設定變更：更新 option（不清 tip） */
   useEffect(() => {
     if (!instRef.current) return
     instRef.current.setOption(option, { notMerge: true, lazyUpdate: true })
   }, [option])
 
+  const getValuesAt = (idx: number) => {
+    const aVal = safeA[idx]
+    const bVal = safeB[idx]
+    return { aVal, bVal }
+  }
+
   return (
     <>
       <WsPaddingContainer
         padding={0}
-        style={{ backgroundColor: $color.white, position: 'relative' }} // 讓自訂 tooltip 絕對定位在容器內
+        style={{ backgroundColor: $color.white, position: 'relative' }}
       >
-        {/* 若你的 app 有使用 RNGH，建議開啟 useRNGH：<SkiaChart ref={chartRef} useRNGH /> */}
+        {/* 若你的 app 用 RNGH，可開 useRNGH：<SkiaChart ref={chartRef} useRNGH /> */}
         <SkiaChart ref={chartRef} />
 
         {/* 自訂 Tooltip */}
@@ -357,7 +317,10 @@ export default function SingleChart({
             <TouchableOpacity
               style={{ marginTop: 10 }}
               onPress={() => {
-                console.log('Go detail →', tip.payload)
+                const idx = tip.payload.dataIndex
+                const { aVal, bVal } = getValuesAt(idx)
+                const seriesIndex: 0 | 1 = (Number(bVal ?? -Infinity) > Number(aVal ?? -Infinity)) ? 1 : 0
+                setSelectedForTrace({ seriesIndex, dataIndex: idx })
                 setTip(null)
                 setModalTraceData(true)
               }}
@@ -372,7 +335,7 @@ export default function SingleChart({
         )}
       </WsPaddingContainer>
 
-      {/* 你的新增流程 Modal */}
+      {/* 詳情 Modal：把 labels / 資料 / 初始選取 傳進去 */}
       <WsModal
         animationType="none"
         visible={modalTraceData}
@@ -380,7 +343,14 @@ export default function SingleChart({
         headerLeftOnPress={() => setModalTraceData(false)}
         title={t('新增記錄')}
       >
-        <SingleChartTrace />
+        <SingleChartTrace
+          labels={labels}
+          dsA={safeA}
+          dsB={safeB}
+          seriesNames={seriesNames}
+          initialSelected={selectedForTrace}
+          timeUnit={timeUnit}
+        />
       </WsModal>
     </>
   )

@@ -1,353 +1,264 @@
-import React, {
-  useMemo,
-  useState,
-  useCallback,
-  forwardRef,
-  useImperativeHandle,
-  useRef,
-  useEffect,
-} from 'react';
+import React, { forwardRef, memo, useMemo, useRef, useImperativeHandle } from 'react'
 import {
   View,
   Text,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  FlatList,
   Platform,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-} from 'react-native';
-import * as XLSX from 'xlsx';
-import { ScrollView } from 'react-native-gesture-handler';
+  UIManager,
+  findNodeHandle,
+} from 'react-native'
 
-type Row = { time: string; A: number; B: number; C: number; D: number; result: number };
+type RowData = { time: string; A?: string | number; B?: string | number }
+export type SelectedCell = { seriesIndex: 0 | 1; dataIndex: number }
 
-function makeMockRows(): Row[] {
-  const base = new Date('2025-08-01T01:00:00');
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return Array.from({ length: 20 }).map((_, i) => {
-    const t = new Date(base.getTime() + i * 3600_000);
-    const time = `${t.getFullYear()}/${pad(t.getMonth() + 1)}/${pad(t.getDate())} ${pad(t.getHours())}:00:00`;
-    const A = i + 1,
-      B = i + 2,
-      C = i + 3,
-      D = i + 4,
-      result = A + B + C + D;
-    return { time, A, B, C, D, result };
-  });
+export type XlsxDataTableHandle = {
+  /** 讓外層頁面滾到指定列（表格本身不直捲，所以用量測協助外層捲動） */
+  scrollToRow: (index: number, animated?: boolean) => void
 }
 
-function rowsToAoA(rows: Row[]) {
-  const headers = ['紀錄時間', 'A 題目標題', 'B 題目標題', 'C 題目標題', 'D 題目標題', '公式結果'];
-  const aoa: (string | number)[][] = [headers, ...rows.map(r => [r.time, r.A, r.B, r.C, r.D, r.result])];
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  return XLSX.utils.sheet_to_json(ws, { header: 1 }) as (string | number)[][];
+type Props = {
+  rows: RowData[]
+  headersOverride?: [string, string, string] | string[]
+  showCheckbox?: boolean
+  selectedRow?: number | null
+  selectedRowColor?: string
+  selected?: SelectedCell | null
+  pressableColumns?: number[]
+  onCellPress?: (rowIdx: number, colIdx: number, value: string | number | undefined) => void
+  bodyTextAlign?: 'left' | 'center' | 'right'
+  timeColTextAlign?: 'left' | 'center' | 'right'
+  headerTextAlign?: 'left' | 'center' | 'right'
+  columnWidth?: { time?: number; a?: number; b?: number }
+  zebra?: boolean
 }
 
-const ROW_HEIGHT = 44;
-const TIME_SAMPLE = '2025/12/31 23:59:59';
-const CELL_H_PADDING = 16;
-const CHECK_COL_W = 44;
+const DEFAULT_HEADER: [string, string, string] = ['單位時間', 'A', 'B']
+const ROW_HEIGHT = 40
+const SEPARATOR_H = Platform.OS === 'android' ? StyleSheet.hairlineWidth || 0.5 : StyleSheet.hairlineWidth || 0.5
+const ITEM_H = ROW_HEIGHT + SEPARATOR_H
 
-type XlsxDataTableProps = {
-  onCellLayout?: (
-    seriesIndex: 0 | 1,
-    dataIndex: number,
-    layout: { x: number; y: number; width: number; height: number }
-  ) => void;
-  onContentMeasure?: (abs: { x: number; y: number }) => void;
-  onScrollOffsets?: (offsets: { scrollX: number; scrollY: number }) => void;
-  selected?: { seriesIndex: 0 | 1; dataIndex: number } | null;
-  selectedRow?: number | null;
-  selectedRowColor?: string;
-};
+const hexToRgba = (hex: string, alpha: number) => {
+  const h = hex.replace('#', '')
+  const to255 = (s: string) => parseInt(s.length === 1 ? s + s : s, 16)
+  const r = to255(h.substring(0, h.length === 3 ? 1 : 2))
+  const g = to255(h.substring(h.length === 3 ? 1 : 2, h.length === 3 ? 2 : 4))
+  const b = to255(h.substring(h.length === 3 ? 2 : 4, h.length === 3 ? 3 : 6))
+  return `rgba(${r},${g},${b},${alpha})`
+}
+const isColor = (s?: string) => !!s && (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s) || s.startsWith('rgb'))
 
-type DataRowProps = {
-  row: (string | number)[];
-  widths: number[];
-  checked: boolean;
-  onToggle: () => void;
-  zebra: boolean;
-  rowW: number;
-  index: number;
-  onCellLayout?: XlsxDataTableProps['onCellLayout'];
-  selected?: XlsxDataTableProps['selected'];
-  selectedRow?: number | null;
-  selectedRowColor?: string;
-};
-
-function toRGBA(color: string, alpha: number) {
-  if (color.startsWith('rgba')) return color.replace(/rgba\(([^)]+),\s*[\d.]+\)/, `rgba($1, ${alpha})`);
-  if (color.startsWith('rgb(')) return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
-  const h = color.replace('#', '');
-  const r = parseInt(h.length === 3 ? h[0] + h[0] : h.slice(0, 2), 16);
-  const g = parseInt(h.length === 3 ? h[1] + h[1] : h.slice(2, 4), 16);
-  const b = parseInt(h.length === 3 ? h[2] + h[2] : h.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+/* ---------- 單列 ---------- */
+type RowProps = {
+  rowIndex: number
+  row: RowData
+  widths: [number, number, number]
+  showCheckbox: boolean
+  zebra: boolean
+  selectedRow?: number | null
+  selectedRowColor?: string
+  selected?: SelectedCell | null
+  pressableColumns?: number[]
+  onCellPress?: (rowIdx: number, colIdx: number, value: string | number | undefined) => void
+  bodyTextAlign: 'left' | 'center' | 'right'
+  timeColTextAlign: 'left' | 'center' | 'right'
 }
 
-const DataRow = React.memo(function DataRow({
-  row,
-  widths,
-  checked,
-  onToggle,
-  zebra,
-  rowW,
-  index,
-  onCellLayout,
-  selected,
-  selectedRow,
-  selectedRowColor,
-}: DataRowProps) {
-  const isRowSelected = selectedRow === index;
+const DataRow = memo(function DataRow(props: RowProps) {
+  const {
+    rowIndex, row, widths, showCheckbox, zebra,
+    selectedRow, selectedRowColor, selected,
+    pressableColumns, onCellPress, bodyTextAlign, timeColTextAlign,
+  } = props
+
+  const isSelectedRow = selectedRow != null && selectedRow === rowIndex
   const rowBG =
-    isRowSelected && selectedRowColor
-      ? { backgroundColor: toRGBA(selectedRowColor, 0.25) }
-      : null;
+    isSelectedRow && selectedRowColor
+      ? { backgroundColor: isColor(selectedRowColor) ? hexToRgba(selectedRowColor, 0.12) : hexToRgba('#2196f3', 0.12) }
+      : zebra && rowIndex % 2 === 1
+      ? styles.zebra
+      : null
+
+  const isSelectedCell = (colIdx: number) => {
+    if (!selected) return false
+    const { seriesIndex, dataIndex } = selected
+    if (dataIndex !== rowIndex) return false
+    const col = seriesIndex === 0 ? 1 : 2
+    return col === colIdx
+  }
+
+  const cellBase = (colIdx: number) => [
+    styles.cell,
+    { width: widths[colIdx], height: ROW_HEIGHT },
+    colIdx === 0 ? styles.timeCell : null,
+    isSelectedCell(colIdx) ? styles.cellSelected : null,
+  ]
+
+  const renderCell = (val: string | number | undefined, colIdx: number) => {
+    const pressable = pressableColumns?.includes(colIdx)
+    const content = (
+      <Text
+        numberOfLines={1}
+        ellipsizeMode={colIdx === 0 ? 'clip' : 'tail'}
+        style={[styles.text, { textAlign: colIdx === 0 ? timeColTextAlign : bodyTextAlign }]}
+      >
+        {val == null ? '—' : String(val)}
+      </Text>
+    )
+    if (pressable && onCellPress) {
+      return (
+        <TouchableOpacity activeOpacity={0.7} onPress={() => onCellPress(rowIndex, colIdx, val)} style={styles.pressableFill}>
+          {content}
+        </TouchableOpacity>
+      )
+    }
+    return content
+  }
 
   return (
-    <View
-      style={[
-        styles.row,
-        zebra && styles.zebra,
-        rowBG,
-        { width: rowW },
-      ]}
-    >
-      <TouchableOpacity onPress={onToggle} style={[styles.cell, styles.checkCell]}>
-        <View style={styles.checkbox}>
-          {checked && <Text style={styles.checkMark}>✓</Text>}
-        </View>
-      </TouchableOpacity>
-
-      {row.map((val, i) => {
-        const isA = i === 1;
-        const isB = i === 2;
-        const isCellSelected =
-          (selected?.seriesIndex === 0 && isA && selected?.dataIndex === index) ||
-          (selected?.seriesIndex === 1 && isB && selected?.dataIndex === index);
-
-        const cellBG =
-          isCellSelected && selectedRowColor
-            ? { backgroundColor: toRGBA(selectedRowColor, 0.5) }
-            : (isCellSelected ? styles.cellSelected : null);
-
-        return (
-          <View
-            key={i}
-            style={[
-              styles.cell,
-              { width: widths[i] },
-              cellBG,
-            ]}
-            onLayout={
-              (isA || isB)
-                ? (e) => onCellLayout?.(isA ? 0 : 1, index, e.nativeEvent.layout)
-                : undefined
-            }
-          >
-            <Text
-              numberOfLines={1}
-              ellipsizeMode={i === 0 ? 'clip' : 'tail'}
-              style={[
-                styles.text,
-                checked && styles.strikeText, // ✅ 勾選後整列加刪除線
-              ]}
-            >
-              {String(val)}
-            </Text>
-          </View>
-        );
-      })}
+    <View style={[styles.row, rowBG]}>
+      {showCheckbox && <View style={[styles.checkboxBox]} />}
+      <View style={cellBase(0)}>{renderCell(row.time, 0)}</View>
+      <View style={cellBase(1)}>{renderCell(row.A, 1)}</View>
+      <View style={cellBase(2)}>{renderCell(row.B, 2)}</View>
     </View>
-  );
-});
+  )
+})
 
-const XlsxDataTable = forwardRef<View, XlsxDataTableProps>(function XlsxDataTable(
-  { onCellLayout, onContentMeasure, onScrollOffsets, selected, selectedRow, selectedRowColor },
+/* ---------- 主體（無垂直內捲） ---------- */
+const XlsxDataTable = forwardRef<XlsxDataTableHandle, Props>(function XlsxDataTable(
+  {
+    rows,
+    headersOverride,
+    showCheckbox = false,
+    selectedRow,
+    selectedRowColor,
+    selected,
+    pressableColumns = [],
+    onCellPress,
+    bodyTextAlign = 'left',
+    timeColTextAlign = 'left',
+    headerTextAlign = 'left',
+    columnWidth,
+    zebra = true,
+  },
   ref
 ) {
-  const rows = useMemo(() => makeMockRows(), []);
-  const table = useMemo(() => rowsToAoA(rows), [rows]);
-  const header = table[0] || [];
-  const body = table.slice(1);
+  const header = (headersOverride?.length === 3
+    ? (headersOverride as [string, string, string])
+    : DEFAULT_HEADER)
 
-  const [timeColWidth, setTimeColWidth] = useState<number>(240);
-  const onMeasureTime = useCallback((e: any) => {
-    const w = Math.ceil(e?.nativeEvent?.lines?.[0]?.width ?? 0) + CELL_H_PADDING;
-    if (w > 0 && Math.abs(w - timeColWidth) > 1) setTimeColWidth(w);
-  }, [timeColWidth]);
+  const widths = useMemo<[number, number, number]>(() => {
+    const timeW = columnWidth?.time ?? 180
+    const aW = columnWidth?.a ?? 120
+    const bW = columnWidth?.b ?? 120
+    return [timeW, aW, bW]
+  }, [columnWidth?.time, columnWidth?.a, columnWidth?.b])
 
-  const colWidths = useMemo(() => [timeColWidth, 110, 110, 110, 110, 110], [timeColWidth]);
-  const tableWidth = useMemo(() => CHECK_COL_W + colWidths.reduce((a, b) => a + b, 0), [colWidths]);
+  const tableWidth = widths.reduce((a, b) => a + b, 0) + (showCheckbox ? 44 : 0)
 
-  const [checkedMap, setCheckedMap] = useState<Record<number, boolean>>({});
-  const toggle = useCallback((idx: number) => setCheckedMap(p => ({ ...p, [idx]: !p[idx] })), []);
+  // 讓外層能定位到某一列：量測每列 y 座標
+  const containerRef = useRef<View>(null)
+  const rowRefs = useRef<Array<View | null>>([])
 
-  const keyExtractor = useCallback((_: any, i: number) => String(i), []);
-  const getItemLayout = useCallback(
-    (_data: any, index: number) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * index, index }),
-    []
-  );
+  useImperativeHandle(ref, () => ({
+    scrollToRow: (index: number, animated = true) => {
+      const containerNode = findNodeHandle(containerRef.current)
+      const target = rowRefs.current[index]
+      const targetNode = target ? findNodeHandle(target) : null
+      if (!containerNode || !targetNode) return
 
-  const wrapRef = useRef<View>(null);
-  useImperativeHandle(ref, () => wrapRef.current as View);
-
-  const contentRef = useRef<View>(null);
-  const onContentLayout = useCallback(() => {
-    if (!contentRef.current) return;
-    (contentRef.current as any).measureInWindow?.((x: number, y: number) => {
-      onContentMeasure?.({ x, y });
-    });
-  }, [onContentMeasure]);
-
-  const onHScroll = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      onScrollOffsets?.({ scrollX: e.nativeEvent.contentOffset.x, scrollY: 0 });
+      // 利用原生 measure 取得目標在螢幕上的位置，請外層 ScrollView 負責捲動
+      UIManager.measureInWindow(targetNode, (_x, y) => {
+        // 觸發「將某元素捲到可視區」的簡捷做法
+        // 如果你的外層用的是 react-native-gesture-handler 的 ScrollView，
+        // 可以在外層自行控制 scrollTo；這裡示意用 Keyboard API 類似的行為。
+        // 實務中你也可以在外層把 ref 暴露進來，由外層直接 scrollTo(y - 某個留白)
+        // 這裡先留白，避免誤導：外層控制比較乾淨。
+      })
     },
-    [onScrollOffsets]
-  );
-  const onVScroll = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      onScrollOffsets?.({ scrollX: 0, scrollY: e.nativeEvent.contentOffset.y });
-    },
-    [onScrollOffsets]
-  );
-
-  const listRef = useRef<FlatList>(null);
-  useEffect(() => {
-    if (selectedRow == null) return;
-    listRef.current?.scrollToIndex({
-      index: Math.max(0, Math.min(selectedRow, body.length - 1)),
-      animated: true,
-      viewOffset: 2 * ROW_HEIGHT,
-    });
-  }, [selectedRow, body.length]);
+  }), [])
 
   return (
-    <View ref={wrapRef} style={styles.wrap}>
-      <View pointerEvents="none" style={styles.hiddenMeasure}>
-        <Text style={styles.text} numberOfLines={1} onTextLayout={onMeasureTime}>
-          {TIME_SAMPLE}
-        </Text>
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator
-        bounces={false}
-        nestedScrollEnabled
-        directionalLockEnabled
-        onScroll={onHScroll}
-        scrollEventThrottle={16}
-      >
-        <View ref={contentRef} onLayout={onContentLayout} style={{ width: tableWidth }}>
-          <View style={[styles.row, styles.headerRow, { width: tableWidth }]}>
-            <View style={[styles.cell, styles.headerCell, styles.checkCell]}>
-              <Text style={styles.headerText}>✓</Text>
-            </View>
-            {header.map((h, i) => (
-              <View key={`h-${i}`} style={[styles.cell, styles.headerCell, { width: colWidths[i] }]}>
-                <Text numberOfLines={1} ellipsizeMode={i === 0 ? 'clip' : 'tail'} style={styles.headerText}>
-                  {String(h)}
-                </Text>
-              </View>
-            ))}
+    // 只允許「水平」捲動；垂直高度撐滿，由外層頁面捲動
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ minWidth: tableWidth }}
+    >
+      <View ref={containerRef} style={{ width: tableWidth }}>
+        {/* Header */}
+        <View style={[styles.row, styles.headerRow]}>
+          {showCheckbox && <View style={[styles.checkboxBox]} />}
+          <View style={[styles.cell, styles.headerCell, { width: widths[0], height: ROW_HEIGHT }]}>
+            <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: headerTextAlign }]}>
+              {String(header[0])}
+            </Text>
           </View>
+          <View style={[styles.cell, styles.headerCell, { width: widths[1], height: ROW_HEIGHT }]}>
+            <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: headerTextAlign }]}>
+              {String(header[1])}
+            </Text>
+          </View>
+          <View style={[styles.cell, styles.headerCell, { width: widths[2], height: ROW_HEIGHT }]}>
+            <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: headerTextAlign }]}>
+              {String(header[2])}
+            </Text>
+          </View>
+        </View>
 
-          <FlatList
-            ref={listRef}
-            data={body}
-            keyExtractor={keyExtractor}
-            getItemLayout={getItemLayout}
-            renderItem={({ item, index }) => (
+        {/* Body（靜態列，無垂直內捲） */}
+        <View>
+          {rows.map((row, idx) => (
+            <View key={`r-${idx}`}>
               <DataRow
-                row={item}
-                widths={colWidths}
-                checked={!!checkedMap[index]}
-                onToggle={() => toggle(index)}
-                zebra={index % 2 === 1}
-                rowW={tableWidth}
-                index={index}
-                onCellLayout={onCellLayout}
-                selected={selected}
+                rowIndex={idx}
+                row={row}
+                widths={widths}
+                showCheckbox={showCheckbox}
+                zebra={zebra}
                 selectedRow={selectedRow}
                 selectedRowColor={selectedRowColor}
+                selected={selected}
+                pressableColumns={pressableColumns}
+                onCellPress={onCellPress}
+                bodyTextAlign={bodyTextAlign}
+                timeColTextAlign={timeColTextAlign}
               />
-            )}
-            initialNumToRender={20}
-            maxToRenderPerBatch={20}
-            updateCellsBatchingPeriod={40}
-            windowSize={9}
-            style={{ height: 440 }}
-            nestedScrollEnabled
-            showsVerticalScrollIndicator
-            removeClippedSubviews={false}
-            onScroll={onVScroll}
-            scrollEventThrottle={16}
-          />
+              <View style={styles.sep} />
+            </View>
+          ))}
         </View>
-      </ScrollView>
-    </View>
-  );
-});
+      </View>
+    </ScrollView>
+  )
+})
 
-export default XlsxDataTable;
-
+/* ---------- Styles ---------- */
 const styles = StyleSheet.create({
-  wrap: { padding: 12, backgroundColor: '#fff' },
-  hiddenMeasure: { position: 'absolute', opacity: 0, height: 0, overflow: 'hidden' },
-
-  row: {
-    flexDirection: 'row',
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#cfd6e4',
-    height: ROW_HEIGHT,
+  row: { flexDirection: 'row', alignItems: 'stretch', minHeight: ROW_HEIGHT },
+  headerRow: {
+    backgroundColor: '#F5F7FA',
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E0E6ED',
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E0E6ED',
   },
-  headerRow: { backgroundColor: '#eef3fb' },
-  zebra: { backgroundColor: '#fafbfd' },
-
+  zebra: { backgroundColor: '#FAFBFC' },
+  sep: { height: SEPARATOR_H, backgroundColor: '#EEF2F7' },
+  checkboxBox: {
+    width: 44, alignItems: 'center', justifyContent: 'center',
+    borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: '#E0E6ED',
+  },
   cell: {
-    paddingHorizontal: 8,
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderColor: '#cfd6e4',
-    height: ROW_HEIGHT,
+    paddingHorizontal: 12, justifyContent: 'center',
+    borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: '#E0E6ED',
   },
-  cellSelected: { backgroundColor: 'rgba(255, 214, 102, 0.35)' },
+  timeCell: {},
+  headerCell: { paddingVertical: 10 },
+  headerText: { fontSize: 13, fontWeight: '600', color: '#37474F' },
+  text: { fontSize: 13, color: '#263238' },
+  pressableFill: { flex: 1, justifyContent: 'center' },
+  cellSelected: { backgroundColor: hexToRgba('#FF9800', 0.14) },
+})
 
-  checkCell: { width: CHECK_COL_W, alignItems: 'center' },
-
-  headerCell: {},
-  headerText: { color: '#1a1a1a' },
-  text: { color: '#1a1a1a' },
-
-  /** 勾選 → 整列刪除線 */
-  strikeText: {
-    textDecorationLine: 'line-through',
-    color: '#8e8e8e',
-  },
-
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 3,
-    borderWidth: 2,
-    borderColor: '#1a1a1a',
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  checkMark: {
-    fontSize: 12,
-    lineHeight: 12,
-    color: '#000',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    ...Platform.select({
-      android: { transform: [{ translateY: -0.5 }], textAlignVertical: 'center' as any },
-    }),
-  },
-});
+export default XlsxDataTable
