@@ -84,7 +84,6 @@ const StatisticsRecordCreate = (props) => {
 
   const _checklist = props?.route?.params?.checklist
   const _statisticsId = props?.route?.params?.statisticsId
-  // console.log(_statisticsId,'_statisticsId--')
 
   // states
   const [statistcsName, setStatisticsName] = React.useState(_checklist ? _checklist.name : '')
@@ -105,8 +104,7 @@ const StatisticsRecordCreate = (props) => {
 
   /** —— Step3：單位時間內的關係公式（多條） —— */
   const [rules, setRules] = useState<FormulaRule[]>([
-    { id: '1', expression: 'sum(result)' },
-    { id: '2', expression: 'avg(result)' },
+
   ])
 
   // 1) 新增：記住每個 section 的展開狀態
@@ -130,6 +128,13 @@ const StatisticsRecordCreate = (props) => {
     { key: 's2', label: '2. 題目之間的關係公式及剔除資料' },
     { key: 's3', label: '3. 單位時間內的關係公式' },
   ]
+
+  const finishAndBack = useCallback(() => {
+    // 回到內頁（上一頁）
+    navigation.goBack();
+    // 若要導到特定頁，也可改成：navigation.navigate('YourInnerRouteName');
+  }, [navigation]);
+
 
   /** —— 底部導覽按鈕（統一處理） —— */
   const FooterNav = ({
@@ -432,6 +437,7 @@ const StatisticsRecordCreate = (props) => {
                 onEditFormula={() => setModalActiveFormula(true)}
                 statisticsId={_statisticsId}
                 sections={sections}
+                step={STEPS.TIMEUNIT}
               />
 
               {/* 版本/題目選擇（沿用你的 Accordion + Block） */}
@@ -459,7 +465,14 @@ const StatisticsRecordCreate = (props) => {
                   );
                 })}
 
-                <FooterNav />
+                <FooterNav
+                  // 需要顯示「上一步」就保留；如果不要，改成 showPrev={false}
+                  showPrev={true}
+                  // 將「下一步」改成「完成」
+                  nextText={t('完成')}
+                  // 按下時返回內頁
+                  onNext={finishAndBack}
+                />
               </WsPaddingContainer>
             </>
           )}

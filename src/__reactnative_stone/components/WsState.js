@@ -182,7 +182,8 @@ const WsState = React.forwardRef((props, ref) => {
     values,
     records,
     statisticsId,
-    sectionId
+    sectionId,
+    step
   } = props
 
   // i18n
@@ -1014,6 +1015,7 @@ const WsState = React.forwardRef((props, ref) => {
             style={style}
             statisticsId={statisticsId}
             sectionId={sectionId}
+            step={step}
           />
         </>
       )}

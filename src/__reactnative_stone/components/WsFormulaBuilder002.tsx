@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -27,13 +27,7 @@ import { useTranslation } from "react-i18next";
 import $color from '@/__reactnative_stone/global/color'
 import AsyncStorage from '@react-native-community/async-storage'
 
-// type
-type ParamItem = {
-  key: string;
-  label: string;
-  customLabel?: string;
-};
-
+// ---------- mathjs ----------
 const math = create(all, { number: "number" });
 math.import(
   {
@@ -45,18 +39,142 @@ math.import(
   { override: true }
 );
 
-// ========== 把任何 id 轉成 mathjs 安全變數名 ==========
-const toSafeVar = (id: string) => {
-  const cleaned = String(id).replace(/[^A-Za-z0-9_]/g, "_"); // 把 - 等符號轉 _
-  return `v_${cleaned}`; // 以字母/底線開頭，避免與函數名衝突
+// ---------- 型別 ----------
+type ParamItem = {
+  key: string;           // 唯一鍵（通常為 question_id 或 UUID）
+  label: string;         // 題目原始名稱
+  customLabel?: string;  // 使用者自訂名稱（顯示用）
 };
 
+type HeaderCol = { key: string; label: string };
+
+// ---------- 工具 ----------
+const toSafeVar = (id: string) => {
+  const cleaned = String(id).replace(/[^A-Za-z0-9_]/g, "_");
+  return `v_${cleaned}`;
+};
+
+const KNOWN_FUNCS = new Set(["SUM", "MAX", "MIN", "AVERAGE"]);
+
+// CJK + 英數底線：視為可組成名稱的字元
+const isIdentChar = (ch: string) => {
+  if (!ch) return false;
+  if (/[A-Za-z0-9_]/.test(ch)) return true;
+  const code = ch.charCodeAt(0);
+  if (code >= 0x4E00 && code <= 0x9FFF) return true; // CJK
+  return false;
+};
+
+// ---------- 新 Tokenizer ----------
+type NewToken =
+  | { type: "number"; text: string }
+  | { type: "op"; text: string }        // + - * / ^
+  | { type: "func"; text: string }      // 以小寫存 text：sum/max/...
+  | { type: "lparen"; text: "(" }
+  | { type: "rparen"; text: ")" }
+  | { type: "comma"; text: "," }
+  | { type: "name"; text: string }
+  | { type: "other"; text: string };
+
+const tokenize = (input: string): NewToken[] => {
+  const out: NewToken[] = [];
+  const n = input.length;
+  let i = 0;
+
+  const pushOp = (v: string) => out.push({ type: "op", text: v });
+
+  while (i < n) {
+    const ch = input[i];
+
+    // 跳過空白（不輸出空白 token）
+    if (/\s/.test(ch)) { i++; continue; }
+
+    // number：支援 123、2.1、.5、1e3、1.2e-3
+    if (/[0-9]/.test(ch) || (ch === '.' && i + 1 < n && /[0-9]/.test(input[i + 1]))) {
+      let j = i;
+      let sawDot = false;
+
+      if (input[j] === '.') { sawDot = true; j++; }
+      else { while (j < n && /[0-9]/.test(input[j])) j++; }
+
+      if (j < n && input[j] === '.' && !sawDot) { sawDot = true; j++; }
+      while (j < n && /[0-9]/.test(input[j])) j++;
+
+      if (j < n && (input[j] === 'e' || input[j] === 'E')) {
+        const k = j + 1;
+        const hasSign = k < n && (input[k] === '+' || input[k] === '-');
+        const nextIsDigit = (hasSign ? k + 1 : k) < n && /[0-9]/.test(input[hasSign ? k + 1 : k]);
+        if (nextIsDigit) {
+          j++; if (hasSign) j++; while (j < n && /[0-9]/.test(input[j])) j++;
+        }
+      }
+
+      out.push({ type: "number", text: input.slice(i, j) });
+      i = j;
+      continue;
+    }
+
+    if ("+-*/^".includes(ch)) { pushOp(ch); i++; continue; }
+    if (ch === "(") { out.push({ type: "lparen", text: "(" }); i++; continue; }
+    if (ch === ")") { out.push({ type: "rparen", text: ")" }); i++; continue; }
+    if (ch === ",") { out.push({ type: "comma", text: "," }); i++; continue; }
+
+    if (isIdentChar(ch)) {
+      let j = i + 1;
+      while (j < n && isIdentChar(input[j])) j++;
+      const word = input.slice(i, j);
+      const upper = word.toUpperCase();
+      if (KNOWN_FUNCS.has(upper)) out.push({ type: "func", text: word.toLowerCase() });
+      else out.push({ type: "name", text: word });
+      i = j;
+      continue;
+    }
+
+    out.push({ type: "other", text: ch });
+    i++;
+  }
+
+  return out;
+};
+
+// tokens → 可運算字串
+const untokenizeToReal = (
+  tokens: NewToken[],
+  displayNameToParam: Map<string, ParamItem>,
+  idToVar: Map<string, string>,
+  uniqueKey: string
+) => {
+  const parts: string[] = [];
+  for (const tok of tokens) {
+    switch (tok.type) {
+      case "func":
+        parts.push(tok.text.toUpperCase());
+        break;
+      case "name": {
+        const p = displayNameToParam.get(tok.text);
+        if (p) {
+          const id = (p as any)?.[uniqueKey] ?? (p as any)?.question_id ?? p.key;
+          const vname = idToVar.get(String(id)) || toSafeVar(String(id));
+          parts.push(vname);
+        } else {
+          parts.push(tok.text);
+        }
+        break;
+      }
+      default:
+        parts.push(tok.text);
+    }
+  }
+  return parts.join("");
+};
+
+// ---------- 元件 ----------
 export default function WsFormulaBuilder002({
   style,
   placeholder = "點擊以建立或編輯公式…",
   params = [],
   records = [],
-  uniqueKey = "question_id", // 你的資料是 key=UUID 時請設 "key"
+  uniqueKey = "question_id",
   onChange,
   statisticsId,
   sectionId,
@@ -71,33 +189,36 @@ export default function WsFormulaBuilder002({
     value: number;
     displayText: string;
   }) => void;
-  statisticsId?: string;
-  sectionId?: string
+  statisticsId?: string | number;
+  sectionId?: string | number;
 }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
   const buildDatasetKey = (statisticsId?: string | number, sectionId?: string | number) =>
     `${statisticsId}-${sectionId}-@dataSet`;
-  const FORMULA_FIELD = "formula_builder"; // 存放公式資訊的欄位名
 
-  const [visible, setVisible] = React.useState(false);
-  const [tableVisible, setTableVisible] = React.useState(false);
+  const [visible, setVisible] = useState(false);
+  const [tableVisible, setTableVisible] = useState(false);
 
-  // === 雙 state ===
-  const [displayExpression, setDisplayExpression] = React.useState(""); // 顯示 label / customLabel
-  const [realExpression, setRealExpression] = React.useState("");       // 運算式（安全變數名）
+  // 顯示/實際公式
+  const [displayExpression, setDisplayExpression] = useState("");
+  const [realExpression, setRealExpression] = useState("");
 
-  const [selection, setSelection] = React.useState({ start: 0, end: 0 });
-  const [previewResults, setPreviewResults] = React.useState<any[]>([]);
-  const inputRef = React.useRef<TextInput>(null);
+  // ★ 這次新增：tokens 狀態
+  const [toks, setToks] = useState<NewToken[]>([]);
 
-  // console.log('displayExpression: ', displayExpression)
-  // console.log('realExpression: ', realExpression)
-  // console.log('previewResults: ', previewResults)
+  // console.log(displayExpression,'displayExpression')
+  // console.log(realExpression,'realExpression')
+  // console.log(toks,'toks----')
 
-  // ====== 追蹤「使用者點選過」的參數（含當下自訂名）======
-  const [usedParams, setUsedParams] = React.useState<ParamItem[]>([]);
+  // 實際用到的參數
+  const [usedParams, setUsedParams] = useState<Array<{ key: string; label: string; customLabel?: string }>>([]);
+
+  // 游標與預覽
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
+  const [previewResults, setPreviewResults] = useState<any[]>([]);
+  const inputRef = useRef<TextInput>(null);
 
   const fnDefs = [
     { key: "SUM", label: "加總", insert: "SUM(A, B)" },
@@ -106,193 +227,72 @@ export default function WsFormulaBuilder002({
     { key: "AVERAGE", label: "平均值", insert: "AVERAGE(A, B)" },
   ];
 
-  // === 使用者可編輯的自訂名稱清單（僅影響顯示 / 解析） ===
+  // 允許編輯自訂名稱
   const [paramList, setParamList] = useState<ParamItem[]>(
-    params.map((p: any) => ({ ...p, customLabel: p.customLabel ?? "" }))
+    (params as any[]).map((p: any) => ({ ...p, customLabel: p.customLabel ?? "" }))
   );
 
-  // ✅ 用「有效參數」作為解析與取值的來源：有 paramList 就用（包含最新 customLabel），否則用 params
-  const effectiveParams = React.useMemo(
-    () => (paramList && paramList.length ? paramList : params),
+  const effectiveParams = useMemo(
+    () => (paramList && paramList.length ? paramList : (params as any[])),
     [paramList, params]
   );
 
-  // ========== 建立參數映射（label/customLabel → 同一安全變數名；id → 安全變數名）==========
-  const paramMaps = React.useMemo(() => {
-    // 長字串優先，避免「pH值」先吃到「pH值 v1」
-    const sorted = [...effectiveParams].sort(
-      (a: any, b: any) => ((b.label?.length || 0) - (a.label?.length || 0))
-    );
-
-    const labelToVar = new Map<string, string>();
+  const { idToVar, displayNameToParam } = useMemo(() => {
     const idToVar = new Map<string, string>();
-    const aliasToVar = new Map<string, string>(); // 需要 A1/A2… 再開
+    const displayNameToParam = new Map<string, ParamItem>();
 
-    sorted.forEach((p: any) => {
+    effectiveParams.forEach((p: any) => {
       const id = p?.[uniqueKey] ?? p?.question_id ?? p?.key;
       if (!id) return;
-      const safe = toSafeVar(String(id));
 
+      const safe = toSafeVar(String(id));
       idToVar.set(String(id), safe);
 
-      // ✅ 同一參數：label 與 customLabel 都映射到同一個安全變數名
-      if (p.label) labelToVar.set(String(p.label), safe);
-      if (p.customLabel) labelToVar.set(String(p.customLabel), safe);
+      if (p.label) displayNameToParam.set(String(p.label), p);
+      if (p.customLabel) displayNameToParam.set(String(p.customLabel), p);
     });
 
-    return { labelToVar, idToVar, aliasToVar };
+    return { idToVar, displayNameToParam };
   }, [effectiveParams, uniqueKey]);
 
-  // ========== 顯示式 → 安全 realExpression（單趟掃描、邊界檢查、不連環替換）==========
-  const convertToReal = (txt: string) => {
-    if (!txt) return "";
+  // 解析 display → tokens → real + used
+  const convertDisplayToReal = useCallback((txt: string) => {
+    if (!txt) {
+      return { real: "", used: [] as Array<{ key: string; label: string; customLabel?: string }>, tokens: [] as NewToken[] };
+    }
+    const tokens = tokenize(txt);
 
-    type Pair = { from: string; to: string };
-    const pairs: Pair[] = [];
-
-    // 先收集（label/customLabel）
-    paramMaps.labelToVar.forEach((to, from) => {
-      if (from) pairs.push({ from, to });
-    });
-    // 再收集（A1/A2…）
-    paramMaps.aliasToVar.forEach((to, from) => {
-      if (from) pairs.push({ from, to });
-    });
-
-    // 長度由長到短，避免子字串搶先命中（例如「pH值」先搶了「pH值 v1」）
-    pairs.sort((a, b) => b.from.length - a.from.length);
-
-    const isWordChar = (ch: string) => /[A-Za-z0-9_]/.test(ch || "");
-
-    // 單趟掃描原始輸入，不在已產生的輸出上再替換
-    let i = 0;
-    const n = txt.length;
-    let out = "";
-
-    while (i < n) {
-      let matched = false;
-
-      for (const { from, to } of pairs) {
-        if (!from) continue;
-
-        if (txt.startsWith(from, i)) {
-          const prev = txt[i - 1] || "";
-          const next = txt[i + from.length] || "";
-
-          // 邊界判斷：前後不能是 [A-Za-z0-9_]
-          if (!isWordChar(prev) && !isWordChar(next)) {
-            out += ` ${to} `;       // 兩側補空白避免黏連
-            i += from.length;       // 游標跳過已匹配片段
-            matched = true;
-            break;
-          }
+    const usedMap = new Map<string, { key: string; label: string; customLabel?: string }>();
+    for (const tok of tokens) {
+      if (tok.type === "name") {
+        const p = displayNameToParam.get(tok.text);
+        if (p) {
+          const id = (p as any)?.[uniqueKey] ?? (p as any)?.question_id ?? p.key;
+          usedMap.set(String(id), { key: String(id), label: String(p.label ?? ""), customLabel: p.customLabel });
         }
       }
-
-      if (!matched) {
-        out += txt[i];
-        i += 1;
-      }
     }
 
-    // 清除多餘空白
-    return out.replace(/\s+/g, " ").trim();
+    const real = untokenizeToReal(tokens, displayNameToParam, idToVar, uniqueKey);
+    const used = Array.from(usedMap.values());
+    return { real, used, tokens };
+  }, [displayNameToParam, idToVar, uniqueKey]);
+
+  // 使用者輸入（display）→ 即時轉 real + used + toks
+  const onDisplayChange = (txt: string) => {
+    setDisplayExpression(txt);
+    const { real, used, tokens } = convertDisplayToReal(txt);
+    setRealExpression(real);
+    setUsedParams(used);
+    setToks(tokens); // ★★★ 存成 state
   };
 
-  /** 從顯示用公式中，精準擷取用到的參數（支援 label 與 customLabel；避免子字串誤撞） */
-  const extractUsedParamsFromDisplay = (
-    display: string,
-    allParams: Array<{ key: string; label?: string; customLabel?: string }>
-  ): ParamItem[] => {
-    if (!display?.trim() || !allParams?.length) return [];
-
-    // 依文字長度由長到短，避免「pH值」先吃到「pH值 v1」
-    const candidates: Array<{ key: string; from: string; label?: string; customLabel?: string }> = [];
-    for (const p of allParams) {
-      if (p.label) candidates.push({ key: p.key, from: String(p.label), label: p.label, customLabel: p.customLabel });
-      if (p.customLabel) candidates.push({ key: p.key, from: String(p.customLabel), label: p.label, customLabel: p.customLabel });
-    }
-    candidates.sort((a, b) => b.from.length - a.from.length);
-
-    const isWordChar = (ch: string) => /[A-Za-z0-9_]/.test(ch || "");
-
-    const usedMap = new Map<string, ParamItem>(); // key -> ParamItem
-    let i = 0;
-    while (i < display.length) {
-      let matched = false;
-
-      for (const c of candidates) {
-        if (!c.from) continue;
-        if (display.startsWith(c.from, i)) {
-          const prev = display[i - 1] || "";
-          const next = display[i + c.from.length] || "";
-
-          // 邊界：避免命中更大詞的一部分
-          if (!isWordChar(prev) && !isWordChar(next)) {
-            // 收進結果（相同 key 只保留一次；customLabel 以當下為準）
-            if (!usedMap.has(c.key)) {
-              usedMap.set(c.key, {
-                key: c.key,
-                label: c.label || c.from,
-                ...(c.customLabel ? { customLabel: c.customLabel } : {}),
-              });
-            } else if (c.customLabel) {
-              // 已存在但這次命中有 customLabel，就覆蓋 customLabel（保留最新）
-              const prevItem = usedMap.get(c.key)!;
-              usedMap.set(c.key, { ...prevItem, customLabel: c.customLabel });
-            }
-
-            i += c.from.length;
-            matched = true;
-            break;
-          }
-        }
-      }
-
-      if (!matched) i += 1;
-    }
-
-    return Array.from(usedMap.values());
-  };
-
-
-  const [inputValue, setInputValue] = React.useState("");
-  const [modalVisible, setModalVisible] = React.useState(false);
-  const [editingParam, setEditingParam] = React.useState<{
-    id: string;
-    label: string;
-  } | null>(null);
-
-  /** 點擊某個 param → 開啟 Modal */
-  const handleOpenModal = (item: ParamItem) => {
-    setEditingParam(item as any);
-    setInputValue(item.customLabel || item.label);
-    setModalVisible(true);
-  };
-  /** 儲存使用者輸入的 customLabel（只影響顯示與解析，不影響取值） */
-  const handleSaveLabel = () => {
-    if (!editingParam) return;
-    setParamList((prev) =>
-      prev.map((p) =>
-        p.key === (editingParam as any).key ? { ...p, customLabel: inputValue } : p
-      )
-    );
-    // ★ 同步更新 usedParams 內對應項目的 customLabel
-    setUsedParams((prev) =>
-      prev.map((p) =>
-        p.key === (editingParam as any).key ? { ...p, customLabel: inputValue } : p
-      )
-    );
-    setModalVisible(false);
-  };
-
-  // 🧮 預覽計算（ctx 只用唯一鍵/UUID 取值；缺值當 0 計算）
-  React.useEffect(() => {
+  // 預覽運算（以 uniqueKey 取值；缺值→0）
+  useEffect(() => {
     if (!realExpression || !records?.length) {
       setPreviewResults([]);
       return;
     }
-
     try {
       const newResults = records.map((r) => {
         const ctx: Record<string, number> = {};
@@ -300,33 +300,22 @@ export default function WsFormulaBuilder002({
         effectiveParams.forEach((p: any) => {
           const id = p?.[uniqueKey] ?? p?.question_id ?? p?.key;
           if (!id) return;
-
-          // ✅ 取值只用唯一鍵（通常是 UUID），避免顯示名稱影響
           const raw = r[id];
-
-          const vname = paramMaps.idToVar.get(String(id)) || toSafeVar(String(id));
+          const vname = idToVar.get(String(id)) || toSafeVar(String(id));
           const num = Number(raw);
-          if (!Number.isFinite(num)) {
-            ctx[vname] = 0; // 缺值當 0
-          } else {
-            ctx[vname] = num;
-          }
+          ctx[vname] = Number.isFinite(num) ? num : 0;
         });
 
         let result: any = "❌";
         try {
           const val = math.evaluate(realExpression, ctx);
           const num = Number(val);
-          result = Number.isFinite(num) ? num : "❌";
+          result = Number.isFinite(num) ? Math.round(num * 100) / 100 : "❌";
         } catch {
-          // 友善提示：找出 realExpression 中 ctx 未知符號
           const tokens = Array.from(new Set(realExpression.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []));
-          console.log(tokens,'tokens')
-          const knownFns = new Set(["SUM", "MAX", "MIN", "AVERAGE"]);
-          const unknown = tokens.filter(tok => !knownFns.has(tok) && !(tok in ctx));
+          const unknown = tokens.filter(tok => !KNOWN_FUNCS.has(tok) && !(tok in ctx));
           result = unknown.length ? `未識別: ${unknown.join(", ")}` : "❌";
         }
-
         return { ...r, 公式結果: result };
       });
 
@@ -334,22 +323,9 @@ export default function WsFormulaBuilder002({
     } catch {
       setPreviewResults(records.map((r) => ({ ...r, 公式結果: "❌" })));
     }
+  }, [realExpression, records, effectiveParams, uniqueKey, idToVar]);
 
-  }, [realExpression, records, effectiveParams, uniqueKey, paramMaps]);
-
-  // ✏️ 使用者輸入（中文/自訂名公式）
-  const onDisplayChange = (txt: string) => {
-    setDisplayExpression(txt);
-    setRealExpression(convertToReal(txt));
-  };
-
-  // 🔁 開啟編輯器
-  const openEditor = () => {
-    setDisplayExpression((prev) => prev || "");
-    setVisible(true);
-  };
-
-  // 🧩 插入游標位置（只改 display，real 由 convertToReal 重算）
+  // 插入片段 → 也要更新 toks
   const insertAtCursor = (displayPiece: string) => {
     const start = selection.start ?? 0;
     const end = selection.end ?? 0;
@@ -360,126 +336,112 @@ export default function WsFormulaBuilder002({
       displayExpression.slice(end);
 
     setDisplayExpression(newDisplay);
-    setRealExpression(convertToReal(newDisplay)); // ★ 重算 real
+
+    const { real, used, tokens } = convertDisplayToReal(newDisplay);
+    setRealExpression(real);
+    setUsedParams(used);
+    setToks(tokens); // ★
 
     const newPos = start + displayPiece.length;
     setSelection({ start: newPos, end: newPos });
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  // 🔘 點選參數插入
-  // 沒自訂 → 插題目名稱；有自訂 → 插自訂名稱；real 由 convertToReal 解析成同一安全變數名
+  // 點參數插入（顯示用）
   const onSelectParam = (item?: ParamItem | Record<string, any>) => {
     if (!item) return;
 
     const anyItem: any = item;
-    const id =
-      anyItem.key ??
-      anyItem[uniqueKey] ??
-      anyItem.question_id ??
-      anyItem.id ??
-      "";
-
-    if (!id) return;
-
-    // 顯示用：customLabel 優先，否則 label
     const displayName =
       (typeof anyItem.customLabel === "string" && anyItem.customLabel.trim()) ||
       anyItem.label ||
       "";
 
-    const cursorPos = selection.start ?? displayExpression.length;
-    const leftChar = displayExpression[cursorPos - 1];
-    const needsPlus =
-      cursorPos > 0 && !["+", "-", "*", "/", "(", ",", " "].includes(leftChar);
-
-    insertAtCursor((needsPlus ? " + " : "") + displayName);
-
-    // ★ 記錄被點選過的參數（含當下 customLabel），避免重複 by key
-    setUsedParams((prev) => {
-      const merged: ParamItem = {
-        key: anyItem.key,
-        label: anyItem.label,
-        customLabel:
-          typeof anyItem.customLabel === "string" && anyItem.customLabel.trim()
-            ? anyItem.customLabel
-            : undefined,
-      };
-      const idx = prev.findIndex(p => p.key === anyItem.key);
-      if (idx >= 0) {
-        const clone = [...prev];
-        clone[idx] = { ...clone[idx], ...merged };
-        return clone;
-      }
-      return [...prev, merged];
-    });
+    // 直接插入參數名稱，不加任何運算子或空白
+    insertAtCursor(displayName);
   };
 
-  // 🔘 插入函數（示例內的 label/customLabel 也會被 convertToReal 轉換）
-  const onInsertFunction = (fInsert: string) => {
-    insertAtCursor(fInsert);
-  };
 
+  const onInsertFunction = (fInsert: string) => insertAtCursor(fInsert);
+
+  // 清除
   const clearExpression = () => {
     setDisplayExpression("");
     setRealExpression("");
+    setUsedParams([]);
     setPreviewResults([]);
-    setUsedParams([]); // 清空已選參數追蹤（依你的需求可保留或清空）
+    setToks([]); // ★
   };
 
-  // 📊 預覽表格 headers：用 { key, label }，取值用 key（UUID/time/公式結果），顯示用 label（customLabel||label）
-  type HeaderCol = { key: string; label: string };
-  const headers: HeaderCol[] = React.useMemo(() => {
+  // 自訂名稱 Modal
+  const [inputValue, setInputValue] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingParam, setEditingParam] = useState<{ id: string; label: string } | null>(null);
+
+  const handleOpenModal = (item: ParamItem) => {
+    setEditingParam(item as any);
+    setInputValue(item.customLabel || item.label);
+    setModalVisible(true);
+  };
+  const handleSaveLabel = () => {
+    if (!editingParam) return;
+    setParamList((prev) =>
+      prev.map((p) =>
+        p.key === (editingParam as any).key ? { ...p, customLabel: inputValue } : p
+      )
+    );
+    setModalVisible(false);
+
+    // 重新解析一次顯示式→避免舊自訂名殘留，並更新 toks
+    const { real, used, tokens } = convertDisplayToReal(displayExpression);
+    setRealExpression(real);
+    setUsedParams(used);
+    setToks(tokens); // ★
+  };
+
+  // 表頭（顯示 customLabel 優先）
+  const headers: HeaderCol[] = useMemo(() => {
     const base = previewResults.length ? previewResults : records;
     if (!base.length) return [{ key: "公式結果", label: "公式結果" }];
 
     const rawKeys =
-      Object.keys(base[0])?.filter(
-        (k) => k !== uniqueKey && k !== "key"
-      ) ?? [];
+      Object.keys(base[0])?.filter((k) => k !== uniqueKey && k !== "key") ?? [];
 
     const labelMap = Object.fromEntries(
-      (params as any[]).map((p: any) => [
+      effectiveParams.map((p: any) => [
         p?.[uniqueKey] ?? p?.key,
-        (p.customLabel ?? p.label),
+        p.customLabel || p.label,
       ])
     );
 
     const cols = rawKeys.map((k) => ({
-      key: k,                   // 取值用
-      label: (labelMap as any)[k] || k, // 顯示用
+      key: k,
+      label: (labelMap as any)[k] || k,
     }));
 
     if (!cols.find((c) => c.key === "公式結果")) {
       cols.push({ key: "公式結果", label: "公式結果" });
     }
     return cols;
-  }, [previewResults, records, params, uniqueKey]);
+  }, [previewResults, records, effectiveParams, uniqueKey]);
 
-  // 算欄寬用 label 長度
   const columnWidths = headers.map((h) =>
     h.key === "created_at" ? 200 : Math.max(h.label.length * 10 + 40, 100)
   );
 
-  // 套用並關閉：把 usedParams 存入 formula_builder.formula_used_params
-  const handleApplyAndClose = React.useCallback(async () => {
-    // 直接從使用者的顯示公式解析出「實際用到的參數（含當下自訂名）」
-    const usedFromFormula = extractUsedParamsFromDisplay(
-      displayExpression,
-      effectiveParams as any   // 帶入目前可用參數（含 customLabel）
-    );
-    setUsedParams(usedFromFormula); // 若之後 UI 要用得到
+  const openEditor = () => {
+    setDisplayExpression((prev) => prev || "");
+    setVisible(true);
+  };
 
+  // 套用並關閉（寫入 AsyncStorage: formula_builder 四欄位 + toks）
+  const handleApplyAndClose = useCallback(async () => {
     const formulaPayload = {
       displayExpression,
       realExpression,
       previewResults,
-      // 存在 formula_builder 物件內
-      formula_used_params: usedFromFormula.map(p => ({
-        key: p.key,
-        label: p.label,
-        ...(p.customLabel ? { customLabel: p.customLabel } : {}),
-      })),
+      formula_used_params: usedParams,
+      toks, // ★★★ 一起存
       updatedAt: new Date().toISOString(),
     };
 
@@ -489,9 +451,11 @@ export default function WsFormulaBuilder002({
 
         const raw = await AsyncStorage.getItem(storageKey);
         let obj: any = {};
-        if (raw) { try { obj = JSON.parse(raw) ?? {}; } catch { obj = {}; } }
+        if (raw) {
+          try { obj = JSON.parse(raw) ?? {}; } catch { obj = {}; }
+        }
 
-        const next = { ...obj, [FORMULA_FIELD]: formulaPayload };
+        const next = { ...obj, formula_builder: formulaPayload };
         await AsyncStorage.setItem(storageKey, JSON.stringify(next));
       }
     } catch (err) {
@@ -500,20 +464,10 @@ export default function WsFormulaBuilder002({
 
     onChange?.({ expression: realExpression, value: 0, displayText: displayExpression });
     setVisible(false);
-  }, [
-    displayExpression,
-    realExpression,
-    previewResults,
-    effectiveParams,
-    statisticsId,
-    sectionId,
-    onChange
-  ]);
+  }, [displayExpression, realExpression, previewResults, usedParams, toks, statisticsId, sectionId, onChange]);
 
-
-
-  // 初始讀取：把 formula_builder & formula_builder.formula_used_params 帶回
-  React.useEffect(() => {
+  // 初始載入 storage：帶回 display/real/preview/usedParams/toks
+  useEffect(() => {
     const loadSaved = async () => {
       try {
         if (statisticsId == null || sectionId == null) return;
@@ -522,28 +476,13 @@ export default function WsFormulaBuilder002({
         if (!saved) return;
 
         const parsed: any = JSON.parse(saved);
-
-        // ★ 帶回已存的公式
-        const fb = parsed?.[FORMULA_FIELD];
+        const fb = parsed?.formula_builder;
         if (fb) {
           if (typeof fb.displayExpression === "string") setDisplayExpression(fb.displayExpression);
           if (typeof fb.realExpression === "string") setRealExpression(fb.realExpression);
           if (Array.isArray(fb.previewResults)) setPreviewResults(fb.previewResults);
-
-          // ★ 從 formula_builder 內讀回 used params
-          const used = Array.isArray(fb.formula_used_params) ? fb.formula_used_params : [];
-          if (used.length) {
-            setUsedParams(used as ParamItem[]);
-            // 合併 customLabel 回參數清單（key 對得上才覆蓋）
-            setParamList(prev => {
-              if (!prev?.length) return prev;
-              const map = new Map(used.map((u: any) => [u.key, u]));
-              return prev.map(p => {
-                const u = map.get(p.key);
-                return u?.customLabel ? { ...p, customLabel: u.customLabel } : p;
-              });
-            });
-          }
+          if (Array.isArray(fb.formula_used_params)) setUsedParams(fb.formula_used_params);
+          if (Array.isArray(fb.toks)) setToks(fb.toks as NewToken[]); // ★★★ 載回 toks
         }
       } catch (err) {
         console.warn('載入已存資料失敗：', err);
@@ -607,17 +546,18 @@ export default function WsFormulaBuilder002({
                   multiline
                 />
 
-                {/* 可用參數 */}
+                {/* 可用參數（可點插入 / 可編輯自訂名） */}
                 <Text style={styles.h3}>{t("可用參數")}</Text>
                 <View style={styles.rowWrap}>
                   {paramList.map((p: any) => {
-                    const displayLabel = p.customLabel
+                    const displayLabel = p.customLabel;
 
                     return (
                       <TouchableOpacity
                         key={p.key || p[uniqueKey] || p.question_id}
                         style={styles.paramBtn}
                         onPress={() => onSelectParam(p)}
+                        activeOpacity={0.8}
                       >
                         <WsFlex>
                           <View>
@@ -628,10 +568,7 @@ export default function WsFormulaBuilder002({
                           </View>
                           <WsIconBtn
                             padding={0}
-                            style={{
-                              marginLeft: 8,
-                              zIndex: 99
-                            }}
+                            style={{ marginLeft: 8, zIndex: 99 }}
                             size={28}
                             name="md-edit"
                             label="編輯"
@@ -643,7 +580,7 @@ export default function WsFormulaBuilder002({
                   })}
                 </View>
 
-                {/* Modal 區域 */}
+                {/* 自訂名稱 Modal */}
                 <Modal
                   visible={modalVisible}
                   transparent
@@ -653,17 +590,12 @@ export default function WsFormulaBuilder002({
                   <View style={styles.modalOverlay}>
                     <View style={styles.modalBox}>
                       <WsState
-                        style={{
-                          flex: 1,
-                          marginTop: 16,
-                        }}
+                        style={{ flex: 1, marginTop: 16 }}
                         label={t('參數名稱')}
                         placeholder={t('輸入')}
                         value={inputValue}
                         onChange={setInputValue}
-                      >
-                      </WsState>
-
+                      />
                       <WsFlex style={{ position: 'absolute', right: 16, bottom: 16 }}>
                         <TouchableOpacity
                           style={{
@@ -685,7 +617,6 @@ export default function WsFormulaBuilder002({
                           {t('確定')}
                         </WsGradientButton>
                       </WsFlex>
-
                     </View>
                   </View>
                 </Modal>
@@ -698,6 +629,7 @@ export default function WsFormulaBuilder002({
                       key={f.key}
                       style={styles.fnCard}
                       onPress={() => onInsertFunction(f.insert)}
+                      activeOpacity={0.8}
                     >
                       <Text style={{ fontWeight: "700", color: "#3f51b5" }}>
                         {f.key}（{f.label}）
@@ -714,18 +646,21 @@ export default function WsFormulaBuilder002({
                   <TouchableOpacity
                     style={[styles.calcBtn, { backgroundColor: "#0b5aaa" }]}
                     onPress={() => setTableVisible(true)}
+                    activeOpacity={0.85}
                   >
                     <Text style={{ color: "#fff" }}>{t("預覽")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.calcBtn}
                     onPress={handleApplyAndClose}
+                    activeOpacity={0.85}
                   >
                     <Text style={{ color: "#fff" }}>{t("套用並關閉")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.calcBtn, { backgroundColor: "#b42318" }]}
                     onPress={clearExpression}
+                    activeOpacity={0.85}
                   >
                     <Text style={{ color: "#fff" }}>{t("清除")}</Text>
                   </TouchableOpacity>
@@ -747,20 +682,12 @@ export default function WsFormulaBuilder002({
               </View>
 
               <ScrollView horizontal>
-                <View
-                  style={{ borderWidth: 1, borderColor: "#ddd", borderRadius: 8 }}
-                >
-                  <View
-                    style={[styles.tableRow, { backgroundColor: "#eef4ff" }]}
-                  >
+                <View style={{ borderWidth: 1, borderColor: "#ddd", borderRadius: 8 }}>
+                  <View style={[styles.tableRow, { backgroundColor: "#eef4ff" }]}>
                     {headers.map((h, idx) => (
                       <Text
                         key={h.key}
-                        style={[
-                          styles.cell,
-                          styles.headerCell,
-                          { width: columnWidths[idx] },
-                        ]}
+                        style={[styles.cell, styles.headerCell, { width: columnWidths[idx] }]}
                       >
                         {h.label}
                       </Text>
@@ -769,17 +696,17 @@ export default function WsFormulaBuilder002({
                   {previewResults.map((r, i) => (
                     <View
                       key={i}
-                      style={[
-                        styles.tableRow,
-                        { backgroundColor: i % 2 ? "#fafafa" : "#fff" },
-                      ]}
+                      style={[styles.tableRow, { backgroundColor: i % 2 ? "#fafafa" : "#fff" }]}
                     >
                       {headers.map((h, idx) => (
-                        <Text
-                          key={h.key}
-                          style={[styles.cell, { width: columnWidths[idx] }]}
-                        >
-                          {String(r[h.key] ?? "")}
+                        <Text key={h.key} style={[styles.cell, { width: columnWidths[idx] }]}>
+                          {(() => {
+                            const raw = r[h.key];
+                            if (typeof raw === "number" && Number.isFinite(raw)) {
+                              return (Math.round(raw * 100) / 100).toString();
+                            }
+                            return String(raw ?? "");
+                          })()}
                         </Text>
                       ))}
                     </View>
@@ -870,6 +797,7 @@ const styles = StyleSheet.create({
   container: { padding: 12 },
   originalLabel: { color: "#5d5d5d", fontSize: 12 },
   customLabel: { color: "#0a0a0a", fontSize: 12, marginTop: 4, borderTopWidth: 0.5 },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(144, 142, 142, 0.5)",
@@ -884,8 +812,5 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   modalTitle: { color: "#090909", fontSize: 14, marginBottom: 8 },
-  btnRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
+  btnRow: { flexDirection: "row", justifyContent: "space-between" },
 });

@@ -114,7 +114,7 @@ export default function ChecklistVersionBlock({
           if (parsed?.selected_questions) {
             updateChips(parsed);
           }
-          console.log(parsed, 'parsed---')
+          // console.log(parsed, 'parsed---')
         }
       } catch (err) {
         console.warn('載入已選題目失敗：', err);

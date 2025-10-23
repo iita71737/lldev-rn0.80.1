@@ -8,6 +8,7 @@ import {
   TextStyle,
   TouchableOpacity,
   ScrollView,
+  Alert, // ⭐ 新增
 } from 'react-native';
 import {
   WsState,
@@ -22,7 +23,7 @@ import AsyncStorage from '@react-native-community/async-storage';
 
 export type FormulaRule = {
   id: string;
-  expression: string; // 例如: "sum(result)"
+  expression: string;
 };
 
 type SectionLike = {
@@ -31,9 +32,9 @@ type SectionLike = {
 };
 
 type Props = {
-  title?: string;                   // 預設：點檢表名稱
-  subtitle?: string;                // 預設：單位時間內的關係公式
-  rules: FormulaRule[];
+  title?: string;
+  subtitle?: string;
+  rules: FormulaRule[]; // (保留，但 FlatList 現在改以 timeUnitRules)
   onPreview?: (rule: FormulaRule) => void;
   onDelete?: (rule: FormulaRule) => void;
   onCreate?: (expression: string) => void;
@@ -47,12 +48,22 @@ type Props = {
 
   /** 從外層傳入所有 sections（至少要有 id） */
   sections?: SectionLike[];
+  step?: string | number;
+};
+
+/** timeUnit-@dataSet 專用的顯示型別（轉成 FlatList 用） */
+type TimeUnitRule = {
+  id: string;                          // 固定 'timeUnit'
+  name: string;                        // 顯示名稱
+  expression: string;                  // displayExpression (顯示給使用者)
+  realExpression?: string;             // realExpression（備用）
+  previewResults?: Array<Record<string, any>>; // 可選（備用顯示/除錯）
 };
 
 export default function FormulaTimeUnitList({
   title = '點檢表名稱',
   subtitle = '單位時間內的關係公式',
-  rules,
+  rules, // 保留，但不再用於 FlatList
   onPreview,
   onDelete,
   onCreate,
@@ -61,26 +72,19 @@ export default function FormulaTimeUnitList({
   expressionBoxStyle,
   statisticsId,
   sections = [],
+  step
 }: Props) {
   const { t } = useTranslation();
+
+  // === timeUnit 清單（實務上通常只有 1 筆）===
+  const [timeUnitRules, setTimeUnitRules] = useState<TimeUnitRule[]>([]);
 
   const [modalActiveFormula, setModalActiveFormula] = useState(false);
   const [formulaData, setFormulaData] = useState<any>(null);
 
-  /** ✅ 每個 section 的 A / B 結果 */
-  const [perSectionParams, setPerSectionParams] = useState<Record<string, Array<{ key: string; label: string }>>>({});
-  const [perSectionRecords, setPerSectionRecords] = useState<Record<string, Array<{ created_at: string; 公式結果: number }>>>({});
-
-  /** ✅ 合併給 WsFormulaBuilder002 用 */
-  const paramsForBuilder = useMemo(
-    () => sections.flatMap(s => perSectionParams[String(s.id)] ?? []),
-    [sections, perSectionParams]
-  );
-  const recordsForBuilder = useMemo(
-    () => sections.flatMap(s => perSectionRecords[String(s.id)] ?? []),
-    [sections, perSectionRecords]
-  );
-
+  /** Builder 需要的兩個陣列（從各 section 的 formulas 蒐集） */
+  const [paramsForBuilder, setParamsForBuilder] = useState<Array<{ key: string; label: string }>>([]);
+  const [recordsForBuilder, setRecordsForBuilder] = useState<Array<Record<string, any>>>([]);
   const [loading, setLoading] = useState(false);
 
   /** 產生儲存鍵 */
@@ -90,130 +94,227 @@ export default function FormulaTimeUnitList({
     []
   );
 
-  /** 正規化一列 previewResult → { created_at, 公式結果 }，不變更時區、不截斷 */
+  /** 去除所有空白（含 NBSP）後再 trim，避免 Builder 對 label 顯示含奇怪空白 */
+  const sanitizeLabel = (s: any): string =>
+    String(s ?? '')
+      .replace(/\u00A0/g, '')
+      .replace(/\s+/g, '')
+      .trim();
+
+  /** 正規化 previewResults 的每列 → { created_at, value } */
   const normalizePreviewRow = (row: any) => {
-    const t = row?.created_at || row?.time || row?.紀錄時間 || row?.日期 || null;
-    const v = Number(row?.['公式結果']);
-    if (!t || !Number.isFinite(v)) return null;
-    return { created_at: String(t), 公式結果: v };
+    if (!row || typeof row !== 'object') return null;
+    const created = row.created_at || row.time || row.紀錄時間 || row.日期;
+    const val = Number(row?.['公式結果']);
+    if (!created || !Number.isFinite(val)) return null;
+    return { created_at: String(created), value: val };
   };
 
-  /** 讀一個 section，做出該 section 的 A / B */
-  const readOneSectionAB = useCallback(async (sectionId: string | number) => {
-    if (statisticsId == null || sectionId == null) return { A: [], B: [] as any[] };
-
-    const key = buildDatasetKey(statisticsId, sectionId);
-    const raw = await AsyncStorage.getItem(key);
-    const ds = raw ? JSON.parse(raw) : null;
-
-    const formulas: any[] = Array.isArray(ds?.formulas) ? ds.formulas : [];
-
-    // A：[{ key: formula.id, label: `[v1] Summmm` }]
-    const A = formulas
-      .filter(f => f?.id)
-      .map(f => ({
-        key: String(f.id),
-        label: `[${String(sectionId)}] ${String(f?.name ?? f.id)}`
-      }));
-
-    // B：攤平所有 formulas 的 previewResults → { created_at, 公式結果 }（不聚合、不截斷時間）
-    const B: Array<{ created_at: string; 公式結果: number }> = [];
-    for (const f of formulas) {
-      const list: any[] = Array.isArray(f?.previewResults) ? f.previewResults : [];
-      for (const row of list) {
-        const norm = normalizePreviewRow(row);
-        if (norm) B.push(norm);
-      }
-    }
-
-    return { A, B };
-  }, [statisticsId, buildDatasetKey]);
-
-  /** 載入所有 sections 的 A / B，並填入 perSection 狀態與合併結果 */
-  const loadAllSectionsAB = useCallback(async () => {
+  /** 一次載入所有 section 的所有公式，把 params/records 建好（以 formula.id 當 key） */
+  const loadAllForBuilder = useCallback(async () => {
     if (statisticsId == null || !sections.length) {
-      setPerSectionParams({});
-      setPerSectionRecords({});
+      setParamsForBuilder([]);
+      setRecordsForBuilder([]);
       return;
     }
     setLoading(true);
+
     try {
-      const paramsMap: Record<string, Array<{ key: string; label: string }>> = {};
-      const recordsMap: Record<string, Array<{ created_at: string; 公式結果: number }>> = {};
+      const params: Array<{ key: string; label: string }> = [];
+      const timeSet: Set<string> = new Set();
+
+      // formulaId -> Map<created_at, value>
+      const mapByFormulaId: Record<string, Map<string, number>> = {};
 
       for (const s of sections) {
-        const { A, B } = await readOneSectionAB(s.id);
-        paramsMap[String(s.id)] = A;
-        recordsMap[String(s.id)] = B;
+        const sid = String(s.id);
+        const key = buildDatasetKey(statisticsId, sid);
+        const raw = await AsyncStorage.getItem(key);
+        const ds = raw ? JSON.parse(raw) : null;
+        const formulas: any[] = Array.isArray(ds?.formulas) ? ds.formulas : [];
+        if (!formulas.length) continue;
+
+        for (const f of formulas) {
+          const fid = String(f?.id ?? '');
+          if (!fid) continue;
+
+          const nameOnly = sanitizeLabel(f?.name ?? f?.displayText ?? fid);
+          params.push({ key: fid, label: nameOnly });
+
+          const list: any[] = Array.isArray(f?.previewResults) ? f.previewResults : [];
+          const m = new Map<string, number>();
+          for (const row of list) {
+            const norm = normalizePreviewRow(row);
+            if (!norm) continue;
+            m.set(norm.created_at, norm.value);
+            timeSet.add(norm.created_at);
+          }
+          mapByFormulaId[fid] = m;
+        }
       }
 
-      setPerSectionParams(paramsMap);
-      setPerSectionRecords(recordsMap);
+      const timeArr = Array.from(timeSet).sort((a, b) => a.localeCompare(b));
 
-      // 🔍 debug
-      console.log('[FormulaTimeUnitList] perSectionParams:', JSON.stringify(paramsMap));
-      console.log('[FormulaTimeUnitList] perSectionRecords:', JSON.stringify(recordsMap));
-      console.log('[FormulaTimeUnitList] paramsForBuilder:', JSON.stringify(sections.flatMap(s => paramsMap[String(s.id)] ?? [])));
-      console.log('[FormulaTimeUnitList] recordsForBuilder:', JSON.stringify(sections.flatMap(s => recordsMap[String(s.id)] ?? [])));
+      const records = timeArr.map(created_at => {
+        const row: Record<string, any> = { created_at };
+        Object.entries(mapByFormulaId).forEach(([fid, m]) => {
+          const v = m.get(created_at);
+          if (Number.isFinite(v as number)) row[fid] = v;
+        });
+        return row;
+      });
+
+      setParamsForBuilder(params);
+      setRecordsForBuilder(records);
     } catch (err) {
-      console.warn('載入 sections A/B 失敗：', err);
-      setPerSectionParams({});
-      setPerSectionRecords({});
+      console.warn('載入 sections/formulas 失敗：', err);
+      setParamsForBuilder([]);
+      setRecordsForBuilder([]);
     } finally {
       setLoading(false);
     }
-  }, [sections, statisticsId, readOneSectionAB]);
+  }, [sections, statisticsId, buildDatasetKey]);
+
+  /** 讀取 `${statisticsId}-timeUnit-@dataSet`，並轉為 timeUnitRules */
+  const loadTimeUnitRules = useCallback(async () => {
+    if (statisticsId == null) {
+      setTimeUnitRules([]);
+      return;
+    }
+    try {
+      const key = `${statisticsId}-timeUnit-@dataSet`;
+      const raw = await AsyncStorage.getItem(key);
+      const ds = raw ? JSON.parse(raw) : null;
+
+      // 預期格式：{ formula_builder: { displayExpression, realExpression, previewResults, ... } }
+      const fb = ds?.formula_builder;
+      if (fb && (typeof fb.displayExpression === 'string' || typeof fb.realExpression === 'string')) {
+        const one: TimeUnitRule = {
+          id: 'timeUnit',
+          name: '公式名稱',
+          expression: String(fb.displayExpression ?? ''),
+          realExpression: String(fb.realExpression ?? ''),
+          previewResults: Array.isArray(fb.previewResults) ? fb.previewResults : [],
+        };
+        setTimeUnitRules([one]);
+      } else {
+        setTimeUnitRules([]);
+      }
+    } catch (err) {
+      console.warn('讀取 timeUnit @dataSet 失敗：', err);
+      setTimeUnitRules([]);
+    }
+  }, [statisticsId]);
+
+  /** 刪除 `${statisticsId}-timeUnit-@dataSet` 裡的 formula_builder */
+  const handleDeleteTimeUnit = useCallback(() => {
+    if (statisticsId == null) return;
+
+    Alert.alert(
+      t('刪除確認'),
+      t('確定要刪除這個單位時間公式嗎？此操作無法復原。'),
+      [
+        { text: t('取消'), style: 'cancel' },
+        {
+          text: t('刪除'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const key = `${statisticsId}-timeUnit-@dataSet`;
+              const raw = await AsyncStorage.getItem(key);
+              if (!raw) {
+                // 本來就沒有 => 清空畫面即可
+                setTimeUnitRules([]);
+                return;
+              }
+              let obj: any = {};
+              try { obj = JSON.parse(raw) ?? {}; } catch { obj = {}; }
+
+              // 只刪除 formula_builder，其它欄位不動
+              if ('formula_builder' in obj) {
+                delete obj.formula_builder;
+                await AsyncStorage.setItem(key, JSON.stringify(obj));
+              }
+
+              setTimeUnitRules([]);
+
+              // 如果需要對外通知：
+              onDelete?.({ id: 'timeUnit', expression: '' });
+            } catch (e) {
+              console.warn('刪除 timeUnit 失敗：', e);
+            }
+          },
+        },
+      ]
+    );
+  }, [statisticsId, t, onDelete]);
 
   useEffect(() => {
-    loadAllSectionsAB();
-  }, [loadAllSectionsAB]);
+    loadAllForBuilder();
+  }, [loadAllForBuilder]);
 
-  /** 單列渲染（操作按鈕放在公式名稱下方） */
-  const renderItem = useCallback(
-    ({ item, index }: { item: FormulaRule; index: number }) => (
-      <View style={styles.item}>
-        <TouchableOpacity
-          style={[styles.exprBox, expressionBoxStyle]}
-          onPress={() => onEditFormula?.(item)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.exprText} numberOfLines={2}>
-            公式名稱 {index + 1} {item.expression}
-          </Text>
-        </TouchableOpacity>
+  useEffect(() => {
+    loadTimeUnitRules();
+  }, [loadTimeUnitRules]);
 
-        <WsFlex justifyContent="flex-start" style={styles.actionsBar}>
-          <WsIconBtn
-            padding={0}
-            size={28}
-            name="md-create"
-            label="編輯"
-            onPress={() => onEditFormula?.(item)}
-          />
-          <WsIconBtn
-            padding={0}
-            size={28}
-            style={{ marginLeft: 8 }}
-            name="ws-outline-filter-outline"
-            label="預覽"
-            onPress={() => onPreview?.(item)}
-          />
-          <WsIconBtn
-            padding={0}
-            size={28}
-            style={{ marginLeft: 8 }}
-            color={$color.danger}
-            name="md-delete"
-            label="刪除"
-            onPress={() => onDelete?.(item)}
-          />
-        </WsFlex>
-      </View>
-    ),
-    [expressionBoxStyle, onDelete, onPreview, onEditFormula]
+  /** 單列渲染 timeUnit（操作按鈕放在公式名稱下方） */
+  const renderTimeUnitItem = useCallback(
+    ({ item, index }: { item: TimeUnitRule; index: number }) => {
+      const ruleLike: FormulaRule = { id: item.id, expression: item.expression ?? '' };
+      return (
+        <View style={styles.item}>
+          <TouchableOpacity
+            style={[styles.exprBox, expressionBoxStyle]}
+            onPress={() => onEditFormula?.(ruleLike)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.exprText} numberOfLines={2}>
+              {item.name} {index + 1}：{item.expression || '(尚未設定)'}
+            </Text>
+          </TouchableOpacity>
+
+          <WsFlex justifyContent="flex-start" style={styles.actionsBar}>
+            {/* 若要開放編輯，可打開下一段 */}
+            {/* <WsIconBtn
+              padding={0}
+              size={28}
+              name="md-create"
+              label="編輯"
+              onPress={() => onEditFormula?.(ruleLike)}
+            /> */}
+            <WsIconBtn
+              padding={0}
+              size={28}
+              style={{ marginLeft: 8 }}
+              name="ws-outline-filter-outline"
+              label="預覽"
+              onPress={() => onPreview?.(ruleLike)}
+            />
+            <WsIconBtn
+              padding={0}
+              size={28}
+              style={{ marginLeft: 8 }}
+              color={$color.danger}
+              name="md-delete"
+              label="刪除"
+              onPress={handleDeleteTimeUnit} // ⭐ 改為呼叫內建刪除
+            />
+          </WsFlex>
+        </View>
+      );
+    },
+    [expressionBoxStyle, onPreview, onEditFormula, handleDeleteTimeUnit]
   );
 
-  const keyExtractor = useCallback((r: FormulaRule) => r.id, []);
+  const timeUnitKeyExtractor = useCallback((r: TimeUnitRule) => r.id, []);
+
+  const refreshNow = useCallback(async () => {
+    try {
+      await Promise.all([loadTimeUnitRules(), loadAllForBuilder()]);
+    } catch (e) {
+      console.warn('refreshNow failed:', e);
+    }
+  }, [loadTimeUnitRules, loadAllForBuilder]);
 
   return (
     <>
@@ -223,31 +324,20 @@ export default function FormulaTimeUnitList({
         <Text style={styles.subtitle}>
           {subtitle}
           {loading ? '（讀取中…）' : ''}
-          {!!recordsForBuilder.length && `（已彙整 ${recordsForBuilder.length} 筆 previewResults）`}
+          {!!paramsForBuilder.length && `（已彙整 ${paramsForBuilder.length} 筆）`}
         </Text>
 
-        {/* 快速工具列 */}
-        <WsFlex style={{ marginBottom: 8, flexWrap: 'wrap' }}>
-          <WsIconBtn
-            padding={0}
-            size={24}
-            name="md-refresh"
-            label="重讀所有區塊"
-            onPress={loadAllSectionsAB}
-          />
-        </WsFlex>
-
-        {/* 你的 rules 清單 */}
+        {/* 顯示 timeUnit 清單（通常 1 筆） */}
         <FlatList
-          data={rules}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
+          data={timeUnitRules}
+          keyExtractor={timeUnitKeyExtractor}
+          renderItem={renderTimeUnitItem}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 12 }}
           showsVerticalScrollIndicator={false}
         />
 
-        {/* 開啟公式編輯 Modal（會把 paramsForBuilder / recordsForBuilder 餵給 WsFormulaBuilder002） */}
+        {/* 開啟公式編輯 Modal（把 paramsForBuilder / recordsForBuilder 餵給 WsFormulaBuilder002） */}
         <WsIconBtn
           padding={0}
           name="md-add"
@@ -265,24 +355,26 @@ export default function FormulaTimeUnitList({
         headerLeftOnPress={() => setModalActiveFormula(false)}
         headerRightOnPress={() => {
           setModalActiveFormula(false);
+           setTimeout(() => { refreshNow(); }, 0); 
         }}
         headerRightText={t('送出')}
         title={t('編輯公式')}
       >
         <ScrollView>
           <WsPaddingContainer>
-            {/* ⬇️ 直接把合併好的 A/B 傳給 WsFormulaBuilder002 */}
+            {/* 直接把合併好的 A/B 傳給 WsFormulaBuilder002 */}
             <WsState
               type="formula"
               style={{ marginVertical: 8 }}
               label={t('公式​')}
               placeholder={t('輸入')}
               value={formulaData?.expression}
-              params={paramsForBuilder}          // 例：[{ key: '176110...', label: '[v1] Summmm' }, ...]
-              records={recordsForBuilder}        // 例：[{ created_at:'2025-08-01T01:00:00+08:00', 公式結果:21 }, ...]
+              params={paramsForBuilder}
+              records={recordsForBuilder}
               uniqueKey={'created_at'}
               onChange={(p) => setFormulaData(p)}
               statisticsId={statisticsId}
+              step={step}
             />
 
             <WsState
@@ -331,7 +423,7 @@ export default function FormulaTimeUnitList({
               type="Ll_filesAndImages"
               label={t('附件')}
               value={formulaData?.images}
-              onChange={() => {}}
+              onChange={() => { }}
             />
           </WsPaddingContainer>
         </ScrollView>

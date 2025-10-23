@@ -324,7 +324,7 @@ const Show = (props) => {
                 type="user"
                 label={t('管理者')}
                 value={{
-                  name: 'test user'
+                  name: '管理者1'
                 }}
                 style={{
                   flexDirection: 'row',
