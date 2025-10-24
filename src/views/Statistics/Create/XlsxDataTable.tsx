@@ -3,18 +3,18 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
+  FlatList,
   Platform,
-  UIManager,
-  findNodeHandle,
+  ViewStyle,
 } from 'react-native'
 
+/* ===== Types ===== */
 type RowData = { time: string; A?: string | number; B?: string | number }
 export type SelectedCell = { seriesIndex: 0 | 1; dataIndex: number }
 
 export type XlsxDataTableHandle = {
-  /** 讓外層頁面滾到指定列（表格本身不直捲，所以用量測協助外層捲動） */
+  /** 讓外層可捲到指定列（置中顯示） */
   scrollToRow: (index: number, animated?: boolean) => void
 }
 
@@ -27,20 +27,22 @@ type Props = {
   selected?: SelectedCell | null
   pressableColumns?: number[]
   onCellPress?: (rowIdx: number, colIdx: number, value: string | number | undefined) => void
-  /** 其餘欄位（A/B）文字對齊：預設 left，但會被此元件改為 center 以符合需求 */
   bodyTextAlign?: 'left' | 'center' | 'right'
-  /** 時間欄文字對齊：預設 left */
   timeColTextAlign?: 'left' | 'center' | 'right'
-  /** Header 文字對齊（若想全置中可覆蓋，但時間欄仍以 left 為主） */
   headerTextAlign?: 'left' | 'center' | 'right'
   zebra?: boolean
+  /** 可用陣列 [w0,w1,w2]、或物件 {time,a,b}、或以 header 文字為 key 的物件 */
   columnWidth?: number[] | { time?: number; a?: number; b?: number } | Record<string, number>
+  /** 讓呼叫端把表格撐滿高度：<XlsxDataTable style={{flex:1}} /> */
+  style?: ViewStyle
 }
 
+/* ===== Const ===== */
 const DEFAULT_HEADER: [string, string, string] = ['單位時間', 'A', 'B']
 const ROW_HEIGHT = 40
 const SEPARATOR_H = Platform.OS === 'android' ? StyleSheet.hairlineWidth || 0.5 : StyleSheet.hairlineWidth || 0.5
 
+/* ===== Utils ===== */
 const hexToRgba = (hex: string, alpha: number) => {
   const h = hex.replace('#', '')
   const to255 = (s: string) => parseInt(s.length === 1 ? s + s : s, 16)
@@ -57,8 +59,6 @@ function resolveWidths(
   fallback: [number, number, number] = [180, 120, 120],
 ): [number, number, number] {
   if (!columnWidth) return fallback
-
-  // case 1: 陣列（依順序）
   if (Array.isArray(columnWidth)) {
     return [
       Number(columnWidth[0] ?? fallback[0]),
@@ -66,19 +66,15 @@ function resolveWidths(
       Number(columnWidth[2] ?? fallback[2]),
     ]
   }
-
-  // case 2/3: 物件（支援 key 或 header 文字）
   const byKey = columnWidth as Record<string, number | undefined>
   const keyMap: Record<string, number | undefined> = {
     time: byKey.time,
     a: byKey.a,
     b: byKey.b,
-    // 也允許直接用標題字串指定
     [headers[0]]: byKey[headers[0]],
     [headers[1]]: byKey[headers[1]],
     [headers[2]]: byKey[headers[2]],
   }
-
   return [
     Number(keyMap.time ?? keyMap[headers[0]] ?? fallback[0]),
     Number(keyMap.a ?? keyMap[headers[1]] ?? fallback[1]),
@@ -86,8 +82,7 @@ function resolveWidths(
   ]
 }
 
-
-/* ---------- 單列 ---------- */
+/* ===== Row component ===== */
 type RowProps = {
   rowIndex: number
   row: RowData
@@ -115,8 +110,8 @@ const DataRow = memo(function DataRow(props: RowProps) {
     isSelectedRow && selectedRowColor
       ? { backgroundColor: isColor(selectedRowColor) ? hexToRgba(selectedRowColor, 0.12) : hexToRgba('#2196f3', 0.12) }
       : zebra && rowIndex % 2 === 1
-        ? styles.zebra
-        : null
+      ? styles.zebra
+      : null
 
   const isSelectedCell = (colIdx: number) => {
     if (!selected) return false
@@ -168,7 +163,7 @@ const DataRow = memo(function DataRow(props: RowProps) {
   )
 })
 
-/* ---------- 主體（無垂直內捲） ---------- */
+/* ===== Main ===== */
 const XlsxDataTable = forwardRef<XlsxDataTableHandle, Props>(function XlsxDataTable(
   {
     rows,
@@ -182,8 +177,9 @@ const XlsxDataTable = forwardRef<XlsxDataTableHandle, Props>(function XlsxDataTa
     bodyTextAlign = 'left',
     timeColTextAlign = 'left',
     headerTextAlign = 'left',
-    columnWidth,
     zebra = true,
+    columnWidth,
+    style,
   },
   ref
 ) {
@@ -191,106 +187,91 @@ const XlsxDataTable = forwardRef<XlsxDataTableHandle, Props>(function XlsxDataTa
     ? (headersOverride as [string, string, string])
     : DEFAULT_HEADER)
 
-  const widths = useMemo<[number, number, number]>(() => {
-    return resolveWidths(header, columnWidth, [180, 120, 120])
-  }, [header, columnWidth])
+  const widths = useMemo<[number, number, number]>(() => resolveWidths(header, columnWidth, [180, 120, 120]), [header, columnWidth])
 
-  const tableWidth = widths.reduce((a, b) => a + b, 0) + (showCheckbox ? 44 : 0)
-
-  // 讓外層能定位到某一列：量測每列 y 座標
-  const containerRef = useRef<View>(null)
-  const rowRefs = useRef<Array<View | null>>([])
-
+  const listRef = useRef<FlatList<RowData>>(null)
   useImperativeHandle(ref, () => ({
     scrollToRow: (index: number, animated = true) => {
-      const containerNode = findNodeHandle(containerRef.current)
-      const target = rowRefs.current[index]
-      const targetNode = target ? findNodeHandle(target) : null
-      if (!containerNode || !targetNode) return
-
-      UIManager.measureInWindow(targetNode, (_x, _y) => {
-        // 外層應接手 scrollTo 邏輯；這裡僅預留量測點
-      })
+      if (!listRef.current) return
+      try {
+        listRef.current.scrollToIndex({ index, animated, viewPosition: 0.5 })
+      } catch {}
     },
-  }), [])
+  }))
+
+  const renderHeader = () => (
+    <View style={[styles.row, styles.headerRow]}>
+      {showCheckbox && <View style={[styles.checkboxBox]} />}
+
+      {/* 0: 單位時間 → 垂直置中 + 左對齊 */}
+      <View style={[styles.cell, styles.headerCell, styles.headerCellAlignStart, { width: widths[0], height: ROW_HEIGHT }]}>
+        <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: 'left' }]}>
+          {String(header[0])}
+        </Text>
+      </View>
+
+      {/* 1: A → 置中 */}
+      <View style={[styles.cell, styles.headerCell, styles.headerCellAlignCenter, { width: widths[1], height: ROW_HEIGHT }]}>
+        <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: headerTextAlign || 'center' }]}>
+          {String(header[1])}
+        </Text>
+      </View>
+
+      {/* 2: B → 置中 */}
+      <View style={[styles.cell, styles.headerCell, styles.headerCellAlignCenter, { width: widths[2], height: ROW_HEIGHT }]}>
+        <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: headerTextAlign || 'center' }]}>
+          {String(header[2])}
+        </Text>
+      </View>
+    </View>
+  )
 
   return (
-    // 只允許「水平」捲動；垂直高度撐滿，由外層頁面捲動
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ minWidth: tableWidth }}
-    >
-      <View ref={containerRef} style={{ width: tableWidth }}>
-        {/* Header：時間欄 flex-start，其餘置中 */}
-        <View style={[styles.row, styles.headerRow]}>
-          {showCheckbox && <View style={[styles.checkboxBox]} />}
-
-          {/* 0: 單位時間 → flex-start */}
-          <View style={[
-            styles.cell,
-            styles.headerCell,
-            styles.headerCellAlignStart,
-            { width: widths[0], height: ROW_HEIGHT }
-          ]}>
-            <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: 'left' }]}>
-              {String(header[0])}
-            </Text>
+    <View style={[{ flex: 1, minHeight: 0 }, style]}>
+      {renderHeader()}
+      <View style={styles.sep} />
+      <FlatList
+        ref={listRef}
+        data={rows}
+        keyExtractor={(_it, i) => String(i)}
+        renderItem={({ item, index }) => (
+          <View>
+            <DataRow
+              rowIndex={index}
+              row={item}
+              widths={widths}
+              showCheckbox={showCheckbox}
+              zebra={zebra}
+              selectedRow={selectedRow}
+              selectedRowColor={selectedRowColor}
+              selected={selected}
+              pressableColumns={pressableColumns}
+              onCellPress={onCellPress}
+              bodyTextAlign={'center'}
+              timeColTextAlign={timeColTextAlign ?? 'left'}
+            />
+            <View style={styles.sep} />
           </View>
-
-          {/* 1: A → 置中 */}
-          <View style={[
-            styles.cell,
-            styles.headerCell,
-            styles.headerCellAlignCenter,
-            { width: widths[1], height: ROW_HEIGHT }
-          ]}>
-            <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: headerTextAlign || 'center' }]}>
-              {String(header[1])}
-            </Text>
-          </View>
-
-          {/* 2: B → 置中 */}
-          <View style={[
-            styles.cell,
-            styles.headerCell,
-            styles.headerCellAlignCenter,
-            { width: widths[2], height: ROW_HEIGHT }
-          ]}>
-            <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: headerTextAlign || 'center' }]}>
-              {String(header[2])}
-            </Text>
-          </View>
-        </View>
-
-        {/* Body（靜態列，無垂直內捲） */}
-        <View>
-          {rows.map((row, idx) => (
-            <View key={`r-${idx}`} ref={el => (rowRefs.current[idx] = el)}>
-              <DataRow
-                rowIndex={idx}
-                row={row}
-                widths={widths}
-                showCheckbox={showCheckbox}
-                zebra={zebra}
-                selectedRow={selectedRow}
-                selectedRowColor={selectedRowColor}
-                selected={selected}
-                pressableColumns={pressableColumns}
-                onCellPress={onCellPress}
-                bodyTextAlign={'center'}
-                timeColTextAlign={timeColTextAlign ?? 'left'}
-              />
-              <View style={styles.sep} />
-            </View>
-          ))}
-        </View>
-      </View>
-    </ScrollView>
+        )}
+        getItemLayout={(_data, index) => ({
+          length: ROW_HEIGHT + SEPARATOR_H,
+          offset: (ROW_HEIGHT + SEPARATOR_H) * index,
+          index,
+        })}
+        initialNumToRender={20}
+        maxToRenderPerBatch={30}
+        windowSize={10}
+        removeClippedSubviews
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          minWidth: widths[0] + widths[1] + widths[2] + (showCheckbox ? 44 : 0),
+        }}
+      />
+    </View>
   )
 })
 
-/* ---------- Styles ---------- */
+/* ===== Styles ===== */
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'stretch', minHeight: ROW_HEIGHT },
   headerRow: {
@@ -305,14 +286,14 @@ const styles = StyleSheet.create({
     borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: '#E0E6ED',
   },
 
-  // 基礎 cell（寬高由 inline 決定）
+  // cell 容器（寬高靠 inline）
   cell: {
     paddingHorizontal: 12,
     borderRightWidth: StyleSheet.hairlineWidth,
     borderRightColor: '#E0E6ED',
   },
 
-  // Header 對齊
+  // Header 對齊（時間欄垂直置中+左對齊、其他置中）
   headerCell: { paddingVertical: 10 },
   headerCellAlignStart: {
     justifyContent: 'center',
