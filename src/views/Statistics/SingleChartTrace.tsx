@@ -6,6 +6,7 @@ import {
   Pressable,
   LayoutChangeEvent,
   Dimensions,
+  InteractionManager
 } from 'react-native'
 import * as echarts from 'echarts/core'
 import { LineChart as ELineChart, BarChart } from 'echarts/charts'
@@ -15,10 +16,8 @@ import { useTranslation } from 'react-i18next'
 import $color from '@/__reactnative_stone/global/color'
 import XlsxDataTable, { XlsxDataTableHandle } from './Create/XlsxDataTable'
 import { WsPaddingContainer, WsModal } from '@/components'
-
-// (可移除) 教學導覽
+import { useNavigation } from '@react-navigation/native';
 import { useCopilot, CopilotStep, walkthroughable } from 'react-native-copilot'
-const WView = walkthroughable(View)
 
 import Svg, { Defs, Mask, Rect, Circle, Line } from 'react-native-svg'
 
@@ -43,6 +42,7 @@ type Props = {
   labelCount?: number
   xAxisName?: string
   valueSuffix?: string
+  onLeafCellPress?: (rowIdx: number, colIdx: number) => void
 }
 
 /* ---- Utils ---- */
@@ -100,8 +100,11 @@ export default function SingleChartTrace({
   labelCount,
   xAxisName,
   valueSuffix,
+  onLeafCellPress,
+  setModalTraceData
 }: Props) {
   const { t } = useTranslation()
+  const navigation = useNavigation<any>();
   const { width: winW, height } = Dimensions.get('window')
 
   const chartH = chartHeight ?? (allowDrilldown ? 300 : 220)
@@ -376,13 +379,18 @@ export default function SingleChartTrace({
             showCheckbox={false}
             style={{ flex: 1 }}
             onCellPress={(rowIdx, colIdx) => {
-              if (!allowDrilldown) return
-              if (colIdx === 1 || colIdx === 2) {
+              if (colIdx !== 1 && colIdx !== 2) return;
+
+              if (allowDrilldown) {
+                // 外層：照舊開內層
                 const seriesIndex = (colIdx === 1 ? 0 : 1) as 0 | 1
                 openChildFromTable(seriesIndex, rowIdx)
+              } else {
+                // 內層：交給外層處理「關 modal + 導頁」
+                onLeafCellPress?.(rowIdx, colIdx)
               }
             }}
-            pressableColumns={allowDrilldown ? [1, 2] : []}
+            pressableColumns={[1, 2]}
             bodyTextAlign={timeUnit === 'day' && !yIsPercent ? 'center' : 'left'}
             timeColTextAlign={timeUnit === 'day' && !yIsPercent ? 'center' : 'left'}
             columnWidth={[130, 150, 150]}
@@ -411,6 +419,21 @@ export default function SingleChartTrace({
               yIsPercent={false}
               chartHeight={280}
               xAxisName="日"
+              onLeafCellPress={(rowIdx, colIdx) => {
+                setDrillModalOpen(false)
+                setModalTraceData(false)
+                // 等一個 frame/互動後再跳，避免動畫衝突
+                requestAnimationFrame(() => {
+                  InteractionManager.runAfterInteractions(() => {
+                    navigation.push('RoutesCheckList', {
+                      screen: 'CheckListAssignmentShow',
+                      params: {
+                        id: '17bbff8e-66e2-4c13-8aaf-d0236abcb696',
+                      },
+                    })
+                  })
+                })
+              }}
             />
           )}
         </WsModal>

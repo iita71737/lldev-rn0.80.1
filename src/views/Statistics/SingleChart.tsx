@@ -293,7 +293,7 @@ export default function SingleChart({
         visible={modalTraceData}
         onBackButtonPress={() => setModalTraceData(false)}
         headerLeftOnPress={() => setModalTraceData(false)}
-        title={t('新增記錄')}
+        title={t('Data Trace Back')}
       >
         <SingleChartTrace
           labels={labels}
@@ -305,6 +305,7 @@ export default function SingleChart({
           labelCount={labels.length}
           xAxisName="單位時間(月)"
           valueSuffix=" %"
+          setModalTraceData={setModalTraceData}
         />
       </WsModal>
     </>
