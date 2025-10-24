@@ -5,8 +5,6 @@ import {
   useWindowDimensions,
   Pressable,
   LayoutChangeEvent,
-  findNodeHandle,
-  UIManager,
 } from 'react-native'
 import * as echarts from 'echarts/core'
 import { LineChart as ELineChart, BarChart } from 'echarts/charts'
@@ -22,12 +20,10 @@ import { useCopilot, CopilotStep, walkthroughable } from 'react-native-copilot'
 const WView = walkthroughable(View)
 
 import Svg, { Defs, Mask, Rect, Circle, Line } from 'react-native-svg'
-import { ScrollView } from 'react-native-gesture-handler'
 
 echarts.use([SkiaRenderer, ELineChart, BarChart, GridComponent, TooltipComponent, LegendComponent])
 
 const MASK_RADIUS = 24
-const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max))
 
 type SpotState = { x: number; y: number; dataIndex: number; seriesIndex: number; xLabel?: string } | null
 type TimeUnit = 'day' | 'week' | 'month' | 'season' | 'year'
@@ -43,13 +39,12 @@ type Props = {
   allowDrilldown?: boolean
   yIsPercent?: boolean
   chartHeight?: number
-  // ↓↓↓ 新增
   labelCount?: number
   xAxisName?: string
   valueSuffix?: string
 }
 
-/* ---- Utils (同前版) ---- */
+/* ---- Utils ---- */
 const pad2 = (n: number) => String(n).padStart(2, '0')
 const looksLikeMonthly = (labels: string[] = []) =>
   !!labels.length &&
@@ -69,6 +64,7 @@ const toYm = (label: string, y: number) => {
 const daysInMonth = (ym: string) => { const [Y, M] = ym.split('-').map(Number); return new Date(Y, M, 0).getDate() }
 const makeMonthDays = (ym: string) => { const n = daysInMonth(ym); const [y, m] = ym.split('-'); return Array.from({ length: n }, (_, i) => `${y}-${m}-${pad2(i + 1)}`) }
 const toDD = (s: string) => (s.match(/^\d{4}-\d{2}-(\d{2})$/)?.[1] ?? s.slice(-2))
+
 function buildChildDataFromParent(seriesIndex: 0 | 1, dataIndex: number, outerLabels: string[], outerA: number[], outerB: number[]) {
   const ym = toYm(outerLabels[dataIndex], new Date().getFullYear())
   const ratePct = (seriesIndex === 0 ? outerA[dataIndex] : outerB[dataIndex]) ?? 0
@@ -100,36 +96,32 @@ export default function SingleChartTrace({
   allowDrilldown = true,
   yIsPercent = true,
   chartHeight,
-  // ↓↓↓ 新增
   labelCount,
   xAxisName,
   valueSuffix,
 }: Props) {
   const { t } = useTranslation()
-  const { width: winW, height: winH } = useWindowDimensions()
+  const { width: winW } = useWindowDimensions()
 
   const chartH = chartHeight ?? (allowDrilldown ? 300 : 220)
 
   const chartRef = useRef<any>(null)
   const chartBoxRef = useRef<View>(null)
   const instRef = useRef<echarts.EChartsType | null>(null)
-  const tableRef = useRef<XlsxDataTableHandle>(null)     // ★ 取得表格 ref
+  const tableRef = useRef<XlsxDataTableHandle>(null)
 
   const [selectedRow, setSelectedRow] = useState<number | null>(null)
   const [selectedRowColor, setSelectedRowColor] = useState<string | null>(null)
   const { start } = useCopilot()
   const [spot, setSpot] = useState<SpotState>(null)
 
-  const [box, setBox] = useState<{ x: number; y: number; w: number; h: number }>({ x: 0, y: 0, w: winW, h: chartH })
-  const onChartBoxLayout = useCallback((e: LayoutChangeEvent) => {
-    const { width } = e.nativeEvent.layout
-    const node = findNodeHandle(chartBoxRef.current)
-    if (node) {
-      UIManager.measureInWindow(node, (x, y) => setBox({ x, y, w: width || winW, h: chartH }))
-    } else {
-      setBox({ x: 0, y: 0, w: winW, h: chartH })
-    }
-  }, [winW, chartH])
+  // ★ 只用 onLayout 的寬度；避免 measureInWindow 在 Modal 中不穩
+  const [box, setBox] = useState<{ w: number; h: number }>({ w: 0, h: chartH })
+
+  const onChartBoxLayout = useCallback((e) => {
+    const w = (!allowDrilldown ? winW : e.nativeEvent.layout.width) || winW
+    setBox({ w, h: chartH })
+  }, [chartH, winW, allowDrilldown])
 
   const [drillModalOpen, setDrillModalOpen] = useState(false)
   const [childData, setChildData] = useState<{ labels: string[]; dsA: number[]; dsB: number[]; initialSelected: { seriesIndex: 0 | 1; dataIndex: number } | null; titleSuffix?: string } | null>(null)
@@ -138,9 +130,15 @@ export default function SingleChartTrace({
   const defaultA = [2.1, 2.4, 2.0, 2.6, 2.9, 3.1, 2.8, 3.0, 3.3, 3.2, 3.4, 3.1]
   const defaultB = [0.9, 1.1, 1.0, 1.2, 1.4, 1.6, 1.3, 1.5, 1.7, 1.6, 1.8, 1.7]
 
-  const labels = useMemo(() => (labelsProp?.length ? labelsProp : defaultLabels), [labelsProp])
-  const dsA = useMemo(() => (dsAProp?.length ? dsAProp : defaultA), [dsAProp])
-  const dsB = useMemo(() => (dsBProp?.length ? dsBProp : defaultB), [dsBProp])
+  const baseLabels = useMemo(() => (labelsProp?.length ? labelsProp.slice() : defaultLabels), [labelsProp])
+  const labels = useMemo(() => {
+    if (typeof labelCount === 'number' && labelCount > 0) return baseLabels.slice(0, labelCount)
+    return baseLabels
+  }, [baseLabels, labelCount])
+
+  const L = labels.length
+  const dsA = useMemo(() => (dsAProp?.length ? dsAProp : defaultA).slice(0, L), [dsAProp, L])
+  const dsB = useMemo(() => (dsBProp?.length ? dsBProp : defaultB).slice(0, L), [dsBProp, L])
 
   const displayTimes = useMemo(() => {
     const isMonthly = timeUnit === 'month' || looksLikeMonthly(labels)
@@ -152,7 +150,7 @@ export default function SingleChartTrace({
   const headers = useMemo(() => ['單位時間', seriesNames?.a ?? 'M0→M1 (%)', seriesNames?.b ?? 'M1→M2 (%)'], [seriesNames?.a, seriesNames?.b])
   const tableRows = useMemo(() => displayTimes.map((time, i) => ({ time, A: `${dsA[i] ?? '—'}`, B: `${dsB[i] ?? '—'}` })), [displayTimes, dsA, dsB])
 
-  // ★ 點圖表：高亮 + 讓下方表格自動滾到該列
+  // 點圖 → 高亮 + 表格捲到列
   const spotlightPoint = (seriesIndex: number, dataIndex: number, value: number) => {
     const inst = instRef.current
     if (!inst) return
@@ -161,9 +159,7 @@ export default function SingleChartTrace({
     setSelectedRow(dataIndex)
     const COLORS = ['#4caf50', '#2196f3']
     setSelectedRowColor(COLORS[seriesIndex])
-    // 表格滾動到該列（置中）
     tableRef.current?.scrollToRow(dataIndex, true)
-    // (可移除) 教學導覽
     requestAnimationFrame(() => setTimeout(() => start(), 50))
   }
 
@@ -196,19 +192,34 @@ export default function SingleChartTrace({
     if (isInnerDay) {
       return {
         animation: false,
-        legend: { data: ['分子(件)', '母體(件)', '月內累積比率(%)'] },
-        grid: { left: 48, right: 56, top: 36, bottom: 12 },
+        animationDurationUpdate: 150,
+        animationEasingUpdate: 'quartOut',
+        legend: {
+          type: 'scroll',
+          orient: 'horizontal',
+          top: 6,
+          left: 'center',
+          right: 8,
+          itemWidth: 12,
+          itemHeight: 8,
+          itemGap: 10,
+          textStyle: { fontSize: 12 },
+          data: ['分子(件)', '母體(件)', '月內累積比率(%)'],
+        },
+        grid: { left: 40, right: 40, top: 56, bottom: 56, containLabel: true },
         xAxis: {
           type: 'category',
           data: labels,
           boundaryGap: true,
-          name: xAxisName ?? '日',      // ← 優先用傳入
+          name: xAxisName ?? '日',
           nameLocation: 'middle',
-          nameGap: 22,
+          nameGap: 40,
           axisLabel: {
             interval: (idx: number) => idx % xStep === 0,
             formatter: (v: string) => toDD(v),
-            hideOverlap: true, rotate: 0, margin: 8
+            hideOverlap: true,
+            rotate: 30,
+            margin: 12,
           },
           axisTick: { alignWithLabel: true },
           splitLine: { show: true },
@@ -219,17 +230,37 @@ export default function SingleChartTrace({
         ],
         tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
         series: [
-          { name: '分子(件)', type: 'bar', yAxisIndex: 0, data: dsA, barMaxWidth: 18, emphasis: { focus: 'self' } },
-          { name: '母體(件)', type: 'line', yAxisIndex: 0, data: dsB, lineStyle: { width: 2 }, sampling: 'lttb', emphasis: { focus: 'self' } },
+          {
+            name: '分子(件)',
+            type: 'bar',
+            yAxisIndex: 0,
+            data: dsA,
+            barMaxWidth: 18,
+            emphasis: { focus: 'self' },
+          },
+          {
+            name: '母體(件)',
+            type: 'line',
+            yAxisIndex: 0,
+            data: dsB,
+            showSymbol: true,
+            symbol: 'circle',
+            symbolSize: 12,
+            lineStyle: { width: 2 },
+            sampling: 'lttb',
+            emphasis: { focus: 'self' },
+          },
           {
             name: '月內累積比率(%)',
             type: 'line',
             yAxisIndex: 1,
             data: cumPctSeries ?? [],
-            showSymbol: false,
+            showSymbol: true,
+            symbol: 'circle',
+            symbolSize: 12,
             lineStyle: { width: 2 },
             sampling: 'lttb',
-            emphasis: { focus: 'series' },
+            emphasis: { focus: 'self' },
             markLine: {
               symbol: 'none',
               label: { formatter: `最終 ${Number(finalRatePct || 0).toFixed(2)}%` },
@@ -244,21 +275,47 @@ export default function SingleChartTrace({
       animation: false,
       animationDurationUpdate: 150,
       animationEasingUpdate: 'quartOut',
-      legend: { data: [seriesNames?.a ?? 'M0→M1 (%)', seriesNames?.b ?? 'M1→M2 (%)'] },
+      legend: {
+        type: 'scroll',
+        orient: 'horizontal',
+        top: 16,
+        left: 'center',
+        right: 8,
+        itemWidth: 12,
+        itemHeight: 8,
+        itemGap: 10,
+        textStyle: { fontSize: 12 },
+        data: [seriesNames?.a ?? 'M0→M1 (%)', seriesNames?.b ?? 'M1→M2 (%)']
+      },
       grid: { left: 50, right: 16, top: 50, bottom: 40 },
-      xAxis: { type: 'category', boundaryGap: true, data: labels, axisLabel: { interval: 0, rotate: 30, margin: 10, hideOverlap: true }, axisTick: { alignWithLabel: true }, splitLine: { show: true } },
-      yAxis: { type: 'value', axisLabel: { formatter: yIsPercent ? '{value} %' : '{value}' }, splitNumber: 4 },
+      xAxis: {
+        type: 'category',
+        boundaryGap: true,
+        data: labels,
+        axisLabel: { interval: 0, rotate: 30, margin: 10, hideOverlap: true },
+        axisTick: { alignWithLabel: true },
+        splitLine: { show: true },
+        name: xAxisName ?? (timeUnit === 'day' ? '日' : timeUnit === 'week' ? '週' : timeUnit === 'season' ? '季' : timeUnit === 'year' ? '年' : '月'),
+        nameLocation: 'middle',
+        nameGap: 40,
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: { formatter: yIsPercent ? '{value} %' : `{value}${valueSuffix ?? ''}` },
+        splitNumber: 4
+      },
       tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
       series: [
         { name: seriesNames?.a ?? 'M0→M1 (%)', type: 'line', data: dsA, showSymbol: true, symbol: 'circle', symbolSize: 14, lineStyle: { width: 2 }, sampling: 'lttb' },
         { name: seriesNames?.b ?? 'M1→M2 (%)', type: 'line', data: dsB, showSymbol: true, symbol: 'circle', symbolSize: 14, lineStyle: { width: 2 }, sampling: 'lttb' },
       ],
     }
-  }, [isInnerDay, labels, xStep, dsA, dsB, cumPctSeries, finalRatePct, seriesNames?.a, seriesNames?.b, yIsPercent])
+  }, [isInnerDay, labels, xStep, dsA, dsB, cumPctSeries, finalRatePct, seriesNames?.a, seriesNames?.b, yIsPercent, xAxisName, valueSuffix, timeUnit])
 
   /* ---------- lifecycle ---------- */
   useEffect(() => {
-    if (!chartRef.current || instRef.current) return
+    // ★ 必須有寬度再初始化，避免寬 0 時初始化出錯（尤其在 Modal）
+    if (!chartRef.current || instRef.current || !box.w) return
     const inst = echarts.init(chartRef.current, 'light', { renderer: 'skia', width: box.w, height: chartH })
     instRef.current = inst
     inst.setOption(option, { notMerge: true, lazyUpdate: true })
@@ -278,7 +335,6 @@ export default function SingleChartTrace({
       if (value != null) {
         requestAnimationFrame(() => {
           spotlightPoint(seriesIndex, dataIndex, Number(value))
-          // ★ 初始選取也同步把表格捲到該列
           tableRef.current?.scrollToRow(dataIndex, false)
         })
       }
@@ -287,21 +343,25 @@ export default function SingleChartTrace({
   }, [option, box.w, chartH, dsA, dsB, initialSelected])
 
   useEffect(() => {
-    instRef.current?.resize({ width: box.w, height: chartH })
+    if (!instRef.current || !box.w) return
+    instRef.current.resize({ width: box.w, height: chartH })
+    instRef.current.setOption(option, { notMerge: true, lazyUpdate: true })
     setSpot(null)
-  }, [box.w, chartH])
+  }, [box.w, chartH, option])
 
   return (
-    <ScrollView>
-      <WsPaddingContainer padding={0} style={{ backgroundColor: $color.white }}>
+    <View style={{ flex: 1, backgroundColor: $color.white }}>
+      <WsPaddingContainer padding={0} style={{ flex: 1, backgroundColor: $color.white }}>
+        {/* 固定高度的圖表 */}
         <View
           ref={chartBoxRef}
           onLayout={onChartBoxLayout}
           style={{ position: 'relative', width: '100%', height: chartH, overflow: 'hidden' }}
         >
+
           <SkiaChart ref={chartRef} />
 
-          {/* (可移除) 教學 spotlight 圓孔 + 直線 */}
+          {/* Spotlight */}
           {spot && (
             <Pressable
               style={{ position: 'absolute', left: 0, top: 0, width: box.w, height: chartH }}
@@ -323,26 +383,30 @@ export default function SingleChartTrace({
 
         <View style={{ height: 8 }} />
 
-        <XlsxDataTable
-          ref={tableRef}         // ★ 讓上方能控制滾動
-          rows={tableRows}
-          headersOverride={headers}
-          selectedRow={selectedRow}
-          selectedRowColor={selectedRowColor ?? undefined}
-          selected={spot ? { seriesIndex: spot.seriesIndex as 0 | 1, dataIndex: spot.dataIndex } : null}
-          showCheckbox={false}
-          onCellPress={(rowIdx, colIdx) => {
-            if (!allowDrilldown) return
-            if (colIdx === 1 || colIdx === 2) {
-              const seriesIndex = (colIdx === 1 ? 0 : 1) as 0 | 1
-              openChildFromTable(seriesIndex, rowIdx)
-            }
-          }}
-          pressableColumns={allowDrilldown ? [1, 2] : []}
-          bodyTextAlign={timeUnit === 'day' && !yIsPercent ? 'center' : 'left'}
-          timeColTextAlign={timeUnit === 'day' && !yIsPercent ? 'center' : 'left'}
-          columnWidth={[130, 150, 150]}
-        />
+        {/* 表格：吃滿剩餘高度；可直捲 */}
+        <View style={{ flex: 1, minHeight: 0 }}>
+          <XlsxDataTable
+            ref={tableRef}
+            rows={tableRows}
+            headersOverride={headers}
+            selectedRow={selectedRow}
+            selectedRowColor={selectedRowColor ?? undefined}
+            selected={spot ? { seriesIndex: spot.seriesIndex as 0 | 1, dataIndex: spot.dataIndex } : null}
+            showCheckbox={false}
+            style={{ flex: 1 }}
+            onCellPress={(rowIdx, colIdx) => {
+              if (!allowDrilldown) return
+              if (colIdx === 1 || colIdx === 2) {
+                const seriesIndex = (colIdx === 1 ? 0 : 1) as 0 | 1
+                openChildFromTable(seriesIndex, rowIdx)
+              }
+            }}
+            pressableColumns={allowDrilldown ? [1, 2] : []}
+            bodyTextAlign={timeUnit === 'day' && !yIsPercent ? 'center' : 'left'}
+            timeColTextAlign={timeUnit === 'day' && !yIsPercent ? 'center' : 'left'}
+            columnWidth={[130, 150, 150]}
+          />
+        </View>
       </WsPaddingContainer>
 
       {allowDrilldown && (
@@ -355,6 +419,7 @@ export default function SingleChartTrace({
         >
           {childData && (
             <SingleChartTrace
+              key={childData.titleSuffix}
               labels={childData.labels}
               dsA={childData.dsA}
               dsB={childData.dsB}
@@ -364,10 +429,11 @@ export default function SingleChartTrace({
               allowDrilldown={false}
               yIsPercent={false}
               chartHeight={280}
+              xAxisName="日"
             />
           )}
         </WsModal>
       )}
-    </ScrollView>
+    </View>
   )
 }
