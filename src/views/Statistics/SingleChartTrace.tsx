@@ -5,6 +5,7 @@ import {
   useWindowDimensions,
   Pressable,
   LayoutChangeEvent,
+  Dimensions,
 } from 'react-native'
 import * as echarts from 'echarts/core'
 import { LineChart as ELineChart, BarChart } from 'echarts/charts'
@@ -101,7 +102,7 @@ export default function SingleChartTrace({
   valueSuffix,
 }: Props) {
   const { t } = useTranslation()
-  const { width: winW } = useWindowDimensions()
+  const { width: winW, height } = Dimensions.get('window')
 
   const chartH = chartHeight ?? (allowDrilldown ? 300 : 220)
 
@@ -228,7 +229,23 @@ export default function SingleChartTrace({
           { type: 'value', name: '件數', splitNumber: 3, axisLabel: { formatter: '{value}' } },
           { type: 'value', name: '比率(%)', position: 'right', splitNumber: 3, axisLabel: { formatter: '{value} %' } },
         ],
-        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: { type: 'cross' },
+          confine: true,                 // 不讓 tooltip 超出圖表容器
+          transitionDuration: 0.1,
+          // 固定在圖表底部置中（x 軸下方一點）
+          position: function (_point, _params, _dom, _rect, size) {
+            const viewW = size.viewSize[0]
+            const viewH = size.viewSize[1]
+            const contentW = size.contentSize[0]
+            const contentH = size.contentSize[1]
+            const bottomGap = 8          // 與底邊距離，可自行調整
+            const x = (viewW - contentW) / 2
+            const y = viewH - contentH - bottomGap
+            return [Math.max(0, x), Math.max(0, y)]
+          },
+        },
         series: [
           {
             name: '分子(件)',
