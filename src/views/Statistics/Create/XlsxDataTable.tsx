@@ -27,17 +27,19 @@ type Props = {
   selected?: SelectedCell | null
   pressableColumns?: number[]
   onCellPress?: (rowIdx: number, colIdx: number, value: string | number | undefined) => void
+  /** 其餘欄位（A/B）文字對齊：預設 left，但會被此元件改為 center 以符合需求 */
   bodyTextAlign?: 'left' | 'center' | 'right'
+  /** 時間欄文字對齊：預設 left */
   timeColTextAlign?: 'left' | 'center' | 'right'
+  /** Header 文字對齊（若想全置中可覆蓋，但時間欄仍以 left 為主） */
   headerTextAlign?: 'left' | 'center' | 'right'
-  columnWidth?: { time?: number; a?: number; b?: number }
   zebra?: boolean
+  columnWidth?: number[] | { time?: number; a?: number; b?: number } | Record<string, number>
 }
 
 const DEFAULT_HEADER: [string, string, string] = ['單位時間', 'A', 'B']
 const ROW_HEIGHT = 40
 const SEPARATOR_H = Platform.OS === 'android' ? StyleSheet.hairlineWidth || 0.5 : StyleSheet.hairlineWidth || 0.5
-const ITEM_H = ROW_HEIGHT + SEPARATOR_H
 
 const hexToRgba = (hex: string, alpha: number) => {
   const h = hex.replace('#', '')
@@ -48,6 +50,42 @@ const hexToRgba = (hex: string, alpha: number) => {
   return `rgba(${r},${g},${b},${alpha})`
 }
 const isColor = (s?: string) => !!s && (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s) || s.startsWith('rgb'))
+
+function resolveWidths(
+  headers: [string, string, string],
+  columnWidth: number[] | { time?: number; a?: number; b?: number } | Record<string, number> | undefined,
+  fallback: [number, number, number] = [180, 120, 120],
+): [number, number, number] {
+  if (!columnWidth) return fallback
+
+  // case 1: 陣列（依順序）
+  if (Array.isArray(columnWidth)) {
+    return [
+      Number(columnWidth[0] ?? fallback[0]),
+      Number(columnWidth[1] ?? fallback[1]),
+      Number(columnWidth[2] ?? fallback[2]),
+    ]
+  }
+
+  // case 2/3: 物件（支援 key 或 header 文字）
+  const byKey = columnWidth as Record<string, number | undefined>
+  const keyMap: Record<string, number | undefined> = {
+    time: byKey.time,
+    a: byKey.a,
+    b: byKey.b,
+    // 也允許直接用標題字串指定
+    [headers[0]]: byKey[headers[0]],
+    [headers[1]]: byKey[headers[1]],
+    [headers[2]]: byKey[headers[2]],
+  }
+
+  return [
+    Number(keyMap.time ?? keyMap[headers[0]] ?? fallback[0]),
+    Number(keyMap.a ?? keyMap[headers[1]] ?? fallback[1]),
+    Number(keyMap.b ?? keyMap[headers[2]] ?? fallback[2]),
+  ]
+}
+
 
 /* ---------- 單列 ---------- */
 type RowProps = {
@@ -77,8 +115,8 @@ const DataRow = memo(function DataRow(props: RowProps) {
     isSelectedRow && selectedRowColor
       ? { backgroundColor: isColor(selectedRowColor) ? hexToRgba(selectedRowColor, 0.12) : hexToRgba('#2196f3', 0.12) }
       : zebra && rowIndex % 2 === 1
-      ? styles.zebra
-      : null
+        ? styles.zebra
+        : null
 
   const isSelectedCell = (colIdx: number) => {
     if (!selected) return false
@@ -90,6 +128,7 @@ const DataRow = memo(function DataRow(props: RowProps) {
 
   const cellBase = (colIdx: number) => [
     styles.cell,
+    colIdx === 0 ? styles.bodyCellAlignStart : styles.bodyCellAlignCenter,
     { width: widths[colIdx], height: ROW_HEIGHT },
     colIdx === 0 ? styles.timeCell : null,
     isSelectedCell(colIdx) ? styles.cellSelected : null,
@@ -101,7 +140,10 @@ const DataRow = memo(function DataRow(props: RowProps) {
       <Text
         numberOfLines={1}
         ellipsizeMode={colIdx === 0 ? 'clip' : 'tail'}
-        style={[styles.text, { textAlign: colIdx === 0 ? timeColTextAlign : bodyTextAlign }]}
+        style={[
+          styles.text,
+          { textAlign: colIdx === 0 ? (timeColTextAlign ?? 'left') : (bodyTextAlign ?? 'center') },
+        ]}
       >
         {val == null ? '—' : String(val)}
       </Text>
@@ -150,11 +192,8 @@ const XlsxDataTable = forwardRef<XlsxDataTableHandle, Props>(function XlsxDataTa
     : DEFAULT_HEADER)
 
   const widths = useMemo<[number, number, number]>(() => {
-    const timeW = columnWidth?.time ?? 180
-    const aW = columnWidth?.a ?? 120
-    const bW = columnWidth?.b ?? 120
-    return [timeW, aW, bW]
-  }, [columnWidth?.time, columnWidth?.a, columnWidth?.b])
+    return resolveWidths(header, columnWidth, [180, 120, 120])
+  }, [header, columnWidth])
 
   const tableWidth = widths.reduce((a, b) => a + b, 0) + (showCheckbox ? 44 : 0)
 
@@ -169,13 +208,8 @@ const XlsxDataTable = forwardRef<XlsxDataTableHandle, Props>(function XlsxDataTa
       const targetNode = target ? findNodeHandle(target) : null
       if (!containerNode || !targetNode) return
 
-      // 利用原生 measure 取得目標在螢幕上的位置，請外層 ScrollView 負責捲動
-      UIManager.measureInWindow(targetNode, (_x, y) => {
-        // 觸發「將某元素捲到可視區」的簡捷做法
-        // 如果你的外層用的是 react-native-gesture-handler 的 ScrollView，
-        // 可以在外層自行控制 scrollTo；這裡示意用 Keyboard API 類似的行為。
-        // 實務中你也可以在外層把 ref 暴露進來，由外層直接 scrollTo(y - 某個留白)
-        // 這裡先留白，避免誤導：外層控制比較乾淨。
+      UIManager.measureInWindow(targetNode, (_x, _y) => {
+        // 外層應接手 scrollTo 邏輯；這裡僅預留量測點
       })
     },
   }), [])
@@ -188,21 +222,42 @@ const XlsxDataTable = forwardRef<XlsxDataTableHandle, Props>(function XlsxDataTa
       contentContainerStyle={{ minWidth: tableWidth }}
     >
       <View ref={containerRef} style={{ width: tableWidth }}>
-        {/* Header */}
+        {/* Header：時間欄 flex-start，其餘置中 */}
         <View style={[styles.row, styles.headerRow]}>
           {showCheckbox && <View style={[styles.checkboxBox]} />}
-          <View style={[styles.cell, styles.headerCell, { width: widths[0], height: ROW_HEIGHT }]}>
-            <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: headerTextAlign }]}>
+
+          {/* 0: 單位時間 → flex-start */}
+          <View style={[
+            styles.cell,
+            styles.headerCell,
+            styles.headerCellAlignStart,
+            { width: widths[0], height: ROW_HEIGHT }
+          ]}>
+            <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: 'left' }]}>
               {String(header[0])}
             </Text>
           </View>
-          <View style={[styles.cell, styles.headerCell, { width: widths[1], height: ROW_HEIGHT }]}>
-            <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: headerTextAlign }]}>
+
+          {/* 1: A → 置中 */}
+          <View style={[
+            styles.cell,
+            styles.headerCell,
+            styles.headerCellAlignCenter,
+            { width: widths[1], height: ROW_HEIGHT }
+          ]}>
+            <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: headerTextAlign || 'center' }]}>
               {String(header[1])}
             </Text>
           </View>
-          <View style={[styles.cell, styles.headerCell, { width: widths[2], height: ROW_HEIGHT }]}>
-            <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: headerTextAlign }]}>
+
+          {/* 2: B → 置中 */}
+          <View style={[
+            styles.cell,
+            styles.headerCell,
+            styles.headerCellAlignCenter,
+            { width: widths[2], height: ROW_HEIGHT }
+          ]}>
+            <Text numberOfLines={1} ellipsizeMode="clip" style={[styles.headerText, { textAlign: headerTextAlign || 'center' }]}>
               {String(header[2])}
             </Text>
           </View>
@@ -211,7 +266,7 @@ const XlsxDataTable = forwardRef<XlsxDataTableHandle, Props>(function XlsxDataTa
         {/* Body（靜態列，無垂直內捲） */}
         <View>
           {rows.map((row, idx) => (
-            <View key={`r-${idx}`}>
+            <View key={`r-${idx}`} ref={el => (rowRefs.current[idx] = el)}>
               <DataRow
                 rowIndex={idx}
                 row={row}
@@ -223,8 +278,8 @@ const XlsxDataTable = forwardRef<XlsxDataTableHandle, Props>(function XlsxDataTa
                 selected={selected}
                 pressableColumns={pressableColumns}
                 onCellPress={onCellPress}
-                bodyTextAlign={bodyTextAlign}
-                timeColTextAlign={timeColTextAlign}
+                bodyTextAlign={'center'}
+                timeColTextAlign={timeColTextAlign ?? 'left'}
               />
               <View style={styles.sep} />
             </View>
@@ -249,15 +304,41 @@ const styles = StyleSheet.create({
     width: 44, alignItems: 'center', justifyContent: 'center',
     borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: '#E0E6ED',
   },
+
+  // 基礎 cell（寬高由 inline 決定）
   cell: {
-    paddingHorizontal: 12, justifyContent: 'center',
-    borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: '#E0E6ED',
+    paddingHorizontal: 12,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: '#E0E6ED',
   },
-  timeCell: {},
+
+  // Header 對齊
   headerCell: { paddingVertical: 10 },
+  headerCellAlignStart: {
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerCellAlignCenter: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Body 對齊
+  bodyCellAlignStart: {
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  bodyCellAlignCenter: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  timeCell: {},
   headerText: { fontSize: 13, fontWeight: '600', color: '#37474F' },
   text: { fontSize: 13, color: '#263238' },
   pressableFill: { flex: 1, justifyContent: 'center' },
+
+  // 選中 cell 背景
   cellSelected: { backgroundColor: hexToRgba('#FF9800', 0.14) },
 })
 

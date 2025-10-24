@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useMemo, useState } from 'react'
-import { View, Text, useWindowDimensions, TouchableOpacity } from 'react-native'
+import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
+import { View, Text, useWindowDimensions, TouchableOpacity, UIManager, findNodeHandle } from 'react-native'
 import * as echarts from 'echarts/core'
 import { LineChart as ELineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent } from 'echarts/components'
@@ -9,7 +9,6 @@ import { WsPaddingContainer, WsModal } from '@/components'
 import { useTranslation } from 'react-i18next'
 import SingleChartTrace from './SingleChartTrace'
 
-/** 註冊 Skia renderer + 需要的元件 */
 echarts.use([SkiaRenderer, ELineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
 type TimeUnit = 'day' | 'week' | 'month' | 'season' | 'year'
@@ -41,35 +40,23 @@ type Props = {
 type TraceSelected = { seriesIndex: 0 | 1; dataIndex: number } | null
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max))
+const TOOLTIP_W = 160
+const TOOLTIP_H = 100
 
-/** 依 timeUnit 產生預設 labels */
 function buildAutoLabels(opts: { timeUnit: TimeUnit; count: number; baseYear?: number }): string[] {
   const { timeUnit, count, baseYear } = opts
   switch (timeUnit) {
-    case 'day': {
-      const n = Math.min(Math.max(count, 1), 31)
-      return Array.from({ length: n }, (_, i) => `${i + 1}日`)
-    }
-    case 'week': {
-      const n = Math.min(Math.max(count, 1), 53)
-      return Array.from({ length: n }, (_, i) => `W${i + 1}`)
-    }
-    case 'month': {
-      const n = Math.min(Math.max(count, 1), 12)
-      return Array.from({ length: n }, (_, i) => `${i + 1}月`)
-    }
-    case 'season': {
-      const n = Math.min(Math.max(count, 1), 4)
-      return Array.from({ length: n }, (_, i) => `第${i + 1}季`)
-    }
+    case 'day': return Array.from({ length: Math.min(Math.max(count, 1), 31) }, (_, i) => `${i + 1}日`)
+    case 'week': return Array.from({ length: Math.min(Math.max(count, 1), 53) }, (_, i) => `W${i + 1}`)
+    case 'month': return Array.from({ length: Math.min(Math.max(count, 1), 12) }, (_, i) => `${i + 1}月`)
+    case 'season': return Array.from({ length: Math.min(Math.max(count, 1), 4) }, (_, i) => `第${i + 1}季`)
     case 'year': {
       const by = baseYear ?? new Date().getFullYear()
       const n = Math.max(count, 1)
       const start = by - (n - 1)
       return Array.from({ length: n }, (_, i) => String(start + i))
     }
-    default:
-      return []
+    default: return []
   }
 }
 
@@ -91,11 +78,17 @@ export default function SingleChart({
   const chartRef = useRef<any>(null)
   const instRef = useRef<echarts.EChartsType | null>(null)
 
+  const chartBoxRef = useRef<View>(null)
+  const [box, setBox] = useState({ w: width, h: height })
+  const onChartBoxLayout = useCallback(() => {
+    const node = findNodeHandle(chartBoxRef.current)
+    if (node) UIManager.measure(node, (_x, _y, w, h) => setBox({ w, h }))
+  }, [])
+
   const [modalTraceData, setModalTraceData] = useState(false)
   const [tip, setTip] = useState<TipState>(null)
   const [selectedForTrace, setSelectedForTrace] = useState<TraceSelected>(null)
 
-  /** Demo fallback（外部未提供資料時使用） */
   const fallbackLabels = useMemo(
     () => ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
     []
@@ -103,15 +96,12 @@ export default function SingleChart({
   const fallbackA = useMemo(() => Array.from({ length: 12 }, () => Math.floor(Math.random() * 100)), [])
   const fallbackB = useMemo(() => Array.from({ length: 12 }, () => Math.floor(Math.random() * 100)), [])
 
-  /** 原始資料（未裁切） */
   const rawA = dsAProp?.length ? dsAProp : fallbackA
   const rawB = dsBProp?.length ? dsBProp : fallbackB
 
-  /** 推斷 labelCount */
   const inferredCount = useMemo(() => {
     if (labelCount && labelCount > 0) return labelCount
-    const lenA = rawA.length
-    const lenB = rawB.length
+    const lenA = rawA.length, lenB = rawB.length
     if (lenA && lenB) return Math.min(lenA, lenB)
     if (lenA) return lenA
     if (lenB) return lenB
@@ -125,33 +115,26 @@ export default function SingleChart({
     }
   }, [labelCount, rawA.length, rawB.length, timeUnit])
 
-  /** 最終 labels */
   const labels = useMemo(() => {
     if (labelsProp?.length) return labelsProp
     if (timeUnit) return buildAutoLabels({ timeUnit, count: inferredCount, baseYear })
     return fallbackLabels
   }, [labelsProp, timeUnit, inferredCount, baseYear, fallbackLabels])
 
-  /** 以 labels 長度為準裁切資料（用 useMemo 穩定參考） */
   const L = labels.length
   const safeA = useMemo(() => rawA.slice(0, L), [rawA, L])
   const safeB = useMemo(() => rawB.slice(0, L), [rawB, L])
 
-  // x 標籤格式化
   const xLabelFormatter = useMemo(() => {
-    return (val: string) => {
-      if (timeUnit === 'day') return val.replace('日', '')
-      return val
-    }
+    return (val: string) => (timeUnit === 'day' ? val.replace('日', '') : val)
   }, [timeUnit])
 
-  /** ECharts Option */
   const option = useMemo(
     () => ({
       animation: false,
       animationDurationUpdate: 150,
       animationEasingUpdate: 'quartOut',
-      tooltip: { show: false, triggerOn: 'none' }, // 用自訂浮層
+      tooltip: { show: false, triggerOn: 'none' },
       legend: { data: [seriesNames.a ?? 'A1', seriesNames.b ?? 'B'] },
       grid: { left: 40, right: 40, top: 28, bottom: 50 },
       xAxis: {
@@ -172,34 +155,13 @@ export default function SingleChart({
         splitNumber: 4,
       },
       series: [
-        {
-          name: seriesNames.a ?? 'A1',
-          type: 'line',
-          data: safeA,
-          showSymbol: true,
-          symbol: 'circle',
-          symbolSize: 12,
-          lineStyle: { width: 2 },
-          sampling: 'lttb',
-          emphasis: { focus: 'self' },
-        },
-        {
-          name: seriesNames.b ?? 'B',
-          type: 'line',
-          data: safeB,
-          showSymbol: true,
-          symbol: 'circle',
-          symbolSize: 12,
-          lineStyle: { width: 2 },
-          sampling: 'lttb',
-          emphasis: { focus: 'self' },
-        },
+        { name: seriesNames.a ?? 'A1', type: 'line', data: safeA, showSymbol: true, symbol: 'circle', symbolSize: 12, lineStyle: { width: 2 }, sampling: 'lttb', emphasis: { focus: 'self' } },
+        { name: seriesNames.b ?? 'B', type: 'line', data: safeB, showSymbol: true, symbol: 'circle', symbolSize: 12, lineStyle: { width: 2 }, sampling: 'lttb', emphasis: { focus: 'self' } },
       ],
     }),
     [labels, safeA, safeB, seriesNames.a, seriesNames.b, xAxisName, yAxisName, valueSuffix, xLabelFormatter]
   )
 
-  /** 初始化 + 綁定事件 */
   useEffect(() => {
     if (!chartRef.current || instRef.current) return
     const inst = echarts.init(chartRef.current, 'light', { renderer: 'skia', width, height })
@@ -209,21 +171,16 @@ export default function SingleChart({
     const zr = inst.getZr()
 
     const getTipByIndex = (dataIndex: number): TipState => {
-      let idx = clamp(Math.round(dataIndex), 0, L - 1)
+      const idx = clamp(Math.round(dataIndex), 0, L - 1)
       const category = labels[idx]
       const aVal = safeA[idx]
       const bVal = safeB[idx]
-      const yTop = Math.max(
-        aVal ?? Number.NEGATIVE_INFINITY,
-        bVal ?? Number.NEGATIVE_INFINITY
-      )
+      const yTop = Math.max(aVal ?? Number.NEGATIVE_INFINITY, bVal ?? Number.NEGATIVE_INFINITY)
       const [px, py] = inst.convertToPixel({ seriesIndex: 0 }, [idx, yTop]) as [number, number]
       return {
-        x: px,
-        y: py,
+        x: px, y: py,
         payload: {
-          category,
-          dataIndex: idx,
+          category, dataIndex: idx,
           series: [
             { seriesName: seriesNames.a ?? 'A1', value: aVal },
             { seriesName: seriesNames.b ?? 'B', value: bVal },
@@ -242,8 +199,7 @@ export default function SingleChart({
 
     const onSeriesClick = (params: any) => {
       if (params?.componentType !== 'series') return
-      const idx = params.dataIndex as number
-      setTip(getTipByIndex(idx))
+      setTip(getTipByIndex(params.dataIndex as number))
     }
     inst.on('click', onSeriesClick)
 
@@ -264,78 +220,74 @@ export default function SingleChart({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  /** 圖尺寸變動：resize；避免每次 option 變都清掉 tip */
   useEffect(() => {
     if (!instRef.current) return
     instRef.current.resize({ width, height })
-    setTip(null) // 尺寸變才清
+    setTip(null)
   }, [width, height])
 
-  /** 資料/設定變更：更新 option（不清 tip） */
   useEffect(() => {
-    if (!instRef.current) return
-    instRef.current.setOption(option, { notMerge: true, lazyUpdate: true })
+    instRef.current?.setOption(option, { notMerge: true, lazyUpdate: true })
   }, [option])
 
-  const getValuesAt = (idx: number) => {
-    const aVal = safeA[idx]
-    const bVal = safeB[idx]
-    return { aVal, bVal }
-  }
+  const getValuesAt = (idx: number) => ({ aVal: safeA[idx], bVal: safeB[idx] })
 
   return (
     <>
-      <WsPaddingContainer
-        padding={0}
-        style={{ backgroundColor: $color.white, position: 'relative' }}
-      >
-        {/* 若你的 app 用 RNGH，可開 useRNGH：<SkiaChart ref={chartRef} useRNGH /> */}
-        <SkiaChart ref={chartRef} />
+      <WsPaddingContainer padding={0} style={{ backgroundColor: $color.white, position: 'relative' }}>
+        <View ref={chartBoxRef} onLayout={onChartBoxLayout} style={{ position: 'relative', width: '100%', height }}>
+          <SkiaChart ref={chartRef} />
 
-        {/* 自訂 Tooltip */}
-        {tip && (
-          <View
-            style={{
-              position: 'absolute',
-              left: clamp(tip.x - 80, 8, width - 160 - 8),
-              top: clamp(tip.y - 72, 8, height - 100),
-              width: 160,
-              padding: 10,
-              borderRadius: 10,
-              backgroundColor: 'rgba(0,0,0,0.85)',
-            }}
-          >
-            <Text style={{ color: '#fff', fontWeight: '600' }}>
-              {tip.payload.category}（index: {tip.payload.dataIndex}）
-            </Text>
-            {tip.payload.series.map((s) => (
-              <Text key={s.seriesName} style={{ color: '#fff', marginTop: 4 }}>
-                {s.seriesName}: {s.value ?? '—'}
-              </Text>
-            ))}
+          {tip && (() => {
+            // 以圖表容器為邊界夾住位置，並在底邊不足時改放到點下方/上方
+            const centerX = tip.x - TOOLTIP_W / 2
+            const x = clamp(centerX, 8, box.w - TOOLTIP_W - 8)
+            const preferTop = tip.y - TOOLTIP_H - 12 >= 8
+            const y = preferTop
+              ? clamp(tip.y - TOOLTIP_H - 12, 8, box.h - TOOLTIP_H - 8)
+              : clamp(tip.y + 12, 8, box.h - TOOLTIP_H - 8)
 
-            <TouchableOpacity
-              style={{ marginTop: 10 }}
-              onPress={() => {
-                const idx = tip.payload.dataIndex
-                const { aVal, bVal } = getValuesAt(idx)
-                const seriesIndex: 0 | 1 = (Number(bVal ?? -Infinity) > Number(aVal ?? -Infinity)) ? 1 : 0
-                setSelectedForTrace({ seriesIndex, dataIndex: idx })
-                setTip(null)
-                setModalTraceData(true)
-              }}
-            >
-              <Text style={{ color: '#4FC3F7' }}>查看詳情</Text>
-            </TouchableOpacity>
+            return (
+              <View
+                style={{
+                  position: 'absolute',
+                  left: x, top: y,
+                  width: TOOLTIP_W, minHeight: TOOLTIP_H,
+                  padding: 10, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.85)',
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '600' }}>
+                  {tip.payload.category}
+                </Text>
+                {tip.payload.series.map(s => (
+                  <Text key={s.seriesName} style={{ color: '#fff', marginTop: 4 }}>
+                    {s.seriesName}: {s.value ?? '—'}
+                  </Text>
+                ))}
 
-            <TouchableOpacity onPress={() => setTip(null)} style={{ marginTop: 6 }}>
-              <Text style={{ color: '#BDBDBD' }}>關閉</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+                <TouchableOpacity
+                  style={{ marginTop: 10 }}
+                  onPress={() => {
+                    const idx = tip.payload.dataIndex
+                    const { aVal, bVal } = getValuesAt(idx)
+                    const seriesIndex: 0 | 1 = (Number(bVal ?? -Infinity) > Number(aVal ?? -Infinity)) ? 1 : 0
+                    setSelectedForTrace({ seriesIndex, dataIndex: idx })
+                    setTip(null)
+                    setModalTraceData(true)
+                  }}
+                >
+                  <Text style={{ color: '#4FC3F7' }}>查看詳情</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => setTip(null)} style={{ marginTop: 6 }}>
+                  <Text style={{ color: '#BDBDBD' }}>關閉</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          })()}
+        </View>
       </WsPaddingContainer>
 
-      {/* 詳情 Modal：把 labels / 資料 / 初始選取 傳進去 */}
       <WsModal
         animationType="none"
         visible={modalTraceData}
@@ -349,7 +301,10 @@ export default function SingleChart({
           dsB={safeB}
           seriesNames={seriesNames}
           initialSelected={selectedForTrace}
-          timeUnit={timeUnit}
+          timeUnit="month"
+          labelCount={labels.length}
+          xAxisName="單位時間(月)"
+          valueSuffix=" %"
         />
       </WsModal>
     </>
