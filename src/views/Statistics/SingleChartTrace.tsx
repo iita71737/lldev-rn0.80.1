@@ -197,30 +197,28 @@ export default function SingleChartTrace({
         animationEasingUpdate: 'quartOut',
         legend: {
           type: 'scroll',
-          orient: 'horizontal',
-          top: 6,
           left: 'center',
-          right: 8,
+          top: 8,
           itemWidth: 12,
           itemHeight: 8,
           itemGap: 10,
           textStyle: { fontSize: 12 },
           data: ['分子(件)', '母體(件)', '月內累積比率(%)'],
         },
-        grid: { left: 40, right: 40, top: 56, bottom: 56, containLabel: true },
+        grid: { left: 40, right: 40, top: 60, bottom: 36, containLabel: true },
         xAxis: {
           type: 'category',
           data: labels,
           boundaryGap: true,
           name: xAxisName ?? '日',
           nameLocation: 'middle',
-          nameGap: 40,
+          nameGap: 24,            // 由 40 下修
           axisLabel: {
             interval: (idx: number) => idx % xStep === 0,
             formatter: (v: string) => toDD(v),
             hideOverlap: true,
             rotate: 30,
-            margin: 12,
+            margin: 8,           // 由 12 下修
           },
           axisTick: { alignWithLabel: true },
           splitLine: { show: true },
@@ -232,52 +230,18 @@ export default function SingleChartTrace({
         tooltip: {
           trigger: 'axis',
           axisPointer: { type: 'cross' },
-          confine: true,                 // 不讓 tooltip 超出圖表容器
-          transitionDuration: 0.1,
-          // 固定在圖表底部置中（x 軸下方一點）
-          position: function (_point, _params, _dom, _rect, size) {
-            const viewW = size.viewSize[0]
-            const viewH = size.viewSize[1]
-            const contentW = size.contentSize[0]
-            const contentH = size.contentSize[1]
-            const bottomGap = 8          // 與底邊距離，可自行調整
-            const x = (viewW - contentW) / 2
-            const y = viewH - contentH - bottomGap
-            return [Math.max(0, x), Math.max(0, y)]
-          },
+          confine: true,
         },
         series: [
-          {
-            name: '分子(件)',
-            type: 'bar',
-            yAxisIndex: 0,
-            data: dsA,
-            barMaxWidth: 18,
-            emphasis: { focus: 'self' },
-          },
-          {
-            name: '母體(件)',
-            type: 'line',
-            yAxisIndex: 0,
-            data: dsB,
-            showSymbol: true,
-            symbol: 'circle',
-            symbolSize: 12,
-            lineStyle: { width: 2 },
-            sampling: 'lttb',
-            emphasis: { focus: 'self' },
-          },
+          { name: '分子(件)', type: 'bar', yAxisIndex: 0, data: dsA, barMaxWidth: 18, emphasis: { focus: 'self' } },
+          { name: '母體(件)', type: 'line', yAxisIndex: 0, data: dsB, showSymbol: true, symbol: 'circle', symbolSize: 12, lineStyle: { width: 2 }, sampling: 'lttb', emphasis: { focus: 'self' } },
           {
             name: '月內累積比率(%)',
             type: 'line',
             yAxisIndex: 1,
             data: cumPctSeries ?? [],
-            showSymbol: true,
-            symbol: 'circle',
-            symbolSize: 12,
-            lineStyle: { width: 2 },
-            sampling: 'lttb',
-            emphasis: { focus: 'self' },
+            showSymbol: true, symbol: 'circle', symbolSize: 12,
+            lineStyle: { width: 2 }, sampling: 'lttb', emphasis: { focus: 'self' },
             markLine: {
               symbol: 'none',
               label: { formatter: `最終 ${Number(finalRatePct || 0).toFixed(2)}%` },
@@ -295,7 +259,7 @@ export default function SingleChartTrace({
       legend: {
         type: 'scroll',
         orient: 'horizontal',
-        top: 16,
+        top: 8,
         left: 'center',
         right: 8,
         itemWidth: 12,
