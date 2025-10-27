@@ -110,8 +110,8 @@ const DataRow = memo(function DataRow(props: RowProps) {
     isSelectedRow && selectedRowColor
       ? { backgroundColor: isColor(selectedRowColor) ? hexToRgba(selectedRowColor, 0.12) : hexToRgba('#2196f3', 0.12) }
       : zebra && rowIndex % 2 === 1
-      ? styles.zebra
-      : null
+        ? styles.zebra
+        : null
 
   const isSelectedCell = (colIdx: number) => {
     if (!selected) return false
@@ -195,7 +195,7 @@ const XlsxDataTable = forwardRef<XlsxDataTableHandle, Props>(function XlsxDataTa
       if (!listRef.current) return
       try {
         listRef.current.scrollToIndex({ index, animated, viewPosition: 0.5 })
-      } catch {}
+      } catch { }
     },
   }))
 
@@ -253,11 +253,6 @@ const XlsxDataTable = forwardRef<XlsxDataTableHandle, Props>(function XlsxDataTa
             <View style={styles.sep} />
           </View>
         )}
-        getItemLayout={(_data, index) => ({
-          length: ROW_HEIGHT + SEPARATOR_H,
-          offset: (ROW_HEIGHT + SEPARATOR_H) * index,
-          index,
-        })}
         initialNumToRender={20}
         maxToRenderPerBatch={30}
         windowSize={10}
@@ -266,6 +261,8 @@ const XlsxDataTable = forwardRef<XlsxDataTableHandle, Props>(function XlsxDataTa
         contentContainerStyle={{
           minWidth: widths[0] + widths[1] + widths[2] + (showCheckbox ? 44 : 0),
         }}
+        nestedScrollEnabled={true}
+        scrollEnabled={true}
       />
     </View>
   )

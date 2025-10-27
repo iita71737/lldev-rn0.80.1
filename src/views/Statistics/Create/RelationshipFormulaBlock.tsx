@@ -77,6 +77,7 @@ export default function FormulaRelationsMobileDemo({
     ];
   });
 
+  // console.log(JSON.stringify(list),'list--')
 
   // 取代你的 $_submit
   const $_submit = async () => {
@@ -430,7 +431,6 @@ export default function FormulaRelationsMobileDemo({
               modelName="checklist_record_answer"
               type="Ll_filesAndImages"
               label={t('附件')}
-              // labelIcon={'md-photo'}
               value={formulaData?.images}
               onChange={() => {
               }}

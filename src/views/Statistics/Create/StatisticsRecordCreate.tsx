@@ -16,7 +16,6 @@ import {
   WsAccordion,
   WsTag,
   WsState,
-  LlSectionList
 } from '@/components'
 import { useTranslation } from 'react-i18next'
 import $color from '@/__reactnative_stone/global/color'

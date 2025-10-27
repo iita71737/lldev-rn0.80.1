@@ -90,11 +90,11 @@ function Chip({
 }) {
     return (
         <View style={styles.chipContainer}>
-            {!!prefix && (
+            {/* {!!prefix && (
                 <View style={styles.chipPrefixBadge}>
                     <Text style={styles.chipPrefixText}>{prefix}</Text>
                 </View>
-            )}
+            )} */}
 
             {withInput ? (
                 <TextInput
@@ -139,13 +139,13 @@ const FormulaRowView = ({
                     style={{ marginLeft: 8, marginRight: 8 }}
                     onPress={() => onExportPress?.(section, row)}
                 >
-                    <WsTag>{'匯出'}</WsTag>
+                    {/* <WsTag>{'匯出'}</WsTag> */}
                 </TouchableOpacity>
             )}
 
             {row.chartable && (
                 <TouchableOpacity onPress={() => onChartPress?.(section, row)}>
-                    <WsTag>{row.chartLabel ?? '圖'}</WsTag>
+                    {/* <WsTag>{row.chartLabel ?? '圖'}</WsTag> */}
                 </TouchableOpacity>
             )}
         </WsFlex>
@@ -214,7 +214,7 @@ const SectionCard = ({
             rightActions={
                 item.showEdit ? (
                     <TouchableOpacity onPress={() => onEditPress?.(item)}>
-                        <WsTag>{'編輯'}</WsTag>
+                        {/* <WsTag>{'編輯'}</WsTag> */}
                     </TouchableOpacity>
                 ) : undefined
             }

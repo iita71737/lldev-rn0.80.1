@@ -50,6 +50,8 @@ export default function ChecklistVersionBlock({
   /** ✅ 受控 / 不受控合併 */
   const chips = cChips ?? uChips;
 
+  console.log(JSON.stringify(chips),'chips---')
+
   /** ✅ 更新 chips（確保結構不破壞） */
   const updateChips = (next: ChipsData) => {
     onChipsChange ? onChipsChange(next) : setUChips(next);
@@ -122,6 +124,8 @@ export default function ChecklistVersionBlock({
     };
     loadSavedChips();
   }, [section?.id, statisticsId, isOpen]);
+
+  console.log(JSON.stringify(chips),'chips===')
 
   return (
     <View style={styles.root}>
