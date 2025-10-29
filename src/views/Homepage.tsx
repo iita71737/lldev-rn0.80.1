@@ -29,10 +29,6 @@ import S_Alliance from '@/services/api/v1/alliance';
 import S_AreaSection from '@/services/api/v1/area_section'
 import LinearGradient from 'react-native-linear-gradient';
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
 const GRADIENT_COLORS = ['#537792', '#607BAA', '#8ea0bfff']; // 你要的卡片漸層
 const GRADIENT_START = { x: 0, y: 0.5 };
 const GRADIENT_END = { x: 1, y: 0.5 };

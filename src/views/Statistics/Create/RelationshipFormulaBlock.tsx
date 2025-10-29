@@ -22,14 +22,6 @@ import { useTranslation } from "react-i18next";
 import { records } from "./mock/records";
 import AsyncStorage from '@react-native-community/async-storage';
 
-// Android 啟用 LayoutAnimation
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
 /** ==== 型別 ==== */
 type FormulaItem = {
   id: string;
