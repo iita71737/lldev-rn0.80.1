@@ -53,7 +53,9 @@ import {
   setInitUrlFromQRcode,
   setConstantData,
   setCurrentLocales,
-  setCurrentLatLng
+  setCurrentLatLng,
+  setCurrentArea,
+  setSubAreas
 } from '@/store/data'
 import AsyncStorage from '@react-native-community/async-storage'
 import S_Init from '@/__reactnative_stone/services/app/Init'
@@ -90,6 +92,8 @@ import { getDistance } from 'geolib';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import S_factoryHelper from '@/helpers/factory'
 import { CopilotProvider } from 'react-native-copilot';
+import S_Area from '@/services/api/v1/area'
+import S_AreaSection from '@/services/api/v1/area_section'
 
 const RoutesMain = ({ navigation }) => {
   const { t, i18n } = useTranslation()
@@ -336,7 +340,8 @@ const RoutesMain = ({ navigation }) => {
     try {
       const _params = {
         order_by: 'sequence',
-        order_way: 'asc'
+        order_way: 'asc',
+        area: currentFactory?.area?.id ?? undefined
       }
       const systemClasses = await S_SystemClass.index({
         params: _params
@@ -561,6 +566,33 @@ const RoutesMain = ({ navigation }) => {
       console.log(error, '$_fetchConstantData')
     }
   }
+  // INIT area
+  const $_areaSet = async () => {
+    try {
+      const res = await S_Area.index({})
+      if (res) {
+        store.dispatch(setCurrentArea(res.data))
+      }
+    } catch (error) {
+      console.log(error, '$_areaSet')
+    }
+  }
+  // INIT sub area
+  const $_subAreaSet = async () => {
+    try {
+      const _params = {
+        areaId: currentFactory?.area?.id
+      }
+      const res = await S_AreaSection.index({
+        params: _params
+      })
+      if (res) {
+        store.dispatch(setSubAreas(res.data))
+      }
+    } catch (error) {
+      console.log(error, '$_subAreaSet')
+    }
+  }
 
   // APP BADGE
   const $_UnReadAllNotification = async () => {
@@ -604,7 +636,8 @@ const RoutesMain = ({ navigation }) => {
       $_systemClassSet()
 
       const timer = setTimeout(() => {
-        $_systemClassSet()
+        $_areaSet()
+        $_subAreaSet()
         $_contractorTypeSet()
         $_effectSet()
         $_actTypeSet()

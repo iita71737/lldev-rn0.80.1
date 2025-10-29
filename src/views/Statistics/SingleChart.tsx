@@ -155,7 +155,21 @@ export default function SingleChart({
         splitNumber: 4,
       },
       series: [
-        { name: seriesNames.a ?? 'A1', type: 'line', data: safeA, showSymbol: true, symbol: 'circle', symbolSize: 12, lineStyle: { width: 2 }, sampling: 'lttb', emphasis: { focus: 'self' } },
+        {
+          name: seriesNames.a ?? 'A1',
+          type: 'line',
+          data: safeA,
+          showSymbol: true,
+          symbol: 'circle', symbolSize: 12,
+          lineStyle: {
+            width: 2,
+            color: 'green'
+          },
+          itemStyle: {
+            color: 'pink'
+          },
+          sampling: 'lttb', emphasis: { focus: 'self' }
+        },
         { name: seriesNames.b ?? 'B', type: 'line', data: safeB, showSymbol: true, symbol: 'circle', symbolSize: 12, lineStyle: { width: 2 }, sampling: 'lttb', emphasis: { focus: 'self' } },
       ],
     }),

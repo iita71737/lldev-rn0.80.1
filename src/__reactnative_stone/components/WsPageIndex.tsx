@@ -51,11 +51,9 @@ interface WsPageIndexProps {
 
 const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
   const { t } = useTranslation()
-  const { width, height } = Dimensions.get('window')
 
   // Redux
   const systemClasses = useSelector(state => state.data.systemClasses)
-  const currentIdleCounter = useSelector(state => state.data.idleCounter)
 
   // Props
   const {
@@ -100,9 +98,9 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
       },
       system_subclasses: S_SystemClass.getAllSubSystemClassesId(systemClasses),
       ...defaultFilterValue,
-      ...filtersValue
+      ...filtersValue,
     }
-  ), [defaultFilterValue]);
+  ), [defaultFilterValue, systemClasses]);
 
   // FUNC
   const $_onFilterSubmit = ($event: any) => {
@@ -128,16 +126,20 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
 
   // FUNC
   const filteredSystemClasses = useMemo(() => {
+    console.log(filtersValue,'filtersValue--')
     if (data) {
+      console.log('1111')
       return data.filter((item: any) =>
         item.system_subclasses.some((subclass: any) => filtersValue.system_subclasses.includes(subclass.id))
       );
     } else if (systemClasses && filtersValue && filtersValue.system_subclasses && filtersValue.system_subclasses.length > 0) {
+      console.log('2222')
       return systemClasses.filter((item: any) =>
         item.system_subclasses.some((subclass: any) => filtersValue.system_subclasses.includes(subclass.id))
       );
     }
   }, [data, filtersValue, systemClasses]);
+
 
   const $_filterSubSystemClasses = (subclass: any) => {
     if (subclass) {

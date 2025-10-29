@@ -82,6 +82,35 @@ const WsFilterSystemSubclass = props => {
     onChange(_allSubClasses)
   }
 
+  // 簡單的陣列相等：長度一樣且每個元素都在對方裡（用排序避免順序問題）
+  const arraysEqual = (a: number[] = [], b: number[] = []) => {
+    if (a.length !== b.length) return false
+    const aa = [...a].sort((x, y) => x - y)
+    const bb = [...b].sort((x, y) => x - y)
+    for (let i = 0; i < aa.length; i++) {
+      if (aa[i] !== bb[i]) return false
+    }
+    return true
+  }
+
+  React.useEffect(() => {
+    if (!Array.isArray(systemClasses) || systemClasses.length === 0) return
+
+    // 取得「全選」 id 清單（扁平 + 去重）
+    const allIds: number[] = []
+    systemClasses.forEach(sc => {
+      (sc?.system_subclasses ?? []).forEach(ssc => {
+        if (!allIds.includes(ssc.id)) allIds.push(ssc.id)
+      })
+    })
+
+    // 只有在現在 value 和全選不同時才更新，避免迴圈
+    if (!arraysEqual(value, allIds)) {
+      onChange(allIds)
+    }
+    // 依賴只放 systemClasses 和 value，簡單不抖動
+  }, [systemClasses, value])
+
   // Render
   return (
     <>
@@ -89,10 +118,10 @@ const WsFilterSystemSubclass = props => {
         <WsFlex
           style={{
             paddingHorizontal: 16,
-            paddingBottom:16,
+            paddingBottom: 16,
             borderBottomWidth: 0.5,
             borderBottomColor: $color.gray2l,
-            paddingTop:16,
+            paddingTop: 16,
           }}>
           <WsText
             color={$color.black}

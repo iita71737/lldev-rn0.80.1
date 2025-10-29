@@ -82,132 +82,113 @@ const Menu = ({ navigation }) => {
 
   // Function
   const $_initManageList = () => {
-    setManageList([
+    // 以目前視角 (organization / factory) 取對應訂閱來源
+    const subject = currentViewMode === 'organization' ? currentOrganization : currentFactory
+
+    // 訂閱檢查：直接用 key 判斷
+    const isSubscribed = (key) => {
+      if (key === true) return true
+      if (!key) return false
+      return scopeSubscriptions(subject, key)
+    }
+
+    // 權限檢查：可傳字串 / 陣列 / true
+    const hasPerm = (perm) => {
+      if (perm === true) return true
+      if (Array.isArray(perm)) return perm.some(p => scopePermission(p, currentUserScope))
+      if (typeof perm === 'string') return scopePermission(perm, currentUserScope)
+      return false
+    }
+
+    const FEATURE_CONFIG = [
       {
+        key: 'checklist',
         title: t('日常自檢'),
-        backgroundImg: require('@/assets/img/checklist-management.jpg'),
-        onPress: () => {
-          navigation.push('RoutesCheckList', {
-            screen: 'CheckList'
-          })
-        },
-        permission: scopePermission('checklist-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'checklist') : scopeSubscriptions(currentFactory, 'checklist'))
+        bg: require('@/assets/img/checklist-management.jpg'),
+        perm: 'checklist-read',
+        nav: () => navigation.push('RoutesCheckList', { screen: 'CheckList' }),
       },
       {
+        key: 'change',
         title: t('變動管理'),
-        backgroundImg: require('@/assets/img/change-management.jpg'),
-        onPress: () => {
-          navigation.push('RoutesChange', {
-            screen: 'ChangeIndex'
-          })
-        },
-        permission: scopePermission(['change-record', 'change-read'], currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'change') : scopeSubscriptions(currentFactory, 'change'))
+        bg: require('@/assets/img/change-management.jpg'),
+        perm: ['change-record', 'change-read'],
+        nav: () => navigation.push('RoutesChange', { screen: 'ChangeIndex' }),
       },
       {
+        key: 'license',
         title: t('證照管理'),
-        backgroundImg: require('@/assets/img/license-management.jpg'),
-        onPress: () => {
-          navigation.push('RoutesLicense', {
-            screen: 'LicenseIndex'
-          })
-        },
-        permission: scopePermission('license-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'license') : scopeSubscriptions(currentFactory, 'license'))
+        bg: require('@/assets/img/license-management.jpg'),
+        perm: 'license-read',
+        nav: () => navigation.push('RoutesLicense', { screen: 'LicenseIndex' }),
       },
       {
+        key: 'training',
         title: t('教育訓練'),
-        backgroundImg: require('@/assets/img/training.jpg'),
-        onPress: () => {
-          navigation.push('RoutesTraining', {
-            screen: 'TrainingIndex'
-          })
-        },
-        permission: scopePermission('internal-training-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'training') : scopeSubscriptions(currentFactory, 'training'))
+        bg: require('@/assets/img/training.jpg'),
+        perm: 'internal-training-read',
+        nav: () => navigation.push('RoutesTraining', { screen: 'TrainingIndex' }),
       },
       {
+        key: 'event',
         title: t('風險事件'),
-        backgroundImg: require('@/assets/img/event-management.jpg'),
-        onPress: () => {
-          navigation.push('RoutesEvent', {
-            screen: 'EventIndex'
-          })
-        },
-        permission: scopePermission('event-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'event') : scopeSubscriptions(currentFactory, 'event'))
+        bg: require('@/assets/img/event-management.jpg'),
+        perm: 'event-read',
+        nav: () => navigation.push('RoutesEvent', { screen: 'EventIndex' }),
       },
       {
+        key: 'audit',
         title: t('稽核管理'),
-        backgroundImg: require('@/assets/img/audit-management.jpg'),
-        onPress: () => {
-          navigation.push('RoutesAudit', {
-            screen: 'AuditIndex'
-          })
-        },
-        permission: scopePermission('audit-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'audit') : scopeSubscriptions(currentFactory, 'audit'))
+        bg: require('@/assets/img/audit-management.jpg'),
+        perm: 'audit-read',
+        nav: () => navigation.push('RoutesAudit', { screen: 'AuditIndex' }),
       },
       {
+        key: 'contractor',
         title: t('承攬商管理'),
-        backgroundImg: require('@/assets/img/contractor-management.jpg'),
-        onPress: () => {
-          navigation.push('RoutesContractors', {
-            screen: 'ContractorsIndex'
-          })
-        },
-        permission: scopePermission('contractor-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'contractor') : scopeSubscriptions(currentFactory, 'contractor'))
+        bg: require('@/assets/img/contractor-management.jpg'),
+        perm: 'contractor-read',
+        nav: () => navigation.push('RoutesContractors', { screen: 'ContractorsIndex' }),
       },
       {
+        key: 'contractor',
         title: t('進場管理'),
-        backgroundImg: require('@/assets/img/contractor-operation-management.jpg'),
-        onPress: () => {
-          navigation.push('RoutesContractorEnter', {
-            screen: 'ContractorEnter'
-          })
-        },
-        permission: scopePermission('contractor-enter-record-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'contractor') : scopeSubscriptions(currentFactory, 'contractor'))
+        bg: require('@/assets/img/contractor-operation-management.jpg'),
+        perm: 'contractor-enter-record-read',
+        nav: () => navigation.push('RoutesContractorEnter', { screen: 'ContractorEnter' }),
       },
       {
+        key: 'file',
         title: t('文件檔案庫'),
-        backgroundImg: require('@/assets/img/file-store-management.jpg'),
-        onPress: () => {
-          navigation.navigate('RoutesApp', { screen: 'FileStore' })
-        },
-        permission: Config.ENV === 'development' ? true : true
+        bg: require('@/assets/img/file-store-management.jpg'),
+        perm: true,
+        nav: () => navigation.navigate('RoutesApp', { screen: 'FileStore' }),
       },
-      // {
-      //   title: t('委外定檢'),
-      //   backgroundImg: require('@/assets/img/waste.e9025330.jpg'),
-      //   permission: false,
-      //   onPress: () => { }
-      // },
-      // {
-      //   title: t('原物料管理'),
-      //   backgroundImg: require('@/assets/img/原物料管理.jpg'),
-      //   permission: false,
-      //   onPress: () => { }
-      // },
-      // {
-      //   title: t('化學品管理'),
-      //   backgroundImg: require('@/assets/img/training.jpg'),
-      //   permission: false,
-      //   onPress: () => { }
-      // },
-      // {
-      //   title: t('廢棄物管理'),
-      //   backgroundImg: require('@/assets/img/waste.e9025330.jpg'),
-      //   permission: false,
-      //   onPress: () => { }
-      // }
       {
+        key: 'statistic',
         title: t('數量統計管理'),
-        backgroundImg: require('@/assets/img/audit-management.jpg'),
-        onPress: () => {
-          navigation.push('RoutesStatistics', {
-            screen: 'StatisticsIndex'
-          })
-        },
-        permission: scopePermission('audit-read', currentUserScope) && (currentViewMode == 'organization' ? scopeSubscriptions(currentOrganization, 'audit') : scopeSubscriptions(currentFactory, 'audit'))
+        bg: require('@/assets/img/audit-management.jpg'),
+        perm: true,
+        nav: () => navigation.push('RoutesStatistics', { screen: 'StatisticsIndex' }),
       },
     ]
-    )
+
+    const list = FEATURE_CONFIG
+      .filter(item => isSubscribed(item.key)) // ✅ 未訂閱不顯示
+      .map(item => {
+        const permitted = hasPerm(item.perm)
+        return {
+          title: item.title,
+          backgroundImg: item.bg,
+          onPress: permitted ? item.nav : () => { },
+          permission: permitted,                 // 供 WsImageBtn 判斷禁用
+          icon: permitted ? null : 'ws-outline-lock', // 需要就露出鎖頭
+        }
+      })
+
+    setManageList(list)
   }
+
 
   // Storage
   const $_getStorage = async () => {
@@ -281,7 +262,7 @@ const Menu = ({ navigation }) => {
 
   return (
     <>
-     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
 
         <ScrollView
           testID={'ScrollView'}
@@ -340,7 +321,7 @@ const Menu = ({ navigation }) => {
                 {`${t('切換單位')}`}
               </LlNavButton001>
 
-              <>
+              {scopeSubscriptions(currentFactory, 'announcement') && (
                 <LlNavButton001
                   style={{
                     backgroundColor: $color.white
@@ -369,7 +350,10 @@ const Menu = ({ navigation }) => {
                 >
                   {t('新訊')}
                 </LlNavButton001>
+              )}
 
+
+              {scopeSubscriptions(currentFactory, 'task') && (
                 <LlNavButton001
                   style={{
                     backgroundColor: $color.white
@@ -396,55 +380,60 @@ const Menu = ({ navigation }) => {
                   }}>
                   {t('任務')}
                 </LlNavButton001>
+              )}
 
-                <LlNavButton001
-                  style={{
-                    backgroundColor: $color.white
-                  }}
-                  iconLeft="ll-nav-filemanage"
-                >
-                  {t('管理')}
-                </LlNavButton001>
-              </>
-              <WsPaddingContainer
-                style={{
-                  backgroundColor: gColor.white,
-                }}>
-                <WsGrid
-                  style={{}}
-                  numColumns={2}
-                  spacing={4}
-                  keyExtractor={item => item.title}
-                  data={manageList}
-                  renderItem={({ item, itemIndex }) => (
-                    <>
-                      <WsImageBtn
-                        key={item.title}
-                        backgroundImg={item.backgroundImg}
-                        title={item.title}
-                        style={{}}
-                        icon={
-                          (item.permission === false || item && item.permission === null) ? 'ws-outline-lock' : null
-                        }
-                        LinearGradientColors={
-                          item.permission === false
-                            ? [
-                              'rgba(6, 34, 46, 1)',
-                              'rgba(0, 24, 57, .8)',
-                              'rgba(6, 34, 46, 1)'
-                            ]
-                            : undefined
-                        }
-                        disable={(item && item.permission === false || item && item.permission === null) ? true : false}
-                        onPress={
-                          item.permission === true ? item.onPress : () => { }
-                        }
-                      />
-                    </>
-                  )}
-                />
 
-              </WsPaddingContainer>
+              {currentViewMode === 'organization' ? currentOrganization.subscriptions.length > 0 : currentFactory.subscriptions?.length > 0 && (
+                <>
+                  <LlNavButton001
+                    style={{
+                      backgroundColor: $color.white
+                    }}
+                    iconLeft="ll-nav-filemanage"
+                  >
+                    {t('管理')}
+                  </LlNavButton001>
+                  <WsPaddingContainer
+                    style={{
+                      backgroundColor: gColor.white,
+                    }}>
+                    <WsGrid
+                      style={{}}
+                      numColumns={2}
+                      spacing={4}
+                      keyExtractor={item => item.title}
+                      data={manageList}
+                      renderItem={({ item, itemIndex }) => (
+                        <>
+                          <WsImageBtn
+                            key={item.title}
+                            backgroundImg={item.backgroundImg}
+                            title={item.title}
+                            style={{}}
+                            icon={
+                              (item.permission === false || item && item.permission === null) ? 'ws-outline-lock' : null
+                            }
+                            LinearGradientColors={
+                              item.permission === false
+                                ? [
+                                  'rgba(6, 34, 46, 1)',
+                                  'rgba(0, 24, 57, .8)',
+                                  'rgba(6, 34, 46, 1)'
+                                ]
+                                : undefined
+                            }
+                            disable={(item && item.permission === false || item && item.permission === null) ? true : false}
+                            onPress={
+                              item.permission === true ? item.onPress : () => { }
+                            }
+                          />
+                        </>
+                      )}
+                    />
+                  </WsPaddingContainer>
+                </>
+              )}
+
 
               {scopePermission('guideline-read', currentUserScope) &&
                 scopeSubscriptions(currentFactory, 'guideline') && (
@@ -510,34 +499,37 @@ const Menu = ({ navigation }) => {
                   </LlNavButton001>
                 )}
 
-              <LlNavButton001
-                style={{
-                  backgroundColor: $color.white
-                }}
-                iconLeft="ll-nav-news-outline"
-                onPress={(e) => {
-                  if (!scopePermission('llbroadcast-read', currentUserScope)) {
-                    Alert.alert(
-                      t('您無此單位內相關權限，請聯絡系統管理員'),
-                      "",
-                      [
-                        {
-                          text: "我知道了",
-                          onPress: () => {
-                            navigation.navigate('RoutesMenu')
+              {scopeSubscriptions(currentFactory, 'broadcast') && (
+                <LlNavButton001
+                  style={{
+                    backgroundColor: $color.white
+                  }}
+                  iconLeft="ll-nav-news-outline"
+                  onPress={(e) => {
+                    if (!scopePermission('llbroadcast-read', currentUserScope)) {
+                      Alert.alert(
+                        t('您無此單位內相關權限，請聯絡系統管理員'),
+                        "",
+                        [
+                          {
+                            text: "我知道了",
+                            onPress: () => {
+                              navigation.navigate('RoutesMenu')
+                            }
                           }
-                        }
-                      ]
-                    )
-                    e.preventDefault();
-                  } else if (scopePermission('llbroadcast-read', currentUserScope)) {
-                    navigation.push('ViewBroadCast')
-                  }
+                        ]
+                      )
+                      e.preventDefault();
+                    } else if (scopePermission('llbroadcast-read', currentUserScope)) {
+                      navigation.push('ViewBroadCast')
+                    }
 
-                }}
-              >
-                {t('ESGoal快報')}
-              </LlNavButton001>
+                  }}
+                >
+                  {t('ESGoal快報')}
+                </LlNavButton001>
+              )}
+
 
               <LlNavButton001
                 style={{

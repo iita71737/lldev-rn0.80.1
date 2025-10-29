@@ -92,6 +92,16 @@ const LlActCard001 = props => {
     }
   }
 
+  // helper area
+  const areaNames = Array.isArray(item.areas)
+    ? item.areas
+      .map(a => (typeof a === 'string' ? a : a?.name ?? a?.label ?? ''))
+      .filter(Boolean)
+      .join('、')
+    : (typeof item.area === 'string'
+      ? item.areas
+      : item.areas?.name ?? item.areas?.label ?? '');
+
   return (
     <TouchableOpacity
       testID={testID}
@@ -147,15 +157,15 @@ const LlActCard001 = props => {
           </WsFlex>
           <WsText>{title}</WsText>
         </View>
+
         <WsFlex
           style={{
-            marginBottom: 4
           }}
           flexWrap={'wrap'}
         >
-             <WsText color={$color.gray} size={12}>
-              {item.act_type?.name ? `${t(item.act_type?.name)} | `: ''}
-            </WsText>
+          <WsText color={$color.gray} size={12}>
+            {`${areaNames || '—'} | `}{item.act_type?.name ? `${t(item.act_type?.name)} | ` : ''}
+          </WsText>
           {systemSubClasses && (
             <>
               {systemSubClasses.map((systemSubClass, systemSubClassIndex) => {
@@ -182,6 +192,7 @@ const LlActCard001 = props => {
             </WsDes>
           )}
         </WsFlex>
+
         <WsFlex
           style={{
             marginBottom: 4

@@ -218,7 +218,7 @@ const RoutesFactory = ({ navigation, route }) => {
         // lazy={false}
         optimizationsEnabled={true}
         unmountOnBlur={true}
-        initialRouteName={'MyIndex'}
+        initialRouteName={currentFactory?.is_alliance_home_page == 1 ? 'Homepage' : 'MyIndex'}
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarShowLabel: false,
@@ -243,7 +243,7 @@ const RoutesFactory = ({ navigation, route }) => {
             : undefined,
         })}
       >
-        {/* <Tab.Screen
+        <Tab.Screen
           name="Homepage"
           component={Homepage}
           options={{
@@ -257,28 +257,108 @@ const RoutesFactory = ({ navigation, route }) => {
             ),
           }}
           backBehavior={'history'}
-        /> */}
+        />
 
-        <Tab.Screen
-          name="DashboardFactory"
-          component={ViewDashboardFactory}
-          options={{
-            tabBarTestID: 'DashboardFactory',
-            unmountOnBlur: false,
-            tabBarLabel: t('概況'),
-            headerBackTitleVisible: false,
-            tabBarIcon: ({ focused, color, size }) => (
-              <WsIcon
-                name={focused ? 'll-nav-pie-filled' : 'll-nav-pie-outline'}
-                color={color}
-                size={32}
-              />
-            ),
-          }}
-          listeners={({ navigation, route }) => ({
-            tabPress: (e) => {
-              if (currentViewMode === 'factory') {
-                if (!scopePermission(['dashboard-read'], currentUserScope)) {
+        {scopeSubscriptions(currentFactory, 'dashboard') && (
+          <Tab.Screen
+            name="DashboardFactory"
+            component={ViewDashboardFactory}
+            options={{
+              tabBarTestID: 'DashboardFactory',
+              unmountOnBlur: false,
+              tabBarLabel: t('概況'),
+              headerBackTitleVisible: false,
+              tabBarIcon: ({ focused, color, size }) => (
+                <WsIcon
+                  name={focused ? 'll-nav-pie-filled' : 'll-nav-pie-outline'}
+                  color={color}
+                  size={32}
+                />
+              ),
+            }}
+            listeners={({ navigation, route }) => ({
+              tabPress: (e) => {
+                if (currentViewMode === 'factory') {
+                  if (!scopePermission(['dashboard-read'], currentUserScope)) {
+                    Alert.alert(
+                      t('您無此單位內相關權限，請聯絡系統管理員'),
+                      "",
+                      [
+                        {
+                          text: "我知道了",
+                          onPress: () => {
+                            navigation.navigate('RoutesMenu')
+                          }
+                        }
+                      ]
+                    )
+                    e.preventDefault();
+                  }
+                } else if (currentViewMode === 'organization') {
+                  if (!scopePermission(['organization-dashboard-read'], currentUserScope)) {
+                    Alert.alert(
+                      t('您無此單位內相關權限，請聯絡系統管理員'),
+                      "",
+                      [
+                        {
+                          text: "我知道了",
+                          onPress: () => {
+                            navigation.navigate('RoutesMenu')
+                          }
+                        }
+                      ]
+                    )
+                    e.preventDefault();
+                  }
+                }
+              },
+            })}
+          />
+        )}
+
+        {scopeSubscriptions(currentFactory, 'board') && (
+          <Tab.Screen
+            name="MyIndex"
+            component={ViewMy}
+            options={{
+              tabBarTestID: 'MyIndex',
+              unmountOnBlur: true,
+              tabBarLabel: t('看板'),
+              tabBarIcon: ({ focused, color, size }) => (
+                <WsIcon
+                  name={focused ? 'll-nav-board' : 'll-nav-board-outline'}
+                  color={color}
+                  size={32}
+                />
+              ),
+            }}
+            backBehavior={'history'}
+          />
+        )}
+
+        {scopeSubscriptions(currentFactory, 'alert') && (
+          <Tab.Screen
+            name="RoutesAlert"
+            component={ViewAlertIndex}
+            options={{
+              tabBarTestID: 'RoutesAlert',
+              unmountOnBlur: true,
+              ...gOption.headerOption,
+              tabBarLabel: t('警示'),
+              tabBarIcon: ({ focused, color, size }) => (
+                <WsIcon
+                  name={focused ? 'll-nav-alert-filled' : 'll-nav-alert-outline'}
+                  color={color}
+                  size={32}
+                />
+              ),
+            }}
+            initialParams={{
+              title: t('警示')
+            }}
+            listeners={({ navigation, route }) => ({
+              tabPress: (e) => {
+                if (!scopePermission('alert-read', currentUserScope)) {
                   Alert.alert(
                     t('您無此單位內相關權限，請聯絡系統管理員'),
                     "",
@@ -293,8 +373,32 @@ const RoutesFactory = ({ navigation, route }) => {
                   )
                   e.preventDefault();
                 }
-              } else if (currentViewMode === 'organization') {
-                if (!scopePermission(['organization-dashboard-read'], currentUserScope)) {
+              },
+            })}
+            backBehavior={'history'}
+          />
+        )}
+
+        {scopeSubscriptions(currentFactory, 'act') && (
+          <Tab.Screen
+            name="Act"
+            component={scopeFilterScreen('act-read', ViewAct)}
+            options={{
+              tabBarTestID: 'Act',
+              headerShown: true,
+              headerTitle: t('法規'),
+              ...gOption.headerOption,
+              tabBarIcon: ({ focused, color, size }) => (
+                <WsIcon
+                  name={focused ? 'll-nav-law-filled' : 'll-nav-law-outline'}
+                  color={color}
+                  size={32}
+                />
+              ),
+            }}
+            listeners={({ navigation, route }) => ({
+              tabPress: (e) => {
+                if (!scopePermission('act-read', currentUserScope)) {
                   Alert.alert(
                     t('您無此單位內相關權限，請聯絡系統管理員'),
                     "",
@@ -309,106 +413,14 @@ const RoutesFactory = ({ navigation, route }) => {
                   )
                   e.preventDefault();
                 }
+              },
+              blur: (e) => {
               }
-            },
-          })}
-        />
-        <Tab.Screen
-          name="MyIndex"
-          component={ViewMy}
-          options={{
-            tabBarTestID: 'MyIndex',
-            unmountOnBlur: true,
-            tabBarLabel: t('看板'),
-            tabBarIcon: ({ focused, color, size }) => (
-              <WsIcon
-                name={focused ? 'll-nav-board' : 'll-nav-board-outline'}
-                color={color}
-                size={32}
-              />
-            ),
-          }}
-          backBehavior={'history'}
-        />
-        <Tab.Screen
-          name="RoutesAlert"
-          component={ViewAlertIndex}
-          options={{
-            tabBarTestID: 'RoutesAlert',
-            unmountOnBlur: true,
-            ...gOption.headerOption,
-            tabBarLabel: t('警示'),
-            tabBarIcon: ({ focused, color, size }) => (
-              <WsIcon
-                name={focused ? 'll-nav-alert-filled' : 'll-nav-alert-outline'}
-                color={color}
-                size={32}
-              />
-            ),
-          }}
-          initialParams={{
-            title: t('警示')
-          }}
-          listeners={({ navigation, route }) => ({
-            tabPress: (e) => {
-              if (!scopePermission('alert-read', currentUserScope)) {
-                Alert.alert(
-                  t('您無此單位內相關權限，請聯絡系統管理員'),
-                  "",
-                  [
-                    {
-                      text: "我知道了",
-                      onPress: () => {
-                        navigation.navigate('RoutesMenu')
-                      }
-                    }
-                  ]
-                )
-                e.preventDefault();
-              }
-            },
-          })}
-          backBehavior={'history'}
-        />
-        <Tab.Screen
-          name="Act"
-          component={scopeFilterScreen('act-read', ViewAct)}
-          options={{
-            tabBarTestID: 'Act',
-            headerShown: true,
-            headerTitle: t('法規'),
-            ...gOption.headerOption,
-            tabBarIcon: ({ focused, color, size }) => (
-              <WsIcon
-                name={focused ? 'll-nav-law-filled' : 'll-nav-law-outline'}
-                color={color}
-                size={32}
-              />
-            ),
-          }}
-          listeners={({ navigation, route }) => ({
-            tabPress: (e) => {
-              if (!scopePermission('act-read', currentUserScope)) {
-                Alert.alert(
-                  t('您無此單位內相關權限，請聯絡系統管理員'),
-                  "",
-                  [
-                    {
-                      text: "我知道了",
-                      onPress: () => {
-                        navigation.navigate('RoutesMenu')
-                      }
-                    }
-                  ]
-                )
-                e.preventDefault();
-              }
-            },
-            blur: (e) => {
-            }
-          })}
-          backBehavior={'history'}
-        />
+            })}
+            backBehavior={'history'}
+          />
+        )}
+
         <Tab.Screen
           name="RoutesMenu"
           component={RoutesMenu}

@@ -208,8 +208,7 @@ const ViewDeviceInfo = ({ navigation }) => {
             }}>
             <TouchableOpacity onLongPress={handleCopyPress}>
               <WsInfo
-                style={{ flex: 1 }}
-                label={`${t('FCM TOKEN')} (${t('LongPress to copy')})`}
+                label={`${t('設備碼')} (${t('長按複製')})`}
                 value={deviceToken}
               />
             </TouchableOpacity>
@@ -285,7 +284,7 @@ const ViewDeviceInfo = ({ navigation }) => {
             }}>
             <WsInfo
               style={{ flex: 1 }}
-              label={t('效期')}
+              label={t('憑證效期')}
               value={tokenExpiresAt}
             />
           </WsPaddingContainer>

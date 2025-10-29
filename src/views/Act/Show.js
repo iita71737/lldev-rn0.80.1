@@ -71,6 +71,7 @@ import AsyncStorage from '@react-native-community/async-storage'
 import S_ActVersion from '@/services/api/v1/act_version'
 import S_GuidelineArticleVersion from '@/services/api/v1/guideline_article_version'
 import S_GuidelineVersion from '@/services/api/v1/guideline_version'
+import { scopeSubscriptions } from '@/__reactnative_stone/global/permission'
 
 const ActShow = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
@@ -461,6 +462,17 @@ const ActShow = ({ navigation, route }) => {
     return unsubscribe;
   }, [navigation]);
 
+  // helper area
+  const namesFrom = (val: any) => {
+    const arr = Array.isArray(val) ? val : (val ? [val] : []);
+    return arr
+      .map((a) => (typeof a === 'string' ? a : a?.name ?? a?.label ?? ''))
+      .filter(Boolean)
+      .join('、');
+  };
+  const areaNames = namesFrom(act?.areas ?? act?.area);
+  const areaSectionNames = namesFrom(act?.area_sections);
+
   return (
     <>
       {act && act.last_version && params ? (
@@ -483,41 +495,57 @@ const ActShow = ({ navigation, route }) => {
                       backgroundColor: $color.white
                     }}>
                     <WsText size={24} testID={'法規法條名稱'}>{act.last_version.name}</WsText>
-                    <WsDes
-                      style={{
-                        marginTop: 8
-                      }}>
-                      {t('修正發布日')}{' '}
-                      {moment(act.last_version && act.last_version.announce_at ? act.last_version.announce_at : null).format(
-                        'YYYY-MM-DD'
-                      )}
-                    </WsDes>
-                    {act.last_version && act.last_version.effect_at && (
-                      <WsDes
+
+                    {act.areas && (
+                      <View
                         style={{
                           marginTop: 8
-                        }}>
-                        {t('生效日')}{' '}
-                        {moment(act.last_version && act.last_version.effect_at ? act.last_version.effect_at : null).format(
-                          'YYYY-MM-DD'
-                        )}
-                      </WsDes>
-                    )
-                    }
-                    <WsDes
-                      style={{
-                        marginTop: 8,
-                        marginBottom: 8,
-                      }}>
-                      {t('法規狀態')}{' '}
-                      {act.act_status && act.act_status.name ? t(act.act_status.name) : null}
-                    </WsDes>
+                        }}
+                      >
+                        <WsInfo
+                          labelSize={12}
+                          textSize={12}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                          }}
+                          labelWidth={100}
+                          type="text"
+                          value={areaNames}
+                          label={t('地區')}
+                        />
+                      </View>
+                    )}
+
+                    {act.area_sections &&
+                      act.area_sections.length > 0 && (
+                        <View
+                          style={{
+                            marginTop: 8
+                          }}
+                        >
+                          <WsInfo
+                            labelSize={12}
+                            textSize={12}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                            }}
+                            labelWidth={100}
+                            type="text"
+                            value={areaSectionNames}
+                            label={t('子地區')}
+                          />
+                        </View>
+                      )}
+
                     <WsFlex
                       flexWrap={'wrap'}
                       style={{
                         // borderWidth:1,
                       }}
                     >
+                      <WsText size={12} fontWeight={600} style={{ width: 108 }}>{t('領域')}</WsText>
                       {act.system_subclasses.map(
                         (systemSubClass, systemSubClassIndex) => {
                           return (
@@ -534,10 +562,90 @@ const ActShow = ({ navigation, route }) => {
                         }
                       )}
                     </WsFlex>
+
+                    {act.act_type &&
+                      act.act_type.name && (
+                        <View
+                          style={{
+                            // marginTop: 8
+                          }}
+                        >
+                          <WsInfo
+                            labelSize={12}
+                            textSize={12}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                            }}
+                            labelWidth={100}
+                            type="text"
+                            value={t(act.act_type.name)}
+                            label={t('法規類別')}
+                          />
+                        </View>
+                      )}
+
+                    <View
+                      style={{
+                        marginTop: 8
+                      }}
+                    >
+                      <WsInfo
+                        labelSize={12}
+                        textSize={12}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                        }}
+                        labelWidth={100}
+                        label={t('修正發布日')}
+                        value={moment(act.last_version && act.last_version.announce_at ? act.last_version.announce_at : null).format('YYYY-MM-DD')}
+                      />
+                    </View>
+
+                    {act.last_version && act.last_version.effect_at && (
+                      <View
+                        style={{
+                          marginTop: 8
+                        }}
+                      >
+                        <WsInfo
+                          labelSize={12}
+                          textSize={12}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                          }}
+                          labelWidth={100}
+                          label={t('修正發布日')}
+                          value={moment(act.last_version && act.last_version.effect_at ? act.last_version.effect_at : null).format('YYYY-MM-DD')}
+                        />
+                      </View>
+                    )}
+
+                    <View
+                      style={{
+                        marginTop: 8
+                      }}
+                    >
+                      <WsInfo
+                        labelSize={12}
+                        textSize={12}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                        }}
+                        labelWidth={100}
+                        type="text"
+                        value={t(act.act_status && act.act_status.name ? t(act.act_status.name) : null)}
+                        label={t('法規狀態')}
+                      />
+                    </View>
+
                     <WsPaddingContainer
                       padding={0}
                       style={{
-                        marginTop: 8,
+                        marginTop: 16,
                       }}>
                       {id && (
                         <WsState
@@ -587,27 +695,6 @@ const ActShow = ({ navigation, route }) => {
                       </WsPaddingContainer>
                     )
                   }
-
-                  {act.act_type &&
-                    act.act_type.name && (
-                      <WsPaddingContainer
-                        padding={0}
-                        style={{
-                          padding: 16,
-                          backgroundColor: $color.white,
-                          marginTop: 8
-                        }}>
-                        <WsInfo
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                          }}
-                          type="text"
-                          value={t(act.act_type.name)}
-                          label={t('法規類別')}
-                        />
-                      </WsPaddingContainer>
-                    )}
 
                   {act.last_version &&
                     act.last_version.reference_link && (
@@ -759,31 +846,37 @@ const ActShow = ({ navigation, route }) => {
                                 borderBottomRightRadius: actRelatedTemplateCollapsed ? 0 : 10,
                                 backgroundColor: $color.primary11l
                               }}>
-                              {act.last_version.has_license_template && (
-                                <LlRelatedLicenseTemplateCard001
-                                  acts={act.id}
-                                ></LlRelatedLicenseTemplateCard001>
-                              )}
-                              {act.last_version.has_checklist_template && (
-                                <LlRelatedChecklistTemplateCard001
-                                  acts={act.id}
-                                ></LlRelatedChecklistTemplateCard001>
-                              )}
-                              {act.last_version.has_audit_template && (
-                                <LlRelatedAuditTemplateCard001
-                                  acts={act.id}
-                                ></LlRelatedAuditTemplateCard001>
-                              )}
-                              {act.last_version.has_contractor_license_template && (
-                                <LlRelatedContractorLicenseTemplateCard001
-                                  acts={act.id}
-                                ></LlRelatedContractorLicenseTemplateCard001>
-                              )}
-                              {act.last_version.has_internal_training_template && (
-                                <LlRelatedTrainingTemplateCard001
-                                  acts={act.id}
-                                ></LlRelatedTrainingTemplateCard001>
-                              )}
+                              {act.last_version.has_license_template &&
+                                scopeSubscriptions(currentFactory, 'license') &&
+                                (
+                                  <LlRelatedLicenseTemplateCard001
+                                    acts={act.id}
+                                  ></LlRelatedLicenseTemplateCard001>
+                                )}
+                              {act.last_version.has_checklist_template &&
+                                scopeSubscriptions(currentFactory, 'checklist') && (
+                                  <LlRelatedChecklistTemplateCard001
+                                    acts={act.id}
+                                  ></LlRelatedChecklistTemplateCard001>
+                                )}
+                              {act.last_version.has_audit_template &&
+                                scopeSubscriptions(currentFactory, 'audit') && (
+                                  <LlRelatedAuditTemplateCard001
+                                    acts={act.id}
+                                  ></LlRelatedAuditTemplateCard001>
+                                )}
+                              {act.last_version.has_contractor_license_template &&
+                                scopeSubscriptions(currentFactory, 'contractor_license') && (
+                                  <LlRelatedContractorLicenseTemplateCard001
+                                    acts={act.id}
+                                  ></LlRelatedContractorLicenseTemplateCard001>
+                                )}
+                              {act.last_version.has_internal_training_template &&
+                                scopeSubscriptions(currentFactory, 'internal_training') && (
+                                  <LlRelatedTrainingTemplateCard001
+                                    acts={act.id}
+                                  ></LlRelatedTrainingTemplateCard001>
+                                )}
                             </WsPaddingContainer>
                           )}
 
@@ -837,36 +930,41 @@ const ActShow = ({ navigation, route }) => {
                               }}
                             >
 
-                              {act.last_version.has_license && (
-                                <LlRelatedLicenseDocs001
-                                  acts={act.id}
-                                ></LlRelatedLicenseDocs001>
-                              )}
+                              {act.last_version.has_license &&
+                                scopeSubscriptions(currentFactory, 'license') && (
+                                  <LlRelatedLicenseDocs001
+                                    acts={act.id}
+                                  ></LlRelatedLicenseDocs001>
+                                )}
 
-                              {act.last_version.has_checklist ? (
+                              {act.last_version.has_checklist &&
+                                scopeSubscriptions(currentFactory, 'checklist') ? (
                                 <LlRelatedChecklistDocs001
                                   acts={act.id}
                                 ></LlRelatedChecklistDocs001>
                               ) : null}
 
-                              {act.last_version.has_audit && (
-                                <LlRelatedAuditDocs001
-                                  acts={act.id}
-                                ></LlRelatedAuditDocs001>
-                              )}
+                              {act.last_version.has_audit &&
+                                scopeSubscriptions(currentFactory, 'audit') && (
+                                  <LlRelatedAuditDocs001
+                                    acts={act.id}
+                                  ></LlRelatedAuditDocs001>
+                                )}
 
-                              {act.last_version.has_contractor_license && (
-                                <LlRelatedContractorLicenseDocs001
-                                  acts={act.id}
-                                >
-                                </LlRelatedContractorLicenseDocs001>
-                              )}
+                              {act.last_version.has_contractor_license &&
+                                scopeSubscriptions(currentFactory, 'contractior_license') && (
+                                  <LlRelatedContractorLicenseDocs001
+                                    acts={act.id}
+                                  >
+                                  </LlRelatedContractorLicenseDocs001>
+                                )}
 
-                              {act.last_version.has_internal_training && (
-                                <LlRelatedTrainingDocs001
-                                  acts={act.id}
-                                ></LlRelatedTrainingDocs001>
-                              )}
+                              {act.last_version.has_internal_training &&
+                                scopeSubscriptions(currentFactory, 'internal_traing') && (
+                                  <LlRelatedTrainingDocs001
+                                    acts={act.id}
+                                  ></LlRelatedTrainingDocs001>
+                                )}
                             </WsPaddingContainer>
                           )}
                         </WsPaddingContainer>
@@ -928,63 +1026,64 @@ const ActShow = ({ navigation, route }) => {
                       </>
                     )}
 
-                  {actVersionRelatedTask && (
-                    <>
-                      <WsPaddingContainer
-                        padding={0}
-                        style={{
-                          backgroundColor: $color.white,
-                          marginTop: 8,
-                        }}>
-                        <LlBtnAct001
+                  {actVersionRelatedTask &&
+                    scopeSubscriptions(currentFactory, 'task') && (
+                      <>
+                        <WsPaddingContainer
+                          padding={0}
                           style={{
-                            margin: 16,
-                            marginBottom: actRelatedTaskCollapsed ? 16 : 0,
-                            borderTopLeftRadius: 10,
-                            borderTopRightRadius: 10,
-                            borderBottomLeftRadius: actRelatedTaskCollapsed ? 10 : 0,
-                            borderBottomRightRadius: actRelatedTaskCollapsed ? 10 : 0,
-                          }}
-                          onPress={() => {
-                            setActRelatedTaskCollapsed(!actRelatedTaskCollapsed)
-                          }}
-                        >
-                          <WsText color={$color.primary3l}>{t('相關任務')}</WsText>
-                          <WsIcon
-                            name={actRelatedTaskCollapsed ? 'md-unfold-more' : 'md-unfold-less'}
-                            size={24}
-                            color={$color.primary3l}
-                          ></WsIcon>
-                        </LlBtnAct001>
-
-                        {!actRelatedTaskCollapsed && (
-                          <WsPaddingContainer
-                            padding={16}
+                            backgroundColor: $color.white,
+                            marginTop: 8,
+                          }}>
+                          <LlBtnAct001
                             style={{
-                              marginHorizontal: 16,
-                              marginBottom: 16,
-                              borderBottomRightRadius: actRelatedTaskCollapsed ? 0 : 10,
-                              borderBottomLeftRadius: actRelatedTaskCollapsed ? 0 : 10,
-                              backgroundColor: $color.primary11l
+                              margin: 16,
+                              marginBottom: actRelatedTaskCollapsed ? 16 : 0,
+                              borderTopLeftRadius: 10,
+                              borderTopRightRadius: 10,
+                              borderBottomLeftRadius: actRelatedTaskCollapsed ? 10 : 0,
+                              borderBottomRightRadius: actRelatedTaskCollapsed ? 10 : 0,
+                            }}
+                            onPress={() => {
+                              setActRelatedTaskCollapsed(!actRelatedTaskCollapsed)
                             }}
                           >
-                            <LlTaskCard002
-                              item={actVersionRelatedTask}
-                              onPress={() => {
-                                navigation.push('RoutesTask', {
-                                  screen: 'TaskShow',
-                                  params: {
-                                    id: actVersionRelatedTask.id
-                                  }
-                                })
-                              }}
-                            />
-                          </WsPaddingContainer>
-                        )}
+                            <WsText color={$color.primary3l}>{t('相關任務')}</WsText>
+                            <WsIcon
+                              name={actRelatedTaskCollapsed ? 'md-unfold-more' : 'md-unfold-less'}
+                              size={24}
+                              color={$color.primary3l}
+                            ></WsIcon>
+                          </LlBtnAct001>
 
-                      </WsPaddingContainer>
-                    </>
-                  )}
+                          {!actRelatedTaskCollapsed && (
+                            <WsPaddingContainer
+                              padding={16}
+                              style={{
+                                marginHorizontal: 16,
+                                marginBottom: 16,
+                                borderBottomRightRadius: actRelatedTaskCollapsed ? 0 : 10,
+                                borderBottomLeftRadius: actRelatedTaskCollapsed ? 0 : 10,
+                                backgroundColor: $color.primary11l
+                              }}
+                            >
+                              <LlTaskCard002
+                                item={actVersionRelatedTask}
+                                onPress={() => {
+                                  navigation.push('RoutesTask', {
+                                    screen: 'TaskShow',
+                                    params: {
+                                      id: actVersionRelatedTask.id
+                                    }
+                                  })
+                                }}
+                              />
+                            </WsPaddingContainer>
+                          )}
+
+                        </WsPaddingContainer>
+                      </>
+                    )}
 
                   {(
                     (act.last_version.has_guidelines &&

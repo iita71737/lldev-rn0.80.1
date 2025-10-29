@@ -68,6 +68,8 @@ import exit_checklist from '@/services/api/v1/exit_checklist'
 import exit_checklist_assignment from '@/services/api/v1/exit_checklist_assignment'
 import announcement from '@/services/api/v1/announcement'
 import alliance from '@/services/api/v1/alliance'
+import area from '@/services/api/v1/area'
+import area_section from '@/services/api/v1/area_section'
 
 export default {
   act,
@@ -139,5 +141,7 @@ export default {
   exit_checklist,
   exit_checklist_assignment,
   announcement,
-  alliance
+  alliance,
+  area,
+  area_section
 }

@@ -27,6 +27,7 @@ interface ActCollectionProps {
   searchValue?: string;
   defaultFilter?: any;
   currentTabIndex?: number;
+  _alliance?: any;
 }
 
 interface ParamsState {
@@ -36,18 +37,65 @@ interface ParamsState {
   refreshCounter?: number;
 }
 
+type AreaLike =
+  | string
+  | number
+  | {
+    label?: string;
+    name?: string;
+    title?: string;
+    value?: string | number;
+    code?: string | number;
+    id?: string | number;
+    list?: AreaLike[];
+  };
+
 const ActCollection: React.FC<ActCollectionProps> = props => {
   const { t } = useTranslation()
 
   // Props
   const {
     navigation,
-    currentTabIndex
+    currentTabIndex,
+    _alliance
   } = props
 
-  // REDUX
+  const allianceAreaId = _alliance?.area?.id ?? undefined;
+  const [defaultFilterValue] = React.useState(() => {
+    const allianceAreaId =
+      (typeof _alliance?.area === 'object' ? _alliance?.area?.id : _alliance?.area) ?? null;
+    const firstAreaId = Array.isArray(currentAreas) ? currentAreas[0]?.id : undefined;
+    const id = allianceAreaId ?? firstAreaId;
+    return id ? { areas: id } : {};
+  });
+
+  // Redux
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
-  const currentFactoryTags = useSelector(state => state.data.factoryTags)
+  const currentUser = useSelector(state => state.data.currentUser)
+  const currentFactory = useSelector(state => state.data.currentFactory)
+  const currentAreas = useSelector(state => state.data.currentAreas)
+  const subAreas = useSelector(state => state.data.subAreas)
+  const actStatus = useSelector(state => state.data.actStatus)
+  const actTypes = useSelector(state => state.data.actTypes)
+
+  // 把 currentAreas 轉成 picker 需要的 {label, value}[]
+  const areaItems = React.useMemo<{ label: string; value: string | number }[]>(() => {
+    const rawList: AreaLike[] =
+      Array.isArray(currentAreas) ? currentAreas
+        : Array.isArray(currentAreas?.list) ? currentAreas.list
+          : currentAreas ? [currentAreas]
+            : []
+    return rawList
+      .map((a: AreaLike) => {
+        if (typeof a === 'string' || typeof a === 'number') {
+          return { label: String(a), value: a }
+        }
+        const label = a.label ?? a.name ?? a.title ?? ''
+        const value = a.value ?? a.code ?? a.id ?? ''
+        return label && (value !== '') ? { label: String(label), value } : null
+      })
+      .filter((x): x is { label: string; value: string | number } => !!x)
+  }, [currentAreas])
 
   // States
   const [refreshCounter, setRefreshCounter] = React.useState(1);
@@ -57,16 +105,18 @@ const ActCollection: React.FC<ActCollectionProps> = props => {
   )
 
   // MEMO
-  const _params = React.useMemo(() => {
-    const params = {
-      order_by: 'announce_at',
-      order_way: 'desc',
-      time_field: 'announce_at',
-    }
-    return params
-  }, [refreshCounter, currentRefreshCounter]);
-
-  const [filterFields] = React.useState({
+  const filterFields = React.useMemo(() => ({
+    areas: {
+      type: 'picker',
+      label: t('地區'),
+      placeholder: t('選擇'),
+      items: areaItems,
+    },
+    area_sections: {
+      type: 'checkbox',
+      label: t('子地區'),
+      storeKey: 'subAreas'
+    },
     act_type: {
       type: 'checkbox',
       label: t('法規類別'),
@@ -75,7 +125,7 @@ const ActCollection: React.FC<ActCollectionProps> = props => {
     act_status: {
       type: 'checkbox',
       label: t('法規狀態'),
-      storeKey: "actStatus"
+      storeKey: 'actStatus'
     },
     button: {
       type: 'date_range',
@@ -89,12 +139,28 @@ const ActCollection: React.FC<ActCollectionProps> = props => {
     factory_tags: {
       type: 'checkbox',
       label: t('標籤'),
-      items: currentFactoryTags ? currentFactoryTags : [],
+      storeKey: 'factoryTags',
       searchVisible: true,
       selectAllVisible: false,
+      cancelAllVisible: false,
       defaultSelected: false
     },
-  })
+  }), [areaItems, subAreas, actStatus, actTypes])
+
+  const _params = React.useMemo(() => {
+    const params = {
+      order_by: 'announce_at',
+      order_way: 'desc',
+      time_field: 'announce_at',
+    }
+    return params
+  }, [refreshCounter, currentRefreshCounter]);
+
+  // 用 key 讓 WsPageIndex 在 area 變時重掛載
+  const pageKey = React.useMemo(
+    () => `act-${allianceAreaId ?? 'none'}`,
+    [allianceAreaId]
+  );
 
   return (
     <>
@@ -105,10 +171,12 @@ const ActCollection: React.FC<ActCollectionProps> = props => {
         quickHidden={true}
       />
       <WsPageIndex
+        key={pageKey}
         modelName={'my_act'}
         serviceIndexKey={'index'}
         params={_params}
         filterFields={filterFields}
+        defaultFilterValue={defaultFilterValue}
         renderItem={({ item, index: itemIndex, isLastItem }) => {
           return (
             <>
@@ -140,7 +208,8 @@ const ActCollection: React.FC<ActCollectionProps> = props => {
                   })
                 }}
                 style={{
-                  marginTop: 8
+                  marginTop: 8,
+                  marginHorizontal: 16
                 }}
               />
             </>

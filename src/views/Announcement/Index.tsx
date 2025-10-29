@@ -24,8 +24,9 @@ const NewsTabs = ({ route, navigation }) => {
   const { width, height } = Dimensions.get('window')
   const { t, i18n } = useTranslation()
 
+  const _alliance = route?.params?.alliance
+
   // Redux
-  const currentIdleCounter = useSelector(state => state.data.idleCounter)
   const systemClasses = useSelector(state => state.data.systemClasses)
   const factory = useSelector(state => state.data.currentFactory)
 
@@ -42,6 +43,7 @@ const NewsTabs = ({ route, navigation }) => {
         view: ViewAnnouncementList,
         props: {
           navigation: navigation,
+          _alliance: _alliance
         }
       },
       {
@@ -50,6 +52,7 @@ const NewsTabs = ({ route, navigation }) => {
         view: ViewAnnouncementCollectionList,
         props: {
           navigation: navigation,
+          _alliance: _alliance
         }
       }
     ])
@@ -57,19 +60,19 @@ const NewsTabs = ({ route, navigation }) => {
 
   React.useEffect(() => {
     $_setTabItems()
-  }, [factory, systemClasses, tabIndex])
+  }, [factory, systemClasses, tabIndex, _alliance])
 
   return (
     <>
-        {tabItems && (
-          <WsTabView
-            index={tabIndex}
-            setIndex={settabIndex}
-            items={tabItems}
-            scrollEnabled={true}
-            isAutoWidth={true}
-          />
-        )}
+      {tabItems && (
+        <WsTabView
+          index={tabIndex}
+          setIndex={settabIndex}
+          items={tabItems}
+          scrollEnabled={true}
+          isAutoWidth={true}
+        />
+      )}
     </>
   )
 }

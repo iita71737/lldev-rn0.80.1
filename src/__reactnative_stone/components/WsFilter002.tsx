@@ -22,13 +22,24 @@ import {
   WsHeaderSearch002,
   WsFilterPicker,
   WsState,
-  WsStateSwitch
+  WsStateSwitch,
+  WsLoading
 } from '@/components'
 import { useSelector } from 'react-redux'
 import S_SystemClass from '@/__reactnative_stone/services/api/v1/system_class'
 import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next';
 import { isEqual } from 'lodash'
+import store from '@/store'
+import {
+  setSystemClasses,
+  setActStatus,
+  setActType,
+  setSubAreas
+} from '@/store/data'
+import S_ActType from '@/services/api/v1/act_type'
+import S_ActStatus from '@/services/api/v1/act_status'
+import S_AreaSection from '@/services/api/v1/area_section'
 
 interface Field {
   type: string;
@@ -78,6 +89,8 @@ const WsFilter002: React.FC<WsFilter002Props> = (props) => {
   const systemClasses = useSelector(state => state.data.systemClasses);
 
   // State
+  const [loading, setLoading] = React.useState(false)
+
   const [searchValue, setSearchValue] = React.useState(defaultFilter && defaultFilter.search ? defaultFilter.search : undefined)
   const [canClear, setCanClear] = useState(true)
   const [value, setValue] = useState<DefaultFilter | undefined>(defaultFilter ? defaultFilter : undefined);
@@ -204,6 +217,66 @@ const WsFilter002: React.FC<WsFilter002Props> = (props) => {
     return __fields
   }, [fields])
 
+  const $_systemClassSet = async (areaId: string) => {
+    try {
+      const _params = {
+        order_by: 'sequence',
+        order_way: 'asc',
+        area: areaId ? areaId : undefined
+      }
+      const systemClasses = await S_SystemClass.index({
+        params: _params
+      })
+      if (systemClasses && systemClasses.length > 0) {
+        store.dispatch(setSystemClasses(systemClasses))
+      } else {
+        store.dispatch(setSystemClasses([]))
+      }
+    } catch (e) {
+      console.error(e);
+      store.dispatch(setSystemClasses(null))
+    }
+  }
+  const $_subAreaSet = async (areaId: string) => {
+    try {
+      const _params = {
+        areaId: areaId
+      }
+      const res = await S_AreaSection.index({
+        params: _params
+      })
+      if (res) {
+        store.dispatch(setSubAreas(res.data))
+      }
+    } catch (error) {
+      console.log(error, '$_subAreaSet')
+    }
+  }
+  const $_actTypeSet = async (areaId: string) => {
+    let _params = {
+      order_by: 'sequence',
+      order_way: 'asc',
+      area: areaId ? areaId : undefined
+    }
+    try {
+      const actTypes = await S_ActType.index({ params: _params })
+      store.dispatch(setActType(actTypes.data))
+    } catch (error) {
+      console.log(error, '$_actTypeSet')
+    }
+  }
+  const $_actStatus = async (areaId: string) => {
+    let _params = {
+      area: areaId ? areaId : undefined
+    }
+    try {
+      const actStatus = await S_ActStatus.index({ params: _params })
+      store.dispatch(setActStatus(actStatus.data))
+    } catch (error) {
+      console.log(error, '$_actStatus')
+    }
+  }
+
   useEffect(() => {
     if (!Object.keys(fields).length) {
       return
@@ -239,303 +312,329 @@ const WsFilter002: React.FC<WsFilter002Props> = (props) => {
         } : null
       ]}
     >
-      <View
-        style={{
-          // flex: 1, // DO NOT SET
-        }}
-      >
-        <>
-          {searchVisible && (
-            <WsHeaderSearch002
-              searchValue={searchValue}
-              setSearchValue={setSearchValue}
-              backgroundColor={$color.white}
-              iconLeftColor={$color.primary}
-              searchLabel={searchLabel}
-            />
-          )}
-          {value && Object.keys(_fields).map((fieldKey, fieldIndex) => {
-            const field = _fields[fieldKey]
+      {loading ? (
+        <View
+          style={{
+            transform: [{ rotate: '180deg' }],
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <WsLoading size={30}></WsLoading>
+        </View>
+      ) : (
+        < View
+          style={{
+            // flex: 1, // DO NOT SET
+          }}
+        >
+          <>
+            {searchVisible && (
+              <WsHeaderSearch002
+                searchValue={searchValue}
+                setSearchValue={setSearchValue}
+                backgroundColor={$color.white}
+                iconLeftColor={$color.primary}
+                searchLabel={searchLabel}
+              />
+            )}
+            {value && Object.keys(_fields).map((fieldKey, fieldIndex) => {
+              const field = _fields[fieldKey]
 
-            return (
-              <View
-                style={{
-                }}
-                key={fieldIndex}
-              >
-                <WsFlex
-                  style={[
-                    fieldIndex > 0 ? {
-                      borderTopWidth: .5,
-                      borderTopColor: $color.gray2l,
-                      marginTop: 16,
-                    } : null,
-                  ]}
-                ></WsFlex>
-                {field.label && (
-                  <WsText
-                    style={{
-                      padding: 16,
-                      color: $color.primary
-                    }}
-                  >
-                    {t(field.label)}
-                  </WsText>
-                )}
-                {field.type == 'system_subclass' && (
-                  <WsFilterSystemSubclass
-                    name={field.type}
-                    value={value[fieldKey]}
-                    onChange={($event) => {
-                      setValue({
-                        ...value,
-                        [fieldKey]: $event,
-                      })
-                    }}
-                  />
-                )}
-                {field.type == 'contractor_types' && (
-                  <WsFilterContractorType
-                    name={field.type}
-                    value={value[fieldKey]}
-                    onChange={($event) => {
-                      setValue({
-                        ...value,
-                        [fieldKey]: $event,
-                      })
-                    }}
-                  />
-                )}
-                {field.type == 'buttons' && (
-                  <WsFilterButtons
-                    name={field.type}
-                    value={value[fieldKey]}
-                    items={field.items}
-                    onChange={($event) => {
-                      setValue({
-                        ...value,
-                        [fieldKey]: $event,
-                      })
-                    }}
-                  >
-                  </WsFilterButtons>
-                )}
-                {field.type == 'checkbox' && (
-                  <WsFilterCheckBox
-                    defaultSelected={field.defaultSelected}
-                    searchVisible={field.searchVisible}
-                    selectAllVisible={field.selectAllVisible}
-                    cancelAllVisible={field.cancelAllVisible}
-                    label={field.label}
-                    value={value[fieldKey]}
-                    items={field.items}
-                    onChange={($event) => {
-                      setValue({
-                        ...value,
-                        [fieldKey]: $event,
-                      })
-                    }}
-                  >
-                  </WsFilterCheckBox>
-                )}
-                {field.type == 'date_range' && (
-                  <WsFilterDateRange
-                    name={field.type}
-                    label={field.label}
-                    value={value[fieldKey]}
-                    items={field.items}
-                    onChange={($event) => {
-                      let _value = {
-                        ...value
-                      }
-                      if ($event.range == 'nolimit') {
-                        delete _value.end_time
-                        delete _value.start_time
-                      }
-                      setValue({
-                        ..._value,
-                        [fieldKey]: $event,
-                        time_field: field.time_field,
-                      })
-                    }}
-                  >
-                  </WsFilterDateRange>
-                )}
-                {field.type == 'date_range002' && (
-                  <WsFilterDateRange002
-                    name={field.type}
-                    label={field.label}
-                    value={value[fieldKey]}
-                    items={field.items}
-                    onChange={($event) => {
-                      let _value = {
-                        ...value
-                      }
-                      if ($event.range == 'nolimit') {
-                        delete _value.end_date
-                        delete _value.start_date
-                      }
-                      setValue({
-                        ..._value,
-                        [fieldKey]: $event,
-                        time_field: field.time_field,
-                      })
-                    }}
-                  >
-                  </WsFilterDateRange002>
-                )}
-                {field.type === 'frequency' && (
-                  <WsFilterFrequency
-                    name={field.type}
-                    label={field.label}
-                    value={value[fieldKey]}
-                    items={field.items}
-                    onChange={($event) => {
-                      console.log($event, '$event');
-                      setValue({
-                        ...value,
-                        [fieldKey]: $event,
-                      })
-                    }}
-                  >
-                  </WsFilterFrequency>
-                )}
-                {field.type === 'multiLayerToggle' && (
-                  <WsFilterMultiLayerToggle
-                    name={field.type}
-                    label={field.label}
-                    value={value[fieldKey]}
-                    items={field.items}
-                    onChange={($event) => {
-                      setValue({
-                        ...value,
-                        [fieldKey]: $event,
-                      })
-                    }}
-                  >
-                  </WsFilterMultiLayerToggle>
-                )}
-                {field.type === 'picker' && (
-                  <WsFilterPicker
-                    testID={field.testID}
-                    name={field.type}
-                    label={field.label}
-                    value={value[fieldKey]}
-                    items={field.items}
-                    placeholder={field.placeholder}
-                    onChange={($event) => {
-                      if (typeof $event === 'object' && $event !== null) {
-                        // $event 是物件
-                        // delete value.fieldKey
-                        setValue({
-                          ...value,
-                          ...$event,
-                          [fieldKey]: $event,
-                        });
-                      } else if (typeof $event === 'string') {
-                        // $event 是字串
+              return (
+                <View
+                  style={{
+                  }}
+                  key={fieldIndex}
+                >
+                  <WsFlex
+                    style={[
+                      fieldIndex > 0 ? {
+                        borderTopWidth: .5,
+                        borderTopColor: $color.gray2l,
+                        marginTop: 16,
+                      } : null,
+                    ]}
+                  ></WsFlex>
+                  {field.label && (
+                    <WsText
+                      style={{
+                        padding: 16,
+                        color: $color.primary
+                      }}
+                    >
+                      {t(field.label)}
+                    </WsText>
+                  )}
+                  {field.type == 'system_subclass' && (
+                    <WsFilterSystemSubclass
+                      name={field.type}
+                      value={value[fieldKey]}
+                      onChange={($event) => {
                         setValue({
                           ...value,
                           [fieldKey]: $event,
-                        });
-                      } else {
-                        console.log('Unsupported event type');
-                      }
-                    }}
-                  >
-                  </WsFilterPicker>
-                )}
-                {field.type === 'search' && (
-                  <WsState
-                    testID={'search'}
-                    type="search"
-                    stateStyle={{
-                      width: width * 0.9225,
-                      height: Platform.OS == 'ios' ? 40 : 40,
-                      borderRadius: 10,
-                      backgroundColor: $color.white,
-                      marginLeft: 16
-                    }}
-                    placeholder={t('搜尋')}
-                    value={value[fieldKey]}
-                    onChange={$event => {
-                      setValue({
-                        ...value,
-                        [fieldKey]: $event,
-                      })
-                    }}
-                  />
-                )}
-                {field.type === 'belongsto' && (
-                  <WsState
-                    type="belongsto"
-                    modelName={field.modelName}
-                    serviceIndexKey={field.serviceIndexKey}
-                    nameKey={field.nameKey}
-                    hasMeta={field.hasMeta}
-                    style={{
-                      borderRadius: 25,
-                      paddingHorizontal: 16
-                    }}
-                    placeholder={field.placeholder ? field.placeholder : t('選擇')}
-                    value={value ? value[fieldKey] : ''}
-                    onChange={$event => {
-                      setValue({
-                        ...value,
-                        [fieldKey]: $event,
-                      })
-                    }}
-                  />
-                )}
-                {field.type === 'belongstomany' && (
-                  <WsState
-                    type="belongstomany"
-                    modelName={field.modelName}
-                    nameKey={field.nameKey}
-                    serviceIndexKey={field.serviceIndexKey}
-                    placeholder={field.placeholder ? field.placeholder : t('選擇')}
-                    hasMeta={field.hasMeta}
-                    params={field.params}
-                    customizedNameKey={field.customizedNameKey}
-                    style={{
-                      borderRadius: 25,
-                      paddingHorizontal: 16
-                    }}
-                    value={value[fieldKey]}
-                    onChange={$event => {
-                      setValue({
-                        ...value,
-                        [fieldKey]: $event,
-                      })
-                    }}
-                  />
-                )}
-                {field.type == 'switch' && (
-                  <WsState
-                    style={{
-                      paddingHorizontal: 16
-                    }}
-                    type="switch"
-                    value={value[fieldKey]}
-                    onChange={$event => {
-                      setValue({
-                        ...value,
-                        [fieldKey]: $event,
-                      })
-                    }}
-                  />
-                )}
-              </View>
-            )
-          })}
-          <View
-            style={{
-              height: 108
-            }}
-          >
-          </View>
-        </>
-      </View>
+                        })
+                      }}
+                    />
+                  )}
+                  {field.type == 'contractor_types' && (
+                    <WsFilterContractorType
+                      name={field.type}
+                      value={value[fieldKey]}
+                      onChange={($event) => {
+                        setValue({
+                          ...value,
+                          [fieldKey]: $event,
+                        })
+                      }}
+                    />
+                  )}
+                  {field.type == 'buttons' && (
+                    <WsFilterButtons
+                      name={field.type}
+                      value={value[fieldKey]}
+                      items={field.items}
+                      onChange={($event) => {
+                        setValue({
+                          ...value,
+                          [fieldKey]: $event,
+                        })
+                      }}
+                    >
+                    </WsFilterButtons>
+                  )}
+                  {field.type == 'checkbox' && (
+                    <WsFilterCheckBox
+                      defaultSelected={field.defaultSelected}
+                      searchVisible={field.searchVisible}
+                      selectAllVisible={field.selectAllVisible}
+                      cancelAllVisible={field.cancelAllVisible}
+                      label={field.label}
+                      value={value[fieldKey]}
+                      items={field.items}
+                      onChange={($event) => {
+                        setValue({
+                          ...value,
+                          [fieldKey]: $event,
+                        })
+                      }}
+                    >
+                    </WsFilterCheckBox>
+                  )}
+                  {field.type == 'date_range' && (
+                    <WsFilterDateRange
+                      name={field.type}
+                      label={field.label}
+                      value={value[fieldKey]}
+                      items={field.items}
+                      onChange={($event) => {
+                        let _value = {
+                          ...value
+                        }
+                        if ($event.range == 'nolimit') {
+                          delete _value.end_time
+                          delete _value.start_time
+                        }
+                        setValue({
+                          ..._value,
+                          [fieldKey]: $event,
+                          time_field: field.time_field,
+                        })
+                      }}
+                    >
+                    </WsFilterDateRange>
+                  )}
+                  {field.type == 'date_range002' && (
+                    <WsFilterDateRange002
+                      name={field.type}
+                      label={field.label}
+                      value={value[fieldKey]}
+                      items={field.items}
+                      onChange={($event) => {
+                        let _value = {
+                          ...value
+                        }
+                        if ($event.range == 'nolimit') {
+                          delete _value.end_date
+                          delete _value.start_date
+                        }
+                        setValue({
+                          ..._value,
+                          [fieldKey]: $event,
+                          time_field: field.time_field,
+                        })
+                      }}
+                    >
+                    </WsFilterDateRange002>
+                  )}
+                  {field.type === 'frequency' && (
+                    <WsFilterFrequency
+                      name={field.type}
+                      label={field.label}
+                      value={value[fieldKey]}
+                      items={field.items}
+                      onChange={($event) => {
+                        console.log($event, '$event');
+                        setValue({
+                          ...value,
+                          [fieldKey]: $event,
+                        })
+                      }}
+                    >
+                    </WsFilterFrequency>
+                  )}
+                  {field.type === 'multiLayerToggle' && (
+                    <WsFilterMultiLayerToggle
+                      name={field.type}
+                      label={field.label}
+                      value={value[fieldKey]}
+                      items={field.items}
+                      onChange={($event) => {
+                        setValue({
+                          ...value,
+                          [fieldKey]: $event,
+                        })
+                      }}
+                    >
+                    </WsFilterMultiLayerToggle>
+                  )}
+                  {field.type === 'picker' && (
+                    <WsFilterPicker
+                      testID={field.testID}
+                      name={field.type}
+                      label={field.label}
+                      value={value[fieldKey]}
+                      items={field.items}
+                      placeholder={field.placeholder}
+                      onChange={async ($event) => {
+                        const delay = (ms) => new Promise(res => setTimeout(res, ms));
+                        if (fieldKey === 'areas' && typeof $event === 'string') {
+                          setLoading(true)
+                          console.log($event,'$event')
+                          await Promise.all([
+                            $_systemClassSet($event),
+                            $_subAreaSet($event),
+                            $_actTypeSet($event),
+                            $_actStatus($event),
+                          ]);
+                          await delay(1200);
+                          setValue(prev => ({ ...(prev || {}), [fieldKey]: $event }));
+                          setLoading(false)
+                        }
+                        else if (typeof $event === 'object' && $event !== null) {
+                          // $event 是物件
+                          // delete value.fieldKey
+                          setValue({
+                            ...value,
+                            ...$event,
+                            [fieldKey]: $event,
+                          });
+                        } else if (typeof $event === 'string') {
+                          // $event 是字串
+                          setValue({
+                            ...value,
+                            [fieldKey]: $event,
+                          });
+                        } else {
+                          console.log('Unsupported event type');
+                        }
+                      }}
+                    >
+                    </WsFilterPicker>
+                  )}
+                  {field.type === 'search' && (
+                    <WsState
+                      testID={'search'}
+                      type="search"
+                      stateStyle={{
+                        width: width * 0.9225,
+                        height: Platform.OS == 'ios' ? 40 : 40,
+                        borderRadius: 10,
+                        backgroundColor: $color.white,
+                        marginLeft: 16
+                      }}
+                      placeholder={t('搜尋')}
+                      value={value[fieldKey]}
+                      onChange={$event => {
+                        setValue({
+                          ...value,
+                          [fieldKey]: $event,
+                        })
+                      }}
+                    />
+                  )}
+                  {field.type === 'belongsto' && (
+                    <WsState
+                      type="belongsto"
+                      modelName={field.modelName}
+                      serviceIndexKey={field.serviceIndexKey}
+                      nameKey={field.nameKey}
+                      hasMeta={field.hasMeta}
+                      style={{
+                        borderRadius: 25,
+                        paddingHorizontal: 16
+                      }}
+                      placeholder={field.placeholder ? field.placeholder : t('選擇')}
+                      value={value ? value[fieldKey] : ''}
+                      onChange={$event => {
+                        setValue({
+                          ...value,
+                          [fieldKey]: $event,
+                        })
+                      }}
+                    />
+                  )}
+                  {field.type === 'belongstomany' && (
+                    <WsState
+                      type="belongstomany"
+                      modelName={field.modelName}
+                      nameKey={field.nameKey}
+                      serviceIndexKey={field.serviceIndexKey}
+                      placeholder={field.placeholder ? field.placeholder : t('選擇')}
+                      hasMeta={field.hasMeta}
+                      params={field.params}
+                      customizedNameKey={field.customizedNameKey}
+                      style={{
+                        borderRadius: 25,
+                        paddingHorizontal: 16
+                      }}
+                      value={value[fieldKey]}
+                      onChange={$event => {
+                        setValue({
+                          ...value,
+                          [fieldKey]: $event,
+                        })
+                      }}
+                    />
+                  )}
+                  {field.type == 'switch' && (
+                    <WsState
+                      style={{
+                        paddingHorizontal: 16
+                      }}
+                      type="switch"
+                      value={value[fieldKey]}
+                      onChange={$event => {
+                        setValue({
+                          ...value,
+                          [fieldKey]: $event,
+                        })
+                      }}
+                    />
+                  )}
+                </View>
+              )
+            })}
+            <View
+              style={{
+                height: 108
+              }}
+            >
+            </View>
+          </>
+        </View>
+      )}
     </WsModal >
   )
 }

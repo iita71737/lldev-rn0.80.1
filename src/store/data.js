@@ -7,6 +7,7 @@ const initialState = {
   effects: null,
   actTypes: null,
   actStatus: [],
+  subAreas: [],
   licenseType: [],
   eventTypes: [],
   collectIds: null,
@@ -52,7 +53,8 @@ const initialState = {
   currentSelectedGuidelineId: null,
   currentLocales: null,
   currentLatLng: null,
-  version: 'v0.80.1.7.2'
+  currentAreas: [],
+  version: 'v0.80.1.7.3'
 }
 
 //action constants
@@ -62,6 +64,7 @@ const ActionTypes = {
   SET_EFFECT: 'SET_EFFECT',
   SET_ACT_TYPE: 'SET_ACT_TYPE',
   SET_ACT_STATUS: 'SET_ACT_STATUS',
+  SET_SUB_AREA: 'SET_SUB_AREA',
   SET_LICENSE_TYPE: 'SET_LICENSE_TYPE',
   SET_EVENT_TYPES: 'SET_EVENT_TYPES',
   SET_CONTRACTOR_TYPES: 'SET_CONTRACTOR_TYPES',
@@ -114,7 +117,8 @@ const ActionTypes = {
   SET_CONSTANT_DATA: 'SET_CONSTANT_DATA',
   SET_CURRENT_SELECTED_GUIDELINE_ID: 'SET_CURRENT_SELECTED_GUIDELINE_ID',
   SET_CURRENT_LOCALES: 'SET_CURRENT_LOCALES',
-  SET_CURRENT_LATLNG: 'SET_CURRENT_LATLNG'
+  SET_CURRENT_LATLNG: 'SET_CURRENT_LATLNG',
+  SET_CURRENT_AREA: 'SET_CURRENT_AREA'
 }
 
 export const setCurrentUser = currentUser => {
@@ -323,6 +327,13 @@ export const setActStatus = actStatus => {
   }
 }
 
+export const setSubAreas = subAreas => {
+  return {
+    type: ActionTypes.SET_SUB_AREA,
+    subAreas
+  }
+}
+
 export const setLicenseType = licenseType => {
   return {
     type: ActionTypes.SET_LICENSE_TYPE,
@@ -489,7 +500,7 @@ export const setCurrentLocales = currentLocales => {
   }
 }
 
-export const setCurrentLatLng= currentLatLng => {
+export const setCurrentLatLng = currentLatLng => {
   return {
     type: ActionTypes.SET_CURRENT_LATLNG,
     currentLatLng
@@ -521,6 +532,13 @@ export const setPreloadChecklistAssignmentDraft = payload => {
   return {
     type: ActionTypes.SET_PRELOAD_CHECKLIST_ASSIGNMENT_DRAFT,
     payload,
+  }
+}
+
+export const setCurrentArea = currentAreas => {
+  return {
+    type: ActionTypes.SET_CURRENT_AREA,
+    currentAreas
   }
 }
 
@@ -699,6 +717,11 @@ const reducer = (state = initialState, action) => {
         ...state,
         actStatus: action.actStatus
       }
+    case ActionTypes.SET_SUB_AREA:
+      return {
+        ...state,
+        subAreas: action.subAreas
+      }
     case ActionTypes.SET_LICENSE_TYPE:
       return {
         ...state,
@@ -851,6 +874,11 @@ const reducer = (state = initialState, action) => {
       return {
         ...state,
         currentLatLng: action.currentLatLng
+      }
+    case ActionTypes.SET_CURRENT_AREA:
+      return {
+        ...state,
+        currentAreas: action.currentAreas,
       }
     default:
       return state

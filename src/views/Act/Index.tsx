@@ -27,6 +27,7 @@ const Act = ({ route, navigation }) => {
   const { t, i18n } = useTranslation()
 
   const reRouteTabIndex = route.params?.tabIndex
+  const _alliance = route?.params?.alliance
 
   // Redux
   const currentIdleCounter = useSelector(state => state.data.idleCounter)
@@ -46,6 +47,7 @@ const Act = ({ route, navigation }) => {
         view: ActListing,
         props: {
           navigation: navigation,
+          _alliance: _alliance
         }
       },
       {
@@ -54,7 +56,8 @@ const Act = ({ route, navigation }) => {
         view: ActCollection,
         props: {
           navigation: navigation,
-          currentTabIndex: tabIndex
+          currentTabIndex: tabIndex,
+          _alliance: _alliance
         }
       },
       {
@@ -63,7 +66,8 @@ const Act = ({ route, navigation }) => {
         view: ActLibrary,
         props: {
           navigation: navigation,
-          currentTabIndex: tabIndex
+          currentTabIndex: tabIndex,
+          _alliance: _alliance
         }
       },
       {
@@ -72,7 +76,8 @@ const Act = ({ route, navigation }) => {
         view: ActChangeReport,
         props: {
           navigation: navigation,
-          currentTabIndex: tabIndex
+          currentTabIndex: tabIndex,
+          _alliance: _alliance
         }
       }
     ])
@@ -80,7 +85,7 @@ const Act = ({ route, navigation }) => {
 
   React.useEffect(() => {
     $_setTabItems()
-  }, [factory, systemClasses, tabIndex])
+  }, [factory, systemClasses, tabIndex, _alliance])
 
   React.useEffect(() => {
     if (reRouteTabIndex != undefined) {
