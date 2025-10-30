@@ -12,6 +12,7 @@ import {
   setIdleCounter
 } from '@/store/data'
 import { debounce } from 'lodash';
+import S_SystemClass from '@/__reactnative_stone/services/api/v1/system_class'
 
 interface ActLibraryProps {
   navigation: NavigationScreenProp<NavigationRoute>;
@@ -40,6 +41,15 @@ const ActLibrary: React.FC<ActLibraryProps> = props => {
   const {
     _alliance
   } = props
+
+  // 1) 把當前的 allianceAreaId 算出來（物件或純 id 都支援）
+  const allianceAreaId = React.useMemo(
+    () =>
+      (typeof _alliance?.area === 'object'
+        ? _alliance?.area?.id
+        : _alliance?.area) ?? undefined,
+    [_alliance?.area]
+  );
 
   // REDUX
   const currentIdleCounter = useSelector(state => state.data.idleCounter)
@@ -119,12 +129,22 @@ const ActLibrary: React.FC<ActLibraryProps> = props => {
     store.dispatch(setIdleCounter(currentIdleCounter + 1))
   }, 1000);
 
+  // 2) defaultFilterValue 跟著 allianceAreaId 改變
+  const defaultFilterValue = React.useMemo(() => {
+    return allianceAreaId ? {
+      areas: allianceAreaId,
+      range: "nolimit",
+      system_subclasses: S_SystemClass.getAllSubSystemClassesId(systemClasses),
+    } : {};
+  }, [allianceAreaId]);
+
   return (
     <>
       <WsPageIndex
         onScroll={handleScroll}
         mode={'system_classes'}
         filterFields={filterFields}
+        defaultFilterValue={defaultFilterValue}
         renderItem={({ item, index, __params }) => {
           return (
             <LlActLibrarySystemClassCard001

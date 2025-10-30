@@ -47,6 +47,15 @@ const ActChangeReport: React.FC<ActChangeReportProps> = props => {
     _alliance
   } = props
 
+  // 1) 把當前的 allianceAreaId 算出來（物件或純 id 都支援）
+  const allianceAreaId = React.useMemo(
+    () =>
+      (typeof _alliance?.area === 'object'
+        ? _alliance?.area?.id
+        : _alliance?.area) ?? undefined,
+    [_alliance?.area]
+  );
+
   // Redux
   const currentUser = useSelector(state => state.data.currentUser)
   const currentFactory = useSelector(state => state.data.currentFactory)
@@ -118,11 +127,21 @@ const ActChangeReport: React.FC<ActChangeReportProps> = props => {
     },
   }), [areaItems, subAreas, actStatus, actTypes])
 
+  // 2) defaultFilterValue 跟著 allianceAreaId 改變
+  const defaultFilterValue = React.useMemo(() => {
+    return allianceAreaId ? {
+      areas: allianceAreaId,
+      range: "nolimit",
+      system_subclasses: S_SystemClass.getAllSubSystemClassesId(systemClasses),
+    } : {};
+  }, [allianceAreaId]);
+
   return (
     <>
       <WsPageIndex
         mode={'system_classes'}
         filterFields={filterFields}
+        defaultFilterValue={defaultFilterValue}
         renderItem={({ item, index, __params }) => {
           return (
             <LlActLibrarySystemClassCard002

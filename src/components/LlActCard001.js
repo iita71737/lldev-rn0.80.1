@@ -98,9 +98,24 @@ const LlActCard001 = props => {
       .map(a => (typeof a === 'string' ? a : a?.name ?? a?.label ?? ''))
       .filter(Boolean)
       .join('、')
-    : (typeof item.area === 'string'
+    : (typeof item.areas === 'string'
       ? item.areas
       : item.areas?.name ?? item.areas?.label ?? '');
+  const subAreaNames = Array.isArray(item.area_sections)
+    ? item.area_sections
+      .map(a => (typeof a === 'string' ? a : a?.name ?? a?.label ?? ''))
+      .filter(Boolean)
+      .join('、')
+    : (typeof item.area_sections === 'string'
+      ? item.area_sections
+      : item.area_sections?.name ?? item.area_sections?.label ?? '');
+  const actTypeName = item.act_type?.name ? t(item.act_type.name) : '';
+  // 最終字串（只有有值才出現，且不會多出「 | 」）
+  const metaLine = [areaNames, subAreaNames]
+    .map(s => (typeof s === 'string' ? s.trim() : s))
+    .filter(Boolean)
+    .join('・');
+
 
   return (
     <TouchableOpacity
@@ -130,7 +145,7 @@ const LlActCard001 = props => {
             flexDirection: 'column',
             flexWrap: 'nowrap',
             justifyContent: 'center',
-            alignItems: 'flex-start'
+            alignItems: 'flex-start',
           }}>
           <WsFlex>
             {isChange && (
@@ -160,12 +175,23 @@ const LlActCard001 = props => {
 
         <WsFlex
           style={{
+            marginTop: 4
           }}
           flexWrap={'wrap'}
         >
           <WsText color={$color.gray} size={12}>
-            {`${areaNames || '—'} | `}{item.act_type?.name ? `${t(item.act_type?.name)} | ` : ''}
+            {`${metaLine} | ${actTypeName}`}
           </WsText>
+        </WsFlex>
+
+        <WsFlex
+          style={{
+            marginTop: 4,
+            paddingRight: 8,
+            marginRight: 8
+          }}
+          flexWrap={'wrap'}
+        >
           {systemSubClasses && (
             <>
               {systemSubClasses.map((systemSubClass, systemSubClassIndex) => {
@@ -175,7 +201,7 @@ const LlActCard001 = props => {
                     img={systemSubClass.icon}
                     style={{
                       marginRight: 8,
-                      marginBottom: 8
+                      marginBottom: 8,
                     }}>
                     {t(systemSubClass.name)}
                   </WsTag>

@@ -17,10 +17,6 @@ import { useSelector } from 'react-redux'
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import store from '@/store'
 import { setIdleCounter } from '@/store/data';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLayoutEffect } from 'react';
-
-const Tab = createMaterialTopTabNavigator();
 
 const Act = ({ route, navigation }) => {
   const { width, height } = Dimensions.get('window')
@@ -115,6 +111,13 @@ const Act = ({ route, navigation }) => {
           : undefined,
     });
   }, [navigation, tabIndex]);
+
+  React.useEffect(() => {
+    const unsub = navigation.addListener('blur', () => {
+      settabIndex(0);
+    });
+    return unsub;
+  }, [navigation]);
 
   return (
     <>

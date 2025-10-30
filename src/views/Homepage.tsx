@@ -23,10 +23,18 @@ import { useTranslation } from 'react-i18next';
 import gColor from '@/__reactnative_stone/global/color';
 import $color from '@/__reactnative_stone/global/color';
 import store from '@/store'
-import { setSubAreas } from '@/store/data'
-import { scopeSubscriptions } from '@/__reactnative_stone/global/permission'
-import S_Alliance from '@/services/api/v1/alliance';
+import {
+  setSystemClasses,
+  setActStatus,
+  setActType,
+  setSubAreas
+} from '@/store/data'
+import S_SystemClass from '@/__reactnative_stone/services/api/v1/system_class'
+import S_ActType from '@/services/api/v1/act_type'
+import S_ActStatus from '@/services/api/v1/act_status'
 import S_AreaSection from '@/services/api/v1/area_section'
+import S_Alliance from '@/services/api/v1/alliance';
+import { scopeSubscriptions } from '@/__reactnative_stone/global/permission'
 import LinearGradient from 'react-native-linear-gradient';
 
 const GRADIENT_COLORS = ['#537792', '#607BAA', '#8ea0bfff']; // 你要的卡片漸層
@@ -38,7 +46,6 @@ const BG_IMAGE = require('@/assets/img/hero-bg.png');
 const Homepage = () => {
   const { t } = useTranslation();
   const navigation = useNavigation();
-  const { width } = Dimensions.get('window');
 
   // Redux
   const currentFactory = useSelector((state) => state.data.currentFactory);
@@ -82,15 +89,65 @@ const Homepage = () => {
   }, [initManageList, currentFactory]);
 
   // Service
-  const $_subAreaSet = async (_areaId) => {
+  const $_systemClassSet = async (areaId: string) => {
     try {
-      const _params = { areaId: _areaId };
-      const res = await S_AreaSection.index({ params: _params });
-      if (res) store.dispatch(setSubAreas(res.data));
-    } catch (error) {
-      console.log(error, '$_subAreaSet');
+      const _params = {
+        order_by: 'sequence',
+        order_way: 'asc',
+        area: areaId ? areaId : undefined
+      }
+      const systemClasses = await S_SystemClass.index({
+        params: _params
+      })
+      if (systemClasses && systemClasses.length > 0) {
+        store.dispatch(setSystemClasses(systemClasses))
+      } else {
+        store.dispatch(setSystemClasses([]))
+      }
+    } catch (e) {
+      console.error(e);
+      store.dispatch(setSystemClasses(null))
     }
-  };
+  }
+  const $_subAreaSet = async (areaId: string) => {
+    try {
+      const _params = {
+        areaId: areaId
+      }
+      const res = await S_AreaSection.index({
+        params: _params
+      })
+      if (res) {
+        store.dispatch(setSubAreas(res.data))
+      }
+    } catch (error) {
+      console.log(error, '$_subAreaSet')
+    }
+  }
+  const $_actTypeSet = async (areaId: string) => {
+    let _params = {
+      order_by: 'sequence',
+      order_way: 'asc',
+      area: areaId ? areaId : undefined
+    }
+    try {
+      const actTypes = await S_ActType.index({ params: _params })
+      store.dispatch(setActType(actTypes.data))
+    } catch (error) {
+      console.log(error, '$_actTypeSet')
+    }
+  }
+  const $_actStatus = async (areaId: string) => {
+    let _params = {
+      area: areaId ? areaId : undefined
+    }
+    try {
+      const actStatus = await S_ActStatus.index({ params: _params })
+      store.dispatch(setActStatus(actStatus.data))
+    } catch (error) {
+      console.log(error, '$_actStatus')
+    }
+  }
 
   // 若點到的 alliance.area 不在工廠訂閱清單，替換為第一個訂閱的 area
   const pickAllianceFor = useCallback(
@@ -124,6 +181,23 @@ const Homepage = () => {
     [currentFactory, pickAllianceFor, t, navigation]
   );
 
+  // helper
+  const pickId = (a: any) =>
+    a && typeof a === 'object' ? (a.id ?? a.area_id ?? a.code) : a;
+  const getUsableAreaId = (
+    allianceItem: any,
+    currentFactory: any
+  ): string | number | undefined => {
+    const subs = currentFactory?.subscription_areas ?? [];
+    const wantedId = pickId(allianceItem?.area) ?? allianceItem?.area_id;
+
+    const hasWanted = subs.some((s: any) => pickId(s) === wantedId);
+    if (hasWanted) return wantedId;
+
+    const first = subs[0];
+    return pickId(first) ?? undefined;
+  };
+
   // ---- 卡片主體 ----
   const renderCardBody = (item) => {
     const content = (
@@ -148,8 +222,23 @@ const Homepage = () => {
               key={opt.route || idx}
               style={styles.optionBtn}
               onPress={async () => {
-                handleNavigate(opt.route, item);
-                await $_subAreaSet(item.area?.id);
+                const areaId = getUsableAreaId(item, currentFactory);
+
+                // 導頁時帶入修正後的 areaId（避免下一頁拿到未訂閱的區域）
+                handleNavigate(opt.route, { item });
+
+                try {
+                  if (areaId != null) {
+                    await Promise.all([
+                      $_systemClassSet(areaId),
+                      $_subAreaSet(areaId),
+                      $_actTypeSet(areaId),
+                      $_actStatus(areaId),
+                    ]);
+                  }
+                } catch (err) {
+                  console.error('初始化失敗：', err);
+                }
               }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
@@ -205,7 +294,6 @@ const Homepage = () => {
         <WsPaddingContainer
           padding={0}
           style={{
-            // backgroundColor: gColor.primary11l,
             paddingHorizontal: 16
           }}
         >
@@ -218,7 +306,7 @@ const Homepage = () => {
               <View style={styles.cardWrap}>
                 <WsCard style={styles.Card} padding={0}>
                   <TouchableHighlight
-                    disabled={true} // 卡片整塊不點，交由下方兩個按鈕
+                    disabled={true}
                     activeOpacity={0.6}
                     underlayColor="transparent"
                     style={{

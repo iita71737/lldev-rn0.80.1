@@ -40,7 +40,29 @@ const LlActLibraryArticleCard001: React.FC<LlActLibraryArticleCard001Props> = pr
     testID
   } = props
 
-  // console.log(item,'item--');
+
+  // helper area
+  const areaNames = Array.isArray(item.areas)
+    ? item.areas
+      .map(a => (typeof a === 'string' ? a : a?.name ?? a?.label ?? ''))
+      .filter(Boolean)
+      .join('、')
+    : (typeof item.areas === 'string'
+      ? item.areas
+      : item.areas?.name ?? item.areas?.label ?? '');
+  const subAreaNames = Array.isArray(item.area_sections)
+    ? item.area_sections
+      .map(a => (typeof a === 'string' ? a : a?.name ?? a?.label ?? ''))
+      .filter(Boolean)
+      .join('、')
+    : (typeof item.area_sections === 'string'
+      ? item.area_sections
+      : item.area_sections?.name ?? item.area_sections?.label ?? '');
+  // 最終字串（只有有值才出現，且不會多出「 | 」）
+  const metaLine = [areaNames, subAreaNames]
+    .map(s => (typeof s === 'string' ? s.trim() : s))
+    .filter(Boolean)
+    .join('・');
 
   return (
     <>
@@ -91,7 +113,7 @@ const LlActLibraryArticleCard001: React.FC<LlActLibraryArticleCard001Props> = pr
 
             <View
               style={{
-                marginLeft: 8
+                marginLeft: 8,
               }}
             >
               <WsText
@@ -99,6 +121,18 @@ const LlActLibraryArticleCard001: React.FC<LlActLibraryArticleCard001Props> = pr
                 }}>
                 {t(text)}
               </WsText>
+
+              <WsFlex
+                style={{
+                  marginTop: 4
+                }}
+                flexWrap={'wrap'}
+              >
+                <WsText color={$color.gray} size={12}>
+                  {`${metaLine}`}
+                </WsText>
+              </WsFlex>
+
               <WsText color={$color.gray} size={12}>
                 {t('生效日')}{' '}
                 {moment(item.last_version.effect_at).format('YYYY-MM-DD')}

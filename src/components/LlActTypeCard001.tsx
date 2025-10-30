@@ -3,7 +3,7 @@ import {
   View,
   Image,
   FlatList,
-  FlatListProps
+  TouchableOpacity
 } from 'react-native'
 import {
   WsFlex,
@@ -21,7 +21,6 @@ import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
-import { TouchableOpacity } from 'react-native-gesture-handler'
 import S_Act from '@/services/api/v1/act'
 
 interface LlActTypeCard001Props {
@@ -128,7 +127,6 @@ const LlActTypeCard001: React.FC<LlActTypeCard001Props> = (props) => {
             }}
             onPress={() => {
               if (to) {
-                // ActChangeReportShow
                 navigation.push('RoutesAct', {
                   screen: to,
                   params: {
@@ -185,7 +183,6 @@ const LlActTypeCard001: React.FC<LlActTypeCard001Props> = (props) => {
                   height: 22
                 }}
                 alt={actType.name}
-
               />
               <WsText
                 style={{
