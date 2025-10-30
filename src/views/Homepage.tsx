@@ -205,10 +205,9 @@ const Homepage = () => {
         {/* 上方：標題 */}
         <View style={styles.titleWrap}>
           <WsText
-            size="h5"
+            size={16}
             fontWeight="bold"
             color={$color.white}
-            numberOfLines={1}
             style={styles.titleText}
           >
             {t(item.title)}

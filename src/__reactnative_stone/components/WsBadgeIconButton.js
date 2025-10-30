@@ -35,7 +35,7 @@ const WsBadgeIconButton = props => {
         <WsIcon size={size} name={icon} color={disable ? textColor : $color.primary} />
       </WsBadgeButton>
       <WsText
-        size={2}
+        size={14}
         color={textColor}
         textAlign={'center'}
       >
