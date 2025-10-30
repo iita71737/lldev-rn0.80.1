@@ -95,20 +95,20 @@ const LlActCard001 = props => {
   // helper area
   const areaNames = Array.isArray(item.areas)
     ? item.areas
-      .map(a => (typeof a === 'string' ? a : a?.name ?? a?.label ?? ''))
+      .map(a => (typeof a === 'string' ? a : t(a?.name) ?? a?.label ?? ''))
       .filter(Boolean)
       .join('、')
     : (typeof item.areas === 'string'
       ? item.areas
-      : item.areas?.name ?? item.areas?.label ?? '');
+      : t(item.areas?.name) ?? item.areas?.label ?? '');
   const subAreaNames = Array.isArray(item.area_sections)
     ? item.area_sections
-      .map(a => (typeof a === 'string' ? a : a?.name ?? a?.label ?? ''))
+      .map(a => (typeof a === 'string' ? a : t(a?.name) ?? a?.label ?? ''))
       .filter(Boolean)
       .join('、')
     : (typeof item.area_sections === 'string'
       ? item.area_sections
-      : item.area_sections?.name ?? item.area_sections?.label ?? '');
+      : t(item.area_sections?.name) ?? item.area_sections?.label ?? '');
   const actTypeName = item.act_type?.name ? t(item.act_type.name) : '';
   // 最終字串（只有有值才出現，且不會多出「 | 」）
   const metaLine = [areaNames, subAreaNames]

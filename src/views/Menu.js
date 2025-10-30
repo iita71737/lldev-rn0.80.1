@@ -383,56 +383,65 @@ const Menu = ({ navigation }) => {
               )}
 
 
-              {currentViewMode === 'organization' ? currentOrganization.subscriptions.length > 0 : currentFactory.subscriptions?.length > 0 && (
-                <>
-                  <LlNavButton001
-                    style={{
-                      backgroundColor: $color.white
-                    }}
-                    iconLeft="ll-nav-filemanage"
-                  >
-                    {t('管理')}
-                  </LlNavButton001>
-                  <WsPaddingContainer
-                    style={{
-                      backgroundColor: gColor.white,
-                    }}>
-                    <WsGrid
-                      style={{}}
-                      numColumns={2}
-                      spacing={4}
-                      keyExtractor={item => item.title}
-                      data={manageList}
-                      renderItem={({ item, itemIndex }) => (
-                        <>
-                          <WsImageBtn
-                            key={item.title}
-                            backgroundImg={item.backgroundImg}
-                            title={item.title}
-                            style={{}}
-                            icon={
-                              (item.permission === false || item && item.permission === null) ? 'ws-outline-lock' : null
-                            }
-                            LinearGradientColors={
-                              item.permission === false
-                                ? [
-                                  'rgba(6, 34, 46, 1)',
-                                  'rgba(0, 24, 57, .8)',
-                                  'rgba(6, 34, 46, 1)'
-                                ]
-                                : undefined
-                            }
-                            disable={(item && item.permission === false || item && item.permission === null) ? true : false}
-                            onPress={
-                              item.permission === true ? item.onPress : () => { }
-                            }
-                          />
-                        </>
-                      )}
-                    />
-                  </WsPaddingContainer>
-                </>
-              )}
+              {(
+                scopeSubscriptions(currentFactory, 'checklist') ||
+                scopeSubscriptions(currentFactory, 'change') ||
+                scopeSubscriptions(currentFactory, 'license') ||
+                scopeSubscriptions(currentFactory, 'training') ||
+                scopeSubscriptions(currentFactory, 'event') ||
+                scopeSubscriptions(currentFactory, 'audit') ||
+                scopeSubscriptions(currentFactory, 'contractor') ||
+                scopeSubscriptions(currentFactory, 'contractor')
+              ) && (
+                  <>
+                    <LlNavButton001
+                      style={{
+                        backgroundColor: $color.white
+                      }}
+                      iconLeft="ll-nav-filemanage"
+                    >
+                      {t('管理')}
+                    </LlNavButton001>
+                    <WsPaddingContainer
+                      style={{
+                        backgroundColor: gColor.white,
+                      }}>
+                      <WsGrid
+                        style={{}}
+                        numColumns={2}
+                        spacing={4}
+                        keyExtractor={item => item.title}
+                        data={manageList}
+                        renderItem={({ item, itemIndex }) => (
+                          <>
+                            <WsImageBtn
+                              key={item.title}
+                              backgroundImg={item.backgroundImg}
+                              title={item.title}
+                              style={{}}
+                              icon={
+                                (item.permission === false || item && item.permission === null) ? 'ws-outline-lock' : null
+                              }
+                              LinearGradientColors={
+                                item.permission === false
+                                  ? [
+                                    'rgba(6, 34, 46, 1)',
+                                    'rgba(0, 24, 57, .8)',
+                                    'rgba(6, 34, 46, 1)'
+                                  ]
+                                  : undefined
+                              }
+                              disable={(item && item.permission === false || item && item.permission === null) ? true : false}
+                              onPress={
+                                item.permission === true ? item.onPress : () => { }
+                              }
+                            />
+                          </>
+                        )}
+                      />
+                    </WsPaddingContainer>
+                  </>
+                )}
 
 
               {scopePermission('guideline-read', currentUserScope) &&
