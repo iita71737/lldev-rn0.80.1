@@ -224,7 +224,7 @@ const Homepage = () => {
                 const areaId = getUsableAreaId(item, currentFactory);
 
                 // 導頁時帶入修正後的 areaId（避免下一頁拿到未訂閱的區域）
-                handleNavigate(opt.route, { item });
+                handleNavigate(opt.route, item);
 
                 try {
                   if (areaId != null) {
@@ -236,7 +236,7 @@ const Homepage = () => {
                     ]);
                   }
                 } catch (err) {
-                  console.error('初始化失敗：', err);
+                  console.error('$_systemClassSet Error', err);
                 }
               }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
