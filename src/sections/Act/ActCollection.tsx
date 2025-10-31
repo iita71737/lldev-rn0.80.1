@@ -61,19 +61,13 @@ const ActCollection: React.FC<ActCollectionProps> = props => {
   } = props
 
   const allianceAreaId = _alliance?.area?.id ?? undefined;
-  const [defaultFilterValue] = React.useState(() => {
-    const allianceAreaId =
-      (typeof _alliance?.area === 'object' ? _alliance?.area?.id : _alliance?.area) ?? null;
-    const firstAreaId = Array.isArray(currentAreas) ? currentAreas[0]?.id : undefined;
-    const id = allianceAreaId ?? firstAreaId;
-    return id ? { areas: id } : {};
-  });
 
   // Redux
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
   const currentUser = useSelector(state => state.data.currentUser)
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentAreas = useSelector(state => state.data.currentAreas)
+  const currentSelectedArea = useSelector(state => state.data.currentSelectedArea)
   const subAreas = useSelector(state => state.data.subAreas)
   const actStatus = useSelector(state => state.data.actStatus)
   const actTypes = useSelector(state => state.data.actTypes)
@@ -115,17 +109,23 @@ const ActCollection: React.FC<ActCollectionProps> = props => {
     area_sections: {
       type: 'checkbox',
       label: t('子地區'),
-      storeKey: 'subAreas'
+      storeKey: 'subAreas',
+      selectAllVisible: false,
+      cancelAllVisible: false
     },
     act_type: {
       type: 'checkbox',
       label: t('法規類別'),
-      storeKey: 'actTypes'
+      storeKey: 'actTypes',
+      selectAllVisible: false,
+      cancelAllVisible: false
     },
     act_status: {
       type: 'checkbox',
       label: t('法規狀態'),
-      storeKey: 'actStatus'
+      storeKey: 'actStatus',
+      selectAllVisible: false,
+      cancelAllVisible: false
     },
     button: {
       type: 'date_range',
@@ -155,6 +155,15 @@ const ActCollection: React.FC<ActCollectionProps> = props => {
     }
     return params
   }, [refreshCounter, currentRefreshCounter]);
+
+  // defaultFilterValue
+  const [defaultFilterValue] = React.useState(() => {
+    const allianceAreaId =
+      (typeof _alliance?.area === 'object' ? _alliance?.area?.id : _alliance?.area) ?? null;
+    const firstAreaId = Array.isArray(currentAreas) ? currentAreas[0]?.id : undefined;
+    const id = currentSelectedArea ? currentSelectedArea : allianceAreaId ?? firstAreaId;
+    return id ? { areas: id } : {};
+  });
 
   // 用 key 讓 WsPageIndex 在 area 變時重掛載
   const pageKey = React.useMemo(

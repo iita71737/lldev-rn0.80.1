@@ -141,30 +141,6 @@ const FactoryAndOrganization = ({ navigation }) => {
     }
   }
 
-  // Scopes & Roles
-  const $_userScopesSet = () => {
-    const _scopes = []
-    // Roles
-    currentUser.user_factory_roles.forEach(role => {
-      if (role.factory.id == currentFactory.id) {
-        role.scopes.forEach(roleScope => {
-          if (!_scopes.includes(roleScope)) {
-            _scopes.push(roleScope)
-          }
-        })
-      }
-    })
-    // Factory scopes
-    currentUser.user_factory_scopes.forEach(factory => {
-      factory.scopes.forEach(factoryScope => {
-        if (!_scopes.includes(factoryScope)) {
-          _scopes.push(factoryScope)
-        }
-      })
-    })
-    store.dispatch(setUserScopes(_scopes))
-  }
-
   // UNIT_ON_PRESS
   const onPressUnit = (unit) => {
     if (!unit) {
@@ -204,6 +180,9 @@ const FactoryAndOrganization = ({ navigation }) => {
       }
     })
     setScopesFactories(_factories)
+    if (currentUser?.is_administrator === 1) {
+      setScopesFactories(currentUser?.factories)
+    }
   }
 
   React.useEffect(() => {

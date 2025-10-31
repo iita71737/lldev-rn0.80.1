@@ -35,7 +35,8 @@ import {
   setSystemClasses,
   setActStatus,
   setActType,
-  setSubAreas
+  setSubAreas,
+  setCurrentSelectedArea
 } from '@/store/data'
 import S_ActType from '@/services/api/v1/act_type'
 import S_ActStatus from '@/services/api/v1/act_status'
@@ -511,7 +512,7 @@ const WsFilter002: React.FC<WsFilter002Props> = (props) => {
                         const delay = (ms) => new Promise(res => setTimeout(res, ms));
                         if (fieldKey === 'areas' && typeof $event === 'string') {
                           setLoading(true)
-                          console.log($event,'$event')
+                          console.log($event, '$event')
                           await Promise.all([
                             $_systemClassSet($event),
                             $_subAreaSet($event),
@@ -521,6 +522,11 @@ const WsFilter002: React.FC<WsFilter002Props> = (props) => {
                           await delay(1200);
                           setValue(prev => ({ ...(prev || {}), [fieldKey]: $event }));
                           setLoading(false)
+                          try {
+                            store.dispatch(setCurrentSelectedArea($event))
+                          } catch (err) {
+                            console.error(err, 'setCurrentSelectedArea error')
+                          }
                         }
                         else if (typeof $event === 'object' && $event !== null) {
                           // $event 是物件

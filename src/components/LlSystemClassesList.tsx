@@ -65,7 +65,9 @@ const LlSystemClassesList: React.FC<LlSystemClassesListProps> = props => {
     act_type: {
       type: 'checkbox',
       label: t('法規類別'),
-      items: currentActTypes ? currentActTypes : []
+      items: currentActTypes ? currentActTypes : [],
+      selectAllVisible: false,
+      cancelAllVisible: false
     },
     button: {
       type: 'date_range',

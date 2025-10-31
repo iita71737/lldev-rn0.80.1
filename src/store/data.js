@@ -54,7 +54,8 @@ const initialState = {
   currentLocales: null,
   currentLatLng: null,
   currentAreas: [],
-  version: 'v0.80.1.7.4'
+  currentSelectedArea: null,
+  version: 'v0.80.1.7.5'
 }
 
 //action constants
@@ -118,7 +119,8 @@ const ActionTypes = {
   SET_CURRENT_SELECTED_GUIDELINE_ID: 'SET_CURRENT_SELECTED_GUIDELINE_ID',
   SET_CURRENT_LOCALES: 'SET_CURRENT_LOCALES',
   SET_CURRENT_LATLNG: 'SET_CURRENT_LATLNG',
-  SET_CURRENT_AREA: 'SET_CURRENT_AREA'
+  SET_CURRENT_AREAS: 'SET_CURRENT_AREAS',
+  SET_CURRENT_SELECTED_AREA: 'SET_CURRENT_SELECTED_AREA'
 }
 
 export const setCurrentUser = currentUser => {
@@ -535,10 +537,17 @@ export const setPreloadChecklistAssignmentDraft = payload => {
   }
 }
 
-export const setCurrentArea = currentAreas => {
+export const setCurrentAreas = currentAreas => {
   return {
-    type: ActionTypes.SET_CURRENT_AREA,
+    type: ActionTypes.SET_CURRENT_AREAS,
     currentAreas
+  }
+}
+
+export const setCurrentSelectedArea = currentSelectedArea => {
+  return {
+    type: ActionTypes.SET_CURRENT_SELECTED_AREA,
+    currentSelectedArea
   }
 }
 
@@ -875,10 +884,15 @@ const reducer = (state = initialState, action) => {
         ...state,
         currentLatLng: action.currentLatLng
       }
-    case ActionTypes.SET_CURRENT_AREA:
+    case ActionTypes.SET_CURRENT_AREAS:
       return {
         ...state,
         currentAreas: action.currentAreas,
+      }
+    case ActionTypes.SET_CURRENT_SELECTED_AREA:
+      return {
+        ...state,
+        currentSelectedArea: action.currentSelectedArea,
       }
     default:
       return state

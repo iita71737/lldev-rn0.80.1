@@ -61,6 +61,7 @@ const ActChangeReport: React.FC<ActChangeReportProps> = props => {
   const currentFactory = useSelector(state => state.data.currentFactory)
   const systemClasses = useSelector(state => state.data.systemClasses)
   const currentAreas = useSelector(state => state.data.currentAreas)
+  const currentSelectedArea = useSelector(state => state.data.currentSelectedArea)
   const subAreas = useSelector(state => state.data.subAreas)
   const actStatus = useSelector(state => state.data.actStatus)
   const actTypes = useSelector(state => state.data.actTypes)
@@ -95,17 +96,23 @@ const ActChangeReport: React.FC<ActChangeReportProps> = props => {
     area_sections: {
       type: 'checkbox',
       label: t('子地區'),
-      storeKey: 'subAreas'
+      storeKey: 'subAreas',
+      selectAllVisible: false,
+      cancelAllVisible: false
     },
     act_type: {
       type: 'checkbox',
       label: t('法規類別'),
-      storeKey: 'actTypes'
+      storeKey: 'actTypes',
+      selectAllVisible: false,
+      cancelAllVisible: false
     },
     act_status: {
       type: 'checkbox',
       label: t('法規狀態'),
-      storeKey: 'actStatus'
+      storeKey: 'actStatus',
+      selectAllVisible: false,
+      cancelAllVisible: false
     },
     button: {
       type: 'date_range',
@@ -130,7 +137,7 @@ const ActChangeReport: React.FC<ActChangeReportProps> = props => {
   // 2) defaultFilterValue 跟著 allianceAreaId 改變
   const defaultFilterValue = React.useMemo(() => {
     return allianceAreaId ? {
-      areas: allianceAreaId,
+      areas: currentSelectedArea ? currentSelectedArea : allianceAreaId,
       range: "nolimit",
       system_subclasses: S_SystemClass.getAllSubSystemClassesId(systemClasses),
     } : {};

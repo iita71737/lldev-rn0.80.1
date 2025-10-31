@@ -51,6 +51,7 @@ const ActListing: React.FC<ActListingProps> = props => {
   // Redux
   const currentUser = useSelector(state => state.data.currentUser)
   const currentAreas = useSelector(state => state.data.currentAreas)
+  const currentSelectedArea = useSelector(state => state.data.currentSelectedArea)
   const currentFactory = useSelector(state => state.data.currentFactory)
   const subAreas = useSelector(state => state.data.subAreas)
   const actStatus = useSelector(state => state.data.actStatus)
@@ -61,7 +62,7 @@ const ActListing: React.FC<ActListingProps> = props => {
     order_by: 'announce_at',
     order_way: 'desc',
     time_field: 'announce_at',
-    areas: allianceAreaId
+    areas: currentSelectedArea ? currentSelectedArea : allianceAreaId
   }), [allianceAreaId]);
 
   const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false)
@@ -105,12 +106,16 @@ const ActListing: React.FC<ActListingProps> = props => {
     act_type: {
       type: 'checkbox',
       label: t('法規類別'),
-      storeKey: 'actTypes'
+      storeKey: 'actTypes',
+      selectAllVisible: false,
+      cancelAllVisible: false,
     },
     act_status: {
       type: 'checkbox',
       label: t('法規狀態'),
-      storeKey: 'actStatus'
+      storeKey: 'actStatus',
+      selectAllVisible: false,
+      cancelAllVisible: false,
     },
     button: {
       type: 'date_range',
@@ -134,7 +139,9 @@ const ActListing: React.FC<ActListingProps> = props => {
 
   // 2) defaultFilterValue 跟著 allianceAreaId 改變
   const defaultFilterValue = React.useMemo(() => {
-    return allianceAreaId ? { areas: allianceAreaId } : {};
+    return allianceAreaId ? {
+      areas: currentSelectedArea ? currentSelectedArea : allianceAreaId
+    } : {};
   }, [allianceAreaId]);
 
   // 用 key 讓 WsPageIndex 在 area 變時重掛載
