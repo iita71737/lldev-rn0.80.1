@@ -1750,7 +1750,8 @@ const ActShow = ({ navigation, route }) => {
           {act &&
             act.last_version &&
             !act.last_version.task &&
-            (act.last_version.id === pickValue.id) && (
+            (act.last_version.id === pickValue.id) &&
+            scopeSubscriptions(currentFactory, 'task') && (
               <WsGradientButton
                 borderRadius={25}
                 style={{

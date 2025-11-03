@@ -138,14 +138,13 @@ const ActLibrary: React.FC<ActLibraryProps> = props => {
 
   // 2) defaultFilterValue 跟著 allianceAreaId 改變
   const defaultFilterValue = React.useMemo(() => {
+    if (!allianceAreaId) return undefined;
     return allianceAreaId ? {
       areas: currentSelectedArea ? currentSelectedArea : allianceAreaId,
       range: "nolimit",
       system_subclasses: S_SystemClass.getAllSubSystemClassesId(systemClasses),
     } : {};
-  }, [allianceAreaId]);
-
-  // console.log(defaultFilterValue,'defaultFilterValue-AAA')
+  }, [currentSelectedArea, allianceAreaId]);
 
   return (
     <>

@@ -14,7 +14,8 @@ import {
   LlApiFail,
   WsIconBtn,
   LlSOSBtn001,
-  WsFlex
+  WsFlex,
+  WsSkeleton
 } from '@/components'
 import RoutesDashboard from '@/routes/RoutesDashboard'
 import RoutesMy from '@/routes/RoutesMy'
@@ -63,6 +64,17 @@ const RoutesFactory = ({ navigation, route }) => {
   const currentUserScope = useSelector(state => state.data.userScopes)
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentViewMode = useSelector(state => state.data.currentViewMode)
+
+  // 1) 依 currentFactory 決定 initialRoute，只在 factory 變動時重算
+  const initialRouteName = React.useMemo(() => {
+    if (!currentFactory) return null;
+    if (currentFactory.is_alliance_home_page == 1) return 'Homepage';
+    return scopeSubscriptions(currentFactory, 'board') ? 'MyIndex' : 'RoutesMenu';
+  }, [
+    currentFactory?.id,         
+    currentFactory?.is_alliance_home_page,
+    currentUserScope
+  ]);
 
   // STATE
   const [deviceToken, setDeviceToken] = React.useState()
@@ -214,56 +226,64 @@ const RoutesFactory = ({ navigation, route }) => {
 
   return (
     <>
-      <Tab.Navigator
-        // lazy={false}
-        optimizationsEnabled={true}
-        unmountOnBlur={true}
-        initialRouteName={currentFactory?.is_alliance_home_page == 1 ? 'Homepage' : 'MyIndex'}
-        screenOptions={({ route }) => ({
-          headerShown: false,
-          tabBarShowLabel: false,
-          activeTintColor: $color.primary,
-          showLabel: false,
-          tabBarVisible: setRoutesMenuTabBarVisible(route),
-          tabBarButton: [
-            "RoutesCheckList",
-            "RoutesAudit",
-            'RoutesContractorEnter',
-            'RoutesTask',
-            'RoutesTraining',
-            'RoutesLicense',
-            'RoutesEvent',
-            'RoutesChange',
-            'RoutesContractors',
-            'Menu',
-          ].includes(route.name)
-            ? () => {
-              return null;
-            }
-            : undefined,
-        })}
-      >
-        <Tab.Screen
-          name="Homepage"
-          component={Homepage}
-          options={{
-            unmountOnBlur: true,
-            tabBarIcon: ({ focused, color, size }) => (
-              <WsIcon
-                name={focused ? 'md-home' : 'md-home'}
-                color={color}
-                size={32}
-              />
-            ),
-          }}
-          backBehavior={'history'}
-        />
+      {initialRouteName && currentFactory && (
+        <Tab.Navigator
+          key={`${currentFactory?.id}-${initialRouteName}`}
+          // lazy={false}
+          optimizationsEnabled={true}
+          unmountOnBlur={true}
+          initialRouteName={initialRouteName}
+          screenOptions={({ route }) => ({
+            headerShown: false,
+            tabBarShowLabel: false,
+            activeTintColor: $color.primary,
+            showLabel: false,
+            tabBarVisible: setRoutesMenuTabBarVisible(route),
+            tabBarButton: [
+              "RoutesCheckList",
+              "RoutesAudit",
+              'RoutesContractorEnter',
+              'RoutesTask',
+              'RoutesTraining',
+              'RoutesLicense',
+              'RoutesEvent',
+              'RoutesChange',
+              'RoutesContractors',
+              'Menu',
+            ].includes(route.name)
+              ? () => {
+                return null;
+              }
+              : undefined,
+          })}
+        >
 
-        {scopeSubscriptions(currentFactory, 'dashboard') && (
+          <Tab.Screen
+            name="Homepage"
+            component={Homepage}
+            options={{
+              tabBarButton: currentFactory?.is_alliance_home_page == 1
+                ? undefined
+                : () => null,
+              unmountOnBlur: true,
+              tabBarIcon: ({ focused, color, size }) => (
+                <WsIcon
+                  name={focused ? 'md-home' : 'md-home'}
+                  color={color}
+                  size={32}
+                />
+              ),
+            }}
+            backBehavior={'history'}
+          />
+
           <Tab.Screen
             name="DashboardFactory"
             component={ViewDashboardFactory}
             options={{
+              tabBarButton: scopeSubscriptions(currentFactory, 'dashboard')
+                ? undefined
+                : () => null,
               tabBarTestID: 'DashboardFactory',
               unmountOnBlur: false,
               tabBarLabel: t('概況'),
@@ -314,13 +334,14 @@ const RoutesFactory = ({ navigation, route }) => {
               },
             })}
           />
-        )}
 
-        {scopeSubscriptions(currentFactory, 'board') && (
           <Tab.Screen
             name="MyIndex"
             component={ViewMy}
             options={{
+              tabBarButton: scopeSubscriptions(currentFactory, 'board')
+                ? undefined
+                : () => null,
               tabBarTestID: 'MyIndex',
               unmountOnBlur: true,
               tabBarLabel: t('看板'),
@@ -334,13 +355,14 @@ const RoutesFactory = ({ navigation, route }) => {
             }}
             backBehavior={'history'}
           />
-        )}
 
-        {scopeSubscriptions(currentFactory, 'alert') && (
           <Tab.Screen
             name="RoutesAlert"
             component={ViewAlertIndex}
             options={{
+              tabBarButton: scopeSubscriptions(currentFactory, 'alert')
+                ? undefined
+                : () => null,
               tabBarTestID: 'RoutesAlert',
               unmountOnBlur: true,
               ...gOption.headerOption,
@@ -377,13 +399,14 @@ const RoutesFactory = ({ navigation, route }) => {
             })}
             backBehavior={'history'}
           />
-        )}
 
-        {scopeSubscriptions(currentFactory, 'act') && (
           <Tab.Screen
             name="Act"
             component={scopeFilterScreen('act-read', ViewAct)}
             options={{
+              tabBarButton: scopeSubscriptions(currentFactory, 'act')
+                ? undefined
+                : () => null,
               tabBarTestID: 'Act',
               headerShown: true,
               headerTitle: t('法規'),
@@ -419,29 +442,29 @@ const RoutesFactory = ({ navigation, route }) => {
             })}
             backBehavior={'history'}
           />
-        )}
 
-        <Tab.Screen
-          name="RoutesMenu"
-          component={RoutesMenu}
-          options={({ route }) => ({
-            tabBarTestID: 'RoutesMenu',
-            tabBarLabel: t('選單'),
-            tabBarIcon: ({ color, size }) => (
-              <WsIcon
-                name="ll-nav-app-menu"
-                color={color}
-                size={32}
-              />
-            ),
-            tabBarVisible: setRoutesMenuTabBarVisible(route)
-          })}
-          listeners={({ navigation }) => ({
-            blur: () => navigation.setParams({ screen: undefined }),
-          })}
-          backBehavior={'history'}
-        />
-      </Tab.Navigator >
+          <Tab.Screen
+            name="RoutesMenu"
+            component={RoutesMenu}
+            options={({ route }) => ({
+              tabBarTestID: 'RoutesMenu',
+              tabBarLabel: t('選單'),
+              tabBarIcon: ({ color, size }) => (
+                <WsIcon
+                  name="ll-nav-app-menu"
+                  color={color}
+                  size={32}
+                />
+              ),
+              tabBarVisible: setRoutesMenuTabBarVisible(route)
+            })}
+            listeners={({ navigation }) => ({
+              blur: () => navigation.setParams({ screen: undefined }),
+            })}
+            backBehavior={'history'}
+          />
+        </Tab.Navigator >
+      )}
     </>
   )
 }

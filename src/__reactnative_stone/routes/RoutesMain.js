@@ -153,10 +153,8 @@ const RoutesMain = ({ navigation }) => {
   }
 
   const $_currentFactorySet = () => {
-    console.log('$_currentFactorySet')
     // is_administrator
     if (currentUser?.is_administrator === 1) {
-      console.log(currentUser?.factories[0]?.id,'currentUser?.factories[0]?.id00')
       $_checkoutFactory(currentUser?.factories[0])
       return
     }
@@ -191,7 +189,6 @@ const RoutesMain = ({ navigation }) => {
     const _allScopesUnit = s_user_factory_roles.concat(s_user_factory_scopes, s_user_factory_role_template)
     const hasMatch = _allScopesUnit.some(unit => unit.factory?.id === initFactory?.id) //250624-issue
     if (initFactory && _allScopesUnit && hasMatch) {
-      console.log('111')
       const _initScope = _allScopesUnit.find(unit => {
         if (unit.factory && unit.factory.scope && unit.factory.scope.includes('app-apply')) {
           return unit.factory.id == initFactory.id
@@ -214,7 +211,6 @@ const RoutesMain = ({ navigation }) => {
         }
       })
     } else if (initOrganization && currentUser) {
-      console.log('222')
       store.dispatch(setCurrentViewMode('organization'))
       store.dispatch(setCurrentOrganization(initOrganization))
       if (initOrganization?.child_factories?.length > 0) {
@@ -223,7 +219,6 @@ const RoutesMain = ({ navigation }) => {
       }
     }
     else if (currentUser && currentUser?.current_factory && currentUser?.current_factory?.id) {
-      console.log('333')
       // 確認使用者上次登入的單位現在是否有權限-250731-issue
       const hasMatch2 = _allScopesUnit.some(unit => unit.factory?.id === currentUser?.current_factory?.id) //250731-issue
       if (hasMatch2) {
@@ -233,19 +228,16 @@ const RoutesMain = ({ navigation }) => {
       }
     }
     else {
-      console.log('444')
       const hasCommonFactory = currentUser.factories.find(factory => s_user_factory_scopes.some(scope => factory.id == scope.factory.id && scope.scopes.includes('app-apply')));
       if (hasCommonFactory) {
-        console.log('444aaa')
         store.dispatch(setCurrentFactory(hasCommonFactory))
       } else {
-        console.log('444bbb')
         const filteredFactories = currentUser.factories.filter(_unit => {
           return _allScopesUnit.some(targetFactory => targetFactory.factory.id === _unit.id);
         });
-        const found = filteredFactories.find(item => item.name.includes('廠'));
+        // const found = filteredFactories.find(item => item.name.includes('廠'));
+        const found = filteredFactories.find(({ name }) => /[廠場]/.test(name));
         if (found) {
-          console.log('444bbb-111')
           store.dispatch(setCurrentFactory(found))
         }
       }

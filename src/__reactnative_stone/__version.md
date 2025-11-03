@@ -1,4 +1,4 @@
-v0.80.1.7.6
+v0.80.1.7.7
 
 # react-native upgrade to 0.80.1
 # yarn add mathjs
@@ -9,5 +9,4 @@ v0.80.1.7.6
 # yarn remove @sentry/react-native
 # yarn add react-native-keychain
 # patch react-native-compressor for 16kb issue
-# yarn add uuid
 # v0.80.1.7.2 hidden for demo
