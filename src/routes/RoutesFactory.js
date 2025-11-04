@@ -71,10 +71,40 @@ const RoutesFactory = ({ navigation, route }) => {
     if (currentFactory.is_alliance_home_page == 1) return 'Homepage';
     return scopeSubscriptions(currentFactory, 'board') ? 'MyIndex' : 'RoutesMenu';
   }, [
-    currentFactory?.id,         
+    currentFactory?.id,
     currentFactory?.is_alliance_home_page,
     currentUserScope
   ]);
+
+  // ====== 延遲渲染 Tab：純 JS 寫法（無型別）======
+  const [gateReady, setGateReady] = React.useState(false);
+  const delayRef = React.useRef(null);
+  const lastFactoryRef = React.useRef(null);
+  const DELAY_MS = 1000; // 想延遲多久，自己改（毫秒）
+
+  React.useEffect(() => {
+    setGateReady(false);
+    if (delayRef.current) clearTimeout(delayRef.current);
+
+    const currId = currentFactory?.id ?? null;
+    lastFactoryRef.current = currId;
+
+    if (!currId || !initialRouteName) return;
+
+    delayRef.current = setTimeout(() => {
+      if (lastFactoryRef.current === currId) {
+        setGateReady(true);
+      }
+    }, DELAY_MS);
+
+    return () => {
+      if (delayRef.current) {
+        clearTimeout(delayRef.current);
+        delayRef.current = null;
+      }
+    };
+  }, [currentFactory?.id, initialRouteName]);
+  // ===============================================
 
   // STATE
   const [deviceToken, setDeviceToken] = React.useState()
@@ -223,6 +253,15 @@ const RoutesFactory = ({ navigation, route }) => {
       unsubscribe()
     };
   }, [currentFactory, initFirebaseMessage])
+
+  // 延遲期間顯示 Skeleton（避免舊畫面閃一下）
+  if (!gateReady || !initialRouteName || !currentFactory) {
+    return (
+      <SafeAreaView>
+        <WsSkeleton style={{ flex: 1 }} />
+      </SafeAreaView>
+    )
+  }
 
   return (
     <>

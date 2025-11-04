@@ -280,29 +280,32 @@ const Menu = ({ navigation }) => {
                   navigation.navigate('MyAccountSetting')
                 }}
               />
-              <WsPaddingContainer>
-                <LlSOSBtn002
-                  onPress={(e) => {
-                    if (!scopePermission('sos-create', currentUserScope)) {
-                      Alert.alert(
-                        t('您無此單位內相關權限，請聯絡系統管理員'),
-                        "",
-                        [
-                          {
-                            text: "我知道了",
-                            onPress: () => {
-                              navigation.navigate('RoutesMenu')
+              
+              {scopePermission('sos-create', currentUserScope) && (
+                <WsPaddingContainer>
+                  <LlSOSBtn002
+                    onPress={(e) => {
+                      if (!scopePermission('sos-create', currentUserScope)) {
+                        Alert.alert(
+                          t('您無此單位內相關權限，請聯絡系統管理員'),
+                          "",
+                          [
+                            {
+                              text: "我知道了",
+                              onPress: () => {
+                                navigation.navigate('RoutesMenu')
+                              }
                             }
-                          }
-                        ]
-                      )
-                      e.preventDefault();
-                    } else if (scopePermission('sos-create', currentUserScope)) {
-                      navigation.navigate('SOS')
-                    }
-                  }}
-                />
-              </WsPaddingContainer>
+                          ]
+                        )
+                        e.preventDefault();
+                      } else if (scopePermission('sos-create', currentUserScope)) {
+                        navigation.navigate('SOS')
+                      }
+                    }}
+                  />
+                </WsPaddingContainer>
+              )}
 
               <LlNavButton001
                 testID={`切換單位鈕`}

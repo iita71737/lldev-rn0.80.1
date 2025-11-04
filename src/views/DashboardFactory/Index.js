@@ -992,54 +992,54 @@ const Dashboard = ({ navigation }) => {
             )}
 
             <FlatList
-              numColumns={2}
               style={{
-                padding: 10,
-                width: '100%'
+                marginHorizontal: 16,
               }}
+              columnWrapperStyle={{
+                gap: 4,
+              }}
+              numColumns={2}
               data={topAnalyzeData}
               keyExtractor={item => item.title}
               renderItem={({ item, index }) => (
-                <WsAnalyzeCard
-                  // disabled={item.count ? false : true}
-                  key={index}
-                  icon={item.icon}
-                  title={item.title ? item.title : ''}
-                  count={item.count}
-                  isAlert={item.isAlert}
-                  isPercent={item.isPercent}
-                  onPress={() => {
-                    if (!item.navigateScreen) {
-                      return
-                    }
-                    navigation.push(item.navigateRoutesName, {
-                      screen: item.navigateScreen,
-                      params: {
-                        item: item,
-                        unit: sortValue
+                <View style={{ flex: 1 , margin: 4 }}>
+                  <WsAnalyzeCard
+                    style={{ width: '100%' }}
+                    key={index}
+                    icon={item.icon}
+                    title={item.title ? item.title : ''}
+                    count={item.count}
+                    isAlert={item.isAlert}
+                    isPercent={item.isPercent}
+                    onPress={() => {
+                      if (!item.navigateScreen) {
+                        return
                       }
-                    })
-                  }}
-                  upperRightOnPress={() => {
-                    if (!item.upperRightNavigate) {
-                      return
-                    }
-                    // issue-250526
-                    if (item.upperRightNavigateScreen === 'AlertIndex') {
-                      navigation.navigate(item.upperRightNavigate, {
-                        tabIndex: 1
+                      navigation.push(item.navigateRoutesName, {
+                        screen: item.navigateScreen,
+                        params: {
+                          item: item,
+                          unit: sortValue
+                        }
                       })
-                    } else {
-                      navigation.push(item.upperRightNavigate, {
-                        screen: item.upperRightNavigateScreen
-                      })
-                    }
-                  }}
-                  style={{
-                    margin: 4,
-                    width: windowWidth * 0.45
-                  }}
-                />
+                    }}
+                    upperRightOnPress={() => {
+                      if (!item.upperRightNavigate) {
+                        return
+                      }
+                      // issue-250526
+                      if (item.upperRightNavigateScreen === 'AlertIndex') {
+                        navigation.navigate(item.upperRightNavigate, {
+                          tabIndex: 1
+                        })
+                      } else {
+                        navigation.push(item.upperRightNavigate, {
+                          screen: item.upperRightNavigateScreen
+                        })
+                      }
+                    }}
+                  />
+                </View>
               )}
             />
           </>
@@ -1154,7 +1154,7 @@ const Dashboard = ({ navigation }) => {
         </>
         <WsPaddingContainer
           style={{
-            paddingTop: 16
+            paddingTop: 8
           }}>
           <WsChartsModels
             pickerValue={pickerValueForAlert}

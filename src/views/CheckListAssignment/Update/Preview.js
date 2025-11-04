@@ -79,8 +79,6 @@ const ChecklistPreview = ({ navigation, route }) => {
     linkId
   } = route.params
 
-  console.log(linkId,'linkId---');
-
   // Redux
   const currentUser = useSelector(state => state.stone_auth.currentUser)
   const currentFactory = useSelector(state => state.data.currentFactory)

@@ -3,7 +3,7 @@ import { ImageBackground, Image } from 'react-native'
 
 const WsAvatar = props => {
   // Props
-  const { size = 50, source, style, isUri = true } = props
+  const { size = 50, source, style, isUri = true, type } = props
 
   // Function
   const $_getSource = (source, isUri) => {
@@ -23,7 +23,7 @@ const WsAvatar = props => {
       style={[
         {
           flex: 0,
-          borderRadius: size,
+          borderRadius: type === 'square' ? 10 : size,
           width: size,
           height: size
         },

@@ -32,6 +32,7 @@ interface LlActTypeCard001Props {
   actType: any;
   params: any;
   testID?: string;
+  to?: string;
 }
 
 const LlActTypeCard001: React.FC<LlActTypeCard001Props> = (props) => {
@@ -42,7 +43,6 @@ const LlActTypeCard001: React.FC<LlActTypeCard001Props> = (props) => {
     iconRight = 'md-chevron-up',
     iconRightSize = 24,
     iconRightColor = $color.gray,
-    parentIsCollapsed,
     actType,
     params,
     testID,
@@ -69,7 +69,7 @@ const LlActTypeCard001: React.FC<LlActTypeCard001Props> = (props) => {
         page: page ? page : currentPage,
         lang: 'tw',
       }
-      const res = await S_Act.indexAll({
+      const res = await S_Act.index({
         params: _params
       })
       const isSamePage = page === currentPage || page === undefined;
@@ -99,10 +99,8 @@ const LlActTypeCard001: React.FC<LlActTypeCard001Props> = (props) => {
 
   // 法條層級
   const renderInnerItem002 = ({ item, index }) => {
-    const _icon = item.act_type && item.act_type.icon
     if (item.act_type &&
       item.act_type.id == actType.id &&
-      _icon &&
       item.last_version &&
       item.last_version.name) {
       return (
@@ -117,7 +115,7 @@ const LlActTypeCard001: React.FC<LlActTypeCard001Props> = (props) => {
             testID={`LlActLibraryArticleCard001-${index}`}
             item={item}
             text={item.last_version && item.last_version.name ? item.last_version.name : ''}
-            img={_icon}
+            img={actType?.icon}
             isChange={$_isChangeInThreeMonths(
               item.last_version.announce_at
             )}

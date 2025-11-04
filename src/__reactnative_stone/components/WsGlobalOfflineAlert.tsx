@@ -1,125 +1,157 @@
-import { View, Text, Alert, TouchableOpacity } from 'react-native'
-import React from 'react'
-import { useTranslation } from 'react-i18next'
-import { addEventListener } from "@react-native-community/netinfo";
-import AsyncStorage from '@react-native-community/async-storage'
-import Services from '@/services/api/v1/index'
-import store from '@/store'
+import React from 'react';
+import { AppState } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { useNetInfo } from '@react-native-community/netinfo';
+import { useSelector, useDispatch } from 'react-redux';
+import AsyncStorage from '@react-native-community/async-storage';
+import { WsSnackBar } from '@/components';
+import Services from '@/services/api/v1/index';
+import store from '@/store';
 import {
-  setOfflineMsg,
   setConnectionState,
-  setPreloadChecklistAssignment,
-  setRefreshCounter,
-} from '@/store/data'
-import {
-  WsSnackBar,
-  WsText
-} from '@/components'
-import { useSelector } from 'react-redux'
-import S_CheckListRecordAns from '@/services/api/v1/checklist_record_answer'
-import { setCurrentChecklistRecordDraft } from '@/store/data'
+  setOfflineMsg,
+  // setPreloadChecklistAssignment,
+  // setCurrentChecklistRecordDraft,
+  // setRefreshCounter,
+} from '@/store/data';
 
 const WsGlobalOfflineAlert = () => {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation();
+  const dispatch = useDispatch();
+  const { isConnected, isInternetReachable } = useNetInfo();
+  const online = !!isConnected && !!(isInternetReachable ?? false);
 
-  // REDUX
-  const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
-  const offlineMsg = useSelector(state => state.data.offlineMsg);
+  const currentRefreshCounter = useSelector(s => s.data.refreshCounter);
+  const offlineMsg = useSelector(s => s.data.offlineMsg);
 
-  // STATES
-  const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false)
-  const [snackBarText, setSnackBarText] = React.useState(
-    t('已儲存至「我的收藏」')
-  )
+  const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false);
+  const [snackBarText, setSnackBarText] = React.useState('');
 
-  // FUNC
-  const getData = async () => {
+  // --- 前後狀態 / 前景狀態 / 去抖 / 待補發旗標 ---
+  const prevOnlineRef = React.useRef<boolean | null>(null);
+  const appStateRef = React.useRef(AppState.currentState);
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = React.useRef<null | 'online' | 'offline'>(null);
+
+  // ============ 離線佇列：保留 getOfflineQueue（必要時會被使用） ============
+  const getOfflineQueue = React.useCallback(async () => {
     try {
       const jsonValue = await AsyncStorage.getItem('offlineTempMsg');
-      return jsonValue != null ? JSON.parse(jsonValue) : offlineMsg ? offlineMsg : null;
+      return jsonValue ? JSON.parse(jsonValue) : (offlineMsg ?? null);
     } catch (e) {
+      return null;
     }
-  };
+  }, [offlineMsg]);
 
-  const removeValue = async () => {
+  const clearOfflineQueue = React.useCallback(async () => {
     try {
-      await AsyncStorage.removeItem('offlineTempMsg')
+      await AsyncStorage.removeItem('offlineTempMsg');
     } catch (e) {
+      console.error(e, 'clearOfflineQueue')
     }
-  }
-  
-  React.useEffect(() => {
-    // NETWORK STATE 
-    const unsubscribe = addEventListener(async (state) => {
-      if (!state.isConnected) {
-        store.dispatch(setConnectionState(false))
-        setSnackBarText(t('您目前已離線，請重新連線網路。'))
-        Alert.alert('網路連線異常，請稍候再試。')
-        setIsSnackBarVisible(true)
-      } else if (state.isConnected) {
-        store.dispatch(setConnectionState(true))
-        setSnackBarText(t('網路已連線'))
-        setIsSnackBarVisible(true)
-        // try {
-        //   const _offlineTempMsg = await getData()
-        //   if (_offlineTempMsg && _offlineTempMsg.length > 0) {
-        //     let maxRetries = 1
-        //     let retryCount = 0;
-        //     while (retryCount < maxRetries) {
-        //       try {
-        //         await Promise.all(_offlineTempMsg.map(async (item, index) => {
-        //           const { service, method, data, modelId } = item;
-        //           // Alert.alert(
-        //           //   `test`,
-        //           //   `${data.checklist_id}-checklist_id
-        //           //   \n
-        //           //   ${data.checklist_assignment}-data.checklist_assignment`
-        //           // );
-        //           const _data = await S_CheckListRecordAns.convertLocalImagesToHttp(data);
-        //           let _service = Services[service][method];
-        //           const res = await _service({ params: _data });
-        //             console.log(res, `res${index}`);
-        //             setIsSnackBarVisible(true)
-        //             await removeValue()
-        //             await store.dispatch(setOfflineMsg([]))
-        //             await store.dispatch(setPreloadChecklistAssignment(null))
-        //             await store.dispatch(setCurrentChecklistRecordDraft(null));
-        //             setTimeout(() => {
-        //               store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
-        //             }, 3000)
-        //             setSnackBarText('資料已全數上傳完成')
-        //             Alert.alert('資料已全數上傳完成。')
-        //         }));
-        //         break;
-        //       } catch (error) {
-        //         retryCount++;
-        //         console.error('Error occurred:', error.message);
-        //         // await new Promise(resolve => setTimeout(resolve, 2000)); // 等待 2 秒後重試
-        //       }
-        //     }
-        //   }
-        // } catch (error) {
-        //   console.error(error.message);
-        // }
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
+    store.dispatch(setOfflineMsg([]));
   }, []);
 
+  const uploadOfflineQueue = React.useCallback(async () => {
+    const queue = await getOfflineQueue();
+    if (!Array.isArray(queue) || queue.length === 0) return;
+
+    // 你原本的上傳流程；這裡先走一次性 Promise.all（需要更完整保護可加重試/逐筆 try/catch）
+    await Promise.all(queue.map(async (item) => {
+      const { service, method, data } = item || {};
+      const fn = Services?.[service]?.[method];
+      if (typeof fn === 'function') {
+        await fn({ params: data });
+      }
+    }));
+
+    // 清空離線佇列
+    await clearOfflineQueue();
+
+    // 如需重置草稿/刷新資料等，可按需打開：
+    // store.dispatch(setPreloadChecklistAssignment(null));
+    // store.dispatch(setCurrentChecklistRecordDraft(null));
+    // setTimeout(() => store.dispatch(setRefreshCounter(currentRefreshCounter + 1)), 3000);
+
+    setSnackBarText(t('資料已全數上傳完成'));
+    setIsSnackBarVisible(true);
+  }, [getOfflineQueue, clearOfflineQueue]);
+  // =====================================================================================
+
+  // AppState 監聽：回到前景時補發 pending 的提示（解「切飛航模式時漏訊」）
+  React.useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => {
+      appStateRef.current = s;
+      if (s === 'active' && pendingRef.current) {
+        const kind = pendingRef.current;
+        pendingRef.current = null;
+
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+          if (kind === 'online') {
+            setSnackBarText(t('網路已連線'));
+            setIsSnackBarVisible(true);
+            // 回到前景且線上 → 嘗試送離線佇列
+            // uploadOfflineQueue().catch(() => { });
+          } else {
+            setSnackBarText(t('您目前已離線，請重新連線網路。'));
+            setIsSnackBarVisible(true);
+          }
+          timerRef.current = null;
+        }, 200);
+      }
+    });
+    return () => sub.remove();
+  }, [uploadOfflineQueue]);
+
+  React.useEffect(() => {
+    if (prevOnlineRef.current === null) {
+      prevOnlineRef.current = online;
+      dispatch(setConnectionState(online));
+    }
+  }, [online, dispatch]);
+
+  // 邊界變化才提示；不在前景就暫存，回前景再補發；並在恢復連線時上傳離線佇列
+  React.useEffect(() => {
+    if (prevOnlineRef.current === null) return;
+    if (prevOnlineRef.current === online) return;
+
+    dispatch(setConnectionState(online));
+
+    const fire = async (kind: 'online' | 'offline') => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(async () => {
+        if (kind === 'online') {
+          setSnackBarText(t('網路已連線'));
+          setIsSnackBarVisible(true);
+          // 線上 → 嘗試送離線佇列
+          // try { await uploadOfflineQueue(); } catch { }
+        } else {
+          setSnackBarText(t('您目前已離線，請重新連線網路。'));
+          setIsSnackBarVisible(true);
+        }
+        timerRef.current = null;
+      }, 250); // 去抖時間可調
+    };
+
+    if (appStateRef.current === 'active') {
+      fire(online ? 'online' : 'offline');
+    } else {
+      // 不在前景：先記下，等回前景再補發
+      pendingRef.current = online ? 'online' : 'offline';
+    }
+
+    prevOnlineRef.current = online;
+  }, [online, dispatch, t, uploadOfflineQueue]);
 
   return (
-    <>
-      <WsSnackBar
-        text={snackBarText}
-        setVisible={setIsSnackBarVisible}
-        visible={isSnackBarVisible}
-        quickHidden={true}
-      />
-    </>
-  )
-}
+    <WsSnackBar
+      text={snackBarText}
+      setVisible={setIsSnackBarVisible}
+      visible={isSnackBarVisible}
+      quickHidden={true}
+    />
+  );
+};
 
-export default WsGlobalOfflineAlert
+export default WsGlobalOfflineAlert;

@@ -15,6 +15,9 @@ import {
   WsText,
   WsPaddingContainer,
   WsCard,
+  WsFlex,
+  WsAvatar,
+  WsDes
 } from '@/components';
 import { useSelector } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -55,8 +58,8 @@ const Homepage = () => {
 
   // 子選單
   const subOptions = [
-    { label: t('新訊'), route: 'ViewAnnouncement' },
-    { label: t('法規'), route: 'Act' },
+    { label: t('新訊'), route: 'ViewAnnouncement', module:'announcement' },
+    { label: t('法規'), route: 'Act', module:'act' },
   ];
 
   const ROUTE_TO_SUBKEY = {
@@ -71,8 +74,6 @@ const Homepage = () => {
       if (res && Array.isArray(res.data)) {
         const mapped = res.data.map((it) => ({
           ...it,
-          title: t(it.name),
-          permission: true,
         }));
         setManageList(mapped);
       } else {
@@ -199,53 +200,69 @@ const Homepage = () => {
   };
 
   // ---- 卡片主體 ----
-  const renderCardBody = (item) => {
+  const renderCardBody = (item, index) => {
     const content = (
       <>
-        {/* 上方：標題 */}
-        <View style={styles.titleWrap}>
-          <WsText
-            size={16}
-            fontWeight="bold"
-            color={$color.white}
-            style={styles.titleText}
-          >
-            {t(item.title)}
-          </WsText>
+        <WsFlex
+          style={{
+            padding: 16
+          }}>
+          {item.logo && (
+            <WsAvatar type={'square'} isUri={true} size={56} source={item.logo} />
+          )}
+          <View style={styles.titleWrap}>
+            <WsText
+              size={16}
+              fontWeight="bold"
+              color={$color.white}
+              style={styles.titleText}
+            >
+              {t(item.name)}
+            </WsText>
+          </View>
+        </WsFlex>
+
+        <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <WsDes color={$color.white}>
+            {t(item.description)}
+          </WsDes>
         </View>
 
-        {/* 下方：左右平均 subOptions */}
         <View style={styles.bottomRow}>
-          {subOptions.map((opt, idx) => (
-            <TouchableOpacity
-              key={opt.route || idx}
-              style={styles.optionBtn}
-              onPress={async () => {
-                const areaId = getUsableAreaId(item, currentFactory);
+          {subOptions.map((opt, idx) => {
+            if(!item.related_modules?.includes(opt.module)){
+              return
+            }
+            return (
+              <TouchableOpacity
+                key={opt.route || idx}
+                style={styles.optionBtn}
+                onPress={async () => {
 
-                // 導頁時帶入修正後的 areaId（避免下一頁拿到未訂閱的區域）
-                handleNavigate(opt.route, item);
-
-                try {
-                  if (areaId != null) {
-                    await Promise.all([
-                      $_systemClassSet(areaId),
-                      $_subAreaSet(areaId),
-                      $_actTypeSet(areaId),
-                      $_actStatus(areaId),
-                    ]);
+                  const areaId = getUsableAreaId(item, currentFactory);
+                  handleNavigate(opt.route, item);
+                  try {
+                    if (areaId != null) {
+                      await Promise.all([
+                        $_systemClassSet(areaId),
+                        $_subAreaSet(areaId),
+                        $_actTypeSet(areaId),
+                        $_actStatus(areaId),
+                      ]);
+                    }
+                  } catch (err) {
+                    console.error('$_systemClassSet Error', err);
                   }
-                } catch (err) {
-                  console.error('$_systemClassSet Error', err);
-                }
-              }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <WsText color={$color.white} size={14} textAlign="center">
-                {t(opt.label)}
-              </WsText>
-            </TouchableOpacity>
-          ))}
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <WsText color={$color.white} size={14} textAlign="center">
+                  {t(opt.label)}
+                </WsText>
+              </TouchableOpacity>
+            );
+          })}
+
         </View>
       </>
     );
@@ -301,7 +318,7 @@ const Homepage = () => {
             spacing={4}
             keyExtractor={(item) => String(item.id)}
             data={manageList}
-            renderItem={({ item }) => (
+            renderItem={({ item, itemIndex }) => (
               <View style={styles.cardWrap}>
                 <WsCard style={styles.Card} padding={0}>
                   <TouchableHighlight
@@ -312,7 +329,7 @@ const Homepage = () => {
                       backgroundColor: 'transparent',
                     }}
                   >
-                    {renderCardBody(item)}
+                    {renderCardBody(item, itemIndex)}
                   </TouchableHighlight>
                 </WsCard>
               </View>

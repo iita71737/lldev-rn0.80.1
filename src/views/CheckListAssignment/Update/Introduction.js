@@ -30,11 +30,14 @@ import S_ChecklistAssignment from '@/services/api/v1/checklist_assignment'
 import S_CheckListRecord from '@/services/api/v1/checklist_record'
 import S_CheckListRecordAns from '@/services/api/v1/checklist_record_answer'
 import S_ConstantData from '@/services/api/v1/constant_data'
+import { useNetInfo } from '@react-native-community/netinfo';
 
 const Introduction = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
   const _stack = navigation.getState().routes
   const currentLang = i18n.language
+  const { isConnected, isInternetReachable } = useNetInfo();
+  const online = !!isConnected && !!(isInternetReachable ?? false);
 
   // Redux
   const currentUser = useSelector(state => state.stone_auth.currentUser)
@@ -122,6 +125,7 @@ const Introduction = ({ navigation, route }) => {
         setLoading(false)
       }
     } catch (e) {
+      // 251103
       Alert.alert(t('伺服器忙碌中，請稍候再試'))
       navigation.goBack()
       console.error(e, 'e');

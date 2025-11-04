@@ -14,7 +14,6 @@ import { useTranslation } from 'react-i18next'
 import $color from '@/__reactnative_stone/global/color'
 import store from '@/store'
 import {
-  setOfflineMsg,
   setRefreshCounter
 } from '@/store/data'
 import { useSelector } from 'react-redux'

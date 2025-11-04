@@ -134,14 +134,14 @@ const ActChangeReport: React.FC<ActChangeReportProps> = props => {
     },
   }), [areaItems, subAreas, actStatus, actTypes])
 
-  // 2) defaultFilterValue 跟著 allianceAreaId 改變
-  const defaultFilterValue = React.useMemo(() => {
-    return allianceAreaId ? {
-      areas: currentSelectedArea ? currentSelectedArea : allianceAreaId,
-      range: "nolimit",
-      system_subclasses: S_SystemClass.getAllSubSystemClassesId(systemClasses),
-    } : {};
-  }, [allianceAreaId]);
+   // 2) defaultFilterValue 跟著 allianceAreaId 改變
+   const defaultFilterValue = React.useMemo(() => {
+     return {
+       areas: currentSelectedArea ? currentSelectedArea : allianceAreaId ? allianceAreaId : currentFactory?.area?.id ? currentFactory?.area?.id : undefined,
+       range: "nolimit",
+       system_subclasses: S_SystemClass.getAllSubSystemClassesId(systemClasses),
+     }
+   }, [currentSelectedArea, allianceAreaId]);
 
   return (
     <>
@@ -154,7 +154,6 @@ const ActChangeReport: React.FC<ActChangeReportProps> = props => {
             <LlActLibrarySystemClassCard002
               testID={`LlActLibrarySystemClassCard002-${index}`}
               item={item}
-              index={index}
               params={__params}
             >
             </LlActLibrarySystemClassCard002>

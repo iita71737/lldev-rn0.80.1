@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Platform } from 'react-native'
+import { View, Platform, useWindowDimensions } from 'react-native'
 import { WsFlex, WsText, WsIconBtn } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import layouts from '@/__reactnative_stone/global/layout'
@@ -7,7 +7,9 @@ import { useNavigation } from '@react-navigation/native'
 
 const WsHeader = props => {
   const navigation = useNavigation()
+  const { width, height } = useWindowDimensions()
   const { windowWidth, windowHeight } = layouts
+
   // Props
   const {
     title,
@@ -41,7 +43,7 @@ const WsHeader = props => {
       <View
         style={{
           backgroundColor: $color.primary,
-          width: windowWidth,
+          width: width,
           paddingHorizontal: 16,
           paddingBottom: 8,
         }}>

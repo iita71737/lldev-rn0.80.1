@@ -40,7 +40,6 @@ const LlActLibraryArticleCard001: React.FC<LlActLibraryArticleCard001Props> = pr
     testID
   } = props
 
-
   // helper area
   const areaNames = Array.isArray(item.areas)
     ? item.areas
@@ -82,14 +81,13 @@ const LlActLibraryArticleCard001: React.FC<LlActLibraryArticleCard001Props> = pr
           {isChange && (
             <WsFlex
               style={{
-                marginBottom: 8
+                marginTop: 4
               }}>
               <WsTag
                 borderRadius={16}
                 backgroundColor={$color.yellow11l}
                 textColor={$color.gray}
                 style={{
-                  marginLeft: 28
                 }}>
                 {isChange == 3
                   ? t('近{number}個月異動', { number: 3 })
@@ -99,7 +97,12 @@ const LlActLibraryArticleCard001: React.FC<LlActLibraryArticleCard001Props> = pr
               </WsTag>
             </WsFlex>
           )}
-          <WsFlex>
+
+          <WsFlex
+            style={{
+              marginTop: 4
+            }}
+          >
             {img && (
               <Image
                 source={{
@@ -110,40 +113,46 @@ const LlActLibraryArticleCard001: React.FC<LlActLibraryArticleCard001Props> = pr
                 alt={'loading'}
               />
             )}
-
-            <View
+            <WsText
               style={{
-                marginLeft: 8,
-              }}
-            >
-              <WsText
-                style={{
-                }}>
-                {t(text)}
-              </WsText>
-
-              <WsFlex
-                style={{
-                  marginTop: 4
-                }}
-                flexWrap={'wrap'}
-              >
-                <WsText color={$color.gray} size={12}>
-                  {`${metaLine}`}
-                </WsText>
-              </WsFlex>
-
-              <WsText color={$color.gray} size={12}>
-                {t('生效日')}{' '}
-                {moment(item.last_version.effect_at).format('YYYY-MM-DD')}
-              </WsText>
-            </View>
-
+                marginLeft: 4
+              }}>
+              {t(text)}
+            </WsText>
           </WsFlex>
 
           <WsFlex
             style={{
-              marginBottom: 4
+              paddingLeft: 24,
+              marginTop: 4
+            }}
+            flexWrap={'wrap'}
+          >
+            <WsText color={$color.gray} size={12}>
+              {`${metaLine}`}
+            </WsText>
+          </WsFlex>
+
+          <WsFlex
+            style={{
+              paddingLeft: 24,
+              marginTop: 4
+            }}
+            flexWrap={'wrap'}
+          >
+            <WsText color={$color.gray} size={12}>
+              {t('生效日')}{' '}
+              {moment(item.last_version.effect_at).format('YYYY-MM-DD')}
+            </WsText>
+          </WsFlex>
+
+
+
+
+          <WsFlex
+            style={{
+              paddingLeft: 24,
+              marginTop: 4
             }}
             flexWrap="wrap"
           >
@@ -169,7 +178,7 @@ const LlActLibraryArticleCard001: React.FC<LlActLibraryArticleCard001Props> = pr
               })}
           </WsFlex>
         </WsCard>
-      </Pressable>
+      </Pressable >
     </>
   )
 }

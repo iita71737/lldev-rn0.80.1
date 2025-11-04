@@ -465,10 +465,8 @@ const RoutesMain = ({ navigation }) => {
   const $_actTypeSet = async () => {
     let _params = {
       order_by: 'sequence',
-      order_way: 'asc'
-    }
-    if (currentFactory && currentFactory.id) {
-      _params.factory = currentFactory.id
+      order_way: 'asc',
+      area: currentFactory?.area?.id ? currentFactory?.area?.id : undefined
     }
     try {
       const actTypes = await S_ActType.index({ params: _params })
@@ -479,9 +477,8 @@ const RoutesMain = ({ navigation }) => {
   }
   // INIT ACT_STATUS
   const $_actStatus = async () => {
-    let _params = {}
-    if (currentFactory && currentFactory.id) {
-      _params.factory = currentFactory.id
+    let _params = {
+      area: currentFactory?.area?.id ? currentFactory?.area?.id : undefined
     }
     try {
       const actStatus = await S_ActStatus.index({ params: _params })
@@ -644,10 +641,11 @@ const RoutesMain = ({ navigation }) => {
       const timer = setTimeout(() => {
         $_areaSet()
         $_subAreaSet()
-        $_contractorTypeSet()
-        $_effectSet()
         $_actTypeSet()
         $_actStatus()
+
+        $_contractorTypeSet()
+        $_effectSet()
         $_licenseTypes()
         $_eventTypes()
         $_factoryTags()
@@ -658,7 +656,7 @@ const RoutesMain = ({ navigation }) => {
       }, 0)
       return () => clearTimeout(timer);
     }
-  }, [currentFactory?.id, currentUser?.id])
+  }, [currentUser?.id, currentFactory?.id])
 
 
   return (

@@ -275,7 +275,7 @@ function App(): JSX.Element {
             <PaperProvider>
               {Config.ENV === 'development' && <WsGlobalOfflineAlert />}
               <WsSnackBar />
-              {isLoading ? null : <RoutesMain />}   {/* ← 只切內容，不切 Provider */}
+              {isLoading ? null : <RoutesMain />}
             </PaperProvider>
           </CopilotProvider>
         </Provider>

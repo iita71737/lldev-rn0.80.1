@@ -105,27 +105,29 @@ const RoutesMenu = () => {
                     }
                   }}
                 />
-                <LlSOSBtn001
-                  onPress={(e) => {
-                    if (!scopePermission('sos-create', currentUserScope)) {
-                      Alert.alert(
-                        t('您無此單位內相關權限，請聯絡系統管理員'),
-                        "",
-                        [
-                          {
-                            text: "我知道了",
-                            onPress: () => {
-                              navigation.navigate('RoutesMenu')
+                {scopePermission('sos-create', currentUserScope) && (
+                  <LlSOSBtn001
+                    onPress={(e) => {
+                      if (!scopePermission('sos-create', currentUserScope)) {
+                        Alert.alert(
+                          t('您無此單位內相關權限，請聯絡系統管理員'),
+                          "",
+                          [
+                            {
+                              text: "我知道了",
+                              onPress: () => {
+                                navigation.navigate('RoutesMenu')
+                              }
                             }
-                          }
-                        ]
-                      )
-                      e.preventDefault();
-                    } else if (scopePermission('sos-create', currentUserScope)) {
-                      navigation.push('SOS')
-                    }
-                  }}
-                />
+                          ]
+                        )
+                        e.preventDefault();
+                      } else if (scopePermission('sos-create', currentUserScope)) {
+                        navigation.push('SOS')
+                      }
+                    }}
+                  />
+                )}
               </WsFlex>
             </>
           )

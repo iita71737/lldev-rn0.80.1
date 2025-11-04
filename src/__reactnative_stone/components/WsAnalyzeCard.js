@@ -1,5 +1,5 @@
 import React from 'react'
-import { Pressable, TouchableOpacity } from 'react-native'
+import { Pressable, TouchableOpacity, View } from 'react-native'
 import {
   WsCard,
   WsText,
@@ -27,7 +27,8 @@ const WsAnalyzeCard = props => {
     onPress,
     upperRightOnPress,
     style,
-    disabled
+    disabled,
+    iconSize = 48
   } = props
 
   // Render
@@ -66,53 +67,55 @@ const WsAnalyzeCard = props => {
         <WsFlex
           style={{
             height: 50,
-          }}>
-          {isPercent && (
-            <WsIconCircle
-              style={[
-                {
-                  marginRight: 16
-                }
-              ]}
-              color={isAlert ? alertIconColor : undefined}
-              progressTintColor={isAlert ? alertIconColor : undefined}
-              backgroundColor={isAlert ? alertBackgroundColor : undefined}
-              name={icon}
-              size={20}
-              hasProgress={true}
-              count={count}
-            />
-          )}
-          {!isPercent && (
-            <WsIconCircle
-              padding={12}
-              iconSize={28}
-              style={[
-                {
-                  marginRight: 16
-                }
-              ]}
-              name={icon}
-              size={24}
-            />
-          )}
-          {count != undefined ? (
-            <WsText
-              style={[
-                isAlert
-                  ? {
-                    color: alertTextColor
-                  }
-                  : null
-              ]}
-              size="24"
-              fontWeight="bold">
-              {count}
-            </WsText>
-          ) : (
-            <WsLoading></WsLoading>
-          )}
+            alignItems: 'center',
+          }}
+        >
+          {/* 左欄：icon 固定寬 */}
+          <View style={{ alignItems: 'center' }}>
+            {isPercent ? (
+              <WsIconCircle
+                style={{ marginRight: 0 }}
+                color={isAlert ? alertIconColor : undefined}
+                progressTintColor={isAlert ? alertIconColor : undefined}
+                backgroundColor={isAlert ? alertBackgroundColor : undefined}
+                name={icon}
+                size={20}
+                hasProgress={true}
+                count={count}
+              />
+            ) : (
+              <WsIconCircle
+                padding={12}
+                iconSize={28}
+                style={{ marginRight: 4 }}
+                name={icon}
+                size={24}
+              />
+            )}
+          </View>
+
+          {/* 中欄：count 置中 */}
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            {count != undefined ? (
+              <WsText
+                style={[
+                  isAlert ? { color: alertTextColor } : null,
+                  { textAlign: 'center' }
+                ]}
+                size="24"
+                fontWeight="bold"
+              >
+                {count}
+              </WsText>
+            ) : (
+              <WsLoading />
+            )}
+          </View>
+
+          {/* 右欄：與左欄等寬的空白占位，確保真正水平置中 */}
+          <View style={{ paddingHorizontal: 16 }} />
         </WsFlex>
+
         <WsText
           style={[
             {
