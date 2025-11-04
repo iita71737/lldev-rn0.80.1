@@ -140,7 +140,6 @@ const RoutesFactory = ({ navigation, route }) => {
       'CustomizeCheckListCreate',
       'CheckListAssignmentUpdate',
       'CheckListAssignmentProcedure',
-      // 'CheckListReviewResultShow',
       'CheckListReviewShow',
       'CheckListAssignmentShow',
       'ViewCheckListReviewed',
@@ -276,7 +275,6 @@ const RoutesFactory = ({ navigation, route }) => {
             headerShown: false,
             tabBarShowLabel: false,
             activeTintColor: $color.primary,
-            showLabel: false,
             tabBarVisible: setRoutesMenuTabBarVisible(route),
             tabBarButton: [
               "RoutesCheckList",

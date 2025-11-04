@@ -8,7 +8,7 @@ import {
   Dimensions,
   TouchableOpacity,
   RefreshControl,
-  // SafeAreaView
+  SafeAreaView
 } from 'react-native'
 import {
   WsAnalyzeCard,
@@ -54,7 +54,7 @@ import {
 import { useNavigationState } from '@react-navigation/native';
 import S_Locale from '@/services/api/v1/locale'
 import H_time from '@/helpers/time';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Dashboard = ({ navigation }) => {
   const { width, height } = Dimensions.get('window')
@@ -910,7 +910,7 @@ const Dashboard = ({ navigation }) => {
     <SafeAreaView
       style={{
         flex: 1,
-        backgroundColor: $color.primary11l
+        backgroundColor: $color.primary11l,
       }}
     >
       <StatusBar
@@ -942,7 +942,6 @@ const Dashboard = ({ navigation }) => {
             {currentViewMode == 'organization' && (
               <WsPaddingContainer
                 style={{
-                  paddingTop: 16,
                   paddingBottom: 0
                 }}>
                 <TouchableOpacity
@@ -1002,7 +1001,7 @@ const Dashboard = ({ navigation }) => {
               data={topAnalyzeData}
               keyExtractor={item => item.title}
               renderItem={({ item, index }) => (
-                <View style={{ flex: 1 , margin: 4 }}>
+                <View style={{ flex: 1, margin: 4 }}>
                   <WsAnalyzeCard
                     style={{ width: '100%' }}
                     key={index}

@@ -37,7 +37,7 @@ const RoutesDashboard = () => {
     >
       <StackSetting.Screen
         name="DashboardFactory"
-        component={scopeFilterScreen(['organization-dashboard-read', 'factory-dashboard-read'], ViewDashboardFactory)}
+        component={scopeFilterScreen(['factory-dashboard-read'], ViewDashboardFactory)}
         options={({ navigation }) => ({
           headerBackTitle:'',
           title: t('各單位概況'),
