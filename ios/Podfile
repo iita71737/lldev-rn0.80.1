@@ -10,6 +10,7 @@ node_require('react-native/scripts/react_native_pods.rb')
 node_require('react-native-permissions/scripts/setup.rb')
 
 platform :ios, min_ios_version_supported
+
 prepare_react_native_project!
 
 # ⬇️ uncomment the permissions you need
@@ -41,6 +42,11 @@ if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
   use_frameworks! :linkage => linkage.to_sym
 end
+
+# ===== 依官方文件：把 react-native-maps 的 Google 子模組放在 use_native_modules! 之上 =====
+rn_maps_path = '../node_modules/react-native-maps'
+pod 'react-native-maps/Google', :path => rn_maps_path
+# （不需額外寫 pod 'GoogleMaps'，子模組會帶入依賴）
 
 target 'esgoaldev' do
   config = use_native_modules!
