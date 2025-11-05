@@ -1,4 +1,4 @@
-v0.80.1.7.9
+v0.80.1.8.1
 
 # react-native upgrade to 0.80.1
 # yarn add mathjs
@@ -10,3 +10,4 @@ v0.80.1.7.9
 # yarn add react-native-keychain
 # patch react-native-compressor for 16kb issue
 # v0.80.1.7.2 hidden for demo
+# yarn add react-native-maps

@@ -35,6 +35,7 @@ const RoutesOrganization = () => {
   const currentUserScope = useSelector(state => state.data.userScopes)
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentViewMode = useSelector(state => state.data.currentViewMode)
+  const currentOrganization = useSelector(state => state.data.currentOrganization)
 
   // 1) 依 currentFactory 決定 initialRoute，只在 factory 變動時重算
   const initialRouteName = React.useMemo(() => {
@@ -285,7 +286,7 @@ const RoutesOrganization = () => {
           }}
           listeners={({ navigation, route }) => ({
             tabPress: (e) => {
-              if (!scopePermission('factory-dashboard-read', currentUserScope)) {
+              if (!scopePermission('organization-dashboard-read', currentUserScope)) {
                 Alert.alert(
                   t('您無此單位內相關權限，請聯絡系統管理員'),
                   "",
@@ -323,7 +324,7 @@ const RoutesOrganization = () => {
           })}
           listeners={({ navigation, route }) => ({
             tabPress: (e) => {
-              if (!scopePermission('organization-dashboard-read', currentUserScope)) {
+              if (!scopePermission('factory-dashboard-read', currentUserScope)) {
                 Alert.alert(
                   t('您無此單位內相關權限，請聯絡系統管理員'),
                   "",

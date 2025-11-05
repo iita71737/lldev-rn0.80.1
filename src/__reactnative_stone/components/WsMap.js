@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps'
-import { View, Dimensions, Text, Image, TouchableOpacity } from 'react-native'
+import { View, Dimensions, Text, Image, TouchableOpacity, Platform } from 'react-native'
 import {
   WsAvatar,
   WsText,
@@ -86,69 +86,138 @@ const WsMap = props => {
   // Render
   return (
     <>
-      <MapView
-        style={{
-          flex: 1
-        }}
-        showsMyLocationButton={true}
-        provider={PROVIDER_GOOGLE}
-        region={region ? region : ''}
-        // onRegionChange={setRegion}
-        showsUserLocation={false}>
-        {flatUnits && flatUnits.length > 0 ? (
-          flatUnits.map((marker, index) => (
-            <>
-              <Marker
-                key={index}
-                anchor={{ x: 0.15, y: 0.7 }}
-                image={
-                  marker
-                    ? require('@/__reactnative_stone/assets/img/iconFlag.png')
-                    : ''
-                }
-                title={marker.name}
-                description={marker.address}
-                coordinate={{
-                  latitude: marker.lat != null ? parseFloat(marker.lat) : 31.16566,
-                  longitude: marker.lng != null ? parseFloat(marker.lng) : 130.3933532,
-                  latitudeDelta: 0.0922,
-                  longitudeDelta: 0.0421
-                }}
-                onPress={() => {
-                  setRegion({
-                    latitude: parseFloat(marker.lat),
-                    longitude: parseFloat(marker.lng),
-                    latitudeDelta: LATITUDE_DELTA,
-                    longitudeDelta: LONGITUDE_DELTA
-                  })
-                  markerOnPress(marker)
-                  setToggleListOrDetail(true)
-                  $_selectedMarker(marker)
-                }}>
-                {circleBubble && (
-                  <LlRiskCircleBubble
-                    opacity={0.6}
-                    riskDegree={marker.riskDegree ? marker.riskDegree : null}
-                    complianceRate={18}
-                  />
-                )}
-              </Marker>
-            </>
-          ))
-        ) : (
-          <Marker
-            draggable
-            coordinate={{
-              latitude: 25.091593,
-              longitude: 121.43958,
-              latitudeDelta: 0.0922,
-              longitudeDelta: 0.0421
-            }}
-            title="example title"
-            description="example description"
-          />
-        )}
-      </MapView>
+      {Platform.OS === 'ios' && (
+        <MapView
+          style={{
+            flex: 1
+          }}
+          mapType="mutedStandard"
+          showsMyLocationButton={true}
+          provider={PROVIDER_GOOGLE}
+          region={region ? region : ''}
+          // onRegionChange={setRegion}
+          showsUserLocation={false}>
+          {flatUnits && flatUnits.length > 0 ? (
+            flatUnits.map((marker, index) => (
+              <>
+                <Marker
+                  key={index}
+                  anchor={{ x: 0.15, y: 0.7 }}
+                  image={
+                    marker
+                      ? require('@/__reactnative_stone/assets/img/iconFlag.png')
+                      : ''
+                  }
+                  title={marker.name}
+                  description={marker.address}
+                  coordinate={{
+                    latitude: marker.lat != null ? parseFloat(marker.lat) : 31.16566,
+                    longitude: marker.lng != null ? parseFloat(marker.lng) : 130.3933532,
+                    latitudeDelta: 0.0922,
+                    longitudeDelta: 0.0421
+                  }}
+                  onPress={() => {
+                    setRegion({
+                      latitude: parseFloat(marker.lat),
+                      longitude: parseFloat(marker.lng),
+                      latitudeDelta: LATITUDE_DELTA,
+                      longitudeDelta: LONGITUDE_DELTA
+                    })
+                    markerOnPress(marker)
+                    setToggleListOrDetail(true)
+                    $_selectedMarker(marker)
+                  }}>
+                  {circleBubble && (
+                    <LlRiskCircleBubble
+                      opacity={0.6}
+                      riskDegree={marker.riskDegree ? marker.riskDegree : null}
+                      complianceRate={18}
+                    />
+                  )}
+                </Marker>
+              </>
+            ))
+          ) : (
+            <Marker
+              draggable
+              coordinate={{
+                latitude: 25.091593,
+                longitude: 121.43958,
+                latitudeDelta: 0.0922,
+                longitudeDelta: 0.0421
+              }}
+              title="example title"
+              description="example description"
+            />
+          )}
+        </MapView>
+      )}
+
+      {Platform.OS === 'android' && (
+        <MapView
+          style={{
+            flex: 1
+          }}
+          showsMyLocationButton={true}
+          provider={PROVIDER_GOOGLE}
+          region={region ? region : ''}
+          showsUserLocation={false}>
+          {flatUnits && flatUnits.length > 0 ? (
+            flatUnits.map((marker, index) => (
+              <>
+                <Marker
+                  key={index}
+                  anchor={{ x: 0.15, y: 0.7 }}
+                  image={
+                    marker
+                      ? require('@/__reactnative_stone/assets/img/iconFlag.png')
+                      : ''
+                  }
+                  title={marker.name}
+                  description={marker.address}
+                  coordinate={{
+                    latitude: marker.lat != null ? parseFloat(marker.lat) : 31.16566,
+                    longitude: marker.lng != null ? parseFloat(marker.lng) : 130.3933532,
+                    latitudeDelta: 0.0922,
+                    longitudeDelta: 0.0421
+                  }}
+                  onPress={() => {
+                    setRegion({
+                      latitude: parseFloat(marker.lat),
+                      longitude: parseFloat(marker.lng),
+                      latitudeDelta: LATITUDE_DELTA,
+                      longitudeDelta: LONGITUDE_DELTA
+                    })
+                    markerOnPress(marker)
+                    setToggleListOrDetail(true)
+                    $_selectedMarker(marker)
+                  }}>
+                  {circleBubble && (
+                    <LlRiskCircleBubble
+                      opacity={0.6}
+                      riskDegree={marker.riskDegree ? marker.riskDegree : null}
+                      complianceRate={18}
+                    />
+                  )}
+                </Marker>
+              </>
+            ))
+          ) : (
+            <Marker
+              draggable
+              coordinate={{
+                latitude: 25.091593,
+                longitude: 121.43958,
+                latitudeDelta: 0.0922,
+                longitudeDelta: 0.0421
+              }}
+              title="example title"
+              description="example description"
+            />
+          )}
+        </MapView>
+      )}
+
       {userCoordinate && toggleListOrDetail && (
         <View
           style={{

@@ -198,7 +198,7 @@ const RoutesMain = ({ navigation }) => {
         // 如果廠在第一層級
         if (unit.id == initFactory.id) {
           store.dispatch(setCurrentFactory(unit))
-          $_checkoutFactory(_unit)
+          $_checkoutFactory(unit)
         }
         // 如果廠在第二層級
         else if (unit.child_factories && unit.child_factories.length > 0) {
@@ -213,10 +213,12 @@ const RoutesMain = ({ navigation }) => {
     } else if (initOrganization && currentUser) {
       store.dispatch(setCurrentViewMode('organization'))
       store.dispatch(setCurrentOrganization(initOrganization))
-      if (initOrganization?.child_factories?.length > 0) {
-        const _factory = initOrganization.child_factories[0]
-        store.dispatch(setCurrentFactory(_factory))
-      }
+      store.dispatch(setCurrentFactory(initOrganization))
+      // 251105-fix-issue
+      // if (initOrganization?.child_factories?.length > 0) {
+      //   const _factory = initOrganization.child_factories[0]
+      //   store.dispatch(setCurrentFactory(_factory))
+      // }
     }
     else if (currentUser && currentUser?.current_factory && currentUser?.current_factory?.id) {
       // 確認使用者上次登入的單位現在是否有權限-250731-issue

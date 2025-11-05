@@ -29,7 +29,6 @@ import {
 } from '@/store/data'
 import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-// import { langWithApiAndLocal } from '@/__reactnative_stone/global/i18n'
 import i18next from 'i18next'
 import G_i18n from '@/__reactnative_stone/global/i18n'
 import $s from '@/__reactnative_stone/services'

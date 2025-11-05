@@ -146,9 +146,6 @@ const LlActLibraryArticleCard001: React.FC<LlActLibraryArticleCard001Props> = pr
             </WsText>
           </WsFlex>
 
-
-
-
           <WsFlex
             style={{
               paddingLeft: 24,

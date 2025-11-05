@@ -8,7 +8,7 @@ import {
   Dimensions,
   TouchableOpacity,
   RefreshControl,
-  SafeAreaView
+  // SafeAreaView
 } from 'react-native'
 import {
   WsAnalyzeCard,
@@ -54,7 +54,7 @@ import {
 import { useNavigationState } from '@react-navigation/native';
 import S_Locale from '@/services/api/v1/locale'
 import H_time from '@/helpers/time';
-// import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Dashboard = ({ navigation }) => {
   const { width, height } = Dimensions.get('window')
@@ -63,6 +63,7 @@ const Dashboard = ({ navigation }) => {
   const currentLang = i18n.language
   const isFocused = useIsFocused()
   const routeName = useNavigationState(state => state.routes[state.index].name);
+  const insets = useSafeAreaInsets();
 
   // Redux
   const currentIdleCounter = useSelector(state => state.data.idleCounter)
@@ -907,144 +908,149 @@ const Dashboard = ({ navigation }) => {
 
   // Render
   return (
-    <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor: $color.primary11l,
-      }}
-    >
+    <>
       <StatusBar
         barStyle="dark-content"
         backgroundColor={$color.primary} // 只影響 Android
         translucent={false}
       />
-
-      <ScrollView
-        testID={'ScrollView'}
-        onScroll={handleScroll}
-        showsVerticalScrollIndicator={false}
-        edges={['top']}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={fetchData} />
-        }
+      <SafeAreaView
+        edges={currentViewMode == 'organization' ? ['left', 'right', 'bottom'] : ['left', 'right', 'bottom', 'top']}
+        style={{
+          flex: 1,
+          backgroundColor: $color.primary11l,
+          paddingTop: currentViewMode == 'organization' ? 16 : 0
+        }}
       >
-        {loading ? (
-          <>
-            <WsPaddingContainer
-              style={{
-                paddingTop: 0
-              }}>
-              <WsSkeleton />
-            </WsPaddingContainer>
-          </>
-        ) : (
-          <>
-            {currentViewMode == 'organization' && (
+        <ScrollView
+          testID={'ScrollView'}
+          onScroll={handleScroll}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={fetchData} />
+          }
+        >
+          {loading ? (
+            <>
               <WsPaddingContainer
                 style={{
-                  paddingBottom: 0
+                  paddingTop: 0,
                 }}>
-                <TouchableOpacity
-                  style={{
-                    paddingLeft: 0,
-                    paddingRight: 0,
-                    padding: 12,
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    borderColor: $color.white5d,
-                    borderRadius: 15,
-                    borderWidth: 1
-                  }}
-                  onPress={() => {
-                    setPopupActive(true)
-                  }}>
-                  {sortValue && sortValue.name && (
-                    <WsText size={18} style={{ paddingHorizontal: 16 }}>{sortValue.name}</WsText>
-                  )}
-                </TouchableOpacity>
-
-                <WsPopup
-                  active={popupActive}
-                  onClose={() => {
-                    setPopupActive(false)
-                  }}>
-                  {factoryFilter && (
-                    <View
-                      style={{
-                        padding: 16,
-                        width: width * 0.9,
-                        backgroundColor: $color.white,
-                        borderRadius: 10,
-                      }}>
-                      <ScrollView>
-                        <LlLvInfoMultiLayer
-                          items={factoryFilter}
-                          value={sortValue}
-                          onChange={$_selectFactories}
-                        ></LlLvInfoMultiLayer>
-                      </ScrollView>
-                    </View>
-                  )}
-                </WsPopup>
+                <WsSkeleton />
               </WsPaddingContainer>
-            )}
-
-            <FlatList
-              style={{
-                marginHorizontal: 16,
-              }}
-              columnWrapperStyle={{
-                gap: 4,
-              }}
-              numColumns={2}
-              data={topAnalyzeData}
-              keyExtractor={item => item.title}
-              renderItem={({ item, index }) => (
-                <View style={{ flex: 1, margin: 4 }}>
-                  <WsAnalyzeCard
-                    style={{ width: '100%' }}
-                    key={index}
-                    icon={item.icon}
-                    title={item.title ? item.title : ''}
-                    count={item.count}
-                    isAlert={item.isAlert}
-                    isPercent={item.isPercent}
+            </>
+          ) : (
+            <>
+              {currentViewMode == 'organization' && (
+                <WsPaddingContainer
+                  padding={0}
+                  style={{
+                    paddingHorizontal: 16,
+                    marginBottom: 8
+                  }}>
+                  <TouchableOpacity
+                    style={{
+                      paddingLeft: 0,
+                      paddingRight: 0,
+                      padding: 12,
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      borderColor: $color.white5d,
+                      borderRadius: 15,
+                      borderWidth: 1
+                    }}
                     onPress={() => {
-                      if (!item.navigateScreen) {
-                        return
-                      }
-                      navigation.push(item.navigateRoutesName, {
-                        screen: item.navigateScreen,
-                        params: {
-                          item: item,
-                          unit: sortValue
-                        }
-                      })
-                    }}
-                    upperRightOnPress={() => {
-                      if (!item.upperRightNavigate) {
-                        return
-                      }
-                      // issue-250526
-                      if (item.upperRightNavigateScreen === 'AlertIndex') {
-                        navigation.navigate(item.upperRightNavigate, {
-                          tabIndex: 1
-                        })
-                      } else {
-                        navigation.push(item.upperRightNavigate, {
-                          screen: item.upperRightNavigateScreen
-                        })
-                      }
-                    }}
-                  />
-                </View>
+                      setPopupActive(true)
+                    }}>
+                    {sortValue && sortValue.name && (
+                      <WsText size={18} style={{ paddingHorizontal: 16 }}>{sortValue.name}</WsText>
+                    )}
+                  </TouchableOpacity>
+
+                  <WsPopup
+                    active={popupActive}
+                    onClose={() => {
+                      setPopupActive(false)
+                    }}>
+                    {factoryFilter && (
+                      <View
+                        style={{
+                          padding: 16,
+                          width: width * 0.9,
+                          backgroundColor: $color.white,
+                          borderRadius: 10,
+                        }}>
+                        <ScrollView>
+                          <LlLvInfoMultiLayer
+                            items={factoryFilter}
+                            value={sortValue}
+                            onChange={$_selectFactories}
+                          ></LlLvInfoMultiLayer>
+                        </ScrollView>
+                      </View>
+                    )}
+                  </WsPopup>
+                </WsPaddingContainer>
               )}
-            />
-          </>
-        )}
-        <>
-          {/* <WsPaddingContainer
+
+              <FlatList
+                style={{
+                  marginHorizontal: 16,
+                }}
+                columnWrapperStyle={{
+                  gap: 4,
+                }}
+                numColumns={2}
+                data={topAnalyzeData}
+                keyExtractor={item => item.title}
+                renderItem={({ item, index }) => (
+                  <View
+                    style={{ flex: 1, margin: 4 }}
+                  >
+                    <WsAnalyzeCard
+                      style={{ width: '100%' }}
+                      key={index}
+                      icon={item.icon}
+                      title={item.title ? item.title : ''}
+                      count={item.count}
+                      isAlert={item.isAlert}
+                      isPercent={item.isPercent}
+                      onPress={() => {
+                        if (!item.navigateScreen) {
+                          return
+                        }
+                        navigation.push(item.navigateRoutesName, {
+                          screen: item.navigateScreen,
+                          params: {
+                            item: item,
+                            unit: sortValue
+                          }
+                        })
+                      }}
+                      upperRightOnPress={() => {
+                        if (!item.upperRightNavigate) {
+                          return
+                        }
+                        // issue-250526
+                        if (item.upperRightNavigateScreen === 'AlertIndex') {
+                          navigation.navigate(item.upperRightNavigate, {
+                            tabIndex: 1
+                          })
+                        } else {
+                          navigation.push(item.upperRightNavigate, {
+                            screen: item.upperRightNavigateScreen
+                          })
+                        }
+                      }}
+                    />
+                  </View>
+                )}
+              />
+            </>
+          )}
+          <>
+            {/* <WsPaddingContainer
             style={{
               borderRadius: 10,
               backgroundColor: $color.white,
@@ -1070,7 +1076,7 @@ const Dashboard = ({ navigation }) => {
             />
           </WsPaddingContainer> */}
 
-          {/* {currentViewMode == 'factory' && (
+            {/* {currentViewMode == 'factory' && (
             <WsPaddingContainer
               style={{
                 borderRadius: 10,
@@ -1098,7 +1104,7 @@ const Dashboard = ({ navigation }) => {
             </WsPaddingContainer>
           )} */}
 
-          {/* <WsPaddingContainer
+            {/* <WsPaddingContainer
             style={{
               borderRadius: 10,
               backgroundColor: $color.white,
@@ -1124,7 +1130,7 @@ const Dashboard = ({ navigation }) => {
             />
           </WsPaddingContainer> */}
 
-          {/* {currentViewMode == 'factory' && (
+            {/* {currentViewMode == 'factory' && (
             <WsPaddingContainer
               style={{
                 borderRadius: 10,
@@ -1150,202 +1156,203 @@ const Dashboard = ({ navigation }) => {
               />
             </WsPaddingContainer>
           )} */}
-        </>
-        <WsPaddingContainer
-          style={{
-            paddingTop: 8
-          }}>
-          <WsChartsModels
-            pickerValue={pickerValueForAlert}
-            setPickerValue={$event => {
-              setPickerValueForAlert($event)
-              let _params = {
-                ...alertParams
-              }
-              const _all = systemClasses.map(_ => _.id).toString()
-              if ($event === _all || $event === undefined) {
-                _params.system_class = 'all'
-              } else {
-                _params.system_class = $event
-              }
-              setAlertParams(_params)
-            }}
-            pickerItems={pickerItemsForAlert}
-            pickerLabel001={t('領域')}
-            label={t('警示')}
-            yAxisTitle={t("數量")}
-            placeholder={t('全部')}
-            service={S_AlertMonth}
-            headerRightIcon="ws-outline-arrow-go"
-            itemType="date-half-year"
-            type="stacked-bar-chart"
-            tabItems={alertTabItems}
-            fields={systemClassesAlertFields}
-            params={alertParams}
-            headerRightOnPress={() => {
-              // issue-250526
-              navigation.navigate('RoutesAlert', {
-                defaultTabIndex: 1
-              })
-            }}
-            startColor={$color.danger}
-            endColor={$color.danger}
-            setValueFromModels={$_setValue}
-            timeField="created_at"
-            onTabChange={$event => {
-              if ($event == 0) {
-                $_getAlertFields($color.danger)
-                setAlertParams({
-                  ...alertParams,
-                  level: 2
+          </>
+          <WsPaddingContainer
+            style={{
+              paddingTop: 8
+            }}>
+            <WsChartsModels
+              pickerValue={pickerValueForAlert}
+              setPickerValue={$event => {
+                setPickerValueForAlert($event)
+                let _params = {
+                  ...alertParams
+                }
+                const _all = systemClasses.map(_ => _.id).toString()
+                if ($event === _all || $event === undefined) {
+                  _params.system_class = 'all'
+                } else {
+                  _params.system_class = $event
+                }
+                setAlertParams(_params)
+              }}
+              pickerItems={pickerItemsForAlert}
+              pickerLabel001={t('領域')}
+              label={t('警示')}
+              yAxisTitle={t("數量")}
+              placeholder={t('全部')}
+              service={S_AlertMonth}
+              headerRightIcon="ws-outline-arrow-go"
+              itemType="date-half-year"
+              type="stacked-bar-chart"
+              tabItems={alertTabItems}
+              fields={systemClassesAlertFields}
+              params={alertParams}
+              headerRightOnPress={() => {
+                // issue-250526
+                navigation.navigate('RoutesAlert', {
+                  defaultTabIndex: 1
                 })
-              } else {
-                $_getAlertFields('#e8b400')
-                setAlertParams({
-                  ...alertParams,
-                  level: 1
+              }}
+              startColor={$color.danger}
+              endColor={$color.danger}
+              setValueFromModels={$_setValue}
+              timeField="created_at"
+              onTabChange={$event => {
+                if ($event == 0) {
+                  $_getAlertFields($color.danger)
+                  setAlertParams({
+                    ...alertParams,
+                    level: 2
+                  })
+                } else {
+                  $_getAlertFields('#e8b400')
+                  setAlertParams({
+                    ...alertParams,
+                    level: 1
+                  })
+                }
+              }}
+              countKey="alert_count"
+            />
+            <WsChartsModels
+              pickerValue={pickerValueForEvent}
+              setPickerValue={$event => {
+                setPickerValueForEvent($event)
+                let _params = {
+                  ...eventParams
+                }
+                const _all = systemClasses.map(_ => _.id).toString()
+                if ($event === _all || $event === undefined) {
+                  _params.system_class = 'all'
+                } else {
+                  _params.system_class = $event
+                }
+                setEventParams(_params)
+              }}
+              pickerValue002={pickerValue002ForEvent}
+              setPickerValue002={$event => {
+                setPickerValue002ForEvent($event)
+                let _params = {
+                  ...eventParams,
+                  event_type: $event
+                }
+                setEventParams(_params)
+              }}
+              pickerItems={pickerItemsForEvent}
+              placeholder={t('全部')}
+              pickerItems002={eventTypes}
+              placeholder002={t('全部')}
+              label={t('風險事件')}
+              pickerLabel002={t('類型')}
+              pickerLabel001={t('領域')}
+              yAxisTitle={t("數量")}
+              countKey="event_count"
+              service={S_EventMonth}
+              startColor={$color.primary}
+              endColor={$color.primary}
+              headerRightIcon="ws-outline-arrow-go"
+              itemType="date-half-year"
+              type="stacked-bar-chart"
+              headerRightOnPress={() => {
+                navigation.navigate('RoutesEvent', {
+                  screen: 'EventIndex'
                 })
-              }
-            }}
-            countKey="alert_count"
-          />
-          <WsChartsModels
-            pickerValue={pickerValueForEvent}
-            setPickerValue={$event => {
-              setPickerValueForEvent($event)
-              let _params = {
-                ...eventParams
-              }
-              const _all = systemClasses.map(_ => _.id).toString()
-              if ($event === _all || $event === undefined) {
-                _params.system_class = 'all'
-              } else {
-                _params.system_class = $event
-              }
-              setEventParams(_params)
-            }}
-            pickerValue002={pickerValue002ForEvent}
-            setPickerValue002={$event => {
-              setPickerValue002ForEvent($event)
-              let _params = {
-                ...eventParams,
-                event_type: $event
-              }
-              setEventParams(_params)
-            }}
-            pickerItems={pickerItemsForEvent}
-            placeholder={t('全部')}
-            pickerItems002={eventTypes}
-            placeholder002={t('全部')}
-            label={t('風險事件')}
-            pickerLabel002={t('類型')}
-            pickerLabel001={t('領域')}
-            yAxisTitle={t("數量")}
-            countKey="event_count"
-            service={S_EventMonth}
-            startColor={$color.primary}
-            endColor={$color.primary}
-            headerRightIcon="ws-outline-arrow-go"
-            itemType="date-half-year"
-            type="stacked-bar-chart"
-            headerRightOnPress={() => {
-              navigation.navigate('RoutesEvent', {
-                screen: 'EventIndex'
-              })
-            }}
-            fields={systemClassesFields}
-            setValueFromModels={$_setValue}
-            timeField="created_at"
-            params={eventParams}
-            onTabChange={$event => {
-              let event_type = $event + 1
-              if ($event === 0) {
-                event_type = 'all'
-              }
-              setEventParams({
-                ...eventParams,
-                event_type: event_type
-              })
-            }}
-            style={{ marginTop: 16 }}
-          />
-          <WsChartsModels
-            pickerValue={pickerValueForTask}
-            setPickerValue={$event => {
-              setPickerValueForTask($event)
-              let _params = {
-                ...taskParams,
-                system_class: $event
-              }
-              const _all = systemClasses.map(_ => _.id).toString()
-              if ($event === _all || $event === undefined) {
-                _params.system_class = 'all'
-              }
-              setTaskParams(_params)
-            }}
-            pickerItems={pickerItemsForTask}
-            pickerLabel001={t('領域')}
-            placeholder={t('全部')}
-            label={t('任務')}
-            yAxisTitle={t("數量")}
-            service={S_TaskMonth}
-            params={taskParams}
-            startColor={$color.primary}
-            endColor={$color.primary}
-            headerRightIcon="ws-outline-arrow-go"
-            itemType="date-half-year"
-            type="stacked-bar-chart"
-            fields={systemClassesFields}
-            setValueFromModels={$_setValue}
-            headerRightOnPress={() => {
-              navigation.navigate('RoutesTask', {
-                screen: 'TaskIndex'
-              })
-            }}
-            timeField="created_at"
-            style={{ marginTop: 16 }}
-            countKey="task_count"
-          />
-          <WsChartsModels
-            pickerValue={pickerValueForContractorEnter}
-            setPickerValue={$event => {
-              setPickerValueForContractorEnter($event)
-              let _params = {
-                ...contractorEnterParams,
-                system_class: $event
-              }
-              const _all = systemClasses.map(_ => _.id).toString()
-              if ($event === _all || $event === undefined) {
-                _params.system_class = 'all'
-              }
-              setContractorEnterParams(_params)
-            }}
-            pickerItems={pickerItemsForContractorEnter}
-            pickerLabel001={t('領域')}
-            placeholder={t('全部')}
-            label={t('進場')}
-            yAxisTitle={t("數量")}
-            service={S_ContractorEnterRecordMonth}
-            params={contractorEnterParams}
-            startColor={$color.primary}
-            endColor={$color.primary}
-            headerRightIcon="ws-outline-arrow-go"
-            itemType="date-half-year"
-            headerRightOnPress={() => {
-              navigation.navigate('RoutesContractorEnter', {
-                screen: 'ContractorEnter'
-              })
-            }}
-            type="stacked-bar-chart"
-            fields={systemClassesFields}
-            setValueFromModels={$_setValue}
-            timeField="created_at"
-            style={{ marginTop: 16 }}
-            countKey="contractor_enter_record_count"
-          />
-        </WsPaddingContainer>
-      </ScrollView>
-    </SafeAreaView>
+              }}
+              fields={systemClassesFields}
+              setValueFromModels={$_setValue}
+              timeField="created_at"
+              params={eventParams}
+              onTabChange={$event => {
+                let event_type = $event + 1
+                if ($event === 0) {
+                  event_type = 'all'
+                }
+                setEventParams({
+                  ...eventParams,
+                  event_type: event_type
+                })
+              }}
+              style={{ marginTop: 16 }}
+            />
+            <WsChartsModels
+              pickerValue={pickerValueForTask}
+              setPickerValue={$event => {
+                setPickerValueForTask($event)
+                let _params = {
+                  ...taskParams,
+                  system_class: $event
+                }
+                const _all = systemClasses.map(_ => _.id).toString()
+                if ($event === _all || $event === undefined) {
+                  _params.system_class = 'all'
+                }
+                setTaskParams(_params)
+              }}
+              pickerItems={pickerItemsForTask}
+              pickerLabel001={t('領域')}
+              placeholder={t('全部')}
+              label={t('任務')}
+              yAxisTitle={t("數量")}
+              service={S_TaskMonth}
+              params={taskParams}
+              startColor={$color.primary}
+              endColor={$color.primary}
+              headerRightIcon="ws-outline-arrow-go"
+              itemType="date-half-year"
+              type="stacked-bar-chart"
+              fields={systemClassesFields}
+              setValueFromModels={$_setValue}
+              headerRightOnPress={() => {
+                navigation.navigate('RoutesTask', {
+                  screen: 'TaskIndex'
+                })
+              }}
+              timeField="created_at"
+              style={{ marginTop: 16 }}
+              countKey="task_count"
+            />
+            <WsChartsModels
+              pickerValue={pickerValueForContractorEnter}
+              setPickerValue={$event => {
+                setPickerValueForContractorEnter($event)
+                let _params = {
+                  ...contractorEnterParams,
+                  system_class: $event
+                }
+                const _all = systemClasses.map(_ => _.id).toString()
+                if ($event === _all || $event === undefined) {
+                  _params.system_class = 'all'
+                }
+                setContractorEnterParams(_params)
+              }}
+              pickerItems={pickerItemsForContractorEnter}
+              pickerLabel001={t('領域')}
+              placeholder={t('全部')}
+              label={t('進場')}
+              yAxisTitle={t("數量")}
+              service={S_ContractorEnterRecordMonth}
+              params={contractorEnterParams}
+              startColor={$color.primary}
+              endColor={$color.primary}
+              headerRightIcon="ws-outline-arrow-go"
+              itemType="date-half-year"
+              headerRightOnPress={() => {
+                navigation.navigate('RoutesContractorEnter', {
+                  screen: 'ContractorEnter'
+                })
+              }}
+              type="stacked-bar-chart"
+              fields={systemClassesFields}
+              setValueFromModels={$_setValue}
+              timeField="created_at"
+              style={{ marginTop: 16 }}
+              countKey="contractor_enter_record_count"
+            />
+          </WsPaddingContainer>
+        </ScrollView>
+      </SafeAreaView>
+    </>
   )
 }
 export default Dashboard

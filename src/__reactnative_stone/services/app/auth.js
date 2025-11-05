@@ -68,7 +68,7 @@ export default {
     store.dispatch(setIsMounted(true))
   },
   async logout() {
-    store.dispatch(setIsMounted(true))
+    store.dispatch(setIsMounted(false))
     await S_API_Auth.logout()
     await AsyncStorage.removeItem('factory');
     await S_Keychain.reset()

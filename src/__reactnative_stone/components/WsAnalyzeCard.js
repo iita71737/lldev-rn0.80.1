@@ -41,7 +41,6 @@ const WsAnalyzeCard = props => {
         style={[
           {
             flexGrow: 1,
-            paddingHorizontal: 20,
           },
           style
         ]}
@@ -64,6 +63,7 @@ const WsAnalyzeCard = props => {
           name="bih-arrow-go"
           onPress={upperRightOnPress}
         ></WsIconBtn>
+
         <WsFlex
           style={{
             height: 50,
@@ -74,7 +74,10 @@ const WsAnalyzeCard = props => {
           <View style={{ alignItems: 'center' }}>
             {isPercent ? (
               <WsIconCircle
-                style={{ marginRight: 0 }}
+                style={{
+                  position: 'absolute',
+                  left: 0
+                }}
                 color={isAlert ? alertIconColor : undefined}
                 progressTintColor={isAlert ? alertIconColor : undefined}
                 backgroundColor={isAlert ? alertBackgroundColor : undefined}
@@ -85,22 +88,28 @@ const WsAnalyzeCard = props => {
               />
             ) : (
               <WsIconCircle
-                padding={12}
+                padding={10}
                 iconSize={28}
-                style={{ marginRight: 4 }}
+                style={{
+                  position: 'absolute',
+                  left: 0
+                }}
                 name={icon}
-                size={24}
+                size={28}
               />
             )}
           </View>
 
           {/* 中欄：count 置中 */}
-          <View style={{ flex: 1, alignItems: 'center' }}>
+          <View style={{
+            flex: 1,
+            alignItems: 'center',
+          }}>
             {count != undefined ? (
               <WsText
                 style={[
                   isAlert ? { color: alertTextColor } : null,
-                  { textAlign: 'center' }
+                  { textAlign: 'center', marginLeft: 8 }
                 ]}
                 size="24"
                 fontWeight="bold"
@@ -113,7 +122,7 @@ const WsAnalyzeCard = props => {
           </View>
 
           {/* 右欄：與左欄等寬的空白占位，確保真正水平置中 */}
-          <View style={{ paddingHorizontal: 16 }} />
+          <View style={{}} />
         </WsFlex>
 
         <WsText
