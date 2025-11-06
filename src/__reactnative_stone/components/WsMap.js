@@ -93,7 +93,7 @@ const WsMap = props => {
           }}
           mapType="mutedStandard"
           showsMyLocationButton={true}
-          provider={PROVIDER_GOOGLE}
+          // provider={PROVIDER_GOOGLE} 
           region={region ? region : ''}
           // onRegionChange={setRegion}
           showsUserLocation={false}>

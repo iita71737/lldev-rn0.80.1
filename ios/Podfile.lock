@@ -58,8 +58,6 @@ PODS:
     - nanopb (~> 3.30910.0)
   - fmt (11.0.2)
   - glog (0.3.5)
-  - Google-Maps-iOS-Utils (6.1.0):
-    - GoogleMaps (~> 9.0)
   - GoogleAdsOnDeviceConversion (2.1.0):
     - GoogleUtilities/Logger (~> 8.1)
     - GoogleUtilities/Network (~> 8.1)
@@ -89,9 +87,6 @@ PODS:
   - GoogleDataTransport (10.1.0):
     - nanopb (~> 3.30910.0)
     - PromisesObjC (~> 2.4)
-  - GoogleMaps (9.4.0):
-    - GoogleMaps/Maps (= 9.4.0)
-  - GoogleMaps/Maps (9.4.0)
   - GoogleUtilities (8.1.0):
     - GoogleUtilities/AppDelegateSwizzler (= 8.1.0)
     - GoogleUtilities/Environment (= 8.1.0)
@@ -2015,6 +2010,8 @@ PODS:
     - React-Codegen
     - React-RCTFabric
     - ReactCommon/turbomodule/core
+  - react-native-maps (1.26.18):
+    - react-native-maps/Maps (= 1.26.18)
   - react-native-maps/Generated (1.26.18):
     - boost
     - DoubleConversion
@@ -2034,39 +2031,6 @@ PODS:
     - React-hermes
     - React-ImageManager
     - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - SocketRocket
-    - Yoga
-  - react-native-maps/Google (1.26.18):
-    - boost
-    - DoubleConversion
-    - fast_float
-    - fmt
-    - glog
-    - Google-Maps-iOS-Utils (= 6.1.0)
-    - GoogleMaps (= 9.4.0)
-    - hermes-engine
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-hermes
-    - React-ImageManager
-    - React-jsi
-    - react-native-maps/Generated
-    - react-native-maps/Maps
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -3487,7 +3451,7 @@ DEPENDENCIES:
   - "react-native-geolocation (from `../node_modules/@react-native-community/geolocation`)"
   - react-native-heic-converter (from `../node_modules/react-native-heic-converter`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
-  - react-native-maps/Google (from `../node_modules/react-native-maps`)
+  - react-native-maps (from `../node_modules/react-native-maps`)
   - react-native-mmkv (from `../node_modules/react-native-mmkv`)
   - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
   - react-native-pager-view (from `../node_modules/react-native-pager-view`)
@@ -3564,11 +3528,9 @@ SPEC REPOS:
     - FirebaseCoreInternal
     - FirebaseInstallations
     - FirebaseMessaging
-    - Google-Maps-iOS-Utils
     - GoogleAdsOnDeviceConversion
     - GoogleAppMeasurement
     - GoogleDataTransport
-    - GoogleMaps
     - GoogleUtilities
     - libwebp
     - nanopb
@@ -3833,11 +3795,9 @@ SPEC CHECKSUMS:
   FirebaseMessaging: 3b26e2cee503815e01c3701236b020aa9b576f09
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
-  Google-Maps-iOS-Utils: 0a484b05ed21d88c9f9ebbacb007956edd508a96
   GoogleAdsOnDeviceConversion: 2be6297a4f048459e0ae17fad9bfd2844e10cf64
   GoogleAppMeasurement: 700dce7541804bec33db590a5c496b663fbe2539
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
-  GoogleMaps: 0608099d4870cac8754bdba9b6953db543432438
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   hermes-engine: 4f07404533b808de66cf48ac4200463068d0e95a
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
@@ -3958,6 +3918,6 @@ SPEC CHECKSUMS:
   VisionCamera: 9a8f98ae344fe5d148f84bb45829f9e4caab9d2f
   Yoga: daa1e4de4b971b977b23bc842aaa3e135324f1f3
 
-PODFILE CHECKSUM: c4580e6e9c2fee0e24a79ed7662c14a224f4beda
+PODFILE CHECKSUM: c1a9f90ec62bdd5caf5dfbb8887bfc4f19094f4e
 
 COCOAPODS: 1.16.2
