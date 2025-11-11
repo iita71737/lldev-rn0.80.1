@@ -52,10 +52,7 @@ type Props = {
 
 /** ==== 主元件 ==== */
 export default function FormulaRelationsMobileDemo({
-  data,
-  onEdit,
   onPreviewAndDeleteData,
-  onDelete,
   chips,
   statisticsId,
   sectionId
@@ -69,7 +66,6 @@ export default function FormulaRelationsMobileDemo({
     ];
   });
 
-  // console.log(JSON.stringify(list),'list--')
 
   // 取代你的 $_submit
   const $_submit = async () => {
@@ -140,7 +136,6 @@ export default function FormulaRelationsMobileDemo({
             ...cloned[pos],
             name: newFormula.name,
             formulaString: newFormula.displayText || newFormula.expression,
-            // ★ 這裡改成用 newFormula 上的欄位
             formula_used_params: newFormula.formula_used_params || [],
           };
           return cloned;
@@ -153,7 +148,6 @@ export default function FormulaRelationsMobileDemo({
             formulaString: newFormula.displayText || newFormula.expression,
             chips: [],
             expanded: false,
-            // ★ 新增
             formula_used_params: newFormula.formula_used_params || [],
           }
         ];
@@ -270,33 +264,6 @@ export default function FormulaRelationsMobileDemo({
   };
 
 
-  React.useEffect(() => {
-    (async () => {
-      if (!statisticsId || !sectionId) return;
-      const storageKey = `${statisticsId}-${sectionId}-@dataSet`;
-      try {
-        const raw = await AsyncStorage.getItem(storageKey);
-        const obj = raw ? JSON.parse(raw) : {};
-        const arr: any[] = Array.isArray(obj.formulas) ? obj.formulas : [];
-        setList(arr.map(f => ({
-          id: String(f.id),
-          name: String(f.name || ""),
-          formulaString: String(f.displayText || f.expression || ""),
-          chips: [],
-          expanded: false,
-          formula_used_params: Array.isArray(f.formula_used_params) ? f.formula_used_params : [],
-        })));
-      } catch (e) {
-        console.warn("載入 formulas 失敗：", e);
-      }
-    })();
-  }, [statisticsId, sectionId]);
-
-
-  // console.log('qs : ',chips?.selected_questions)
-  // console.log('records: ', records)
-
-
   return (
     <ScrollView
       style={styles.container}
@@ -358,7 +325,7 @@ export default function FormulaRelationsMobileDemo({
               label={t('公式​')}
               placeholder={t('輸入')}
               value={formulaData?.expression}
-              params={chips?.selected_questions}
+              params={chips?.selected_questions ? chips?.selected_questions : []}
               records={records}
               uniqueKey={'key'}
               onChange={(p) =>
@@ -368,7 +335,7 @@ export default function FormulaRelationsMobileDemo({
               sectionId={sectionId}
             />
 
-            <WsState
+            {/* <WsState
               style={{
                 marginVertical: 8
               }}
@@ -426,7 +393,7 @@ export default function FormulaRelationsMobileDemo({
               value={formulaData?.images}
               onChange={() => {
               }}
-            />
+            /> */}
 
           </WsPaddingContainer>
         </ScrollView>

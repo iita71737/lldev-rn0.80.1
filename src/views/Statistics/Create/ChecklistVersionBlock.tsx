@@ -6,15 +6,17 @@ import {
   StyleSheet,
   TextInput,
   FlatList,
+  Dimensions
 } from 'react-native';
 import {
   WsPaddingContainer,
-  LlStatisticsQuestionCard001
+  LlStatisticsQuestionCard001,
+  WsStateMultiLevelToggle
 } from '@/components';
 import $color from '@/__reactnative_stone/global/color';
 import { RAW_QUESTIONS } from './mock/questions';
 import RelationshipFormulaBlock from './RelationshipFormulaBlock';
-import AsyncStorage from '@react-native-community/async-storage';
+import { useTranslation } from 'react-i18next';
 
 export type ChipItem = { key: string; label: string; withInput?: boolean };
 export type ChipsData = { selected_questions: ChipItem[] };
@@ -27,8 +29,11 @@ type Version3BlockProps = {
   onChipInputChange?: (key: string, value: string) => void;
   setModalVisibleSourceData?: () => void;
   selectedTitle?: string;
-  section?: string;
+  section?: { id?: string };            // ← 依使用方式調整為物件
   statisticsId?: string;
+  selectedQuesType?: string;
+  isOpen?: boolean;
+  onPreview?: () => void;
 };
 
 export default function ChecklistVersionBlock({
@@ -43,98 +48,204 @@ export default function ChecklistVersionBlock({
   selectedTitle = '已選擇的題目',
   section,
   statisticsId,
+  selectedQuesType,
 }: Version3BlockProps) {
+  const { t } = useTranslation();
+  const { width } = Dimensions.get('window');
 
-  /** ✅ 不受控 chips 預設結構 */
-  const [uChips, setUChips] = React.useState<ChipsData>();
-  /** ✅ 受控 / 不受控合併 */
+  const prevStepRef = React.useRef<number | undefined>(undefined);
+  const prevTypeRef = React.useRef<string | undefined>(undefined);
+  const prevSectionIdRef = React.useRef<string | undefined>(undefined);
+
+  // ===== MultiToggle 內部狀態 =====
+  const [multiToggleOpen, setMultiToggleOpen] = React.useState(false);
+  const [multiToggleTree, setMultiToggleTree] = React.useState<any[]>([]);
+  const [pendingQuestion, setPendingQuestion] = React.useState<any>(null);
+
+  const findNodeById = React.useCallback((nodes: any[], id: string) => {
+    for (const n of nodes || []) {
+      if (n.id === id) return n;
+      if (Array.isArray(n.question_setting_items) && n.question_setting_items.length) {
+        const hit = findNodeById(n.question_setting_items, id);
+        if (hit) return hit;
+      }
+    }
+    return null;
+  }, []);
+
+  const pathLabels = React.useCallback((tree: any[], pathIds: string[] = []) => {
+    const labels: string[] = [];
+    for (const id of pathIds) {
+      const node = findNodeById(tree, id);
+      if (node?.name) labels.push(node.name);
+    }
+    return labels;
+  }, [findNodeById]);
+  // ===== /MultiToggle =====
+
+  // 本地 chips：給穩定初始值，避免 unmount 之後變 undefined
+  const [uChips, setUChips] = React.useState<ChipsData>({ selected_questions: [] });
   const chips = cChips ?? uChips;
 
-  console.log(JSON.stringify(chips),'chips---')
+  // ✅ 支援物件與函式型更新（受控/不受控兩相宜）
+  const updateChips = React.useCallback((
+    next: ChipsData | ((prev: ChipsData) => ChipsData)
+  ) => {
+    const compute = (prev: ChipsData) =>
+      typeof next === 'function' ? (next as any)(prev) : next;
 
-  /** ✅ 更新 chips（確保結構不破壞） */
-  const updateChips = (next: ChipsData) => {
-    onChipsChange ? onChipsChange(next) : setUChips(next);
-  };
+    if (onChipsChange) {
+      onChipsChange(compute(chips ?? { selected_questions: [] }));
+    } else {
+      setUChips(prev => compute(prev ?? { selected_questions: [] }));
+    }
+  }, [onChipsChange, chips]);
 
-  /** ✅ 判斷是否已在 chips 內 */
+  // ✅ 是否已選
   const hasChip = React.useCallback((key: string) => {
-    return chips?.selected_questions?.some(c => c.key === key);
+    return chips?.selected_questions?.some(c => String(c.key) === String(key));
   }, [chips]);
 
-  /** ✅ 刪除單一 chip */
+  // ✅ 移除 chip
   const removeChip = (k: string) => {
     if (onRemoveChip) return onRemoveChip(k);
-    const filtered = chips.selected_questions.filter(c => c.key !== k);
-    updateChips({ selected_questions: filtered });
+    updateChips(prev => ({
+      selected_questions: (prev?.selected_questions ?? []).filter(c => String(c.key) !== String(k))
+    }));
   };
 
-  /** ✅ 勾選題目後：加入 / 移除 chips */
-  const handleToggleQuestion = React.useCallback(async (payloadOrItem) => {
-    const item = payloadOrItem?.id ? payloadOrItem : null;
-    const isChecked = !!payloadOrItem?.checked;
-    const id = item?.id ?? payloadOrItem?.id;
-    if (!id) return;
+  // ✅ 防守型 Toggle：兼容 id 來源、checked/value；內部一律存 { key, label }
+  const handleToggleQuestion = React.useCallback((payloadOrItem: any) => {
+    const id =
+      payloadOrItem?.id ??
+      payloadOrItem?.question_id ??
+      payloadOrItem?.key ??
+      payloadOrItem?.item?.id ??
+      payloadOrItem?.item?.question_id ??
+      payloadOrItem?.item?.key;
 
-    const src = RAW_QUESTIONS.find(q => q.id === id) || item;
+    if (id == null) return;
+
+    const explicitChecked =
+      payloadOrItem?.checked ??
+      payloadOrItem?.value ??
+      payloadOrItem?.target?.checked;
+
+    const same = (a: any, b: any) => String(a) === String(b);
+    const src =
+      (Array.isArray(RAW_QUESTIONS)
+        ? RAW_QUESTIONS.find((q: any) => same(q?.id ?? q?.question_id ?? q?.key, id))
+        : null) || payloadOrItem?.item || payloadOrItem;
+
     if (!src) return;
 
-    const key = src.id;
-    const label = `${src.title} ${section?.id}` ?? '';
+    const questionId = src?.question_id ?? src?.id ?? src?.key ?? id;
+    const key = String(questionId);
+    const label = [src?.title, section?.id].filter(Boolean).join(' ');
 
-    let nextQuestions = [...(chips.selected_questions || [])];
+    updateChips((prev) => {
+      const list = prev?.selected_questions ?? [];
+      const exists = list.some(c => String(c.key) === key);
 
-    if (isChecked) {
-      // 勾選：加入（去重）
-      if (!hasChip(key)) {
-        nextQuestions.push({ key, label });
+      const shouldCheck =
+        explicitChecked === true ? true :
+          explicitChecked === false ? false :
+            !exists;
+
+      let nextList: ChipItem[];
+      if (shouldCheck) {
+        nextList = exists ? list : [...list, { key, label }];
+      } else {
+        nextList = list.filter(c => String(c.key) !== key);
       }
-    } else {
-      // 取消勾選：移除
-      nextQuestions = nextQuestions.filter(c => c.key !== key);
+      return { ...prev, selected_questions: nextList };
+    });
+  }, [section?.id, updateChips]);
+
+  // ✅ 多層選單題目：已選則移除；未選則開 modal
+  const handleMultiToggleQuestion = React.useCallback((payloadOrItem: any) => {
+    const item = payloadOrItem?.id
+      ? payloadOrItem
+      : RAW_QUESTIONS.find((q: any) => q.id === payloadOrItem?.id);
+
+    if (!item) return;
+
+    const key = String(item.id);
+
+    if (hasChip(key)) {
+      updateChips(prev => ({
+        selected_questions: (prev?.selected_questions ?? []).filter(c => String(c.key) !== key)
+      }));
+      return;
     }
 
-    const nextChips = { selected_questions: nextQuestions };
-    updateChips(nextChips);
+    const tree = item?.last_version?.question_setting_items ?? [];
+    setPendingQuestion(item);
+    setMultiToggleTree(tree);
+    setMultiToggleOpen(true);
+  }, [hasChip, updateChips]);
 
-    // ✅ 同步存到 AsyncStorage
-    try {
-      await AsyncStorage.setItem(`${statisticsId}-${section?.id}-@dataSet`, JSON.stringify(nextChips));
-    } catch (err) {
-      console.warn('儲存已選題目失敗：', err);
-    }
-
-  }, [chips, hasChip, updateChips, section?.id, statisticsId, isOpen]);
-
-  /** ✅ 初始讀取 AsyncStorage */
   React.useEffect(() => {
-    const loadSavedChips = async () => {
-      try {
-        const saved = await AsyncStorage.getItem(`${statisticsId}-${section?.id}-@dataSet`);
-        if (saved) {
-          const parsed: ChipsData = JSON.parse(saved);
-          if (parsed?.selected_questions) {
-            updateChips(parsed);
-          }
-          // console.log(parsed, 'parsed---')
-        }
-      } catch (err) {
-        console.warn('載入已選題目失敗：', err);
-      }
-    };
-    loadSavedChips();
-  }, [section?.id, statisticsId, isOpen]);
+    // 只在 Step 0 進行判斷
+    if (step !== 0) {
+      prevStepRef.current = step;
+      return;
+    }
 
-  console.log(JSON.stringify(chips),'chips===')
+    const prevType = prevTypeRef.current;
+    const nextType = selectedQuesType;
+
+    const prevSectionId = prevSectionIdRef.current;
+    const nextSectionId = section?.id;
+
+    const bothTruthy = !!prevType && !!nextType;
+    const typeChanged = prevType !== undefined && prevType !== nextType;
+    const inSameSection = prevSectionId === nextSectionId;
+
+    // 👇 新增：上一個 step 也要是 0，才可能清空
+    const stillInStep0 = prevStepRef.current === 0;
+
+    const shouldClear =
+      stillInStep0 &&           // 連續停留在 Step 0
+      typeChanged &&
+      bothTruthy &&
+      inSameSection;
+
+    if (shouldClear) {
+      updateChips({ selected_questions: [] });
+      setMultiToggleOpen(false);
+      setPendingQuestion(null);
+      setMultiToggleTree([]);
+    }
+
+    // 只在 Step 0 更新 ref，且忽略 undefined/null 的過渡值
+    if (nextType) prevTypeRef.current = nextType;
+    if (nextSectionId) prevSectionIdRef.current = nextSectionId;
+
+    prevStepRef.current = 0;    // 標記：當前是 Step 0
+  }, [selectedQuesType, section?.id, step, updateChips]);
+
+
+  // ✅ 傳給公式區：此時才轉成 question_id
+  const chipsForFormula = React.useMemo(() => ({
+    selected_questions: (chips?.selected_questions ?? []).map(c => ({
+      question_id: c.key,
+      label: c.label,
+    }))
+  }), [chips]);
+
+  // React.useEffect(() => { console.log('ChecklistVersionBlock MOUNT'); return () => console.log('ChecklistVersionBlock UNMOUNT'); }, []);
+  // React.useEffect(() => { console.log('step changed =>', step); }, [step]);
+
 
   return (
     <View style={styles.root}>
       <Text style={[styles.sectionTitle, { marginTop: 4 }]}>{selectedTitle}</Text>
 
-      {/* ✅ 顯示 chips */}
+      {/* 選擇結果 chips */}
       <View style={styles.chipsWrap}>
         {chips?.selected_questions?.length > 0 ? (
-          chips.selected_questions.map((c, idx) => (
+          chips.selected_questions.map((c) => (
             <Chip
               key={c.key}
               label={c.label}
@@ -147,30 +258,84 @@ export default function ChecklistVersionBlock({
         )}
       </View>
 
-      {/* ✅ 題目清單 */}
-      {step === 0 && (
-        <FlatList
-          data={RAW_QUESTIONS}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => (
-            <LlStatisticsQuestionCard001
-              key={item.id}
-              checkboxVisible={true}
-              checked={hasChip(item.id)}
-              checkboxOnPress={handleToggleQuestion}
-              onPress={() => { }}
-              style={{ marginTop: 8 }}
-              no={index + 1}
-              answer={item}
-              title={`${item.title} ${section?.id}`}
-              score={item.score}
+      {/* Step 0：題目清單 */}
+      <View
+        style={{ display: step === 0 ? 'flex' : 'none' }}
+        pointerEvents={step === 0 ? 'auto' : 'none'}
+      >
+        <>
+          <FlatList
+            data={RAW_QUESTIONS}
+            keyExtractor={(item: any) => String(item.id)}
+            renderItem={({ item, index }) => {
+              if (item?.last_version?.question_type_setting?.value !== selectedQuesType) {
+                return null;
+              }
+              return (
+                <LlStatisticsQuestionCard001
+                  key={item.id}
+                  checkboxVisible={true}
+                  checked={hasChip(String(item.id))}
+                  checkboxOnPress={(e: any) => {
+                    if (e.last_version?.question_type_setting?.value === 'single-choice') {
+                      handleMultiToggleQuestion(e);
+                    } else {
+                      handleToggleQuestion(e);
+                    }
+                  }}
+                  onPress={() => { }}
+                  style={{ marginTop: 8 }}
+                  no={index + 1}
+                  answer={item}
+                  title={`${item.title} ${section?.id}`}
+                  score={item.score}
+                />
+              );
+            }}
+          />
+
+          {multiToggleOpen && (
+            <WsStateMultiLevelToggle
+              visible={multiToggleOpen}
+              title={pendingQuestion?.title || '選擇選項'}
+              items={multiToggleTree}
+              requireLeafSelect={true}
+              autoConfirmOnLeaf={false}
+              onCancel={() => {
+                setMultiToggleOpen(false);
+                setPendingQuestion(null);
+                setMultiToggleTree([]);
+              }}
+              onConfirm={({ selectedItem, path, pathIds }) => {
+                if (!pendingQuestion || !selectedItem) {
+                  setMultiToggleOpen(false);
+                  return;
+                }
+                const ids = path ?? pathIds ?? [selectedItem.id];
+                const labels = pathLabels(multiToggleTree, ids);
+
+                const key = String(pendingQuestion.id);
+                const label = `${pendingQuestion.title}：${labels.join(' / ')}`;
+
+                updateChips(prev => {
+                  const list = (prev?.selected_questions ?? []).filter(c => String(c.key) !== key);
+                  return { selected_questions: [...list, { key, label }] };
+                });
+
+                setMultiToggleOpen(false);
+                setPendingQuestion(null);
+                setMultiToggleTree([]);
+              }}
             />
           )}
-        />
-      )}
+        </>
+      </View>
 
-      {/* ✅ 公式區塊 */}
-      {step === 1 && (
+      {/* Step 1：公式區 */}
+      <View
+        style={{ display: step === 1 ? 'flex' : 'none' }}
+        pointerEvents={step === 1 ? 'auto' : 'none'}
+      >
         <WsPaddingContainer
           padding={0}
           style={{
@@ -181,14 +346,14 @@ export default function ChecklistVersionBlock({
         >
           <RelationshipFormulaBlock
             onPreviewAndDeleteData={setModalVisibleSourceData}
-            onEdit={() => {}}
+            onEdit={() => { }}
             onDelete={() => { }}
-            chips={chips}
+            chips={chipsForFormula}
             statisticsId={statisticsId}
             sectionId={section?.id}
           />
         </WsPaddingContainer>
-      )}
+      </View>
     </View>
   );
 }
@@ -235,12 +400,23 @@ function Chip({
 const styles = StyleSheet.create({
   root: { paddingTop: 2 },
   sectionTitle: { fontSize: 16, color: '#111', marginBottom: 6 },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  chipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12
+  },
   chip: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#f7f9fb', borderWidth: 1, borderColor: '#d9dbe2',
-    borderRadius: 999, paddingHorizontal: 8, paddingVertical: 6,
-    marginRight: 8, marginTop: 8
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f7f9fb',
+    borderWidth: 1,
+    borderColor: '#d9dbe2',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginTop: 8
   },
   chipPrefix: {
     width: 24, height: 24, borderRadius: 12,
@@ -248,7 +424,11 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   chipPrefixTxt: { color: '#0b5aaa', fontSize: 12 },
-  chipLabel: { color: '#111', maxWidth: 160, paddingHorizontal: 8 },
+  chipLabel: {
+    color: '#111',
+    maxWidth: Dimensions.get('window').width * 0.7,
+    paddingHorizontal: 8
+  },
   chipSmallInput: {
     marginLeft: 6, borderWidth: 1, borderColor: '#d9dbe2',
     borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, minWidth: 40, backgroundColor: '#fff',

@@ -3,7 +3,6 @@ import {
   ScrollView,
   View,
   Dimensions,
-  Text,
   TouchableOpacity
 } from 'react-native'
 import {
@@ -14,7 +13,6 @@ import {
   WsFlex,
   WsGradientButton,
   WsAccordion,
-  WsTag,
   WsState,
 } from '@/components'
 import { useTranslation } from 'react-i18next'
@@ -24,8 +22,6 @@ import StepBar from './StepBar'
 import ChecklistVersionBlock from '@/views/Statistics/Create/ChecklistVersionBlock'
 import XlsxDataTable from './XlsxDataTable'
 import FormulaTimeUnitList from './FormulaTimeUnitList'
-import AsyncStorage from '@react-native-community/async-storage'
-
 import { RAW_QUESTIONS } from './mock/questions'
 
 /** — 資料模型 — */
@@ -74,7 +70,6 @@ const STEPS = {
   BETWEEN: 1,       // 2. 題目之間的關係公式及剔除資料
   TIMEUNIT: 2,      // 3. 單位時間內的關係公式
 } as const
-type StepKey = keyof typeof STEPS
 
 const StatisticsRecordCreate = (props) => {
   const { t } = useTranslation()
@@ -85,6 +80,7 @@ const StatisticsRecordCreate = (props) => {
   const _statisticsId = props?.route?.params?.statisticsId
 
   // states
+  const [selectedQuesType, setSelectedQuesType] = React.useState()
   const [statistcsName, setStatisticsName] = React.useState(_checklist ? _checklist.name : '')
 
   /** —— Modal 狀態 —— */
@@ -102,19 +98,13 @@ const StatisticsRecordCreate = (props) => {
   ])
 
   /** —— Step3：單位時間內的關係公式（多條） —— */
-  const [rules, setRules] = useState<FormulaRule[]>([
+  const [rules, setRules] = useState<FormulaRule[]>([])
 
-  ])
-
-  // 1) 新增：記住每個 section 的展開狀態
-  const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({});
-  // 2) 切換時更新狀態
+  // 1) 記住每個 section 的展開狀態（Accordion 受控，避免卸載）
+  const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({})
   const handleToggle = (id: string, open: boolean) => {
-    setOpenSections(prev => ({ ...prev, [id]: open }));
-    // 想要當下就 Console 也可以
-    const key = `${_statisticsId}-${id}-@dataSet`;
-    console.log(`Section [${id}] ${open ? '展開' : '收合'}，對應 storage key: ${key}`);
-  };
+    setOpenSections(prev => ({ ...prev, [id]: open }))
+  }
 
   /** —— 導覽控制 —— */
   const maxStep = STEPS.TIMEUNIT
@@ -129,11 +119,8 @@ const StatisticsRecordCreate = (props) => {
   ]
 
   const finishAndBack = useCallback(() => {
-    // 回到內頁（上一頁）
-    navigation.goBack();
-    // 若要導到特定頁，也可改成：navigation.navigate('YourInnerRouteName');
-  }, [navigation]);
-
+    navigation.goBack()
+  }, [navigation])
 
   /** —— 底部導覽按鈕（統一處理） —— */
   const FooterNav = ({
@@ -193,21 +180,7 @@ const StatisticsRecordCreate = (props) => {
     </WsFlex>
   )
 
-  // -------------
-  const [demoData, setDemoData] = React.useState([])
-  const loadStatistics = async () => {
-    try {
-      const jsonValue = await AsyncStorage.getItem(`@statistics_data`);
-      const parsed = JSON.parse(jsonValue);
-      setDemoData(parsed);
-    } catch (e) {
-      console.error('讀取錯誤:', e);
-    }
-  };
-
-  React.useEffect(() => {
-    loadStatistics()
-  }, [])
+  const [demoData] = React.useState<any>({})
 
   // 小型 ViewModel（畫面真正需要的欄位）
   type QuestionVM = {
@@ -235,13 +208,13 @@ const StatisticsRecordCreate = (props) => {
       title: q.title,
       type: q.last_version?.question_type_setting?.name ?? '',
       options: (q.last_version?.question_setting_items ?? []).map(o => o.name),
-    }));
+    }))
 
   // 如果三個版本要分不同題目：用 slice 分配；或都放同一份就直接塞同個陣列。
-  const qAll = useMemo(() => projectQuestions(RAW_QUESTIONS), []);
-  const qV1 = useMemo(() => qAll.slice(0, 5), [qAll]);    // 版本1 前5筆
-  const qV2 = useMemo(() => qAll.slice(5, 10), [qAll]);   // 版本2 中5筆
-  const qV3 = useMemo(() => qAll.slice(10), [qAll]);      // 版本3 其餘
+  const qAll = useMemo(() => projectQuestions(RAW_QUESTIONS), [])
+  const qV1 = useMemo(() => qAll.slice(0, 5), [qAll])    // 版本1 前5筆
+  const qV2 = useMemo(() => qAll.slice(5, 10), [qAll])   // 版本2 中5筆
+  const qV3 = useMemo(() => qAll.slice(10), [qAll])      // 版本3 其餘
 
   const sections = useMemo<SectionItem[]>(() => [
     {
@@ -282,29 +255,6 @@ const StatisticsRecordCreate = (props) => {
     },
   ], [qV1, qV2, qV3])
 
-  /** 事件處理（接到 SectionList 的回呼） */
-  const onEditPress = useCallback((section: SectionItem) => {
-    console.log('Edit section:', section.id)
-  }, [])
-
-  const onExportPress = useCallback((_section: SectionItem, row) => {
-    console.log('Export:', row.label)
-    // TODO: 你的匯出流程
-  }, [])
-
-  const onChartPress = useCallback((_section: SectionItem, row) => {
-    console.log('Chart:', row.label)
-  }, [])
-
-
-  const removeChip = useCallback((key: string) => {
-    console.log('Chart:', row.label)
-  }, [])
-
-  const onChipInputChange = useCallback((key: string, v: string) => {
-    console.log('Chart:', row.label)
-  }, [])
-
   return (
     <>
       <ScrollView>
@@ -312,122 +262,75 @@ const StatisticsRecordCreate = (props) => {
           {/* —— 頂部步驟條 —— */}
           <StepBar steps={stepItems} currentIndex={step} />
 
-          {/* —— Step 1：選擇題目 —— */}
+          {/* —— 步驟專屬：基本資訊 / 功能塊（保持在各自分支） —— */}
           {step === STEPS.SELECT && (
-            <>
-              <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
-                {/* 基本資訊 */}
-                <View style={{ marginTop: 8 }}>
-                  <WsInfo labelWidth={100} label={t('名稱')} value={demoData.name} />
-                </View>
-                <View style={{ marginTop: 8 }}>
-                  <WsInfo labelWidth={100} label={t('時間區間')} value={`${demoData.start_time} ~ ${demoData.end_time}`} />
-                </View>
-                <View style={{ marginTop: 8 }}>
-                  <WsInfo labelWidth={100} label={t('時間單位')} value={demoData.time_unit === 'day' ? t('日') : t('')} />
-                </View>
-              </WsPaddingContainer>
+            <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
+              {/* 基本資訊 */}
+              <View style={{ marginTop: 8 }}>
+                <WsInfo labelWidth={100} label={t('名稱')} value={demoData?.name} />
+              </View>
+              <View style={{ marginTop: 8 }}>
+                <WsInfo labelWidth={100} label={t('時間區間')} value={`${demoData?.start_time} ~ ${demoData?.end_time}`} />
+              </View>
+              <View style={{ marginTop: 8 }}>
+                <WsInfo labelWidth={100} label={t('時間單位')} value={demoData?.time_unit === 'day' ? t('日') : t('')} />
+              </View>
 
-              {/* 版本/題目選擇（沿用你的 Accordion + Block） */}
-              <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
-                <WsState
-                  style={{
-                    marginBottom: 16,
-                  }}
-                  label={t('資料集名稱')}
-                  value={statistcsName}
-                  onChange={(e) => {
-                    setStatisticsName(e)
-                  }}
-                  rules={'required'}
-                  placeholder={t('輸入')}
-                />
-
-                {sections.map(section => {
-                  const isOpen = openSections[section.id] ?? !!section.defaultOpen;
-                  return (
-                    <WsAccordion
-                      key={section.id}
-                      title={section.title}
-                      open={isOpen}                     // ← 受控：目前是否展開（若你的 API 名是 `expanded` 就改那個）
-                      onOpenChange={(open: boolean) => // ← 受控回呼（若你的 API 名是 `onToggle` 就改那個）
-                        handleToggle(section.id, open)
-                      }
-                    >
-                      <ChecklistVersionBlock
-                        setModalVisibleSourceData={setModalVisibleSourceData}
-                        setModalActiveFormula={setModalActiveFormula}
-                        step={step}
-                        section={section}
-                        statisticsId={_statisticsId}
-                        isOpen={isOpen}                 // ← 告知子元件目前展開狀態
-                      />
-                    </WsAccordion>
-                  );
-                })}
-
-                <FooterNav />
-              </WsPaddingContainer>
-            </>
+              {/* Step1 only: 資料集名稱 / 題型 */}
+              <WsState
+                style={{ marginTop: 8 }}
+                label={t('資料集名稱')}
+                value={statistcsName}
+                onChange={(e) => setStatisticsName(e)}
+                rules={'required'}
+                placeholder={t('輸入')}
+              />
+              <WsState
+                style={{ marginTop: 8, borderColor: $color.gray }}
+                label={t('題型')}
+                type="picker"
+                value={selectedQuesType}
+                onChange={(e) => setSelectedQuesType(e)}
+                items={[
+                  { label: t('單選題'), value: 'single-choice' },
+                  { label: t('數值題'), value: 'num' },
+                  { label: t('日期題'), value: 'date' }
+                ]}
+              />
+            </WsPaddingContainer>
           )}
 
-          {/* —— Step 2：題目之間的關係公式及剔除資料 —— */}
           {step === STEPS.BETWEEN && (
-            <>
-              <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
-                {/* 基本資訊 */}
-                <View style={{ marginTop: 8 }}>
-                  <WsInfo labelWidth={100} label={t('名稱')} value={demoData.name} />
-                </View>
-                <View style={{ marginTop: 8 }}>
-                  <WsInfo labelWidth={100} label={t('時間區間')} value={`${demoData.start_time} ~ ${demoData.end_time}`} />
-                </View>
-                <View style={{ marginTop: 8 }}>
-                  <WsInfo labelWidth={100} label={t('時間單位')} value={demoData.time_unit === 'day' ? t('日') : t('')} />
-                </View>
-              </WsPaddingContainer>
-
-              {/* 版本/題目選擇（沿用你的 Accordion + Block） */}
-              <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
-
-                {sections.map(section => (
-                  <WsAccordion
-                    key={section.id}
-                    title={section.title}
-                    defaultOpen={section.defaultOpen}
-                  >
-                    <ChecklistVersionBlock
-                      setModalVisibleSourceData={setModalVisibleSourceData}
-                      setModalActiveFormula={setModalActiveFormula}
-                      step={STEPS.BETWEEN}
-                      section={section}
-                      statisticsId={_statisticsId}
-                    />
-                  </WsAccordion>
-                ))}
-
-                <FooterNav />
-              </WsPaddingContainer>
-            </>
+            <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
+              {/* 基本資訊 */}
+              <View style={{ marginTop: 8 }}>
+                <WsInfo labelWidth={100} label={t('名稱')} value={demoData?.name} />
+              </View>
+              <View style={{ marginTop: 8 }}>
+                <WsInfo labelWidth={100} label={t('時間區間')} value={`${demoData?.start_time} ~ ${demoData?.end_time}`} />
+              </View>
+              <View style={{ marginTop: 8 }}>
+                <WsInfo labelWidth={100} label={t('時間單位')} value={demoData?.time_unit === 'day' ? t('日') : t('')} />
+              </View>
+            </WsPaddingContainer>
           )}
 
-          {/* —— Step 3：單位時間內的關係公式 —— */}
           {step === STEPS.TIMEUNIT && (
             <>
               <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
                 {/* 基本資訊 */}
                 <View style={{ marginTop: 8 }}>
-                  <WsInfo labelWidth={100} label={t('名稱')} value={demoData.name} />
+                  <WsInfo labelWidth={100} label={t('名稱')} value={demoData?.name} />
                 </View>
                 <View style={{ marginTop: 8 }}>
-                  <WsInfo labelWidth={100} label={t('時間區間')} value={`${demoData.start_time} ~ ${demoData.end_time}`} />
+                  <WsInfo labelWidth={100} label={t('時間區間')} value={`${demoData?.start_time} ~ ${demoData?.end_time}`} />
                 </View>
                 <View style={{ marginTop: 8 }}>
-                  <WsInfo labelWidth={100} label={t('時間單位')} value={demoData.time_unit === 'day' ? t('日') : t('')} />
+                  <WsInfo labelWidth={100} label={t('時間單位')} value={demoData?.time_unit === 'day' ? t('日') : t('')} />
                 </View>
               </WsPaddingContainer>
 
-              {/* 清單：單位時間內的關係公式 */}
+              {/* 清單：單位時間內的關係公式（Step3 only） */}
               <FormulaTimeUnitList
                 rules={rules}
                 onPreview={() => setModalVisibleSourceData(true)}
@@ -438,48 +341,44 @@ const StatisticsRecordCreate = (props) => {
                 sections={sections}
                 step={STEPS.TIMEUNIT}
               />
-
-              {/* 版本/題目選擇（沿用你的 Accordion + Block） */}
-              <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
-                {sections.map(section => {
-                  const isOpen = openSections[section.id] ?? !!section.defaultOpen;
-                  return (
-                    <WsAccordion
-                      key={section.id}
-                      title={section.title}
-                      open={isOpen}                     // ← 受控：目前是否展開（若你的 API 名是 `expanded` 就改那個）
-                      onOpenChange={(open: boolean) => // ← 受控回呼（若你的 API 名是 `onToggle` 就改那個）
-                        handleToggle(section.id, open)
-                      }
-                    >
-                      <ChecklistVersionBlock
-                        setModalVisibleSourceData={setModalVisibleSourceData}
-                        setModalActiveFormula={setModalActiveFormula}
-                        step={STEPS.BETWEEN}
-                        section={section}
-                        statisticsId={_statisticsId}
-                        isOpen={isOpen}                 // ← 告知子元件目前展開狀態
-                      />
-                    </WsAccordion>
-                  );
-                })}
-
-                <FooterNav
-                  // 需要顯示「上一步」就保留；如果不要，改成 showPrev={false}
-                  showPrev={true}
-                  // 將「下一步」改成「完成」
-                  nextText={t('完成')}
-                  // 按下時返回內頁
-                  onNext={finishAndBack}
-                />
-              </WsPaddingContainer>
             </>
           )}
+
+          {/* —— ✅ 共用：版本/題目區（只渲染一次；由 step 切畫面） —— */}
+          <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
+            {sections.map(section => {
+              const isOpen = openSections[section.id] ?? !!section.defaultOpen
+              return (
+                <WsAccordion
+                  key={section.id}
+                  title={section.title}
+                  open={isOpen}
+                  onOpenChange={(open: boolean) => handleToggle(section.id, open)}
+                >
+                  <ChecklistVersionBlock
+                    setModalVisibleSourceData={setModalVisibleSourceData}
+                    setModalActiveFormula={setModalActiveFormula}
+                    step={step}
+                    section={section}
+                    statisticsId={_statisticsId}
+                    isOpen={isOpen}
+                    selectedQuesType={selectedQuesType}
+                  />
+                </WsAccordion>
+              )
+            })}
+
+            <FooterNav
+              showPrev={step !== STEPS.SELECT}
+              nextText={step === STEPS.TIMEUNIT ? t('完成') : t('下一步')}
+              onNext={step === STEPS.TIMEUNIT ? finishAndBack : goNext}
+            />
+          </WsPaddingContainer>
         </View>
-      </ScrollView >
+      </ScrollView>
 
       {/* —— Source Data 預覽 —— */}
-      < WsModal
+      <WsModal
         animationType="none"
         visible={modalVisibleSourceData}
         onBackButtonPress={() => setModalVisibleSourceData(false)}
@@ -487,10 +386,10 @@ const StatisticsRecordCreate = (props) => {
         title={t('Source Data Table')}
       >
         <XlsxDataTable />
-      </WsModal >
+      </WsModal>
 
       {/* —— 共用：編輯公式（Step2/Step3 都可呼叫） —— */}
-      < WsModal
+      <WsModal
         visible={modalActiveFormula}
         onBackButtonPress={() => setModalActiveFormula(false)}
         headerLeftOnPress={() => setModalActiveFormula(false)}
@@ -511,14 +410,12 @@ const StatisticsRecordCreate = (props) => {
                 { key: 'kWh', value: 12000, label: '電力使用量' },
               ]}
               onChange={(p) => {
-                // 這裡可依目前所在步驟把結果塞回對應狀態
                 if (step === STEPS.BETWEEN) setBetweenExpression(p.expression)
-                // 若是 Step3 也要編輯，就交給 FormulaTimeUnitList 內的 onEdit 去處理
               }}
             />
           </WsPaddingContainer>
         </ScrollView>
-      </WsModal >
+      </WsModal>
     </>
   )
 }

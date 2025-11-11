@@ -41,19 +41,8 @@ const RoutesStatistics = ({ navigation }) => {
   const { t, i18n } = useTranslation()
 
   // Redux
-  const factory = useSelector(state => state.data.currentFactory)
+  const currentFactory = useSelector(state => state.data.currentFactory)
   const currentUser = useSelector(state => state.stone_auth.currentUser)
-  const offlineMsg = useSelector(state => state.data.offlineMsg);
-
-  // STORAGE
-  const storeData = async (value) => {
-    try {
-      const jsonValue = JSON.stringify(value);
-      // await AsyncStorage.setItem('offlineTempMsg', jsonValue);
-    } catch (e) {
-      // saving error
-    }
-  };
 
   // Fields
   const fields = {
@@ -371,7 +360,6 @@ const RoutesStatistics = ({ navigation }) => {
   const submitStatisticsCreate = async (data, navigation) => {
     const _id = nanoid()
     try {
-      // 1️⃣ 為每筆資料加上唯一 ID（不影響原物件）
       const withId = {
         ...data,
         id: _id, // ✅ 自動產生 UUID
@@ -392,35 +380,7 @@ const RoutesStatistics = ({ navigation }) => {
 
   // 編輯事件
   const submitStatisticsEdit = async (data, modelId, versionId, navigation) => {
-    console.log('submitStatisticsEdit');
-    // const _data = await S_Event.getFormattedData(data, currentUser)
-    // try {
-    //   await S_Event.update({
-    //     data: _data,
-    //     modelId: modelId
-    //   })
-    //     .then(() => {
-    //       Alert.alert('事件編輯成功')
-    //     })
-    // } catch (e) {
-    //   console.error(e);
-    //   const _offlineTempMsg = {
-    //     service: `event`,
-    //     method: `update`,
-    //     modelId: modelId,
-    //     data: _data
-    //   };
-    //   offlineMsg.push(_offlineTempMsg);
-    //   storeData(offlineMsg);
-    //   store.dispatch(setOfflineMsg(offlineMsg));
-    // } finally {
-    //   navigation.navigate({
-    //     name: 'EventShow',
-    //     params: {
-    //       id: modelId
-    //     }
-    //   })
-    // }
+    console.log(data, 'submitStatisticsEdit');
   }
 
   return (

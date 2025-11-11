@@ -306,18 +306,18 @@ const Show = (props) => {
 
           <WsFlex justifyContent={"space-between"}>
             <View style={styles.actionBar}>
-              {/* <WsIconBtn
-                  padding={0}
-                  style={{
-                  }}
-                  size={28}
-                  name="md-edit"
-                  label="編輯"
-                  onPress={() =>
-                    setModalActiveFormula(true)
-                  }
-                /> */}
-              {/* <WsIconBtn
+              <WsIconBtn
+                padding={0}
+                style={{
+                }}
+                size={28}
+                name="md-edit"
+                label="編輯"
+                onPress={() =>
+                  setModalActiveFormula(true)
+                }
+              />
+              <WsIconBtn
                 padding={0}
                 style={{ marginLeft: 8 }}
                 size={28}
@@ -333,7 +333,7 @@ const Show = (props) => {
                 name="md-delete"
                 label="刪除"
                 onPress={() => handleDelete(item)}
-              /> */}
+              />
             </View>
           </WsFlex>
         </View>
@@ -378,30 +378,6 @@ const Show = (props) => {
           style={{
           }}
         >
-          {/* <WsPaddingContainer
-            style={{
-              backgroundColor: $color.white,
-            }}>
-
-            <WsFlex
-              justifyContent="space-between"
-              alignItems="flex-start"
-              style={{
-              }}
-            >
-              <WsText size={24} style={{ flex: 1 }}>
-                {t(demoData.name)}
-              </WsText>
-              <View
-                style={{
-                  justifyContent: 'center',
-                  alignItems: 'flex-end',
-                  marginLeft: 8,
-                }}
-              >
-              </View>
-            </WsFlex>
-          </WsPaddingContainer> */}
 
           <WsPaddingContainer
             style={{
@@ -423,17 +399,17 @@ const Show = (props) => {
                 onPress={() => {
                   setModalAddChartForm(true)
                 }}>
-                {/* <WsTag
+                <WsTag
                   backgroundColor={$color.white}
                   style={{
                     borderWidth: 1,
                     borderColor: $color.primary,
                   }}>
                   {t('停止更新')}
-                </WsTag> */}
+                </WsTag>
               </TouchableOpacity>
 
-              {/* <WsIconBtn
+              <WsIconBtn
                 name="md-edit"
                 size={24}
                 style={{
@@ -442,7 +418,7 @@ const Show = (props) => {
                   await $_setStorage()
                   navigation.navigate('StatisticsEdit')
                 }}
-              /> */}
+              />
             </WsFlex>
 
             <View
@@ -621,14 +597,14 @@ ${demoData?.end_time ? demoData?.end_time : '2025-12-31'}`
             onPress={() => {
               setModalAddChartForm(true)
             }}>
-            {/* <WsTag
+            <WsTag
               backgroundColor={$color.white}
               style={{
                 borderWidth: 1,
                 borderColor: $color.primary,
               }}>
               {t('新增圖表')}
-            </WsTag> */}
+            </WsTag>
           </TouchableOpacity>
 
           <WsPaddingContainer
@@ -646,7 +622,7 @@ ${demoData?.end_time ? demoData?.end_time : '2025-12-31'}`
                 marginTop: 16,
               }}
             >
-              {/* <WsIconBtn
+              <WsIconBtn
                 name="md-edit"
                 size={24}
                 style={{
@@ -673,7 +649,7 @@ ${demoData?.end_time ? demoData?.end_time : '2025-12-31'}`
                 }}
                 onPress={() => {
                 }}
-              /> */}
+              />
             </WsFlex>
           </WsPaddingContainer>
 
@@ -763,14 +739,14 @@ ${demoData?.end_time ? demoData?.end_time : '2025-12-31'}`
               onPress={() => {
                 setModalAddRecord(true)
               }}>
-              {/* <WsTag
+              <WsTag
                 backgroundColor={$color.white}
                 style={{
                   borderWidth: 1,
                   borderColor: $color.primary,
                 }}>
                 {t('新增資料集')}
-              </WsTag> */}
+              </WsTag>
             </TouchableOpacity>
 
             {/* <LlSectionList
