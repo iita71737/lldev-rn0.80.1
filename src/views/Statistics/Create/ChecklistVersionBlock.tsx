@@ -18,7 +18,12 @@ import { RAW_QUESTIONS } from './mock/questions';
 import RelationshipFormulaBlock from './RelationshipFormulaBlock';
 import { useTranslation } from 'react-i18next';
 
-export type ChipItem = { key: string; label: string; withInput?: boolean };
+export type ChipItem = {
+  key: string;              // ✅ 只存「選項(葉) id」
+  label: string;
+  withInput?: boolean;
+  question_id?: string;     // ✅ 額外欄位：此 chip 所屬「題目 id」
+};
 export type ChipsData = { selected_questions: ChipItem[] };
 
 type Version3BlockProps = {
@@ -29,7 +34,7 @@ type Version3BlockProps = {
   onChipInputChange?: (key: string, value: string) => void;
   setModalVisibleSourceData?: () => void;
   selectedTitle?: string;
-  section?: { id?: string };            // ← 依使用方式調整為物件
+  section?: { id?: string };
   statisticsId?: string;
   selectedQuesType?: string;
   isOpen?: boolean;
@@ -45,7 +50,7 @@ export default function ChecklistVersionBlock({
   onRemoveChip,
   onChipInputChange,
   setModalVisibleSourceData,
-  selectedTitle = '已選擇的題目',
+  selectedTitle = '已選擇',
   section,
   statisticsId,
   selectedQuesType,
@@ -61,6 +66,9 @@ export default function ChecklistVersionBlock({
   const [multiToggleOpen, setMultiToggleOpen] = React.useState(false);
   const [multiToggleTree, setMultiToggleTree] = React.useState<any[]>([]);
   const [pendingQuestion, setPendingQuestion] = React.useState<any>(null);
+
+  // 記住每題(questionId)被勾選的「葉節點 id 陣列」
+  const [choiceIdsByQuestion, setChoiceIdsByQuestion] = React.useState<Record<string, string[]>>({});
 
   const findNodeById = React.useCallback((nodes: any[], id: string) => {
     for (const n of nodes || []) {
@@ -81,13 +89,11 @@ export default function ChecklistVersionBlock({
     }
     return labels;
   }, [findNodeById]);
-  // ===== /MultiToggle =====
 
-  // 本地 chips：給穩定初始值，避免 unmount 之後變 undefined
+  // === 本地 chips（非受控回退） ===
   const [uChips, setUChips] = React.useState<ChipsData>({ selected_questions: [] });
   const chips = cChips ?? uChips;
 
-  // ✅ 支援物件與函式型更新（受控/不受控兩相宜）
   const updateChips = React.useCallback((
     next: ChipsData | ((prev: ChipsData) => ChipsData)
   ) => {
@@ -101,20 +107,38 @@ export default function ChecklistVersionBlock({
     }
   }, [onChipsChange, chips]);
 
-  // ✅ 是否已選
-  const hasChip = React.useCallback((key: string) => {
-    return chips?.selected_questions?.some(c => String(c.key) === String(key));
-  }, [chips]);
+  // 某題是否已有任一（葉）chip：用 choiceIdsByQuestion 與 chips 交集判定
+  const hasAnyChipUnderQuestion = React.useCallback((qid: string) => {
+    const leafIds = choiceIdsByQuestion[qid] ?? [];
+    if (leafIds.length === 0) return false;
+    const set = new Set(leafIds.map(String));
+    return (chips?.selected_questions ?? []).some(c => set.has(String(c.key)) || c.question_id === qid);
+  }, [choiceIdsByQuestion, chips]);
 
-  // ✅ 移除 chip
+  // 移除單顆 chip（key=leafId）；同步把該 leafId 自題目的集合中移除
   const removeChip = (k: string) => {
     if (onRemoveChip) return onRemoveChip(k);
+
+    const removed = (chips?.selected_questions ?? []).find(c => String(c.key) === String(k));
+
     updateChips(prev => ({
       selected_questions: (prev?.selected_questions ?? []).filter(c => String(c.key) !== String(k))
     }));
+
+    setChoiceIdsByQuestion(prev => {
+      const qid = removed?.question_id || Object.keys(prev).find(id =>
+        (prev[id] ?? []).some(leaf => String(leaf) === String(k))
+      );
+      if (!qid) return prev;
+
+      const remain = (prev[qid] ?? []).filter(id => String(id) !== String(k));
+      const next = { ...prev };
+      if (remain.length === 0) delete next[qid]; else next[qid] = remain;
+      return next;
+    });
   };
 
-  // ✅ 防守型 Toggle：兼容 id 來源、checked/value；內部一律存 { key, label }
+  // 單層題目：開/關（此類 chip.key = questionId，沿用舊有單顆行為）
   const handleToggleQuestion = React.useCallback((payloadOrItem: any) => {
     const id =
       payloadOrItem?.id ??
@@ -154,7 +178,7 @@ export default function ChecklistVersionBlock({
 
       let nextList: ChipItem[];
       if (shouldCheck) {
-        nextList = exists ? list : [...list, { key, label }];
+        nextList = exists ? list : [...list, { key, label, question_id: String(questionId) }];
       } else {
         nextList = list.filter(c => String(c.key) !== key);
       }
@@ -162,31 +186,23 @@ export default function ChecklistVersionBlock({
     });
   }, [section?.id, updateChips]);
 
-  // ✅ 多層選單題目：已選則移除；未選則開 modal
+  // 多層題目：開啟多選 modal（不在這裡增刪 chip）
   const handleMultiToggleQuestion = React.useCallback((payloadOrItem: any) => {
-    const item = payloadOrItem?.id
-      ? payloadOrItem
-      : RAW_QUESTIONS.find((q: any) => q.id === payloadOrItem?.id);
+    const item =
+      payloadOrItem?.id
+        ? payloadOrItem
+        : RAW_QUESTIONS.find((q: any) => String(q.id) === String(payloadOrItem?.id));
 
     if (!item) return;
-
-    const key = String(item.id);
-
-    if (hasChip(key)) {
-      updateChips(prev => ({
-        selected_questions: (prev?.selected_questions ?? []).filter(c => String(c.key) !== key)
-      }));
-      return;
-    }
 
     const tree = item?.last_version?.question_setting_items ?? [];
     setPendingQuestion(item);
     setMultiToggleTree(tree);
     setMultiToggleOpen(true);
-  }, [hasChip, updateChips]);
+  }, []);
 
+  // Step0 類型/Section 切換清理
   React.useEffect(() => {
-    // 只在 Step 0 進行判斷
     if (step !== 0) {
       prevStepRef.current = step;
       return;
@@ -201,42 +217,35 @@ export default function ChecklistVersionBlock({
     const bothTruthy = !!prevType && !!nextType;
     const typeChanged = prevType !== undefined && prevType !== nextType;
     const inSameSection = prevSectionId === nextSectionId;
-
-    // 👇 新增：上一個 step 也要是 0，才可能清空
     const stillInStep0 = prevStepRef.current === 0;
 
     const shouldClear =
-      stillInStep0 &&           // 連續停留在 Step 0
+      stillInStep0 &&
       typeChanged &&
       bothTruthy &&
       inSameSection;
 
     if (shouldClear) {
       updateChips({ selected_questions: [] });
+      setChoiceIdsByQuestion({});
       setMultiToggleOpen(false);
       setPendingQuestion(null);
       setMultiToggleTree([]);
     }
 
-    // 只在 Step 0 更新 ref，且忽略 undefined/null 的過渡值
     if (nextType) prevTypeRef.current = nextType;
     if (nextSectionId) prevSectionIdRef.current = nextSectionId;
-
-    prevStepRef.current = 0;    // 標記：當前是 Step 0
+    prevStepRef.current = 0;
   }, [selectedQuesType, section?.id, step, updateChips]);
 
-
-  // ✅ 傳給公式區：此時才轉成 question_id
+  // 傳給公式區：question_id 使用 chip.key（多層選單為葉 id；單層仍為題目 id）
   const chipsForFormula = React.useMemo(() => ({
     selected_questions: (chips?.selected_questions ?? []).map(c => ({
-      question_id: c.key,
+      question_id: c.question_id ?? null,  // ← 用 chip 內的題目 id
+      option_id: c.key,                    // ← 選項(leaf) id，如不需要可刪掉這行
       label: c.label,
     }))
   }), [chips]);
-
-  // React.useEffect(() => { console.log('ChecklistVersionBlock MOUNT'); return () => console.log('ChecklistVersionBlock UNMOUNT'); }, []);
-  // React.useEffect(() => { console.log('step changed =>', step); }, [step]);
-
 
   return (
     <View style={styles.root}>
@@ -254,7 +263,7 @@ export default function ChecklistVersionBlock({
             />
           ))
         ) : (
-          <Text style={{ color: '#999', marginTop: 8 }}>尚未選擇題目</Text>
+          <Text style={{ color: '#999', marginTop: 8 }}>尚未選擇題目/選項</Text>
         )}
       </View>
 
@@ -275,11 +284,13 @@ export default function ChecklistVersionBlock({
                 <LlStatisticsQuestionCard001
                   key={item.id}
                   checkboxVisible={true}
-                  checked={hasChip(String(item.id))}
+                  checked={hasAnyChipUnderQuestion(String(item.id))}
                   checkboxOnPress={(e: any) => {
+                    // 「single-choice」為多層選單 → 進入多選
                     if (e.last_version?.question_type_setting?.value === 'single-choice') {
                       handleMultiToggleQuestion(e);
                     } else {
+                      // 其他型別（數值/日期…）仍為「題目級」單顆 chip
                       handleToggleQuestion(e);
                     }
                   }}
@@ -296,30 +307,53 @@ export default function ChecklistVersionBlock({
 
           {multiToggleOpen && (
             <WsStateMultiLevelToggle
+              multiple
               visible={multiToggleOpen}
               title={pendingQuestion?.title || '選擇選項'}
               items={multiToggleTree}
               requireLeafSelect={true}
               autoConfirmOnLeaf={false}
+              // 不受控預選，避免沒 onChange 時無法互動
+              defaultValue={choiceIdsByQuestion[String(pendingQuestion?.id)] ?? []}
               onCancel={() => {
                 setMultiToggleOpen(false);
                 setPendingQuestion(null);
                 setMultiToggleTree([]);
               }}
-              onConfirm={({ selectedItem, path, pathIds }) => {
-                if (!pendingQuestion || !selectedItem) {
+              onConfirm={({ selectedIds = [], pathIdsList = [] }) => {
+                if (!pendingQuestion) {
                   setMultiToggleOpen(false);
                   return;
                 }
-                const ids = path ?? pathIds ?? [selectedItem.id];
-                const labels = pathLabels(multiToggleTree, ids);
+                const qid = String(pendingQuestion.id);
 
-                const key = String(pendingQuestion.id);
-                const label = `${pendingQuestion.title}：${labels.join(' / ')}`;
+                // 記住此題目前勾選的葉節點（純 option/leaf ids）
+                setChoiceIdsByQuestion(prev => ({ ...prev, [qid]: selectedIds }));
 
                 updateChips(prev => {
-                  const list = (prev?.selected_questions ?? []).filter(c => String(c.key) !== key);
-                  return { selected_questions: [...list, { key, label }] };
+                  // 先移除「上一輪此題」的 chips（question_id === qid 或 key 在上一輪 leafIds 中）
+                  const prevLeafIds = new Set((choiceIdsByQuestion[qid] ?? []).map(String));
+                  const base = (prev?.selected_questions ?? []).filter(c =>
+                    c.question_id !== qid && !prevLeafIds.has(String(c.key))
+                  );
+
+                  // 清空 → 返回 base（等於刪光這題 chips）
+                  if (selectedIds.length === 0) {
+                    return { selected_questions: base };
+                  }
+
+                  // 逐個葉節點生成 chip：key=leafId，另存 question_id
+                  const nextChips: ChipItem[] = selectedIds.map((leafId, idx) => {
+                    const idsPath = pathIdsList[idx] ?? [leafId];
+                    const text = pathLabels(multiToggleTree, idsPath).join(' / ');
+                    return {
+                      key: String(leafId),                        // ✅ 只放葉 id
+                      label: `${pendingQuestion.title}：${text}`,
+                      question_id: qid,                           // ✅ 題目 id 另存欄位
+                    };
+                  });
+
+                  return { selected_questions: [...base, ...nextChips] };
                 });
 
                 setMultiToggleOpen(false);

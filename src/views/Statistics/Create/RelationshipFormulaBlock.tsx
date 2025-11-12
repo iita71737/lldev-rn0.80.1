@@ -327,7 +327,7 @@ export default function FormulaRelationsMobileDemo({
               value={formulaData?.expression}
               params={chips?.selected_questions ? chips?.selected_questions : []}
               records={records}
-              uniqueKey={'key'}
+              uniqueKey={'option_id'}
               onChange={(p) =>
                 setFormulaData(p)
               }
@@ -335,7 +335,7 @@ export default function FormulaRelationsMobileDemo({
               sectionId={sectionId}
             />
 
-            {/* <WsState
+            <WsState
               style={{
                 marginVertical: 8
               }}
@@ -393,7 +393,7 @@ export default function FormulaRelationsMobileDemo({
               value={formulaData?.images}
               onChange={() => {
               }}
-            /> */}
+            />
 
           </WsPaddingContainer>
         </ScrollView>

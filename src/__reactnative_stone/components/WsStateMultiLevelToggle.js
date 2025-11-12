@@ -1,7 +1,7 @@
-// WsStateMultiLevelToggle.js （純 JS，中央置中 + 右側展開箭頭）
+// WsStateMultiLevelToggle.js
 import React from 'react';
 import {
-  View, Text, TextInput, StyleSheet, Modal,
+  View, Text, StyleSheet, Modal,
   TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { WsIcon, WsText, WsToggleBtn } from '@/components';
@@ -19,42 +19,67 @@ const WsStateMultiLevelToggle = ({
   title = '請選擇',
   items = [],
 
-  // 受控/不受控：選取
-  value,
-  onChange = () => { },              // ({ selectedItem, pathIds, remark })
-  defaultValue = null,
+  /** ─── 單/多選 ─── */
+  multiple = false,                 // ← 新增：true=多選、false=單選（預設單選）
 
-  // 受控/不受控：展開
+  /** 受控/不受控：選取（單選用 string，多選用 string[]） */
+  value,                            // 單選: string | undefined；多選: string[] | undefined
+  defaultValue = multiple ? [] : null,
+
+  onChange = () => { },             // 單選: ({ selectedItem, pathIds, remark })
+                                    // 多選: ({ selectedItems, pathIdsList, selectedIds, remark })
+
+  /** 受控/不受控：展開 */
   expandedIds,
   defaultExpandedIds = [],
 
-  // 行為
+  /** 行為 */
   requireLeafSelect = true,
-  autoConfirmOnLeaf = false,
+  autoConfirmOnLeaf = false,        // 多選時通常不自動送出
+
+  /** 關閉 */
   closeOnBackdrop = true,
-
-  // 事件
   onCancel = () => { },
-  onConfirm = () => { },             // ({ selectedItem, pathIds, remark })
+  onConfirm = () => { },            // 同 onChange 的資料型態
 
-  // mapper
+  /** mapper */
   getId = defaultGetId,
   getName = defaultGetName,
   getChildren = defaultGetChildren,
   getHasRemark = defaultGetHasRemark,
 
-  // UI
+  /** UI */
   cancelText = '取消',
   confirmText = '確認',
   testIDPrefix = 'WsStateMultiLevelToggle',
 }) => {
-  /** ------------ 受控/不受控：selectedId ------------ **/
+  /** ------------ 受控/不受控：selected ------------ **/
   const isControlled = value !== undefined;
-  const [innerSelectedId, setInnerSelectedId] = React.useState(defaultValue ?? null);
-  const selectedId = isControlled ? value : innerSelectedId;
+
+  // 單選：string | null；多選：Set<string>
+  const [innerSelectedId, setInnerSelectedId] = React.useState(
+    multiple ? null : (defaultValue ?? null)
+  );
+  const [innerSelectedIds, setInnerSelectedIds] = React.useState(
+    new Set(Array.isArray(defaultValue) ? defaultValue : [])
+  );
+
+  const selectedId = multiple ? null : (isControlled ? value : innerSelectedId);
+  const selectedIdsSet = React.useMemo(() => {
+    if (!multiple) return null;
+    const ids = isControlled ? (Array.isArray(value) ? value : []) : Array.from(innerSelectedIds);
+    return new Set(ids);
+  }, [multiple, isControlled, value, innerSelectedIds]);
+
   const setSelectedId = React.useCallback((nextId) => {
+    if (multiple) return; // 多選不走這條
     if (!isControlled) setInnerSelectedId(nextId);
-  }, [isControlled]);
+  }, [multiple, isControlled]);
+
+  const setSelectedIdsSet = React.useCallback((nextSet) => {
+    if (!multiple) return; // 單選不走這條
+    if (!isControlled) setInnerSelectedIds(new Set(nextSet));
+  }, [multiple, isControlled]);
 
   /** ------------ 受控/不受控：expanded ------------ **/
   const isExpandedControlled = expandedIds !== undefined;
@@ -67,14 +92,20 @@ const WsStateMultiLevelToggle = ({
     if (!isExpandedControlled) setInnerExpanded(new Set(nextSet));
   }, [isExpandedControlled]);
 
-  /** ------------ remark ------------ **/
+  /** ------------ remark（保留一組共用備註） ------------ **/
   const [remark, setRemark] = React.useState('');
 
   /** ------------ 開啟時初始化 ------------ **/
   React.useEffect(() => {
     if (visible) {
       if (!isExpandedControlled) setInnerExpanded(new Set(defaultExpandedIds));
-      if (!isControlled) setInnerSelectedId(defaultValue ?? null);
+      if (!isControlled) {
+        if (multiple) {
+          setInnerSelectedIds(new Set(Array.isArray(defaultValue) ? defaultValue : []));
+        } else {
+          setInnerSelectedId(defaultValue ?? null);
+        }
+      }
       setRemark('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,13 +152,20 @@ const WsStateMultiLevelToggle = ({
   }, [expandedSet, setExpandedSet]);
 
   /** ------------ 組合結果 ------------ **/
-  const buildResult = React.useCallback((node, customRemark) => {
+  const buildSingleResult = React.useCallback((node, customRemark) => {
     const id = getId(node);
     const pathIds = getPathIds(id);
     return { selectedItem: node, pathIds, remark: customRemark ?? remark };
   }, [getId, getPathIds, remark]);
 
-  /** ------------ 點選節點 ------------ **/
+  const buildMultiResult = React.useCallback((idsSet, customRemark) => {
+    const ids = Array.from(idsSet || []);
+    const selectedItems = ids.map(id => idMap.get(id)).filter(Boolean);
+    const pathIdsList = ids.map(id => getPathIds(id));
+    return { selectedItems, pathIdsList, selectedIds: ids, remark: customRemark ?? remark };
+  }, [idMap, getPathIds, remark]);
+
+  /** ------------ 點選節點（單/多選） ------------ **/
   const handleSelect = React.useCallback((node) => {
     const nodeId = getId(node);
     const children = hasChildren(node);
@@ -138,25 +176,42 @@ const WsStateMultiLevelToggle = ({
       return;
     }
 
-    setSelectedId(nodeId);
-
-    if (children) {
-      const next = new Set(expandedSet);
-      next.add(nodeId);
-      setExpandedSet(next);
-    }
-
+    // 沒備註就清空
     if (!getHasRemark(node)) setRemark('');
 
-    if (autoConfirmOnLeaf && !children) {
-      onConfirm(buildResult(node));
+    if (multiple) {
+      // 多選：切換選取集合
+      const next = new Set(selectedIdsSet);
+      next.has(nodeId) ? next.delete(nodeId) : next.add(nodeId);
+      setSelectedIdsSet(next);
+
+      const result = buildMultiResult(next);
+      if (autoConfirmOnLeaf && !children) {
+        onConfirm(result);
+      } else {
+        onChange(result);
+      }
     } else {
-      onChange(buildResult(node));
+      // 單選：覆寫單一選取
+      setSelectedId(nodeId);
+      if (children) {
+        const next = new Set(expandedSet);
+        next.add(nodeId);
+        setExpandedSet(next);
+      }
+      const result = buildSingleResult(node);
+      if (autoConfirmOnLeaf && !children) {
+        onConfirm(result);
+      } else {
+        onChange(result);
+      }
     }
   }, [
-    getId, hasChildren, requireLeafSelect, toggleExpand,
-    setSelectedId, expandedSet, setExpandedSet,
-    getHasRemark, autoConfirmOnLeaf, onConfirm, onChange, buildResult
+    multiple, getId, hasChildren, requireLeafSelect,
+    toggleExpand, getHasRemark, setRemark,
+    selectedIdsSet, setSelectedIdsSet, buildMultiResult,
+    setSelectedId, expandedSet, setExpandedSet, buildSingleResult,
+    autoConfirmOnLeaf, onConfirm, onChange
   ]);
 
   /** ------------ 單列（右側箭頭） ------------ **/
@@ -165,9 +220,11 @@ const WsStateMultiLevelToggle = ({
     const name = getName(node);
     const children = hasChildren(node);
     const isExpanded = expandedSet.has(id);
-    const isSelected = selectedId === id;
+    const isSelected = multiple
+      ? selectedIdsSet.has(id)
+      : selectedId === id;
 
-    // ✅ 第一層不縮排，第二層開始才縮排
+    // 第一層不縮排，第二層開始才縮排
     const effectiveLevel = level === 0 ? 0 : level;
     const marginLeft = effectiveLevel === 0 ? 0 : effectiveLevel * INDENT;
 
@@ -201,8 +258,7 @@ const WsStateMultiLevelToggle = ({
         </View>
       </View>
     );
-  }, [expandedSet, selectedId, handleSelect, toggleExpand, getId, getName, hasChildren]);
-
+  }, [expandedSet, multiple, selectedId, selectedIdsSet, handleSelect, toggleExpand, getId, getName, hasChildren]);
 
   /** ------------ 遞迴渲染樹 ------------ **/
   const renderNode = React.useCallback((node, level = 0) => {
@@ -222,11 +278,25 @@ const WsStateMultiLevelToggle = ({
     );
   }, [expandedSet, getId, getChildren, Row]);
 
-  /** ------------ 確認可用性 ------------ **/
+  /** ------------ 確認按鈕可用性 ------------ **/
   const selectedNode = React.useMemo(() => {
+    if (multiple) return null;
     if (!selectedId) return null;
     return idMap.get(selectedId) ?? null;
-  }, [selectedId, idMap]);
+  }, [multiple, selectedId, idMap]);
+
+  const confirmDisabled = multiple
+    ? (selectedIdsSet.size === 0)
+    : !selectedNode;
+
+  const handleConfirm = React.useCallback(() => {
+    if (multiple) {
+      const result = buildMultiResult(selectedIdsSet);
+      onConfirm(result);
+    } else if (selectedNode) {
+      onConfirm(buildSingleResult(selectedNode));
+    }
+  }, [multiple, selectedIdsSet, selectedNode, buildMultiResult, buildSingleResult, onConfirm]);
 
   return (
     <Modal
@@ -237,7 +307,7 @@ const WsStateMultiLevelToggle = ({
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.centerWrap}     // 中央置中
+        style={styles.centerWrap}
       >
         {/* 半透明底 */}
         <TouchableOpacity
@@ -257,9 +327,9 @@ const WsStateMultiLevelToggle = ({
             <WsText size={16} fontWeight="bold" textAlign="center">{title}</WsText>
 
             <TouchableOpacity
-              disabled={!selectedNode}
-              onPress={() => selectedNode && onConfirm(buildResult(selectedNode))}
-              style={[styles.headerBtn, !selectedNode && { opacity: 0.4 }]}
+              disabled={confirmDisabled}
+              onPress={handleConfirm}
+              style={[styles.headerBtn, confirmDisabled && { opacity: 0.4 }]}
             >
               <WsText color={$color.primary}>{confirmText}</WsText>
             </TouchableOpacity>
@@ -280,41 +350,16 @@ const WsStateMultiLevelToggle = ({
 export default WsStateMultiLevelToggle;
 
 const styles = StyleSheet.create({
-  // 讓內容在螢幕正中央
-  centerWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  // 置中卡片：寬度 92%，最高 80% 螢幕
+  centerWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
   centerCard: {
-    width: '92%',
-    maxHeight: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    overflow: 'hidden',
-    // 陰影
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 10,
+    width: '92%', maxHeight: '80%', backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 10,
   },
-
   header: {
-    height: 48, paddingHorizontal: 12,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    height: 48, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#eee',
   },
   headerBtn: { paddingHorizontal: 6, paddingVertical: 8 },
-
-  rowWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingRight: 32,
-  },
+  rowWrap: { flexDirection: 'row', alignItems: 'center', paddingRight: 32 },
 });

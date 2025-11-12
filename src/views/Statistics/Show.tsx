@@ -41,7 +41,7 @@ import { SkiaRenderer, SkiaChart } from '@wuba/react-native-echarts'; // ✅ 重
 import { useNavigation } from '@react-navigation/native'
 import PickType from '@/views/Statistics/Create/PickType'
 import SingleChart from './SingleChart'
-import RelationshipFormulaBlock from './Create/RelationshipFormulaBlock';
+import { records, params } from "./Create/mock/records";
 
 /** — 資料模型 — */
 export type ChipItem = {
@@ -922,16 +922,18 @@ ${demoData?.end_time ? demoData?.end_time : '2025-12-31'}`
               label={t('公式​')}
               placeholder={t('輸入')}
               value={formulaData?.expression}
-              params={[
-                { question_id: 'A001', label: '題目A' },
-                { question_id: 'A002', label: '題目B' },
-                { question_id: 'A003', label: '題目C' },
-              ]}
-              records={[
-                { time: "2025/08/01 1:00:00", 題目A: 1, 題目B: 2, 題目C: 3, 題目D: 4, 題目E: 5, question_id: 'A001' },
-                { time: "2025/08/01 2:00:00", 題目A: 2, 題目B: 3, 題目C: 4, 題目D: 5, 題目E: 6, question_id: 'A002' },
-                { time: "2025/08/01 3:00:00", 題目A: 3, 題目B: 4, 題目C: 5, 題目D: 6, 題目E: 7, question_id: 'A003' },
-              ]}
+              // params={[
+              //   { question_id: 'A001', label: '題目A' },
+              //   { question_id: 'A002', label: '題目B' },
+              //   { question_id: 'A003', label: '題目C' },
+              // ]}
+              // records={[
+              //   { time: "2025/08/01 1:00:00", 題目A: 1, 題目B: 2, 題目C: 3, 題目D: 4, 題目E: 5, question_id: 'A001' },
+              //   { time: "2025/08/01 2:00:00", 題目A: 2, 題目B: 3, 題目C: 4, 題目D: 5, 題目E: 6, question_id: 'A002' },
+              //   { time: "2025/08/01 3:00:00", 題目A: 3, 題目B: 4, 題目C: 5, 題目D: 6, 題目E: 7, question_id: 'A003' },
+              // ]}
+              params={params}
+              records={records}
               onChange={(p) =>
                 setFormulaData(p)
               }
