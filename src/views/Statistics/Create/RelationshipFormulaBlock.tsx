@@ -327,7 +327,7 @@ export default function FormulaRelationsMobileDemo({
               value={formulaData?.expression}
               params={chips?.selected_questions ? chips?.selected_questions : []}
               records={records}
-              uniqueKey={'option_id'}
+              uniqueKey={'key'}
               onChange={(p) =>
                 setFormulaData(p)
               }
