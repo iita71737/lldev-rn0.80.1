@@ -165,7 +165,7 @@ const Menu = ({ navigation }) => {
         nav: () => navigation.navigate('RoutesApp', { screen: 'FileStore' }),
       },
       {
-        key: 'statistic',
+        key: 'factory-statistic',
         title: t('數量統計管理'),
         bg: require('@/assets/img/audit-management.jpg'),
         perm: true,

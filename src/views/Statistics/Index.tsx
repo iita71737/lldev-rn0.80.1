@@ -11,7 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import $color from '@/__reactnative_stone/global/color'
-import AsyncStorage from '@react-native-community/async-storage'
+import { useRoute } from '@react-navigation/native';
 
 interface TrainingListProps {
   tabIndex: number;
@@ -22,9 +22,10 @@ interface TrainingItem {
   id: number;
 }
 
-const TrainingList: React.FC<TrainingListProps> = props => {
+const StatisticsList: React.FC<TrainingListProps> = props => {
   const { t } = useTranslation()
   const navigation = useNavigation<any>()
+  const route = useRoute();
 
   // Props
   const {
@@ -39,8 +40,8 @@ const TrainingList: React.FC<TrainingListProps> = props => {
     return {
       order_by: 'train_at',
       order_way: 'desc',
-      time_field: 'train_at',
-      timezone: 'Asia/Taipei',
+      // time_field: 'train_at',
+      // timezone: 'Asia/Taipei',
       lang: 'tw'
     }
   }, []);
@@ -84,7 +85,10 @@ const TrainingList: React.FC<TrainingListProps> = props => {
               marginRight: 4
             }}
             onPress={() => {
-              navigation.navigate('StatisticsCreate')
+              // navigation.navigate('StatisticsCreate')
+              navigation.push('RoutesStatistics', {
+                screen: 'StatisticsCreate'
+              })
             }}
           />
         )
@@ -115,7 +119,7 @@ const TrainingList: React.FC<TrainingListProps> = props => {
   return (
     <>
       <WsPageIndex
-        modelName={'checklist'}
+        modelName={'factory_statistic_group'}
         params={params}
         extendParams={searchValue}
         filterFields={filterFields}
@@ -148,4 +152,4 @@ const TrainingList: React.FC<TrainingListProps> = props => {
     </>
   )
 }
-export default TrainingList
+export default StatisticsList

@@ -61,9 +61,29 @@ const LlStatisticsCard001 = props => {
                   labelWidth={100}
                   labelSize={12}
                   textSize={12}
-                  label={t('狀態')}
+                  label={t('是否更新')}
                   value={
-                    item.date_picker_type === 2 ? t('計算中') : t('停止計算中')
+                    item.is_renewed === 1 ? t('是') : t('否')
+                  }
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}
+                />
+              </View>
+
+                  <View
+                style={{
+                  marginTop: 8
+                }}
+              >
+                <WsInfo
+                  labelWidth={100}
+                  labelSize={12}
+                  textSize={12}
+                  label={t('是否有錯誤')}
+                  value={
+                    item.has_error === 1 ? t('是') : t('否')
                   }
                   style={{
                     flexDirection: 'row',

@@ -28,7 +28,6 @@ import store from '@/store'
 import {
   setOfflineMsg
 } from '@/store/data'
-// import AsyncStorage from '@react-native-async-storage/async-storage';
 import ViewDashboardEvent from '@/views/DashboardFactory/Event'
 import ViewDashboardEventList from '@/views/DashboardFactory/DashboardEventListTab'
 const StackSetting = createStackNavigator()

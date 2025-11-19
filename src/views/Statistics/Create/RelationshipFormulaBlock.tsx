@@ -319,6 +319,7 @@ export default function FormulaRelationsMobileDemo({
 
             <WsState
               type="formula"
+              questionType="single-choice"
               style={{
                 marginVertical: 8,
               }}

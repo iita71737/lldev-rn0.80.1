@@ -23,10 +23,6 @@ import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import S_SystemClass from '@/__reactnative_stone/services/api/v1/system_class'
 import { isEqual } from 'lodash'
-import store from '@/store'
-import {
-  setIdleCounter
-} from '@/store/data'
 
 interface WsPageIndexProps {
   modelName: string;

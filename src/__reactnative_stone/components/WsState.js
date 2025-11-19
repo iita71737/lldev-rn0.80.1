@@ -48,7 +48,8 @@ import {
   WsTimeRangePicker,
   WsFormulaBuilder,
   WsFormulaBuilder002,
-  WsStateMultiLevelToggle
+  WsStateMultiLevelToggle,
+  WsFormulaBuilder003
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import $theme from '@/__reactnative_stone/global/theme'
@@ -184,7 +185,8 @@ const WsState = React.forwardRef((props, ref) => {
     records,
     statisticsId,
     sectionId,
-    step
+    step,
+    questionType
   } = props
 
   // i18n
@@ -1003,9 +1005,27 @@ const WsState = React.forwardRef((props, ref) => {
         </>
       )}
 
-      {type == 'formula' && (
+      {(type == 'formula' && questionType !== 'single-choice') && (
         <>
           <WsFormulaBuilder002
+            placeholder={placeholder}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            isError={isError}
+            params={params}
+            records={records}
+            style={style}
+            statisticsId={statisticsId}
+            sectionId={sectionId}
+            step={step}
+          />
+        </>
+      )}
+
+      {(type == 'formula' && questionType === 'single-choice') && (
+        <>
+          <WsFormulaBuilder003
             placeholder={placeholder}
             value={value}
             onChange={onChange}

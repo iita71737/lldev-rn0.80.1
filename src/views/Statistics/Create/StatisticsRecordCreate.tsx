@@ -273,7 +273,7 @@ const StatisticsRecordCreate = (props) => {
                 <WsInfo labelWidth={100} label={t('時間區間')} value={`${demoData?.start_time} ~ ${demoData?.end_time}`} />
               </View>
               <View style={{ marginTop: 8 }}>
-                <WsInfo labelWidth={100} label={t('時間單位')} value={demoData?.time_unit === 'day' ? t('日') : t('')} />
+                <WsInfo labelWidth={100} label={t('時間單位')} value={demoData?.time_interval === 'day' ? t('日') : t('')} />
               </View>
 
               {/* Step1 only: 資料集名稱 / 題型 */}
@@ -310,7 +310,7 @@ const StatisticsRecordCreate = (props) => {
                 <WsInfo labelWidth={100} label={t('時間區間')} value={`${demoData?.start_time} ~ ${demoData?.end_time}`} />
               </View>
               <View style={{ marginTop: 8 }}>
-                <WsInfo labelWidth={100} label={t('時間單位')} value={demoData?.time_unit === 'day' ? t('日') : t('')} />
+                <WsInfo labelWidth={100} label={t('時間單位')} value={demoData?.time_interval === 'day' ? t('日') : t('')} />
               </View>
             </WsPaddingContainer>
           )}
@@ -326,7 +326,7 @@ const StatisticsRecordCreate = (props) => {
                   <WsInfo labelWidth={100} label={t('時間區間')} value={`${demoData?.start_time} ~ ${demoData?.end_time}`} />
                 </View>
                 <View style={{ marginTop: 8 }}>
-                  <WsInfo labelWidth={100} label={t('時間單位')} value={demoData?.time_unit === 'day' ? t('日') : t('')} />
+                  <WsInfo labelWidth={100} label={t('時間單位')} value={demoData?.time_interval === 'day' ? t('日') : t('')} />
                 </View>
               </WsPaddingContainer>
 

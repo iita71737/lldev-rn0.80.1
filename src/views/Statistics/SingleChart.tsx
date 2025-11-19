@@ -172,6 +172,18 @@ export default function SingleChart({
         },
         { name: seriesNames.b ?? 'B', type: 'line', data: safeB, showSymbol: true, symbol: 'circle', symbolSize: 12, lineStyle: { width: 2 }, sampling: 'lttb', emphasis: { focus: 'self' } },
       ],
+      dataZoom: [
+        {
+          type: 'inside',
+          xAxisIndex: 0,
+        },
+        // {
+        //   type: 'slider',
+        //   xAxisIndex: 0,
+        //   height: 24,
+        //   bottom: 40,
+        // },
+      ],
     }),
     [labels, safeA, safeB, seriesNames.a, seriesNames.b, xAxisName, yAxisName, valueSuffix, xLabelFormatter]
   )

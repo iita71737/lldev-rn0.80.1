@@ -70,6 +70,7 @@ import announcement from '@/services/api/v1/announcement'
 import alliance from '@/services/api/v1/alliance'
 import area from '@/services/api/v1/area'
 import area_section from '@/services/api/v1/area_section'
+import factory_statistic_group from '@/services/api/v1/factory_statistic_group'
 
 export default {
   act,
@@ -143,5 +144,6 @@ export default {
   announcement,
   alliance,
   area,
-  area_section
+  area_section,
+  factory_statistic_group
 }

@@ -56,6 +56,10 @@ const toSafeVar = (id: string) => {
 };
 
 const KNOWN_FUNCS = new Set(["SUM", "MAX", "MIN", "AVERAGE"]);
+const RESERVED_WORDS = new Set([...KNOWN_FUNCS]); // 可在此加入 PI、E 等常數名
+const SAFE_NAME_RE = /^[A-Za-z_][A-Za-z0-9_\u4E00-\u9FFF]*$/;
+const needsBacktickLoose = (s: string) =>
+  !SAFE_NAME_RE.test(s || "") || RESERVED_WORDS.has(String(s).toUpperCase());
 
 // CJK + 英數底線：視為可組成名稱的字元
 const isIdentChar = (ch: string) => {
@@ -68,13 +72,10 @@ const isIdentChar = (ch: string) => {
 
 // 把任意輸入轉為 number | number[]
 const toNumberOrArray = (raw: any): number | number[] => {
-  // 陣列：每個元素轉數字，過濾 NaN
   if (Array.isArray(raw)) {
     const arr = raw.map(v => Number(v)).filter(v => Number.isFinite(v));
     return arr;
   }
-
-  // CSV 字串：'1,2, 3' → [1,2,3]
   if (typeof raw === 'string' && raw.includes(',')) {
     const arr = raw
       .split(',')
@@ -82,15 +83,12 @@ const toNumberOrArray = (raw: any): number | number[] => {
       .filter(v => Number.isFinite(v));
     return arr;
   }
-
-  // 單一字串/數字：轉成 number；失敗回 0
   const num = Number(raw);
   return Number.isFinite(num) ? num : 0;
 };
 
 // 把 math.js 回傳的結果轉成純 JS：支援 Matrix / Array / Number
 const valueOfMathResult = (val: any): number | number[] | string => {
-  // Matrix 轉陣列
   if (val && typeof val === 'object' && typeof val.valueOf === 'function') {
     const v = val.valueOf();
     if (Array.isArray(v)) return v;
@@ -113,6 +111,9 @@ type NewToken =
   | { type: "comma"; text: "," }
   | { type: "name"; text: string }
   | { type: "other"; text: string };
+
+// UUID 一次吃掉（避免被 '-' 切成減號）
+const UUID_RE = /^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}/;
 
 const tokenize = (input: string): NewToken[] => {
   const out: NewToken[] = [];
@@ -150,6 +151,27 @@ const tokenize = (input: string): NewToken[] => {
       out.push({ type: "number", text: input.slice(i, j) });
       i = j;
       continue;
+    }
+
+    // ✅ UUID：整段視為 name
+    const uuidSlice = input.slice(i);
+    const uuidMatch = uuidSlice.match(UUID_RE);
+    if (uuidMatch) {
+      out.push({ type: "name", text: uuidMatch[0] });
+      i += uuidMatch[0].length;
+      continue;
+    }
+
+    // ✅ 反引號名稱：`任何字元...`
+    if (ch === '`') {
+      let j = i + 1;
+      while (j < n && input[j] !== '`') j++;
+      if (j < n && input[j] === '`') {
+        const nameInside = input.slice(i + 1, j);
+        out.push({ type: "name", text: nameInside });
+        i = j + 1;
+        continue;
+      }
     }
 
     if ("+-*/^".includes(ch)) { pushOp(ch); i++; continue; }
@@ -195,6 +217,7 @@ const untokenizeToReal = (
           const vname = idToVar.get(String(id)) || toSafeVar(String(id));
           parts.push(vname);
         } else {
+          // 未知名稱原樣保留，交給 evaluate 報錯（之後會轉「未識別: ...」）
           parts.push(tok.text);
         }
         break;
@@ -276,6 +299,7 @@ export default function WsFormulaBuilder002({
     [paramList, params]
   );
 
+  // ✅ 對映：id→安全變數名；可顯示名稱→參數（支援 id/label/customLabel）
   const { idToVar, displayNameToParam } = useMemo(() => {
     const idToVar = new Map<string, string>();
     const displayNameToParam = new Map<string, ParamItem>();
@@ -287,6 +311,8 @@ export default function WsFormulaBuilder002({
       const safe = toSafeVar(String(id));
       idToVar.set(String(id), safe);
 
+      // 三向對映
+      displayNameToParam.set(String(id), p);
       if (p.label) displayNameToParam.set(String(p.label), p);
       if (p.customLabel) displayNameToParam.set(String(p.customLabel), p);
     });
@@ -317,10 +343,33 @@ export default function WsFormulaBuilder002({
     return { real, used, tokens };
   }, [displayNameToParam, idToVar, uniqueKey]);
 
+  // ✅ 使用者輸入（display）→ 自動包反引號（僅針對「我們認得的名稱」且不安全）
+  const autoWrapUnsafeNamesInDisplay = useCallback((txt: string) => {
+    const tokens = tokenize(txt);
+    let changed = false;
+    const parts: string[] = [];
+
+    for (const tok of tokens) {
+      if (tok.type === "name") {
+        const isKnown = displayNameToParam.has(tok.text);
+        if (isKnown && needsBacktickLoose(tok.text)) {
+          parts.push("`" + tok.text + "`");
+          changed = true;
+        } else {
+          parts.push(tok.text);
+        }
+      } else {
+        parts.push(tok.text);
+      }
+    }
+    return changed ? parts.join("") : txt;
+  }, [displayNameToParam]);
+
   // 使用者輸入（display）→ 即時轉 real + used + toks
   const onDisplayChange = (txt: string) => {
-    setDisplayExpression(txt);
-    const { real, used, tokens } = convertDisplayToReal(txt);
+    const incoming = autoWrapUnsafeNamesInDisplay(txt);
+    setDisplayExpression(incoming);
+    const { real, used, tokens } = convertDisplayToReal(incoming);
     setRealExpression(real);
     setUsedParams(used);
     setToks(tokens);
@@ -340,7 +389,13 @@ export default function WsFormulaBuilder002({
         effectiveParams.forEach((p: any) => {
           const id = p?.[uniqueKey] ?? p?.question_id ?? p?.key;
           if (!id) return;
-          const raw = r[id];
+
+          // 取值 fallback：id → label → customLabel
+          const raw =
+            r[id] ??
+            r[p.label] ??
+            (p.customLabel ? r[p.customLabel] : undefined);
+
           const vname = idToVar.get(String(id)) || toSafeVar(String(id));
           ctx[vname] = toNumberOrArray(raw);
         });
@@ -374,6 +429,10 @@ export default function WsFormulaBuilder002({
   }, [realExpression, records, effectiveParams, uniqueKey, idToVar]);
 
   /* ========================= 插入/選取 ========================= */
+  const needsBacktick = (s: string) =>
+    /[^A-Za-z0-9_\u4E00-\u9FFF]/.test(s || "") ||
+    RESERVED_WORDS.has(String(s).toUpperCase());
+
   const insertAtCursor = (displayPiece: string) => {
     const start = selection.start ?? 0;
     const end = selection.end ?? 0;
@@ -395,7 +454,7 @@ export default function WsFormulaBuilder002({
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  // 點參數插入（只插入名稱，不額外加 + 或空白）
+  // 點參數插入：若名稱含空白/符號/保留字，自動用反引號包起來
   const onSelectParam = (item?: ParamItem | Record<string, any>) => {
     if (!item) return;
     const anyItem: any = item;
@@ -403,7 +462,8 @@ export default function WsFormulaBuilder002({
       (typeof anyItem.customLabel === "string" && anyItem.customLabel.trim()) ||
       anyItem.label ||
       "";
-    insertAtCursor(displayName);
+    const piece = needsBacktick(displayName) ? `\`${displayName}\`` : displayName;
+    insertAtCursor(piece);
   };
 
   const onInsertFunction = (fInsert: string) => insertAtCursor(fInsert);
@@ -451,11 +511,17 @@ export default function WsFormulaBuilder002({
     const rawKeys =
       Object.keys(base[0])?.filter((k) => k !== uniqueKey && k !== "key") ?? [];
 
+    // 三向對映，將欄位名（不論 UUID/label/customLabel）顯示為自訂名（若有）或原 label
     const labelMap = Object.fromEntries(
-      effectiveParams.map((p: any) => [
-        p?.[uniqueKey] ?? p?.key,
-        p.customLabel || p.label,
-      ])
+      effectiveParams.flatMap((p: any) => {
+        const id = p?.[uniqueKey] ?? p?.question_id ?? p?.key;
+        const show = p.customLabel || p.label;
+        const pairs: [string, string][] = [];
+        if (id) pairs.push([String(id), show]);
+        if (p.label) pairs.push([String(p.label), show]);
+        if (p.customLabel) pairs.push([String(p.customLabel), show]);
+        return pairs;
+      })
     );
 
     const cols = rawKeys.map((k) => ({
@@ -585,7 +651,7 @@ export default function WsFormulaBuilder002({
                   onSelectionChange={(e) =>
                     setSelection(e.nativeEvent.selection)
                   }
-                  placeholder="例如：SUM(題目A, 題目B) 或 (題目A + 題目B) * 2；支援自訂名稱"
+                  placeholder="例如：SUM(`題目1-調勻池pH值v1`, `題目2-...`)"
                   placeholderTextColor="rgba(185,184,184,0.5)"
                   multiline
                 />

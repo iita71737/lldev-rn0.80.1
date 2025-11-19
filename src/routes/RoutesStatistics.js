@@ -34,7 +34,7 @@ const StackSetting = createStackNavigator()
 import StatisticsShow from '@/views/Statistics/Show'
 import StatisticsRecordCreate from '@/views/Statistics/Create/StatisticsRecordCreate'
 import AsyncStorage from '@react-native-community/async-storage'
-import { nanoid } from 'nanoid/non-secure';
+import S_FactoryStatictisGroup from '@/services/api/v1/factory_statistic_group'
 
 const RoutesStatistics = ({ navigation }) => {
   // i18n
@@ -116,7 +116,7 @@ const RoutesStatistics = ({ navigation }) => {
         }
       }
     },
-    time_unit: {
+    time_interval: {
       label: t('時間單位'),
       type: 'picker',
       rules: 'required',
@@ -138,7 +138,7 @@ const RoutesStatistics = ({ navigation }) => {
       customizedNameKey: 'userAndEmail',
       rules: 'required'
     },
-    user_factory_role_templates: {
+    roles: {
       type: 'multipleBelongstomany',
       label: t('限閱角色'),
       placeholder: t('選擇'),
@@ -203,12 +203,12 @@ const RoutesStatistics = ({ navigation }) => {
             'name',
             'owner',
             'users',
-            'user_factory_role_templates',
+            'roles',
             'factory_tags',
             'remark',
             'date_picker_type',
             'dynamic_data_time',
-            'time_unit',
+            'time_interval',
             'start_time',
             'end_time',
             'system_subclasses',
@@ -358,23 +358,26 @@ const RoutesStatistics = ({ navigation }) => {
 
   // 新增事件
   const submitStatisticsCreate = async (data, navigation) => {
-    const _id = nanoid()
+    const _data = await S_FactoryStatictisGroup.getFormattedData(data, currentFactory, currentUser)
+    // console.log(_data,'_data')
     try {
-      const withId = {
-        ...data,
-        id: _id, // ✅ 自動產生 UUID
-        created_at: new Date().toISOString(), // （可選）附上建立時間
-      };
-      console.log(withId, '📦 儲存資料物件');
-      // 2️⃣ 將物件轉成 JSON
-      const jsonValue = JSON.stringify(withId);
-      // 3️⃣ 寫入本地儲存
-      await AsyncStorage.setItem(`@statistics_data`, jsonValue);
-      console.log(jsonValue, '✅ 資料已成功儲存');
-      // 4️⃣ 導向其他頁面
-      navigation.navigate('StatisticsIndex', { data: withId });
+      const res = await S_FactoryStatictisGroup.create({
+        data: _data
+      }).then(res => {
+
+        navigation.replace('RoutesStatistics', {
+          screen: 'StatisticsShow',
+          params: {
+            id: res.id,
+            refreshKey: Date.now()
+          }
+        })
+
+        // navigation.replace('StatisticsShow', { id: res.id });
+      })
     } catch (e) {
-      console.error('❌ 儲存失敗:', e);
+      console.error(e);
+      navigation.navigate('StatisticsIndex')
     }
   }
 
@@ -395,19 +398,34 @@ const RoutesStatistics = ({ navigation }) => {
           options={({ navigation }) => ({
             title: t('數量統計管理'),
             ...$option.headerOption,
-            headerLeft: () => (
-              <WsIconBtn
-                testID="backButton"
-                name="md-chevron-left"
-                color={$color.white}
-                size={32}
-                style={{
-                }}
-                onPress={() => {
-                  navigation.goBack()
-                }}
-              />
-            ),
+            // headerLeft: () => (
+            //   <WsIconBtn
+            //     testID="backButton"
+            //     name="md-chevron-left"
+            //     color={$color.white}
+            //     size={32}
+            //     style={{
+            //     }}
+            //     onPress={() => {
+            //       navigation.goBack()
+            //     }}
+            //   />
+            // ),
+            // headerRight: () => {
+            //   return (
+            //     <WsIconBtn
+            //       name="md-add"
+            //       color={$color.white}
+            //       size={24}
+            //       style={{
+            //         marginRight: 4
+            //       }}
+            //       onPress={() => {
+            //         navigation.navigate('StatisticsCreate')
+            //       }}
+            //     />
+            //   )
+            // },
           })}
           initialParams={{
           }}
