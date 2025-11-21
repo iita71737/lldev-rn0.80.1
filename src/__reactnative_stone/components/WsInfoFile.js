@@ -131,7 +131,7 @@ const WsInfoFile = props => {
       }).fetch('GET', value);
       const localPath = res.path(); 
       console.log(localPath,'localPath--');
-      await FileViewer.open(localPath, { showOpenWithDialog: true });
+      // await FileViewer.open(localPath, { showOpenWithDialog: true });
 
       // 🧠 構建下載路徑
       // const safeFileName = encodeURIComponent($_getFileName(value));
@@ -155,7 +155,7 @@ const WsInfoFile = props => {
       }).promise;
 
       if (downloadRes.statusCode === 200) {
-        console.log(decodedFilePath, 'decodedFilePath');
+        console.log(decodedFilePath, 'decodedFilePath-QAQ');
         await FileViewer.open(decodedFilePath, { showOpenWithDialog: true });
       } else {
         console.warn('Download failed with status:', downloadRes.statusCode);

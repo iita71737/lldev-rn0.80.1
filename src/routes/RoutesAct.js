@@ -747,6 +747,7 @@ const RoutesAct = () => {
             afterFinishingTo: 'GuidelineAdminIndex',
           }}
         />
+
       </StackSetting.Navigator>
     </>
   )

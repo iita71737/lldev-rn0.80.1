@@ -75,7 +75,7 @@ const Menu = ({ navigation }) => {
   const currentUser = useSelector(state => state.data.currentUser)
   const currentUserScope = useSelector(state => state.data.userScopes)
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
-  
+
 
   // States
   const [manageList, setManageList] = React.useState([])
@@ -280,7 +280,7 @@ const Menu = ({ navigation }) => {
                   navigation.navigate('MyAccountSetting')
                 }}
               />
-              
+
               {scopePermission('sos-create', currentUserScope) && (
                 <WsPaddingContainer>
                   <LlSOSBtn002
@@ -445,6 +445,36 @@ const Menu = ({ navigation }) => {
                     </WsPaddingContainer>
                   </>
                 )}
+
+              {/* {scopePermission('guideline-admin-read', currentUserScope) &&
+                scopeSubscriptions(currentFactory, 'guideline') && (
+                  <LlNavButton001
+                    style={{
+                      backgroundColor: $color.white
+                    }}
+                    iconLeft="ll-esh-file"
+                    onPress={(e) => {
+                      if (!scopePermission('guideline-admin-read', currentUserScope)) {
+                        Alert.alert(
+                          t('您無此單位內相關權限，請聯絡系統管理員'),
+                          "",
+                          [
+                            {
+                              text: t("確定"),
+                              onPress: () => {
+                                navigation.navigate('RoutesMenu')
+                              }
+                            }
+                          ]
+                        )
+                        e.preventDefault();
+                      } else if (scopePermission('guideline-admin-read', currentUserScope)) {
+                        navigation.navigate('RoutesPDFTool', { screen: 'PDFToolAdminIndex' })
+                      }
+                    }}>
+                    {t('議事列表')}
+                  </LlNavButton001>
+                )} */}
 
 
               {scopePermission('guideline-read', currentUserScope) &&

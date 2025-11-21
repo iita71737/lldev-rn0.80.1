@@ -70,7 +70,7 @@ import {
   onNotificationOpenedApp,
   setBackgroundMessageHandler,
 } from '@react-native-firebase/messaging';
-// const messaging = getMessaging();
+import RoutesPDFTool from '@/routes/RoutesPDFTool'
 
 
 const RoutesApp = ({ navigation, route }) => {
@@ -335,7 +335,7 @@ const RoutesApp = ({ navigation, route }) => {
               headerShown: false
             }}
           />
-
+          {/* 12 */}
           <StackSetting.Screen
             name="ViewBroadCast"
             component={ViewBroadCast}
@@ -364,6 +364,7 @@ const RoutesApp = ({ navigation, route }) => {
             }}
           />
 
+          {/* 13 */}
           <StackSetting.Screen
             name="ViewQRcodeScanner"
             component={ViewQRcodeScanner}
@@ -372,6 +373,16 @@ const RoutesApp = ({ navigation, route }) => {
               ...$option.headerOption,
               headerBackTitle: ' '
             })}
+          />
+
+          {/* 14 */}
+          <StackSetting.Screen
+            name="RoutesPDFTool"
+            component={RoutesPDFTool}
+            options={{
+              headerShown:false,
+              ...$option.headerOption,
+            }}
           />
 
           <StackSetting.Screen
