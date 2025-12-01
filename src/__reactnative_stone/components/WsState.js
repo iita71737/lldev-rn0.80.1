@@ -186,7 +186,8 @@ const WsState = React.forwardRef((props, ref) => {
     statisticsId,
     sectionId,
     step,
-    questionType
+    questionType,
+    desVisible,
   } = props
 
   // i18n
@@ -755,6 +756,7 @@ const WsState = React.forwardRef((props, ref) => {
           oneFile={oneFile}
           uploadToFileStore={uploadToFileStore}
           testID={testID}
+          desVisible={desVisible}
         />
       )}
       {type == 'Ll_filesAndImages' && (

@@ -3,6 +3,33 @@ import moment from 'moment-timezone';
 import i18next from 'i18next'
 import H_time from '@/helpers/time';
 
+// ---------------- 這段是新加的共用小工具 ----------------
+const CN_DIGITS = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+
+function toChineseYearDigits(num) {
+  // 114 -> "一一四"
+  return String(num)
+    .split('')
+    .map(d => CN_DIGITS[Number(d)])
+    .join('');
+}
+
+function toChineseIntUnder100(n) {
+  // 1~99 -> "一"～"九十九"
+  if (n <= 10) {
+    return n === 10 ? '十' : CN_DIGITS[n];
+  }
+  if (n < 20) {
+    // 11~19: "十一" ~ "十九"
+    return '十' + CN_DIGITS[n % 10];
+  }
+  const tens = Math.floor(n / 10); // 十位
+  const ones = n % 10;            // 個位
+  // 20,30,...,90 -> "二十","三十"...
+  return CN_DIGITS[tens] + '十' + (ones === 0 ? '' : CN_DIGITS[ones]);
+}
+// ---------------------------------------------------------
+
 export default {
   getFactoryDayStartEndTime(factoryTimezone) {
     const state = store.getState()
@@ -135,5 +162,38 @@ export default {
       result.repeatInterval = repeatInterval;
     }
     return result;
+  },
+  getRocChineseDateTime(time, isSourceUtcTime = false, tz) {
+    if (!time) return '';
+
+    // 先根據來源是否為 UTC 建出 moment 物件，再轉到指定時區（若有）
+    let m = isSourceUtcTime ? moment.utc(time) : moment(time);
+    if (tz) {
+      m = m.tz(tz);
+    }
+
+    // 民國年：year - 1911
+    const rocYear = m.year() - 1911;
+    const yearText = `${toChineseYearDigits(rocYear)}年`;
+
+    const month = m.month() + 1; // 0-based
+    const day = m.date();
+    const monthText = `${toChineseIntUnder100(month)}月`;
+    const dayText = `${toChineseIntUnder100(day)}日`;
+
+    // 星期：用 moment 的 zh-tw locale，或自己翻譯
+    // 如果你有 i18n 對應，也可以改成 i18next.t('星期四') 類似寫法
+    const weekdayText = `（${m.format('dddd')}）`;
+
+    // 上午 / 下午
+    const hour = m.hour();
+    const meridiem = hour < 12 ? '上午' : '下午';
+    // 12 小時制
+    const hour12 = Number(m.format('h')); // 1~12
+    const minute = m.format('mm'); // "00".."59"
+
+    const timeText = `${meridiem}${hour12}時${minute}分`;
+
+    return `${yearText}${monthText}${dayText}${weekdayText}${timeText}`;
   },
 }

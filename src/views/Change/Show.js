@@ -557,7 +557,7 @@ const ChangeShow = ({ route, navigation }) => {
             to="ChangeIndex"
             modelName="change"
             visible={dialogVisible}
-            title={t('確定刪除嗎')}
+            text={t('確定刪除嗎')}
             setVisible={setDialogVisible}
           />
           <WsDialog

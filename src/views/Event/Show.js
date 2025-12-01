@@ -512,7 +512,7 @@ const EventShow = ({ navigation, route }) => {
           to="EventIndex"
           modelName="event"
           visible={dialogVisible}
-          title={t('確定刪除嗎？')}
+          text={t('確定刪除嗎？')}
           setVisible={setDialogVisible}
         />
       </SafeAreaView>

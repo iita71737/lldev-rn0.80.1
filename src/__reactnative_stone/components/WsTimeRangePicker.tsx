@@ -4,7 +4,7 @@ import { View, TextInput, StyleSheet, Keyboard } from 'react-native';
 import $color from '@/__reactnative_stone/global/color';
 import { WsText, WsStateRadioItem } from '@/components';
 
-export type TimeUnit = 'days' | 'weeks' | 'months' | 'year';
+export type TimeUnit = 'day' | 'week' | 'month' | 'year';
 
 export type PickerItem = {
   value: TimeUnit | string;
@@ -39,9 +39,9 @@ type Props = {
 };
 
 const DEFAULT_ITEMS: PickerItem[] = [
-  { value: 'days',   hasInput: true, unitLabel: '天內',  placeholder: '輸入', maxLength: 2, defaultChecked: true },
-  { value: 'weeks',  hasInput: true, unitLabel: '周內',  placeholder: '輸入', maxLength: 2 },
-  { value: 'months', hasInput: true, unitLabel: '月內',  placeholder: '輸入', maxLength: 2 },
+  { value: 'day',   hasInput: true, unitLabel: '天內',  placeholder: '輸入', maxLength: 2, defaultChecked: true },
+  { value: 'week',  hasInput: true, unitLabel: '周內',  placeholder: '輸入', maxLength: 2 },
+  { value: 'month', hasInput: true, unitLabel: '月內',  placeholder: '輸入', maxLength: 2 },
   { value: 'year',   hasInput: true, unitLabel: '年內',  placeholder: '輸入', maxLength: 1 },
 ];
 

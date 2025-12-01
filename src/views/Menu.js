@@ -446,7 +446,7 @@ const Menu = ({ navigation }) => {
                   </>
                 )}
 
-              {/* {scopePermission('guideline-admin-read', currentUserScope) &&
+              {scopePermission('guideline-admin-read', currentUserScope) &&
                 scopeSubscriptions(currentFactory, 'guideline') && (
                   <LlNavButton001
                     style={{
@@ -474,7 +474,7 @@ const Menu = ({ navigation }) => {
                     }}>
                     {t('議事列表')}
                   </LlNavButton001>
-                )} */}
+                )}
 
 
               {scopePermission('guideline-read', currentUserScope) &&

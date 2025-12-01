@@ -78,8 +78,8 @@ export default {
       time_type: data?.date_picker_type === 2 ? 'period' : data?.date_picker_type === 1 ? 'latest' : undefined,
       latest_time_type: data?.latest_time_type ? data.latest_time_type : undefined,
       latest_time_count: data?.latest_time_count ? data.latest_time_count : undefined,
-      start_time: data?.start_time ? dayjs(`${data?.start_time}T00:00:00+08:00`).utc().toISOString(): undefined,
-      end_time: data?.end_time ?  dayjs(`${data?.end_time}T00:00:00+08:00`).utc().toISOString(): undefined,
+      start_time: data?.start_time ? dayjs(`${data?.start_time}T00:00:00+08:00`).utc().toISOString() : undefined,
+      end_time: data?.end_time ? dayjs(`${data?.end_time}T00:00:00+08:00`).utc().toISOString() : undefined,
       time_interval: data?.time_interval ? data?.time_interval : undefined,
       owner: data?.owner ? data?.owner : undefined,
       users: data?.users ? data?.users : [],
@@ -89,7 +89,54 @@ export default {
         this.getArrayByUserFactoryRoleTemplate(data.roles) : [],
       factory_tags: data?.factory_tags?.map(_ => _.id) ?? [],
       attaches: data.file_attaches ? this.formattedForFileStore(data.file_attaches) : [],
+      latest_time_type: data?.dynamic_data_time?.unit ? data?.dynamic_data_time?.unit : undefined,
+      latest_time_count: ''
     }
     return _data
+  },
+  async show({ modelId }) {
+    return base.show({
+      modelName: 'factory_statistic_group',
+      modelId: modelId,
+      params: {
+        ...S_Processor.getFactoryParams()
+      },
+      callback: true
+    })
+  },
+  async update({ modelId, data }) {
+    return base.update({
+      modelName: 'factory_statistic_group',
+      modelId: modelId,
+      data: {
+        ...data,
+        ...S_Processor.getFactoryData()
+      }
+    })
+  },
+  async delete({ modelId }) {
+    return base.delete({
+      modelName: 'factory_statistic_group',
+      modelId: modelId,
+      params: S_Processor.getFactoryParams()
+    })
+  },
+  async startRenewed({ modelId }) {
+    return base.patch({
+      modelName: 'factory_statistic_group',
+      modelId: modelId,
+      data: {
+        ...S_Processor.getFactoryParams(),
+      },
+    })
+  },
+  async stopRenewed({ modelId }) {
+    return base.patch({
+      modelName: 'factory_statistic_group',
+      modelId: modelId,
+      data: {
+        ...S_Processor.getFactoryParams(),
+      },
+    })
   }
 }

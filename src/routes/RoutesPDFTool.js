@@ -53,8 +53,10 @@ import store from '@/store'
 import {
   setRefreshCounter,
 } from '@/store/data'
-import PDFToolAdminIndex from '@/views/PDFTool/Index'
+import PDFToolAdminIndex from '@/views/PDFTool/PDFToolAdminIndex'
 import PDFToolAdminShow from '@/views/PDFTool/PDFToolAdminShow'
+import H_time from '@/helpers/time';
+import PDFToolAdminTemplateShow from '@/views/PDFTool/PDFToolAdminTemplateShow'
 
 const StackSetting = createStackNavigator()
 const RoutesAct = () => {
@@ -69,13 +71,13 @@ const RoutesAct = () => {
   const fields = {
     name: {
       type: 'text',
-      label: t('標題'),
+      label: t('名稱'),
       placeholder: `${t('輸入')}`,
       rules: 'required',
     },
     owner: {
       type: 'belongsto',
-      label: t('管理者'),
+      label: t('負責人'),
       placeholder: `${t('選擇')}`,
       nameKey: 'name',
       modelName: 'user',
@@ -83,40 +85,83 @@ const RoutesAct = () => {
       customizedNameKey: 'userAndEmail',
       rules: 'required',
     },
-    users: {
-      type: 'belongstomany',
-      label: t('檢閱權限-依成員'),
-      placeholder: t('選擇'),
-      nameKey: 'name',
-      modelName: 'user',
-      serviceIndexKey: 'simplifyFactoryIndex',
-      customizedNameKey: 'userAndEmail',
-      selectAllVisible: false,
-      cancelAllVisible: false,
-      searchBarVisible: true,
+    expired_at: {
+      type: 'date',
+      placeholder: t('YYYY-MM-DD'),
+      label: t('期限'),
+      rules: 'required',
     },
-    user_factory_roles_all: {
-      type: 'multipleBelongstomany',
-      label: t('權限-依角色'),
-      placeholder: t('選擇'),
-      nameKey: 'name',
-      innerLabel: [t('自訂角色'), t('預設角色')],
-      modelName: ['user_role', 'user_factory_role_template'],
-      serviceIndexKey: 'index',
-      hasMeta: false,
-      selectAllVisible: false,
-      cancelAllVisible: false,
-      searchBarVisible: true,
+    chairman: {
+      label: t('主席'),
+      placeholder: t('輸入'),
     },
-    remark: {
-      label: t('說明'),
+    meeting_time: {
+      type: 'datetime',
+      placeholder: t('YYYY-MM-DD HH:mm'),
+      label: t('時間'),
+      rules: 'required',
+    },
+    meeting_time_type: {
+      type: 'picker',
+      label: t('時間格式'),
+      items:
+        [
+          {
+            label: t('YYYY-MM-DD hh:mm'),
+            value: '西元'
+          },
+          {
+            label: t('一一四年十一月二十日（星期四）上午9時30分'),
+            value: '民國'
+          },
+        ],
+      updateValueOnChange: (event, value, field, fields) => {
+        console.log(event, 'event')
+        console.log(value, 'value')
+        if (event === '民國') {
+          value.meeting_time_type = '民國'
+          value.format_time = H_time.getRocChineseDateTime(value.meeting_time, true, 'Asia/Taipei');
+          return value
+        } else if (event === '西元') {
+          value.meeting_time_type = '西元'
+          value.format_time = value.meeting_time
+          return value
+        }
+      },
+    },
+    format_time: {
+      editable: false,
+      multiline: true,
+      placeholder: t('YYYY-MM-DD HH:mm'),
+    },
+    meeting_place: {
+      label: t('地點'),
       multiline: true,
       placeholder: t('輸入'),
     },
     file_attaches: {
       modelName: 'event',
       type: 'Ll_filesAndImages',
-      label: t('附件'),
+      label: t('提案​單上​傳格式​範本​'),
+    },
+    file_attaches002: {
+      modelName: 'event',
+      type: 'Ll_filesAndImages',
+      label: t('議案​預覽格式​範本​'),
+    },
+  }
+
+  const fieldsForTemplate = {
+    name: {
+      type: 'text',
+      label: t('名稱'),
+      placeholder: `${t('輸入')}`,
+      rules: 'required',
+    },
+    file_attaches: {
+      modelName: 'event',
+      type: 'Ll_filesAndImages',
+      label: t('新​增格式​範本​'),
     },
   }
 
@@ -461,19 +506,16 @@ const RoutesAct = () => {
           ]
         } else {
           return [
-            'has_unreleased',
             'name',
             'owner',
-            'factory_tags',
-            'announce_at',
-            'effect_at',
-            'guideline_status',
-            'remark',
+            'expired_at',
+            'chairman',
+            'meeting_time',
+            'meeting_time_type',
+            'format_time',
+            'meeting_place',
             'file_attaches',
-            'related_acts_articles',
-            'related_guidelines_articles',
-            'users',
-            'user_factory_roles_all'
+            'file_attaches002'
           ]
         }
       }
@@ -501,7 +543,7 @@ const RoutesAct = () => {
           name="PDFToolAdminCreate"
           component={scopeFilterScreen('guideline-admin-create', WsStepRoutesCreate)}
           options={{
-            title: t('新增內規'),
+            title: t('新增議事'),
             headerShown: false,
             ...$option.headerOption
           }}
@@ -516,8 +558,35 @@ const RoutesAct = () => {
         />
 
         <StackSetting.Screen
+          name="PDFToolAdminCreateTemplate"
+          component={scopeFilterScreen('guideline-admin-create', WsStepRoutesCreate)}
+          options={{
+            title: t('新​增格式​範本​'),
+            headerShown: false,
+            ...$option.headerOption
+          }}
+          initialParams={{
+            name: 'PDFToolAdminCreate',
+            title: t('新​增格式​範本​'),
+            modelName: 'pdfTool',
+            fields: fieldsForTemplate,
+            stepSettings: stepSettings,
+            submitFunction: submitForCreate,
+          }}
+        />
+
+        <StackSetting.Screen
           name="PDFToolAdminShow"
           component={scopeFilterScreen('guideline-admin-create', PDFToolAdminShow)}
+          options={{
+            title: t('議事內頁'),
+            ...gOption.headerOption
+          }}
+        />
+
+         <StackSetting.Screen
+          name="PDFToolAdminTemplateShow"
+          component={scopeFilterScreen('guideline-admin-create', PDFToolAdminTemplateShow)}
           options={{
             title: t('議事內頁'),
             ...gOption.headerOption

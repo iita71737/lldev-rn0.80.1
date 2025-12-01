@@ -174,7 +174,7 @@ const RoutesStatistics = ({ navigation }) => {
       testID: '事件說明'
     },
     file_attaches: {
-      modelName: 'event',
+      modelName: 'factory_statistic_group',
       type: 'Ll_filesAndImages',
       label: t('附件'),
     }
@@ -350,7 +350,7 @@ const RoutesStatistics = ({ navigation }) => {
       rules: 'required'
     },
     file_attaches: {
-      modelName: 'event',
+      modelName: 'factory_statistic_group',
       type: 'Ll_filesAndImages',
       label: t('附件'),
     }
@@ -358,13 +358,13 @@ const RoutesStatistics = ({ navigation }) => {
 
   // 新增事件
   const submitStatisticsCreate = async (data, navigation) => {
+    console.log(data,'data111')
     const _data = await S_FactoryStatictisGroup.getFormattedData(data, currentFactory, currentUser)
-    // console.log(_data,'_data')
+    console.log(_data,'_data222')
     try {
       const res = await S_FactoryStatictisGroup.create({
         data: _data
       }).then(res => {
-
         navigation.replace('RoutesStatistics', {
           screen: 'StatisticsShow',
           params: {
@@ -372,8 +372,6 @@ const RoutesStatistics = ({ navigation }) => {
             refreshKey: Date.now()
           }
         })
-
-        // navigation.replace('StatisticsShow', { id: res.id });
       })
     } catch (e) {
       console.error(e);
@@ -383,7 +381,26 @@ const RoutesStatistics = ({ navigation }) => {
 
   // 編輯事件
   const submitStatisticsEdit = async (data, modelId, versionId, navigation) => {
-    console.log(data, 'submitStatisticsEdit');
+    const _data = await S_FactoryStatictisGroup.getFormattedData(data, currentFactory, currentUser)
+    try {
+      const res = await S_FactoryStatictisGroup.update({
+        modelId: modelId,
+        data: _data
+      }).then(res => {
+         Alert.alert(t('編輯成功'))
+         navigation.replace('RoutesStatistics', {
+          screen: 'StatisticsShow',
+          params: {
+            id: res.id,
+            refreshKey: Date.now()
+          }
+        })
+
+      })
+    } catch (e) {
+      console.error(e);
+      navigation.navigate('StatisticsIndex')
+    }
   }
 
   return (
@@ -398,34 +415,6 @@ const RoutesStatistics = ({ navigation }) => {
           options={({ navigation }) => ({
             title: t('數量統計管理'),
             ...$option.headerOption,
-            // headerLeft: () => (
-            //   <WsIconBtn
-            //     testID="backButton"
-            //     name="md-chevron-left"
-            //     color={$color.white}
-            //     size={32}
-            //     style={{
-            //     }}
-            //     onPress={() => {
-            //       navigation.goBack()
-            //     }}
-            //   />
-            // ),
-            // headerRight: () => {
-            //   return (
-            //     <WsIconBtn
-            //       name="md-add"
-            //       color={$color.white}
-            //       size={24}
-            //       style={{
-            //         marginRight: 4
-            //       }}
-            //       onPress={() => {
-            //         navigation.navigate('StatisticsCreate')
-            //       }}
-            //     />
-            //   )
-            // },
           })}
           initialParams={{
           }}
@@ -441,7 +430,7 @@ const RoutesStatistics = ({ navigation }) => {
           initialParams={{
             name: 'StatisticsCreate',
             title: t('新增數量統計'),
-            modelName: 'event',
+            modelName: 'factory_statistic_group',
             fields: fields,
             stepSettings: stepSettings,
             afterFinishingTo: 'StatisticsIndex',
@@ -451,15 +440,15 @@ const RoutesStatistics = ({ navigation }) => {
         <StackSetting.Screen
           name="StatisticsEdit"
           component={scopeFilterScreen('event-create', WsStepRoutesUpdate)}
-          options={{
+          options={({ navigation }) => ({
             title: t('編輯數量統計'),
             headerShown: false,
             ...$option.headerOption
-          }}
+          })}
           initialParams={{
             name: 'StatisticsEdit',
             title: t('編輯數量統計'),
-            modelName: 'event',
+            modelName: 'factory_statistic_group',
             fields: fields,
             stepSettings: stepSettings,
             afterFinishingTo: 'StatisticsIndex',

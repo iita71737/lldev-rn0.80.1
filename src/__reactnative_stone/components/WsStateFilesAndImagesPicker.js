@@ -55,7 +55,8 @@ const WsStateFilesAndImagesPicker = props => {
     modelName,
     uploadToFileStore,
     oneFile,
-    testID
+    testID,
+    desVisible = true
   } = props
 
   // States
@@ -656,19 +657,23 @@ const WsStateFilesAndImagesPicker = props => {
         ) : null
       }
 
-      <WsDes
-        color={fileSizeExceed ? $color.danger : $color.gray}
-        style={{
-          paddingTop: 8
-        }}>
-        {`${t('檔案大小限制')} ≤ 30MB`}
-      </WsDes>
-      <WsDes
-        color={fileDurationExceed ? $color.danger : $color.gray}
-        style={{
-        }}>
-        {`${t('影像長度限制')} ≤ ${t('{number}分鐘', { number: 3 })}`}
-      </WsDes>
+      {desVisible && (
+        <>
+          <WsDes
+            color={fileSizeExceed ? $color.danger : $color.gray}
+            style={{
+              paddingTop: 8
+            }}>
+            {`${t('檔案大小限制')} ≤ 30MB`}
+          </WsDes>
+          <WsDes
+            color={fileDurationExceed ? $color.danger : $color.gray}
+            style={{
+            }}>
+            {`${t('影像長度限制')} ≤ ${t('{number}分鐘', { number: 3 })}`}
+          </WsDes>
+        </>
+      )}
     </>
   )
 }

@@ -743,7 +743,7 @@ const CheckListShow = ({ route }) => {
         to="CheckList"
         modelName="checklist"
         visible={dialogVisible}
-        title={t('確定刪除嗎？')}
+        text={t('確定刪除嗎？')}
         setVisible={setDialogVisible}
       />
       <WsDialog

@@ -266,7 +266,7 @@ const ContractorEnterShow = ({ route, navigation }) => {
             to="ContractorEnter"
             modelName="contractor_enter_record"
             visible={dialogVisible}
-            title={t('確定刪除嗎？')}
+            text={t('確定刪除嗎？')}
             setVisible={setDialogVisible}
           />
         </>
