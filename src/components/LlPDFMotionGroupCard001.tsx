@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { View, TouchableOpacity, Platform, Keyboard, ScrollView } from 'react-native';
+import { View, TouchableOpacity, Platform, Keyboard, ScrollView, Dimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import {
   WsPaddingContainer,
@@ -77,6 +77,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const { t } = useTranslation();
   const scrollRef = useRef<KeyboardAwareScrollView | null>(null);
   const richText = useRef<any>(null);
+  const { width, height } = Dimensions.get('window')
 
   // 決定實際要畫哪些群組
   const sourceGroups: Group[] = useMemo(() => {
@@ -261,7 +262,11 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               justifyContent="space-between"
               alignItems="center"
             >
-              <WsFlex alignItems="center">
+              <WsFlex alignItems="center"
+                style={{
+                  // borderWidth:1,
+                  maxWidth: width * 0.6
+                }}>
                 <WsText>{group.name || t('自訂議案群組名稱')}</WsText>
               </WsFlex>
 
@@ -293,7 +298,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                 <WsIconBtn
                   padding={0}
                   name={isGroupCollapsed ? 'md-unfold-more' : 'md-unfold-less'}
-                  size={20}
+                  size={24}
                   style={{ marginLeft: 8, marginRight: 8 }}
                   color={$color.primary3l}
                 />
@@ -438,88 +443,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               setContent(html); // 你也可以存到 state / 丟回後端
             }}
           />
-
-          {/* react-native-pell-rich-editor */}
-          {/* <WsText size={14} style={{ marginTop: 16 }} fontWeight={600}>
-            {t('內容 (含HTML)')}
-          </WsText>
-          <View
-            style={{
-              borderWidth: 0.8,
-              marginTop: 8,
-              minHeight: 400,
-              maxHeight: 400,          // 可選：最多 400，高於就靠 RichEditor 自己捲
-            }}
-          >
-            <RichToolbar
-              editor={richText}
-              actions={[
-                actions.keyboard,
-                'customAction',
-                actions.setBold,
-                actions.setItalic,
-                actions.insertBulletsList,
-                actions.insertOrderedList,
-                actions.insertLink,
-                actions.setStrikethrough,
-                actions.setUnderline,
-                actions.removeFormat,
-                actions.checkboxList,
-                actions.undo,
-                actions.redo,
-              ]}
-              iconMap={{
-                customAction: () => <IonIcon name="grid-outline" size={24} />,
-              }}
-              customAction={() => {
-                // TODO: 開你的 insert table modal
-              }}
-            />
-
-            <RichEditor
-              ref={richText}
-              style={[
-                Platform.OS === 'ios'
-                  ? {
-                    minHeight: 200,
-                    maxHeight: 360,        // 預留一點給 toolbar 高度
-                    paddingHorizontal: 8,
-                  }
-                  : {
-                    flex: 1,
-                  },
-              ]}
-              containerStyle={{
-                backgroundColor: 'transparent',
-                cssText:
-                  'body { margin: 0; padding: 10px; min-height: 200px; line-height: 1.5; }',
-              }}
-              initialContentHTML={'<h1>1111</h1>'}
-              onChange={descriptionText => {
-                const updatedHtml = descriptionText.replace(
-                  /<p(?![^>]*style)/g,
-                  '<p style="line-height:1.5;"'
-                )
-                console.log(updatedHtml, 'updatedHtml00')
-                // 設回 state
-              }}
-              onHeightChange={h => {
-                console.log(h, 'change height1')
-              }}
-              onFocus={() => {
-                // ✅ 如果外層有 KeyboardAwareScrollView，可以在這裡手動推一下
-                // scrollViewRef 是包住整個表單那個 KeyboardAwareScrollView
-                if (scrollViewRef?.current && richText.current) {
-                  // react-native-pell-rich-editor 實際上是 WebView，不一定吃 scrollToFocusedInput
-                  // 這裡通常用 scrollToPosition 粗暴推就好
-                  scrollViewRef.current.scrollToPosition(0, 800, true)
-                }
-              }}
-              onBlur={() => { }}
-              onDone={Keyboard.dismiss}
-            />
-          </View> */}
-
 
           <WsState
             style={{
