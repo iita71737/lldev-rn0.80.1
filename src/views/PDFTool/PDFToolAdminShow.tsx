@@ -10,7 +10,6 @@ import {
   Platform,
   Touchable,
   Dimensions,
-  FlatList,
   Alert,
   TouchableOpacity,
   SafeAreaView,
@@ -70,7 +69,8 @@ import {
   LlGuidelineRelatedTask001,
   LlGuidelineRelatedActs001,
   LlGuidelineRelatedGuidelines001,
-  LlPDFMotionGroupCard001
+  LlPDFMotionGroupCard001,
+  WsCard
 } from '@/components'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
@@ -111,6 +111,7 @@ import { Table, Row, Rows, TableWrapper } from 'react-native-table-component';
 import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
 import FileViewer from "react-native-file-viewer";
 import _ from 'lodash';
+import DraggableFlatList from "react-native-draggable-flatlist";
 
 // 你可以放在 PDFToolAdminShow 同檔上方，或獨立一個 fakeData 檔案匯入
 
@@ -120,6 +121,39 @@ export type PDFProposalItem = {
   sequence: string;
   parent_article_version_id: string | null;
   type: 'title' | 'article';
+};
+
+// --------------------------------------------------------------------------
+// Demo 用型別（跟 LlPDFMotionGroupCard001 裡的 Group 結構對齊）
+// --------------------------------------------------------------------------
+
+type FileInfo = {
+  id: string;
+  name: string;
+  fileType: string;
+  url: string;
+};
+
+type Motion = {
+  id: string;
+  name: string;
+  sequence: number;
+  proposerDept: string;
+  reporterName: string;
+  attendees: string;
+  content: string;
+  attaches: FileInfo[];
+  proposalFile: FileInfo | null;
+  decisionSummary: string;
+  decisionDetail: string;
+  updatedAt: string;
+};
+
+type Group = {
+  id: string;
+  name: string;
+  sequence: number;
+  articles: Motion[];
 };
 
 // -------------------- Demo 假資料 --------------------
@@ -216,8 +250,6 @@ const DEFAULT_GROUPS: Group[] = [
   },
 ];
 
-
-
 const PDFToolAdminShow = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
   const { width, height } = Dimensions.get('window')
@@ -235,7 +267,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   // STATES
   const [loading, setLoading] = React.useState(true)
-  const [modalActive003, setModalActive003] = React.useState(false)
   const [guideline, setGuideline] = React.useState('d3a1b6a0-6ca9-4e1a-b68c-2d6f46b141ac')
   const [guidelineVersion, setGuidelineVersion] = React.useState('b604a285-5625-4248-949e-b44f4fe6b54a')
   const [popupDelete, setPopupDelete] = React.useState(false)
@@ -243,6 +274,17 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const [addMotionModalVisible, setAddMotionModalVisible] = React.useState(false)
   const [addMotionGroupModalVisible, setAddMotionGroupModalVisible] = React.useState(false)
   const [popupDeleteMotionGroup, setPopupDeleteMotionGroup] = React.useState(false)
+
+  // 模式：預設 / 排序
+  const [mode, setMode] = React.useState<'default' | 'dragSort'>('default')
+
+  // 實際資料（真正的順序）
+  const [groups, setGroups] = React.useState<Group[]>(DEFAULT_GROUPS)
+
+  // 排序預覽用暫存資料（只有在 dragSort 模式下使用）
+  const [tempGroups, setTempGroups] = React.useState<Group[] | null>(null)
+
+  const [draggedValue, setDraggedVale] = React.useState<Group[] | undefined>()
 
   // filter
   const [filterFields] = React.useState({
@@ -275,7 +317,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     },
   })
 
-
   // Option
   const $_setNavigationOption = () => {
     navigation.setOptions({
@@ -287,8 +328,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
                 name="ws-outline-edit-pencil"
                 size={24}
                 color={$color.white}
-                style={{
-                }}
                 onPress={() => {
                   setIsBottomSheetActive(true)
                 }}
@@ -365,174 +404,185 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     // $_fetchGuideline()
   }, [id])
 
+  // 進入排序模式：複製一份目前的 groups 到 tempGroups
+  const enterDragSortMode = () => {
+    setTempGroups(groups.map(g => ({ ...g, articles: [...g.articles] })))
+    setMode('dragSort')
+  }
+
+  // 取消排序：丟掉 tempGroups，不動正式資料
+  const cancelDragSort = () => {
+    setTempGroups(null)
+    setMode('default')
+  }
+
+  // 確認排序：把 tempGroups 套用到正式資料
+  const confirmDragSort = () => {
+    if (tempGroups) {
+      setGroups(tempGroups)
+      setDraggedVale(tempGroups)
+    }
+    setTempGroups(null)
+    setMode('default')
+  }
+
+  // Header 抽出來給 DraggableFlatList 的 ListHeaderComponent 用
+  const renderHeader = () => (
+    <>
+      <WsPaddingContainer>
+        <WsText size={24}>{t('使用者​自訂​議​事​名​稱')}</WsText>
+      </WsPaddingContainer>
+
+      <WsPaddingContainer
+        padding={0}
+        style={{
+          paddingTop: 16,
+          paddingBottom: 16,
+          paddingHorizontal: 16,
+          backgroundColor: $color.white,
+        }}
+      >
+        <WsInfo
+          labelWidth={100}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
+          label={t('負責人')}
+          value={t('王大明')}
+        />
+
+        <View style={{ marginTop: 8 }}>
+          <WsInfo
+            labelWidth={100}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center'
+            }}
+            label={t('期限')}
+            color={$color.black5l}
+            value={moment().format('YYYY-MM-DD')}
+          />
+        </View>
+
+        <View style={{ marginTop: 8 }}>
+          <WsInfo
+            labelWidth={100}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center'
+            }}
+            label={t('主席')}
+            color={$color.black5l}
+            value={t('陳曉琪')}
+          />
+        </View>
+
+        <View style={{ marginTop: 8 }}>
+          <WsInfo
+            labelWidth={100}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center'
+            }}
+            label={t('時間')}
+            color={$color.black5l}
+            value={t('一一四年十一月二十日（星期四）上午9時30分')}
+          />
+        </View>
+
+        <View style={{ marginTop: 8 }}>
+          <WsInfo
+            labelWidth={100}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center'
+            }}
+            label={t('地點')}
+            color={$color.black5l}
+            value={t('富邦大樓')}
+          />
+        </View>
+      </WsPaddingContainer>
+
+      <WsFlex
+        style={{
+          paddingTop: 8,
+          marginVertical: 8
+        }}
+        justifyContent="space-between"
+      >
+        <View />
+
+        <WsFlex
+          style={{
+            marginRight: 4
+          }}
+        >
+          {/* 左邊 Tag：排序 / 取消 */}
+          <TouchableOpacity
+            style={{
+              alignItems: 'flex-end',
+              marginRight: 8,
+            }}
+            onPress={() => {
+              if (mode === 'default') {
+                enterDragSortMode()
+              } else {
+                cancelDragSort()
+              }
+            }}
+          >
+            <WsTag>
+              {mode === 'default' ? t('排序') : t('取消')}
+            </WsTag>
+          </TouchableOpacity>
+
+          {/* 右邊 Tag：新增 / 確定 */}
+          <TouchableOpacity
+            style={{
+              alignItems: 'flex-end',
+              marginRight: 8
+            }}
+            onPress={() => {
+              if (mode === 'default') {
+                // 原本的新增流程
+                setAddMotionGroupModalVisible(true)
+              } else {
+                // 排序模式下，這顆變成「確定」
+                confirmDragSort()
+              }
+            }}
+          >
+            <WsTag>
+              {mode === 'default' ? t('新增') : t('確定')}
+            </WsTag>
+          </TouchableOpacity>
+        </WsFlex>
+      </WsFlex>
+    </>
+  )
+
+  // DraggableFlatList 的 data：根據模式決定用哪一份
+  const listData = mode === 'dragSort' && tempGroups ? tempGroups : groups
+
   return (
     <>
-
-      <FlatList
-        data={DEFAULT_GROUPS}
-        keyExtractor={(item, index) => index}
-        ListFooterComponent={() => {
-          return (
-            <>
-              <View
-                style={{
-                  height: 50,
-                }}
-              >
-              </View>
-            </>
-          )
-        }}
-        ListHeaderComponent={() => {
-          // setModels(models)
-          return (
-            <>
-              <WsPaddingContainer
-                style={{
-                }}>
-                <WsText size={24}>{t('使用者​自訂​議​事​名​稱')}</WsText>
-              </WsPaddingContainer>
-
-              <WsPaddingContainer
-                padding={0}
-                style={{
-                  paddingTop: 16,
-                  paddingBottom: 16,
-                  paddingHorizontal: 16,
-                  backgroundColor: $color.white,
-                }}
-              >
-                <WsInfo
-                  labelWidth={100}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                  }}
-                  // type="user"
-                  label={t('負責人')}
-                  value={t('王大明')}
-                />
-
-                <View
-                  style={{
-                    marginTop: 8
-                  }}
-                >
-                  <WsInfo
-                    labelWidth={100}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center'
-                    }}
-                    label={t('期限')}
-                    color={$color.black5l}
-                    value={moment().format('YYYY-MM-DD')}
-                  />
-                </View>
-
-                <View
-                  style={{
-                    marginTop: 8
-                  }}
-                >
-                  <WsInfo
-                    labelWidth={100}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center'
-                    }}
-                    label={t('主席')}
-                    color={$color.black5l}
-                    value={t('陳曉琪')}
-                  />
-                </View>
-
-                <View
-                  style={{
-                    marginTop: 8
-                  }}
-                >
-                  <WsInfo
-                    labelWidth={100}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center'
-                    }}
-                    label={t('時間')}
-                    color={$color.black5l}
-                    value={t('一一四年十一月二十日（星期四）上午9時30分')}
-                  />
-                </View>
-
-                <View
-                  style={{
-                    marginTop: 8
-                  }}
-                >
-                  <WsInfo
-                    labelWidth={100}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center'
-                    }}
-                    label={t('地點')}
-                    color={$color.black5l}
-                    value={t('富邦大樓')}
-                  />
-                </View>
-
-              </WsPaddingContainer>
-
-              <WsFlex
-                style={{
-                  paddingTop: 8,
-                  marginVertical: 8
-                }}
-                justifyContent="space-between"
-              >
-                <View></View>
-
-                <WsFlex
-                  style={{
-                    marginRight: 4
-                  }}
-                >
-
-                  <TouchableOpacity
-                    style={{
-                      alignItems: 'flex-end'
-                    }}
-                    onPress={() => {
-                      setModalActive003(true)
-                    }}>
-                    <WsTag
-                      style={{
-                      }}>
-                      {t('排序')}
-                    </WsTag>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={{
-                      alignItems: 'flex-end'
-                    }}
-                    onPress={() => {
-                      setAddMotionGroupModalVisible(true)
-                    }}>
-                    <WsTag
-                      style={{
-                      }}>
-                      {t('新增')}
-                    </WsTag>
-                  </TouchableOpacity>
-                </WsFlex>
-              </WsFlex>
-            </>
-          )
-        }}
-        renderItem={({ item, index, items }) => {
-          return (
-            <>
+      <DraggableFlatList
+        data={listData}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={() => (
+          <View
+            style={{
+              height: 50,
+            }}
+          />
+        )}
+        renderItem={({ item, drag, isActive, getIndex }) => {
+          // 一般模式：用原本的 LlPDFMotionGroupCard001
+          if (mode === 'default') {
+            return (
               <LlPDFMotionGroupCard001
                 key={item.id}
                 item={item}
@@ -549,10 +599,51 @@ const PDFToolAdminShow = ({ navigation, route }) => {
                   setPopupDeleteMotionGroup(true)
                 }}
               />
-            </>
+            )
+          }
+
+          // 排序模式：只顯示簡單可拖曳的卡片（預覽）
+          const order = (getIndex?.() ?? 0) + 1
+
+          return (
+            <TouchableOpacity
+              style={{
+                backgroundColor: isActive ? "lightgray" : $color.white,
+              }}
+              onPressIn={drag}
+              onLongPress={drag} // 長按開始拖動
+            >
+              <WsCard
+                borderRadius={10}
+                style={{
+                  backgroundColor: $color.primary10l,
+                  marginTop: 8
+                }}
+              >
+                <WsFlex justifyContent='space-between'>
+                  <WsText>{`${order}  ${item.name}`}</WsText>
+                  <WsIcon
+                    name="ws-outline-drag-horizontal"
+                    size={24}
+                    style={{
+                      marginRight: 8
+                    }}
+                  />
+                </WsFlex>
+              </WsCard>
+            </TouchableOpacity>
           )
         }}
+        onDragEnd={({ data }) => {
+          // 只在排序模式下更新 tempGroups（預覽用）
+          if (mode === 'dragSort') {
+            setTempGroups(data)
+            setDraggedVale(data)
+          }
+        }}
       />
+
+      {/* 以下原本的 WsPopup / WsModal / WsBottomSheet 完全不動 */}
 
       <WsPopup
         active={popupDelete}
@@ -632,7 +723,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
         }}
       />
-
 
       <WsModal
         title={t('批次新增')}
@@ -823,3 +913,4 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 }
 
 export default PDFToolAdminShow
+

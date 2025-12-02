@@ -55,7 +55,7 @@ const initialState = {
   currentLatLng: null,
   currentAreas: [],
   currentSelectedArea: null,
-  version: 'v0.80.1.8.3'
+  version: 'v0.80.1.8.4'
 }
 
 //action constants

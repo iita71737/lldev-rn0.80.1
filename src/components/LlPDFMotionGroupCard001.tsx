@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { View, TouchableOpacity, Platform, Keyboard, ScrollView, Dimensions } from 'react-native';
+import { View, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import {
   WsPaddingContainer,
@@ -10,12 +10,12 @@ import {
   LlPDFConvertingCard001,
   WsState,
   WsModal,
+  WsTag,
 } from '@/components';
 import $color from '@/__reactnative_stone/global/color';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { actions, RichEditor, RichToolbar } from 'react-native-pell-rich-editor';
-import IonIcon from 'react-native-vector-icons/Ionicons';
 import TinyMCEEditor from '@/views/PDFTool/TinyMCEEditor';
+import DraggableFlatList from 'react-native-draggable-flatlist';
 
 // -------------------- 型別 --------------------
 
@@ -77,7 +77,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const { t } = useTranslation();
   const scrollRef = useRef<KeyboardAwareScrollView | null>(null);
   const richText = useRef<any>(null);
-  const { width, height } = Dimensions.get('window')
+  const { width, height } = Dimensions.get('window');
 
   // 決定實際要畫哪些群組
   const sourceGroups: Group[] = useMemo(() => {
@@ -92,6 +92,72 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const [editMotionModalVisible, setEditMotionModalVisible] = useState(false);
   const [editingMotion, setEditingMotion] = useState<Motion | null>(null);
   const [content, setContent] = useState('<p>這是原始 HTML</p>');
+
+  // --------- 議案排序相關 state ---------
+  // 哪一個 group 正在「議案排序模式」
+  const [articleSortGroupId, setArticleSortGroupId] = useState<string | null>(null);
+
+  // 已確認的新排序（每個 group 一份）
+  const [articleState, setArticleState] = useState<Record<string, Motion[]>>({});
+
+  // 排序中的暫存順序（只有在排序模式時用）
+  const [articleSortTemp, setArticleSortTemp] = useState<Record<string, Motion[]>>({});
+
+  // 取得某個 group 應該顯示的議案順序（若有確認過排序，就用 articleState，否則用原本 group.articles）
+  const getGroupArticles = (group: Group): Motion[] => {
+    return articleState[group.id] ?? group.articles;
+  };
+
+  // 開啟某個 group 的議案排序模式
+  const startArticleSort = (group: Group) => {
+    const current = getGroupArticles(group);
+    setArticleSortGroupId(group.id);
+    setArticleSortTemp(prev => ({
+      ...prev,
+      [group.id]: [...current], // 複製一份做暫存
+    }));
+  };
+
+  // 取消議案排序（丟棄暫存）
+  const cancelArticleSort = () => {
+    if (!articleSortGroupId) return;
+    const gid = articleSortGroupId;
+    setArticleSortGroupId(null);
+    setArticleSortTemp(prev => {
+      const next = { ...prev };
+      delete next[gid];
+      return next;
+    });
+  };
+
+  // 確認議案排序（把暫存寫入正式 articleState）
+  const confirmArticleSort = () => {
+    if (!articleSortGroupId) return;
+    const gid = articleSortGroupId;
+    const temp = articleSortTemp[gid];
+    if (!temp) {
+      setArticleSortGroupId(null);
+      return;
+    }
+    setArticleState(prev => ({
+      ...prev,
+      [gid]: temp,
+    }));
+    setArticleSortGroupId(null);
+    setArticleSortTemp(prev => {
+      const next = { ...prev };
+      delete next[gid];
+      return next;
+    });
+  };
+
+  // 當 DraggableFlatList 拖曳結束時更新暫存
+  const handleArticleDragEnd = (groupId: string, data: Motion[]) => {
+    setArticleSortTemp(prev => ({
+      ...prev,
+      [groupId]: data,
+    }));
+  };
 
   const toggleGroup = (groupId: string) => {
     setGroupCollapsed(prev => ({ ...prev, [groupId]: !prev[groupId] }));
@@ -240,6 +306,13 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const renderGroup = (group: Group) => {
     const isGroupCollapsed = groupCollapsed[group.id] ?? false;
 
+    const isArticleSortMode = articleSortGroupId === group.id;
+    const baseArticles = getGroupArticles(group);
+    const displayArticles =
+      isArticleSortMode && articleSortTemp[group.id]
+        ? articleSortTemp[group.id]
+        : baseArticles;
+
     return (
       <View key={group.id} style={{ marginBottom: 16 }}>
         <View
@@ -256,26 +329,46 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => toggleGroup(group.id)}
+            style={{
+              paddingTop: 8,
+              paddingHorizontal: 16,
+            }}
           >
             <WsFlex
-              style={{ paddingVertical: 12, paddingHorizontal: 8 }}
               justifyContent="space-between"
               alignItems="center"
             >
-              <WsFlex alignItems="center"
+              <WsText
                 style={{
-                  // borderWidth:1,
-                  maxWidth: width * 0.6
-                }}>
-                <WsText>{group.name || t('自訂議案群組名稱')}</WsText>
-              </WsFlex>
+                  flex: 1,
+                }}
+              >
+                {group.name || t('自訂議案群組名稱')}
+              </WsText>
+              <WsIconBtn
+                padding={0}
+                name={isGroupCollapsed ? 'md-unfold-more' : 'md-unfold-less'}
+                size={24}
+                color={$color.primary3l}
+              />
+            </WsFlex>
 
-              <WsFlex>
+            <WsFlex
+              style={{
+                marginTop: 8,
+                marginBottom: isGroupCollapsed ? 8 : 0
+              }}
+              justifyContent="space-bewteen"
+            >
+              <WsFlex
+                style={{
+                  flex: 1
+                }}
+              >
                 <WsIconBtn
                   padding={0}
                   name="md-add"
                   size={24}
-                  style={{ marginLeft: 8 }}
                   color={$color.primary}
                   onPress={() => onPressAddGroup?.(group)}
                 />
@@ -295,21 +388,87 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                   color={$color.danger}
                   onPress={() => onPressDeleteGroup?.(group)}
                 />
-                <WsIconBtn
-                  padding={0}
-                  name={isGroupCollapsed ? 'md-unfold-more' : 'md-unfold-less'}
-                  size={24}
-                  style={{ marginLeft: 8, marginRight: 8 }}
-                  color={$color.primary3l}
-                />
               </WsFlex>
+
+              {/* 議案排序模式切換 + 確定 / 取消 */}
+              <WsFlex
+                style={{
+                }}
+              >
+                {isArticleSortMode ? (
+                  <>
+                    <TouchableOpacity
+                      style={{ marginRight: 8 }}
+                      onPress={cancelArticleSort}
+                    >
+                      <WsTag>{t('取消')}</WsTag>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={confirmArticleSort}
+                    >
+                      <WsTag>{t('確定')}</WsTag>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => startArticleSort(group)}
+                  >
+                    <WsTag>{t('排序議案')}</WsTag>
+                  </TouchableOpacity>
+                )}
+              </WsFlex>
+
             </WsFlex>
           </TouchableOpacity>
 
           {/* 外層 body：群組展開後的議案列表 */}
           {!isGroupCollapsed && (
             <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
-              {group.articles.map(motion => renderArticle(group, motion))}
+              {isArticleSortMode ? (
+                // 排序模式：用 DraggableFlatList 拖曳排序（只顯示簡化版 row）
+                <DraggableFlatList
+                  data={displayArticles}
+                  keyExtractor={(item) => item.id}
+                  scrollEnabled={false} // 交給外層 ScrollView/FlatList 滾動
+                  renderItem={({ item, drag, isActive, getIndex }) => {
+                    const index = getIndex?.() ?? 0;
+
+                    return (
+                      <TouchableOpacity
+                        style={{
+                          marginTop: 8,
+                          borderRadius: 8,
+                          borderWidth: 0.4,
+                          borderColor: $color.black,
+                          backgroundColor: isActive ? $color.primary10l : $color.white,
+                          paddingHorizontal: 8,
+                          paddingVertical: 8,
+                        }}
+                        onLongPress={drag}
+                        onPressIn={drag}
+                      >
+                        <WsFlex justifyContent="space-between" alignItems="center">
+                          <WsText style={{ flex: 1 }}>
+                            {`${index + 1}. ${item.name || t('議案名稱')}`}
+                          </WsText>
+                          <WsIconBtn
+                            padding={0}
+                            name="ws-outline-drag-horizontal"
+                            size={24}
+                            color={$color.primary}
+                          />
+                        </WsFlex>
+                      </TouchableOpacity>
+                    );
+                  }}
+                  onDragEnd={({ data }) => {
+                    handleArticleDragEnd(group.id, data);
+                  }}
+                />
+              ) : (
+                // 一般模式：顯示原本完整的議案卡片
+                displayArticles.map(motion => renderArticle(group, motion))
+              )}
             </View>
           )}
         </View>
@@ -340,14 +499,13 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
           contentContainerStyle={{
             paddingHorizontal: 16,
           }}
-          enableOnAndroid
           keyboardShouldPersistTaps="handled"
         >
           <WsState
             label={t('提案​單上​傳格式​範本​')}
             testID={'WsCharts-picker002'}
             style={{
-              marginTop: 16
+              marginTop: 16,
             }}
             borderRadius={10}
             borderWidth={0.3}
@@ -361,21 +519,21 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                 label: t('依建立日期由近至遠'),
                 value: {
                   order_way: 'desc',
-                  order_by: 'created_at'
-                }
+                  order_by: 'created_at',
+                },
               },
               {
                 label: t('依更新時間由近至遠'),
                 value: {
                   order_way: 'desc',
-                  order_by: 'updated_at'
-                }
+                  order_by: 'updated_at',
+                },
               },
             ]}
           />
           <WsState
             style={{
-              marginTop: 8
+              marginTop: 8,
             }}
             type="filesAndImages"
             label={t('提案單')}
@@ -391,7 +549,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
           <WsState
             type="text"
             style={{
-              marginTop: 8
+              marginTop: 8,
             }}
             label={t('名稱')}
             value={''}
@@ -405,7 +563,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
           <WsState
             type="text"
             style={{
-              marginTop: 8
+              marginTop: 8,
             }}
             label={t('提案單位')}
             value={''}
@@ -416,7 +574,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             type="text"
             multiline={true}
             style={{
-              marginTop: 8
+              marginTop: 8,
             }}
             label={t('報告人')}
             value={''}
@@ -428,7 +586,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             type="text"
             multiline={true}
             style={{
-              marginTop: 8
+              marginTop: 8,
             }}
             label={t('列席​人​員')}
             value={''}
@@ -446,7 +604,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
 
           <WsState
             style={{
-              marginTop: 8
+              marginTop: 8,
             }}
             type="filesAndImages"
             label={t('議案附件')}
@@ -460,7 +618,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             type="text"
             multiline={true}
             style={{
-              marginTop: 8
+              marginTop: 8,
             }}
             label={t('決議-​簡述')}
             value={''}
@@ -472,7 +630,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             type="text"
             multiline={true}
             style={{
-              marginTop: 8
+              marginTop: 8,
             }}
             label={t('決議-​詳述')}
             value={''}
@@ -482,10 +640,9 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
 
           <View
             style={{
-              height: 100
+              height: 100,
             }}
-          ></View>
-
+          />
         </ScrollView>
       </WsModal>
     </>

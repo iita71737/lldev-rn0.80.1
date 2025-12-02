@@ -71,24 +71,8 @@ const RoutesAct = () => {
   const fields = {
     name: {
       type: 'text',
-      label: t('名稱'),
+      label: t('標題'),
       placeholder: `${t('輸入')}`,
-      rules: 'required',
-    },
-    owner: {
-      type: 'belongsto',
-      label: t('負責人'),
-      placeholder: `${t('選擇')}`,
-      nameKey: 'name',
-      modelName: 'user',
-      serviceIndexKey: 'simplifyFactoryIndex',
-      customizedNameKey: 'userAndEmail',
-      rules: 'required',
-    },
-    expired_at: {
-      type: 'date',
-      placeholder: t('YYYY-MM-DD'),
-      label: t('期限'),
       rules: 'required',
     },
     chairman: {
@@ -139,7 +123,7 @@ const RoutesAct = () => {
       multiline: true,
       placeholder: t('輸入'),
     },
-    file_attaches: {
+    file_attaches001: {
       modelName: 'event',
       type: 'Ll_filesAndImages',
       label: t('提案​單上​傳格式​範本​'),
@@ -149,6 +133,61 @@ const RoutesAct = () => {
       type: 'Ll_filesAndImages',
       label: t('議案​預覽格式​範本​'),
     },
+    owner: {
+      type: 'belongsto',
+      label: t('負責人'),
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'user',
+      serviceIndexKey: 'simplifyFactoryIndex',
+      customizedNameKey: 'userAndEmail',
+      rules: 'required',
+      style: {
+        borderTopWidth: 1,
+        paddingTop: 8
+      },
+    },
+    expired_at: {
+      type: 'date',
+      placeholder: t('YYYY-MM-DD'),
+      label: t('期限'),
+      rules: 'required',
+    },
+    scopes_users: {
+      type: 'belongstomany',
+      label: `${t('限閱人員')}`,
+      nameKey: 'name',
+      valueKey: 'id',
+      modelName: 'user',
+      serviceIndexKey: 'simplifyFactoryIndex',
+      customizedNameKey: 'userAndEmail',
+      rules: 'required'
+    },
+    roles: {
+      type: 'multipleBelongstomany',
+      label: t('限閱角色'),
+      placeholder: t('選擇'),
+      innerLabel: [t('預設角色'), t('自訂角色')],
+      modelName: ['user_role', 'user_factory_role_template'],
+      hasMeta: false,
+      getAll: true,
+      params: {
+        get_all: 1
+      },
+      searchBarVisible: true
+    },
+    remark: {
+      label: t('備註'),
+      multiline: true,
+      placeholder: t('輸入'),
+      rules: 'required',
+      testID: '事件說明'
+    },
+    file_attaches: {
+      modelName: 'factory_statistic_group',
+      type: 'Ll_filesAndImages',
+      label: t('附件'),
+    }
   }
 
   const fieldsForTemplate = {
@@ -515,7 +554,11 @@ const RoutesAct = () => {
             'format_time',
             'meeting_place',
             'file_attaches',
-            'file_attaches002'
+            'file_attaches002',
+            'scopes_users',
+            'roles',
+            'remark',
+            'file_attaches001'
           ]
         }
       }
@@ -584,7 +627,7 @@ const RoutesAct = () => {
           }}
         />
 
-         <StackSetting.Screen
+        <StackSetting.Screen
           name="PDFToolAdminTemplateShow"
           component={scopeFilterScreen('guideline-admin-create', PDFToolAdminTemplateShow)}
           options={{
