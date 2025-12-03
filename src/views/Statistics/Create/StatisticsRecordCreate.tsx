@@ -58,6 +58,8 @@ export type SectionItem = {
   versions?: VersionBlock[]
   /** 最單純：直接給 body（若有此值，會放在最前面） */
   body?: React.ReactNode
+  /** 題目清單（本檔實際有用到） */
+  questions?: QuestionVM[]
 }
 
 /** —— 小型型別（可換成你專案內的正式型別） —— */
@@ -80,7 +82,6 @@ const StatisticsRecordCreate = (props) => {
   const _statisticsId = props?.route?.params?.statisticsId
 
   // states
-  const [selectedQuesType, setSelectedQuesType] = React.useState()
   const [statistcsName, setStatisticsName] = React.useState(_checklist ? _checklist.name : '')
 
   /** —— Modal 狀態 —— */
@@ -262,7 +263,7 @@ const StatisticsRecordCreate = (props) => {
           {/* —— 頂部步驟條 —— */}
           <StepBar steps={stepItems} currentIndex={step} />
 
-          {/* —— 步驟專屬：基本資訊 / 功能塊（保持在各自分支） —— */}
+          {/* —— 步驟專屬：基本資訊 / 功能塊 —— */}
           {step === STEPS.SELECT && (
             <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
               {/* 基本資訊 */}
@@ -276,7 +277,7 @@ const StatisticsRecordCreate = (props) => {
                 <WsInfo labelWidth={100} label={t('時間單位')} value={demoData?.time_interval === 'day' ? t('日') : t('')} />
               </View>
 
-              {/* Step1 only: 資料集名稱 / 題型 */}
+              {/* Step1 only: 資料集名稱（題型已移除） */}
               <WsState
                 style={{ marginTop: 8 }}
                 label={t('資料集名稱')}
@@ -284,18 +285,6 @@ const StatisticsRecordCreate = (props) => {
                 onChange={(e) => setStatisticsName(e)}
                 rules={'required'}
                 placeholder={t('輸入')}
-              />
-              <WsState
-                style={{ marginTop: 8, borderColor: $color.gray }}
-                label={t('題型')}
-                type="picker"
-                value={selectedQuesType}
-                onChange={(e) => setSelectedQuesType(e)}
-                items={[
-                  { label: t('單選題'), value: 'single-choice' },
-                  { label: t('數值題'), value: 'num' },
-                  { label: t('日期題'), value: 'date' }
-                ]}
               />
             </WsPaddingContainer>
           )}
@@ -344,7 +333,7 @@ const StatisticsRecordCreate = (props) => {
             </>
           )}
 
-          {/* —— ✅ 共用：版本/題目區（只渲染一次；由 step 切畫面） —— */}
+          {/* —— 共用：版本/題目區（只渲染一次） —— */}
           <WsPaddingContainer style={{ marginTop: 8, backgroundColor: $color.white }}>
             {sections.map(section => {
               const isOpen = openSections[section.id] ?? !!section.defaultOpen
@@ -357,12 +346,10 @@ const StatisticsRecordCreate = (props) => {
                 >
                   <ChecklistVersionBlock
                     setModalVisibleSourceData={setModalVisibleSourceData}
-                    setModalActiveFormula={setModalActiveFormula}
                     step={step}
                     section={section}
                     statisticsId={_statisticsId}
                     isOpen={isOpen}
-                    selectedQuesType={selectedQuesType}
                   />
                 </WsAccordion>
               )

@@ -29,7 +29,6 @@ import AsyncStorage from '@react-native-community/async-storage';
 
 /* ========================= mathjs ========================= */
 const math = create(all, { number: "number" });
-// 自訂函數：支援陣列/巢狀陣列，通通攤平並轉數字
 math.import(
   {
     SUM: (...args: any[]) => math.sum(args.flat(Infinity).map(Number)),
@@ -42,26 +41,38 @@ math.import(
 
 /* ========================= 型別 ========================= */
 type ParamItem = {
-  key: string;           // 唯一鍵（通常為 question_id 或 UUID）
-  label: string;         // 題目原始名稱
-  customLabel?: string;  // 使用者自訂名稱（顯示用）
+  key: string;
+  label: string;
+  customLabel?: string;
+  question_id?: string | number;
+  option_id?: string | number;
 };
 
 type HeaderCol = { key: string; label: string };
 
+/** COUNTIF 解析出來的目標：可以從公式裡拿到 label */
+type CountTarget = {
+  qid?: string;
+  oid?: string;
+  label: string;
+};
+
 /* ========================= 工具 ========================= */
+
+// 把 SUM(..., ) 這種尾端多逗號的情況拿掉，讓 mathjs 能吃
+const sanitizeForMath = (expr: string) => expr.replace(/,\s*\)/g, ')');
+
 const toSafeVar = (id: string) => {
   const cleaned = String(id).replace(/[^A-Za-z0-9_]/g, "_");
   return `v_${cleaned}`;
 };
 
-const KNOWN_FUNCS = new Set(["SUM", "MAX", "MIN", "AVERAGE"]);
-const RESERVED_WORDS = new Set([...KNOWN_FUNCS]); // 可在此加入 PI、E 等常數名
+const KNOWN_FUNCS = new Set(["SUM", "MAX", "MIN", "AVERAGE", "COUNTIF"]);
+const RESERVED_WORDS = new Set([...KNOWN_FUNCS]);
 const SAFE_NAME_RE = /^[A-Za-z_][A-Za-z0-9_\u4E00-\u9FFF]*$/;
 const needsBacktickLoose = (s: string) =>
   !SAFE_NAME_RE.test(s || "") || RESERVED_WORDS.has(String(s).toUpperCase());
 
-// CJK + 英數底線：視為可組成名稱的字元
 const isIdentChar = (ch: string) => {
   if (!ch) return false;
   if (/[A-Za-z0-9_]/.test(ch)) return true;
@@ -70,12 +81,55 @@ const isIdentChar = (ch: string) => {
   return false;
 };
 
-// 把任意輸入轉為 number | number[]
+const UUID_RE = /^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}/;
+
+/* ========= answer_value 解析 ========= */
+const extractAnswerValue = (v: any): any => {
+  if (v == null) return v;
+  if (typeof v === 'number' || typeof v === 'string') return v;
+
+  if (typeof v === 'object') {
+    if (Number.isFinite(Number((v as any).risk_level))) {
+      return Number((v as any).risk_level);
+    }
+    if (Number.isFinite(Number((v as any).value))) {
+      return Number((v as any).value);
+    }
+    if (Number.isFinite(Number((v as any).score))) {
+      return Number((v as any).score);
+    }
+  }
+  return v;
+};
+
+const normalizeRawAnswer = (raw: any): any => {
+  if (!raw || typeof raw !== 'object' || !('answer_value' in raw)) {
+    return raw;
+  }
+  const av = (raw as any).answer_value;
+  if (Array.isArray(av)) {
+    return av.map(extractAnswerValue);
+  }
+  return extractAnswerValue(av);
+};
+
 const toNumberOrArray = (raw: any): number | number[] => {
   if (Array.isArray(raw)) {
-    const arr = raw.map(v => Number(v)).filter(v => Number.isFinite(v));
+    const arr = raw
+      .map((v: any) => {
+        if (v && typeof v === "object") {
+          if (Number.isFinite(Number(v.risk_level))) return Number(v.risk_level);
+          if (Number.isFinite(Number(v.value))) return Number(v.value);
+          if (Number.isFinite(Number(v.score))) return Number(v.score);
+          if (Number.isFinite(Number(v.id))) return Number(v.id);
+          return NaN;
+        }
+        return Number(v);
+      })
+      .filter((n: number) => Number.isFinite(n));
     return arr;
   }
+
   if (typeof raw === 'string' && raw.includes(',')) {
     const arr = raw
       .split(',')
@@ -83,11 +137,11 @@ const toNumberOrArray = (raw: any): number | number[] => {
       .filter(v => Number.isFinite(v));
     return arr;
   }
+
   const num = Number(raw);
   return Number.isFinite(num) ? num : 0;
 };
 
-// 把 math.js 回傳的結果轉成純 JS：支援 Matrix / Array / Number
 const valueOfMathResult = (val: any): number | number[] | string => {
   if (val && typeof val === 'object' && typeof val.valueOf === 'function') {
     const v = val.valueOf();
@@ -101,42 +155,46 @@ const valueOfMathResult = (val: any): number | number[] | string => {
   try { return JSON.stringify(val); } catch { return String(val); }
 };
 
-/* ========================= 新 Tokenizer ========================= */
+/* ========================= Tokenizer ========================= */
 type NewToken =
   | { type: "number"; text: string }
-  | { type: "op"; text: string }        // + - * / ^
-  | { type: "func"; text: string }      // 以小寫存 text：sum/max/...
+  | { type: "op"; text: string }
+  | { type: "func"; text: string }
   | { type: "lparen"; text: "(" }
   | { type: "rparen"; text: ")" }
   | { type: "comma"; text: "," }
   | { type: "name"; text: string }
   | { type: "other"; text: string };
 
-// UUID 一次吃掉（避免被 '-' 切成減號）
-const UUID_RE = /^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}/;
-
 const tokenize = (input: string): NewToken[] => {
   const out: NewToken[] = [];
   const n = input.length;
   let i = 0;
-
   const pushOp = (v: string) => out.push({ type: "op", text: v });
 
   while (i < n) {
     const ch = input[i];
 
-    // 跳過空白（不輸出空白 token）
-    if (/\s/.test(ch)) { i++; continue; }
+    if (/\s/.test(ch)) {
+      i++;
+      continue;
+    }
 
-    // number：支援 123、2.1、.5、1e3、1.2e-3
-    if (/[0-9]/.test(ch) || (ch === '.' && i + 1 < n && /[0-9]/.test(input[i + 1]))) {
+    if (/[0-9.]/.test(ch)) {
       let j = i;
       let sawDot = false;
 
-      if (input[j] === '.') { sawDot = true; j++; }
-      else { while (j < n && /[0-9]/.test(input[j])) j++; }
+      if (ch === '.') {
+        sawDot = true;
+        j++;
+      } else {
+        while (j < n && /[0-9]/.test(input[j])) j++;
+      }
 
-      if (j < n && input[j] === '.' && !sawDot) { sawDot = true; j++; }
+      if (j < n && input[j] === '.' && !sawDot) {
+        sawDot = true;
+        j++;
+      }
       while (j < n && /[0-9]/.test(input[j])) j++;
 
       if (j < n && (input[j] === 'e' || input[j] === 'E')) {
@@ -144,7 +202,9 @@ const tokenize = (input: string): NewToken[] => {
         const hasSign = k < n && (input[k] === '+' || input[k] === '-');
         const nextIsDigit = (hasSign ? k + 1 : k) < n && /[0-9]/.test(input[hasSign ? k + 1 : k]);
         if (nextIsDigit) {
-          j++; if (hasSign) j++; while (j < n && /[0-9]/.test(input[j])) j++;
+          j++;
+          if (hasSign) j++;
+          while (j < n && /[0-9]/.test(input[j])) j++;
         }
       }
 
@@ -153,39 +213,69 @@ const tokenize = (input: string): NewToken[] => {
       continue;
     }
 
-    // ✅ UUID：整段視為 name
-    const uuidSlice = input.slice(i);
-    const uuidMatch = uuidSlice.match(UUID_RE);
+    const uuidMatch = input.slice(i).match(UUID_RE);
     if (uuidMatch) {
-      out.push({ type: "name", text: uuidMatch[0] });
-      i += uuidMatch[0].length;
+      const token = uuidMatch[0];
+      out.push({ type: "name", text: token });
+      i += token.length;
       continue;
     }
 
-    // ✅ 反引號名稱：`任何字元...`
-    if (ch === '`') {
-      let j = i + 1;
-      while (j < n && input[j] !== '`') j++;
-      if (j < n && input[j] === '`') {
-        const nameInside = input.slice(i + 1, j);
-        out.push({ type: "name", text: nameInside });
-        i = j + 1;
-        continue;
+    if (/[+\-*/^]/.test(ch)) {
+      if (ch === '-' && i + 1 < n && /[0-9.]/.test(input[i + 1])) {
+        let j = i + 1;
+        let sawDot = false;
+        while (j < n && /[0-9]/.test(input[j])) j++;
+        if (j < n && input[j] === '.' && !sawDot) {
+          sawDot = true;
+          j++;
+        }
+        while (j < n && /[0-9]/.test(input[j])) j++;
+        if (j < n && (input[j] === 'e' || input[j] === 'E')) {
+          const k = j + 1;
+          const hasSign = k < n && (input[k] === '+' || input[k] === '-');
+          const nextIsDigit = (hasSign ? k + 1 : k) < n && /[0-9]/.test(input[hasSign ? k + 1 : k]);
+          if (nextIsDigit) {
+            j++;
+            if (hasSign) j++;
+            while (j < n && /[0-9]/.test(input[j])) j++;
+          }
+        }
+        out.push({ type: "number", text: input.slice(i, j) });
+        i = j;
+      } else {
+        pushOp(ch);
+        i++;
       }
+      continue;
     }
 
-    if ("+-*/^".includes(ch)) { pushOp(ch); i++; continue; }
-    if (ch === "(") { out.push({ type: "lparen", text: "(" }); i++; continue; }
-    if (ch === ")") { out.push({ type: "rparen", text: ")" }); i++; continue; }
-    if (ch === ",") { out.push({ type: "comma", text: "," }); i++; continue; }
+    if (ch === "(") {
+      out.push({ type: "lparen", text: ch });
+      i++;
+      continue;
+    }
+    if (ch === ")") {
+      out.push({ type: "rparen", text: ch });
+      i++;
+      continue;
+    }
+    if (ch === ",") {
+      out.push({ type: "comma", text: ch });
+      i++;
+      continue;
+    }
 
     if (isIdentChar(ch)) {
       let j = i + 1;
       while (j < n && isIdentChar(input[j])) j++;
-      const word = input.slice(i, j);
-      const upper = word.toUpperCase();
-      if (KNOWN_FUNCS.has(upper)) out.push({ type: "func", text: word.toLowerCase() });
-      else out.push({ type: "name", text: word });
+      const name = input.slice(i, j);
+      const upper = name.toUpperCase();
+      if (KNOWN_FUNCS.has(upper)) {
+        out.push({ type: "func", text: upper.toLowerCase() });
+      } else {
+        out.push({ type: "name", text: name });
+      }
       i = j;
       continue;
     }
@@ -197,36 +287,179 @@ const tokenize = (input: string): NewToken[] => {
   return out;
 };
 
-// tokens → 可運算字串（把顯示名稱換成變數名）
-const untokenizeToReal = (
+/* ========= COUNTIF 解析（ID 版：COUNTIF('qid','oid?')） ========= */
+const extractCountTargetsFromReal = (real: string) => {
+  const targets: Array<{ qid: string; oid?: string; raw: string }> = [];
+  const re = /COUNTIF\s*\(\s*'([^']+)'\s*(?:,\s*'([^']+)')?\s*\)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(real))) {
+    const qid = m[1];
+    const oid = m[2];
+    targets.push({ qid, oid, raw: m[0] });
+  }
+  return targets;
+};
+
+/* ========= COUNTIF 解析（名稱版：COUNTIF(`xxx`,`yyy?`)） ========= */
+const extractCountTargetsFromDisplay = (display: string, params: any[]): CountTarget[] => {
+  const out: CountTarget[] = [];
+  const re = /COUNTIF\s*\(\s*`([^`]+)`\s*(?:,\s*`([^`]+)`)?\s*\)/gi;
+  let m: RegExpExecArray | null;
+
+  const findByLabel = (label: string) =>
+    params.find(
+      (p: any) =>
+        String(p?.label) === String(label) ||
+        String(p?.customLabel) === String(label)
+    );
+
+  while ((m = re.exec(display))) {
+    const n1 = m[1];
+    const n2 = m[2];
+
+    const labelText = n2 ? `${n1}：${n2}` : n1;
+
+    if (n1 && !n2) {
+      const p1 = findByLabel(n1);
+      out.push({
+        qid: p1?.question_id ? String(p1.question_id) : undefined,
+        oid: p1?.option_id ? String(p1.option_id) : undefined,
+        label: labelText,
+      });
+    } else if (n1 && n2) {
+      const p2 = findByLabel(n2) || findByLabel(labelText) || findByLabel(n1);
+      out.push({
+        qid: p2?.question_id ? String(p2.question_id) : undefined,
+        oid: p2?.option_id ? String(p2.option_id) : undefined,
+        label: labelText,
+      });
+    }
+  }
+
+  return out;
+};
+
+/* ========= 顯示字串 → Tokens（含反引號） ========= */
+const parseDisplayExpression = (input: string): NewToken[] => {
+  const placeholders: string[] = [];
+  let placeholderIdx = 0;
+  const replaced = input.replace(/`([^`]+)`/g, (_m, g1) => {
+    const id = `__BK_${placeholderIdx++}__`;
+    placeholders.push(g1);
+    return id;
+  });
+
+  const tokens = tokenize(replaced);
+
+  for (const tok of tokens) {
+    if (tok.type === "name" && tok.text.startsWith("__BK_")) {
+      const idx = Number(tok.text.replace(/^__BK_([0-9]+)__$/, "$1"));
+      const label = placeholders[idx] ?? "";
+      tok.text = "`" + label + "`";
+    }
+  }
+
+  return tokens;
+};
+
+/* ========= Tokens → 實際式 ========= */
+const convertTokensToReal = (
   tokens: NewToken[],
   displayNameToParam: Map<string, ParamItem>,
-  idToVar: Map<string, string>,
-  uniqueKey: string
-) => {
+  idToVar: Map<string, string>
+): {
+  real: string;
+  usedParams: ParamItem[];
+} => {
   const parts: string[] = [];
-  for (const tok of tokens) {
+  const used: Map<string, ParamItem> = new Map();
+
+  for (let idx = 0; idx < tokens.length; idx++) {
+    const tok = tokens[idx];
+
     switch (tok.type) {
       case "func":
+        // 函數名稱一律大寫
         parts.push(tok.text.toUpperCase());
         break;
+
       case "name": {
-        const p = displayNameToParam.get(tok.text);
-        if (p) {
-          const id = (p as any)?.[uniqueKey] ?? (p as any)?.question_id ?? p.key;
+        let name = tok.text;
+
+        const prev = tokens[idx - 1];
+        const next = tokens[idx + 1];
+
+        // 如果是 COUNTIF('qid','oid') 內部的 UUID → 直接原樣保留
+        const insideSingleQuoted =
+          prev &&
+          next &&
+          prev.type === "other" &&
+          next.type === "other" &&
+          prev.text === "'" &&
+          next.text === "'";
+
+        if (insideSingleQuoted && UUID_RE.test(name)) {
+          parts.push(name);
+          break;
+        }
+
+        // 處理 `label` 形式
+        let rawLabel: string | null = null;
+        if (name.startsWith("`") && name.endsWith("`")) {
+          rawLabel = name.slice(1, -1).replace(/\\`/g, "`");
+          name = rawLabel;
+        }
+
+        const param =
+          displayNameToParam.get(name) ||
+          (rawLabel ? displayNameToParam.get(rawLabel) : undefined);
+
+        if (param) {
+          const id = (param as any).question_id ?? (param as any).key;
           const vname = idToVar.get(String(id)) || toSafeVar(String(id));
           parts.push(vname);
+          used.set(String(id), param);
+        } else if (rawLabel != null) {
+          const safe = rawLabel.replace(/'/g, "\\'");
+          parts.push(`'${safe}'`);
         } else {
-          // 未知名稱原樣保留，交給 evaluate 報錯（之後會轉「未識別: ...」）
-          parts.push(tok.text);
+          parts.push(name);
         }
         break;
       }
+
       default:
         parts.push(tok.text);
     }
   }
-  return parts.join("");
+
+  const real = parts.join("");
+  return { real, usedParams: Array.from(used.values()) };
+};
+
+/* ========= COUNTIF 欄位工具 ========= */
+const makeCountColKey = (qid: string, oid?: string) =>
+  oid ? `COUNTIF(${qid},${oid})` : `COUNTIF(${qid})`;
+
+// COUNTIF 對應的變數名
+const makeCountVarKey = (qid: string, oid?: string) => {
+  const colKey = makeCountColKey(qid, oid);
+  return toSafeVar(`COUNT_${colKey}`);
+};
+
+const makeCountColLabel = (qid: string, oid: string | undefined, params: any[]) => {
+  const q = params.find((p: any) => String(p.question_id) === String(qid));
+  if (!oid) {
+    return q?.customLabel || q?.label || '';
+  }
+  const opt = params.find(
+    (p: any) =>
+      String(p.question_id) === String(qid) &&
+      String(p.option_id) === String(oid)
+  );
+  if (q && opt) return `${q.customLabel || q.label || ''}：${opt.label}`;
+  if (q) return q.customLabel || q.label || '';
+  return opt?.label || '';
 };
 
 /* ========================= 元件 ========================= */
@@ -249,6 +482,8 @@ export default function WsFormulaBuilder002({
     expression: string;
     value: number;
     displayText: string;
+    previewResults?: any[];
+    formula_used_params?: ParamItem[];
   }) => void;
   statisticsId?: string | number;
   sectionId?: string | number;
@@ -260,38 +495,46 @@ export default function WsFormulaBuilder002({
     `${statisticsId}-${sectionId}-@dataSet`;
 
   const [visible, setVisible] = useState(false);
-  const [tableVisible, setTableVisible] = useState(false);
+  const [previewOverlayVisible, setPreviewOverlayVisible] = useState(false);
 
-  // 顯示/實際公式
   const [displayExpression, setDisplayExpression] = useState("");
   const [realExpression, setRealExpression] = useState("");
 
-  // tokens 狀態
-  const [toks, setToks] = useState<NewToken[]>([]);
-
-  // 實際用到的參數
-  const [usedParams, setUsedParams] = useState<Array<{ key: string; label: string; customLabel?: string }>>([]);
-
-  // 游標與預覽
+  const [usedParams, setUsedParams] = useState<ParamItem[]>([]);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
   const [previewResults, setPreviewResults] = useState<any[]>([]);
   const inputRef = useRef<TextInput>(null);
 
+  // 紀錄上一次點擊的是「參數」還是「函數」
+  const [lastClickType, setLastClickType] = useState<"param" | "func" | null>(null);
+
+  // 用 ref 記錄最新 selection，避免 setState 延遲
+  const selectionRef = useRef({ start: 0, end: 0 });
+
   const fnDefs = [
-    { key: "SUM", label: "加總", insert: "SUM(A, B)" },
-    { key: "MAX", label: "最大值", insert: "MAX(A, B)" },
-    { key: "MIN", label: "最小值", insert: "MIN(A, B)" },
-    { key: "AVERAGE", label: "平均值", insert: "AVERAGE(A, B)" },
+    { key: "COUNTIF", label: "統計（有作答筆數）", insert: "COUNTIF(A)" },
+    { key: "SUM", label: "加總", insert: "SUM(A)" },
+    { key: "MAX", label: "最大值", insert: "MAX(A)" },
+    { key: "MIN", label: "最小值", insert: "MIN(A)" },
+    { key: "AVERAGE", label: "平均值", insert: "AVERAGE(A)" },
   ];
 
-  // 允許編輯自訂名稱（從 params 來）
   const [paramList, setParamList] = useState<ParamItem[]>(
-    (params as any[]).map((p: any) => ({ ...p, customLabel: p.customLabel ?? "" }))
+    (params as any[]).map((p: any) => ({
+      ...p,
+      key: p.key ?? p.option_id ?? `${p.question_id}_${p.option_id ?? ""}`,
+      customLabel: p.customLabel ?? "",
+    }))
   );
 
-  // 讓外部 props 變動時，同步 paramList（避免只吃初始值）
   useEffect(() => {
-    setParamList((params as any[]).map((p: any) => ({ ...p, customLabel: p.customLabel ?? "" })));
+    setParamList(
+      (params as any[]).map((p: any) => ({
+        ...p,
+        key: p.key ?? p.option_id ?? `${p.question_id}_${p.option_id ?? ""}`,
+        customLabel: p.customLabel ?? "",
+      }))
+    );
   }, [params]);
 
   const effectiveParams = useMemo(
@@ -299,7 +542,6 @@ export default function WsFormulaBuilder002({
     [paramList, params]
   );
 
-  // ✅ 對映：id→安全變數名；可顯示名稱→參數（支援 id/label/customLabel）
   const { idToVar, displayNameToParam } = useMemo(() => {
     const idToVar = new Map<string, string>();
     const displayNameToParam = new Map<string, ParamItem>();
@@ -311,561 +553,1075 @@ export default function WsFormulaBuilder002({
       const safe = toSafeVar(String(id));
       idToVar.set(String(id), safe);
 
-      // 三向對映
-      displayNameToParam.set(String(id), p);
-      if (p.label) displayNameToParam.set(String(p.label), p);
-      if (p.customLabel) displayNameToParam.set(String(p.customLabel), p);
+      displayNameToParam.set(String(id), p as ParamItem);
+      if (p.label) displayNameToParam.set(String(p.label), p as ParamItem);
+      if (p.customLabel) displayNameToParam.set(String(p.customLabel), p as ParamItem);
     });
 
     return { idToVar, displayNameToParam };
   }, [effectiveParams, uniqueKey]);
 
-  // 解析 display → tokens → real + used
-  const convertDisplayToReal = useCallback((txt: string) => {
-    if (!txt) {
-      return { real: "", used: [] as Array<{ key: string; label: string; customLabel?: string }>, tokens: [] as NewToken[] };
-    }
-    const tokens = tokenize(txt);
+  const convertDisplayToReal = useCallback(
+    (txt: string) => {
+      const tokens = parseDisplayExpression(txt);
+      const { real, usedParams } = convertTokensToReal(tokens, displayNameToParam, idToVar);
+      setUsedParams(usedParams as ParamItem[]);
+      return real;
+    },
+    [displayNameToParam, idToVar]
+  );
 
-    const usedMap = new Map<string, { key: string; label: string; customLabel?: string }>();
-    for (const tok of tokens) {
-      if (tok.type === "name") {
-        const p = displayNameToParam.get(tok.text);
-        if (p) {
-          const id = (p as any)?.[uniqueKey] ?? (p as any)?.question_id ?? p.key;
-          usedMap.set(String(id), { key: String(id), label: String(p.label ?? ""), customLabel: p.customLabel });
+  /* ========= COUNTIF API 注入 ========= */
+  useEffect(() => {
+    const api = {
+      COUNTIF: (questionId: string, optionId?: string) => {
+        if (!questionId) return 0;
+        let total = 0;
+
+        const getAnswers = (rec: any) => {
+          const raw = (rec as any)?.[questionId];
+          if (!raw) return [];
+          if (raw && typeof raw === 'object' && 'answer_value' in raw) {
+            const av = (raw as any).answer_value;
+            if (Array.isArray(av)) return av;
+            if (av == null) return [];
+            return [av];
+          }
+          if (Array.isArray(raw)) return raw;
+          return [raw];
+        };
+
+        const matchOption = (item: any, target: string) => {
+          if (item && typeof item === 'object') {
+            if (String((item as any).id) === target) return true;
+            if (String((item as any).value) === target) return true;
+            if (String((item as any).score) === target) return true;
+          }
+          return String(item) === target;
+        };
+
+        for (const r of records || []) {
+          const arr = getAnswers(r);
+          if (optionId == null) {
+            if (arr.length > 0) total += 1;
+          } else {
+            const target = String(optionId);
+            if (arr.some((it: any) => matchOption(it, target))) total += 1;
+          }
         }
-      }
-    }
+        return total;
+      },
+    };
+    math.import(api as any, { override: true });
+  }, [records]);
 
-    const real = untokenizeToReal(tokens, displayNameToParam, idToVar, uniqueKey);
-    const used = Array.from(usedMap.values());
-    return { real, used, tokens };
-  }, [displayNameToParam, idToVar, uniqueKey]);
+  /* ========= 載入上次儲存 ========= */
+  useEffect(() => {
+    const loadSaved = async () => {
+      try {
+        if (statisticsId == null || sectionId == null) return;
+        const storageKey = buildDatasetKey(statisticsId, sectionId);
 
-  // ✅ 使用者輸入（display）→ 自動包反引號（僅針對「我們認得的名稱」且不安全）
-  const autoWrapUnsafeNamesInDisplay = useCallback((txt: string) => {
-    const tokens = tokenize(txt);
-    let changed = false;
-    const parts: string[] = [];
+        const saved = await AsyncStorage.getItem(storageKey);
+        if (!saved) return;
 
-    for (const tok of tokens) {
-      if (tok.type === "name") {
-        const isKnown = displayNameToParam.has(tok.text);
-        if (isKnown && needsBacktickLoose(tok.text)) {
-          parts.push("`" + tok.text + "`");
-          changed = true;
-        } else {
-          parts.push(tok.text);
+        const parsed = JSON.parse(saved);
+        if (parsed.displayExpression) {
+          setDisplayExpression(parsed.displayExpression);
+          setRealExpression(parsed.realExpression || "");
+          setPreviewResults(parsed.previewResults || []);
         }
-      } else {
-        parts.push(tok.text);
+      } catch (err) {
+        console.warn("Failed to load formula:", err);
       }
-    }
-    return changed ? parts.join("") : txt;
-  }, [displayNameToParam]);
+    };
+    loadSaved();
+  }, [statisticsId, sectionId]);
 
-  // 使用者輸入（display）→ 即時轉 real + used + toks
-  const onDisplayChange = (txt: string) => {
-    const incoming = autoWrapUnsafeNamesInDisplay(txt);
-    setDisplayExpression(incoming);
-    const { real, used, tokens } = convertDisplayToReal(incoming);
+  // 把顯示用的表達式（含 label 的 COUNTIF）轉成
+  // 實際運算用的表達式（COUNTIF 變成對應的變數名稱）
+  function buildRealExpressionWithIds(
+    displayExpression: string,
+    params: any[]
+  ): string {
+    if (!displayExpression) return "";
+
+    return displayExpression.replace(
+      /COUNTIF\s*\(\s*`([^`]+)`\s*(?:,\s*`([^`]+)`)?\s*\)/gi,
+      (match, name1: string, name2?: string) => {
+        const findParamByLabel = (label: string) =>
+          params.find(
+            (p: any) =>
+              String(p?.label) === String(label) ||
+              String(p?.customLabel) === String(label)
+          );
+
+        if (name1 && !name2) {
+          const p1 = findParamByLabel(name1);
+          if (!p1) return "0";
+
+          const qid = p1.question_id ? String(p1.question_id) : "";
+          const oid = p1.option_id ? String(p1.option_id) : undefined;
+
+          if (!qid) return "0";
+
+          const varName = makeCountVarKey(qid, oid);
+          return varName;
+        } else if (name1 && name2) {
+          const pQ = findParamByLabel(name1);
+          const pO = findParamByLabel(name2);
+
+          const qid = pQ?.question_id ? String(pQ.question_id) : "";
+          const oid = pO?.option_id ? String(pO.option_id) : undefined;
+
+          if (!qid) return "0";
+
+          const varName = makeCountVarKey(qid, oid);
+          return varName;
+        }
+
+        return "0";
+      }
+    );
+  }
+
+  const handleDisplayChange = (text: string) => {
+    setDisplayExpression(text);
+
+    // 處理 COUNTIF(`label`) → 對應的變數名
+    const withIds = buildRealExpressionWithIds(text, effectiveParams);
+
+    // 再用 convertTokensToReal 處理一般變數
+    const tokens = parseDisplayExpression(withIds);
+    const { real, usedParams } = convertTokensToReal(tokens, displayNameToParam, idToVar);
+
+    setUsedParams(usedParams as ParamItem[]);
     setRealExpression(real);
-    setUsedParams(used);
-    setToks(tokens);
   };
 
-  /* ========================= 預覽運算 ========================= */
+  // Modal 開啟時重置 lastClickType
   useEffect(() => {
-    if (!realExpression || !records?.length) {
+    if (visible) {
+      setLastClickType(null);
+    }
+  }, [visible]);
+
+  /* ========= 預覽欄位 & 結果 ========= */
+  const [headers, setHeaders] = useState<HeaderCol[]>([]);
+
+  useEffect(() => {
+    if (!records || !records.length) {
+      setHeaders([]);
+      return;
+    }
+
+    const expr = displayExpression || "";
+    if (!expr) {
+      setHeaders([{ key: "created_at", label: "created_at" }, { key: "公式結果", label: "公式結果" }]);
+      return;
+    }
+
+    // 先抓出 COUNTIF(...) 的區間，等下用來判斷哪些 `label` 是 COUNTIF 內部的
+    const countifRanges: Array<{ start: number; end: number }> = [];
+    const cfRe = /COUNTIF\s*\(\s*`([^`]+)`\s*(?:,\s*`([^`]+)`)?\s*\)/gi;
+    let m: RegExpExecArray | null;
+
+    while ((m = cfRe.exec(expr))) {
+      countifRanges.push({ start: m.index, end: cfRe.lastIndex });
+    }
+
+    // 工具：判斷一個 index 是否在任一個 COUNTIF 區間內
+    const isInsideCountif = (idx: number) => {
+      return countifRanges.some(r => idx >= r.start && idx < r.end);
+    };
+
+    const orderedCols: { start: number; key: string; label: string }[] = [];
+    const pushedKeys = new Set<string>();
+
+    const findParamByLabel = (label: string) =>
+      effectiveParams.find(
+        (p: any) =>
+          String(p?.label) === String(label) ||
+          String(p?.customLabel) === String(label)
+      );
+
+    // 1) 依照出現順序掃 COUNTIF(`...`)
+    cfRe.lastIndex = 0;
+    while ((m = cfRe.exec(expr))) {
+      const matchStart = m.index;
+      const name1 = m[1];
+      const name2 = m[2];
+
+      // 跟 extractCountTargetsFromDisplay 裡邏輯一樣，決定 qid / oid / label
+      let qid: string | undefined;
+      let oid: string | undefined;
+      let labelText: string;
+
+      if (name1 && !name2) {
+        const p1: any = findParamByLabel(name1);
+        qid = p1?.question_id ? String(p1.question_id) : undefined;
+        oid = p1?.option_id ? String(p1.option_id) : undefined;
+        labelText = name1;
+      } else {
+        const pQ: any = findParamByLabel(name1);
+        const pO: any = findParamByLabel(name2);
+        qid = pQ?.question_id ? String(pQ.question_id) : undefined;
+        oid = pO?.option_id ? String(pO.option_id) : undefined;
+        labelText = name2 ? `${name1}：${name2}` : name1;
+      }
+
+      if (!qid) continue;
+      const colKey = makeCountColKey(qid, oid);
+
+      if (!pushedKeys.has(colKey)) {
+        pushedKeys.add(colKey);
+        orderedCols.push({
+          start: matchStart,
+          key: colKey,
+          label: labelText,
+        });
+      }
+    }
+
+    // 2) 再掃所有 `label`，但排除在 COUNTIF(...) 裡面的，這些就是一般題目/數值題
+    const labelRe = /`([^`]+)`/g;
+    let lm: RegExpExecArray | null;
+    while ((lm = labelRe.exec(expr))) {
+      const matchStart = lm.index;
+      const labelText = lm[1];
+
+      // 在 COUNTIF 區間內的 `label` 是 COUNTIF 的參數，前面已經處理過了，這裡跳過
+      if (isInsideCountif(matchStart)) continue;
+
+      const p: any = findParamByLabel(labelText);
+      if (!p) continue;
+
+      const id = p?.[uniqueKey] ?? p?.question_id ?? p?.key;
+      if (!id) continue;
+
+      const colKey = String(id);
+      if (pushedKeys.has(colKey)) continue;
+
+      pushedKeys.add(colKey);
+      orderedCols.push({
+        start: matchStart,
+        key: colKey,
+        label: p.customLabel || p.label || labelText,
+      });
+    }
+
+    // 3) 依照在公式中的位置排序
+    orderedCols.sort((a, b) => a.start - b.start);
+
+    const finalCols: HeaderCol[] = [
+      { key: "created_at", label: "created_at" },
+      ...orderedCols.map((c) => ({ key: c.key, label: c.label })),
+      { key: "公式結果", label: "公式結果" },
+    ];
+
+    setHeaders(finalCols);
+  }, [records, effectiveParams, uniqueKey, displayExpression]);
+
+
+  const columnWidths = headers.map((h) =>
+    h.key === "created_at" ? 200 : Math.max(h.label.length * 10 + 80, 100)
+  );
+
+  // 預覽結果（每筆 record 一列）
+  useEffect(() => {
+    if (!realExpression) {
       setPreviewResults([]);
       return;
     }
+
+    const byIdRaw = extractCountTargetsFromReal(realExpression);
+    const byName = extractCountTargetsFromDisplay(displayExpression, effectiveParams);
+
+    const seen = new Set<string>();
+    const countTargets: CountTarget[] = [];
+
+    for (const t of byName) {
+      if (!t.qid) continue;
+      const key = `${t.qid}|${t.oid ?? ""}|${t.label}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        countTargets.push(t);
+      }
+    }
+
+    for (const r of byIdRaw) {
+      const key = `${r.qid}|${r.oid ?? ""}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      countTargets.push({
+        qid: r.qid,
+        oid: r.oid,
+        label: makeCountColLabel(r.qid, r.oid, effectiveParams),
+      });
+    }
+
     try {
-      const newResults = records.map((r) => {
+      if (!records?.length) {
+        setPreviewResults([]);
+        return;
+      }
+
+      const next = records.map((r, index) => {
         const ctx: Record<string, any> = {};
 
-        // 把每個參數（依 uniqueKey 取得對應欄位）放入 ctx（允許 number 或 number[] 或 csv）
+        // 塞一般題目的值進 ctx（給 SUM / MAX / ... 用）
         effectiveParams.forEach((p: any) => {
           const id = p?.[uniqueKey] ?? p?.question_id ?? p?.key;
           if (!id) return;
+          const raw =
+            r[id] ??
+            r[p.label] ??
+            (p.customLabel ? r[p.customLabel] : undefined);
+          const normalized = normalizeRawAnswer(raw);
+          const vname = idToVar.get(String(id)) || toSafeVar(String(id));
+          ctx[vname] = toNumberOrArray(normalized);
+        });
 
-          // 取值 fallback：id → label → customLabel
+        const row: any = {
+          _rowIndex: index,
+          created_at: r.created_at ?? "",
+        };
+
+        // ✅ 把一般題目的 display 值也放進 row，對應 headers 的 paramCols
+        usedParams.forEach((p: any) => {
+          const id = p?.[uniqueKey] ?? p.question_id ?? p.key;
+          if (!id) return;
+
           const raw =
             r[id] ??
             r[p.label] ??
             (p.customLabel ? r[p.customLabel] : undefined);
 
-          const vname = idToVar.get(String(id)) || toSafeVar(String(id));
-          ctx[vname] = toNumberOrArray(raw);
+          let display: any = "";
+
+          if (raw && typeof raw === 'object' && 'answer_value' in raw) {
+            const av = (raw as any).answer_value;
+            if (Array.isArray(av)) {
+              display = av
+                .map((it: any) =>
+                  it && typeof it === 'object'
+                    ? (it.name ?? it.label ?? it.risk_level ?? it.value ?? it.score ?? it.id ?? "")
+                    : String(it)
+                )
+                .join(", ");
+            } else if (av && typeof av === 'object') {
+              display =
+                av.name ?? av.label ?? av.risk_level ?? av.value ?? av.score ?? av.id ?? "";
+            } else {
+              display = av ?? "";
+            }
+          } else if (Array.isArray(raw)) {
+            display = raw
+              .map((it: any) =>
+                it && typeof it === 'object'
+                  ? (it.name ?? it.label ?? it.risk_level ?? it.value ?? it.score ?? it.id ?? "")
+                  : String(it)
+              )
+              .join(", ");
+          } else if (raw && typeof raw === 'object') {
+            display =
+              raw.name ?? raw.label ?? raw.risk_level ?? raw.value ?? raw.score ?? raw.id ?? "";
+          } else if (raw != null) {
+            display = raw;
+          }
+
+          row[String(id)] = display;
         });
+
+        // COUNTIF 欄位：0 / 1 + 對應變數
+        for (const t of countTargets) {
+          if (!t.qid) continue;
+          const rawTarget = (r as any)[t.qid];
+          let arr: any[] = [];
+
+          if (rawTarget && typeof rawTarget === 'object' && 'answer_value' in rawTarget) {
+            const av = (rawTarget as any).answer_value;
+            if (Array.isArray(av)) arr = av;
+            else if (av != null) arr = [av];
+          } else if (Array.isArray(rawTarget)) {
+            arr = rawTarget;
+          } else if (rawTarget != null) {
+            arr = [rawTarget];
+          }
+
+          let v = 0;
+          if (t.oid) {
+            const target = String(t.oid);
+            const match = (it: any) => {
+              if (it && typeof it === 'object') {
+                if (String((it as any).id) === target) return true;
+                if (String((it as any).value) === target) return true;
+                if (String((it as any).score) === target) return true;
+              }
+              return String(it) === target;
+            };
+            v = arr.some((it) => match(it)) ? 1 : 0;
+          } else {
+            v = arr.length > 0 ? 1 : 0;
+          }
+          const colKey = makeCountColKey(t.qid ?? t.label, t.oid);
+          row[colKey] = v;
+
+          const varKey = makeCountVarKey(t.qid, t.oid);
+          ctx[varKey] = v;
+        }
 
         let result: any = "❌";
         try {
-          const val = math.evaluate(realExpression, ctx);
-          const v = valueOfMathResult(val); // number | number[] | string
+          // 用 per-row 的 ctx 直接算 realExpression
+          const safeExpr = sanitizeForMath(realExpression);
+          const val = math.evaluate(safeExpr, ctx);
+          const v = valueOfMathResult(val);
 
           if (Array.isArray(v)) {
             result = v
-              .map(n => (Number.isFinite(n) ? Math.round(n * 100) / 100 : n))
+              .map((n) => (Number.isFinite(n) ? Math.round(n * 100) / 100 : n))
               .join(", ");
           } else if (Number.isFinite(v as number)) {
             result = Math.round((v as number) * 100) / 100;
           } else {
             result = String(v);
           }
-        } catch {
-          const tokens = Array.from(new Set(realExpression.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []));
-          const unknown = tokens.filter(tok => !KNOWN_FUNCS.has(tok) && !(tok in ctx));
-          result = unknown.length ? `未識別: ${unknown.join(", ")}` : "❌";
+        } catch (err) {
+          console.warn("eval error:", err);
+          result = "❌";
         }
-        return { ...r, 公式結果: result };
+
+        return {
+          ...row,
+          公式結果: result,
+        };
       });
 
-      setPreviewResults(newResults);
-    } catch {
-      setPreviewResults(records.map((r) => ({ ...r, 公式結果: "❌" })));
+      setPreviewResults(next);
+    } catch (err) {
+      console.warn("Failed to preview formula:", err);
+      setPreviewResults([]);
     }
-  }, [realExpression, records, effectiveParams, uniqueKey, idToVar]);
+  }, [realExpression, records, effectiveParams, displayExpression, idToVar, uniqueKey, usedParams]);
 
-  /* ========================= 插入/選取 ========================= */
-  const needsBacktick = (s: string) =>
-    /[^A-Za-z0-9_\u4E00-\u9FFF]/.test(s || "") ||
-    RESERVED_WORDS.has(String(s).toUpperCase());
+  /**
+    * 在目前游標位置或選取區插入文字
+    */
+  const insertAtCursor = (
+    rawText: string,
+    opts?: { autoComma?: boolean; caretOffset?: number }
+  ) => {
+    const ref = inputRef.current;
+    const prev = displayExpression || "";
+    const sel = selectionRef.current;
 
-  const insertAtCursor = (displayPiece: string) => {
-    const start = selection.start ?? 0;
-    const end = selection.end ?? 0;
+    const start = sel.start;
+    const end = sel.end;
 
-    const newDisplay =
-      displayExpression.slice(0, start) +
-      displayPiece +
-      displayExpression.slice(end);
+    const before = prev.slice(0, start);
+    const after = prev.slice(end);
 
-    setDisplayExpression(newDisplay);
+    let prefix = "";
 
-    const { real, used, tokens } = convertDisplayToReal(newDisplay);
+    if (opts?.autoComma) {
+      const trimmed = before.replace(/\s+$/g, "");
+      const lastChar = trimmed.slice(-1);
+      if (trimmed.length > 0 && lastChar !== "(" && lastChar !== ",") {
+        prefix = ", ";
+      }
+    }
+
+    const insertText = prefix + rawText;
+    const next = before + insertText + after;
+
+    setDisplayExpression(next);
+    const real = convertDisplayToReal(next);
     setRealExpression(real);
-    setUsedParams(used);
-    setToks(tokens);
 
-    const newPos = start + displayPiece.length;
-    setSelection({ start: newPos, end: newPos });
-    setTimeout(() => inputRef.current?.focus(), 0);
+    const base = before.length + prefix.length;
+    const caretOffset = opts?.caretOffset ?? rawText.length;
+    const pos = base + caretOffset;
+
+    const newSel = { start: pos, end: pos };
+    selectionRef.current = newSel;
+    setSelection(newSel);
+
+    setTimeout(() => {
+      ref?.setNativeProps?.({ selection: newSel });
+    }, 0);
   };
 
-  // 點參數插入：若名稱含空白/符號/保留字，自動用反引號包起來
-  const onSelectParam = (item?: ParamItem | Record<string, any>) => {
-    if (!item) return;
-    const anyItem: any = item;
-    const displayName =
-      (typeof anyItem.customLabel === "string" && anyItem.customLabel.trim()) ||
-      anyItem.label ||
-      "";
-    const piece = needsBacktick(displayName) ? `\`${displayName}\`` : displayName;
-    insertAtCursor(piece);
+  /**
+  * 點參數
+  */
+  const onSelectParam = (p: ParamItem) => {
+    const label = p.customLabel || p.label;
+    const text = needsBacktickLoose(label) ? `\`${label}\`` : label;
+
+    const ref = inputRef.current;
+    const prev = displayExpression || "";
+    const sel = selectionRef.current;
+    const start = sel.start;
+    const end = sel.end;
+
+    const selectedText = prev.slice(start, end);
+
+    // 覆蓋模板裡的 A
+    if (start !== end && selectedText === "A") {
+      const before = prev.slice(0, start);
+      const after = prev.slice(end);
+
+      const beforeUpToStart = prev.slice(0, start);
+      const countifMatches = Array.from(
+        beforeUpToStart.matchAll(/COUNTIF\s*\(/g)
+      );
+      const lastMatch = countifMatches.length
+        ? countifMatches[countifMatches.length - 1]
+        : null;
+
+      const isCountifPlaceholder = (() => {
+        if (!lastMatch) return false;
+        const openIdx = (lastMatch.index ?? 0) + lastMatch[0].length;
+        const between = prev.slice(openIdx, start);
+        return !between.includes(")");
+      })();
+
+      const replaced = before + text + after;
+
+      if (!isCountifPlaceholder) {
+        setDisplayExpression(replaced);
+        const real = convertDisplayToReal(replaced);
+        setRealExpression(real);
+
+        const pos = before.length + text.length;
+        const newSel = { start: pos, end: pos };
+        selectionRef.current = newSel;
+        setSelection(newSel);
+        setTimeout(() => {
+          ref?.setNativeProps?.({ selection: newSel });
+        }, 0);
+
+        setLastClickType("param");
+        return;
+      }
+
+      // COUNTIF 特例：自動在後面補逗號
+      const closeParenIdxInPrev = prev.indexOf(")", end);
+      const delta = text.length - (end - start);
+      const closeParenIdxInReplaced = closeParenIdxInPrev + delta;
+
+      const beforeClose = replaced.slice(0, closeParenIdxInReplaced + 1);
+      const afterClose = replaced.slice(closeParenIdxInReplaced + 1);
+
+      const trimmedAfter = afterClose.replace(/^\s+/, "");
+      let finalExpr = replaced;
+      let caretPos = closeParenIdxInReplaced + 1;
+
+      if (!trimmedAfter.startsWith(",")) {
+        finalExpr = beforeClose + ", " + afterClose;
+        caretPos = closeParenIdxInReplaced + 3;
+      }
+
+      setDisplayExpression(finalExpr);
+      const real = convertDisplayToReal(finalExpr);
+      setRealExpression(real);
+
+      const newSel = { start: caretPos, end: caretPos };
+      selectionRef.current = newSel;
+      setSelection(newSel);
+      setTimeout(() => {
+        ref?.setNativeProps?.({ selection: newSel });
+      }, 0);
+
+      setLastClickType("param");
+      return;
+    }
+
+    // 沒選取範圍 → 一般插入
+    const needComma = lastClickType === "param";
+    insertAtCursor(text, { autoComma: needComma });
+    setLastClickType("param");
   };
 
-  const onInsertFunction = (fInsert: string) => insertAtCursor(fInsert);
+  /**
+   * 點函數：插入模板並反選 A
+   */
+  const onInsertFunction = (fn: { key: string; insert: string }) => {
+    const snippet = fn.insert;
 
-  // 清除
-  const clearExpression = () => {
-    setDisplayExpression("");
-    setRealExpression("");
-    setUsedParams([]);
-    setPreviewResults([]);
-    setToks([]);
+    const ref = inputRef.current;
+    const prev = displayExpression || "";
+    const sel = selectionRef.current;
+    const start = sel.start;
+    const end = sel.end;
+
+    const before = prev.slice(0, start);
+    const after = prev.slice(end);
+
+    const placeholderIndex = snippet.indexOf("A");
+
+    if (placeholderIndex === -1) {
+      const next = before + snippet + after;
+      setDisplayExpression(next);
+      const real = convertDisplayToReal(next);
+      setRealExpression(real);
+
+      const pos = before.length + snippet.length;
+      const newSel = { start: pos, end: pos };
+      selectionRef.current = newSel;
+      setSelection(newSel);
+      setTimeout(() => {
+        ref?.setNativeProps?.({ selection: newSel });
+      }, 0);
+
+      setLastClickType("func");
+      return;
+    }
+
+    const next = before + snippet + after;
+    setDisplayExpression(next);
+    const real = convertDisplayToReal(next);
+    setRealExpression(real);
+
+    const placeholderStart = before.length + placeholderIndex;
+    const placeholderEnd = placeholderStart + 1;
+
+    const newSel = { start: placeholderStart, end: placeholderEnd };
+    selectionRef.current = newSel;
+    setSelection(newSel);
+    setTimeout(() => {
+      ref?.setNativeProps?.({ selection: newSel });
+    }, 0);
+
+    setLastClickType("func");
   };
 
-  /* ========================= 自訂名稱 Modal ========================= */
+  /* ========= 參數別名 Modal ========= */
+  const [aliasModalVisible, setAliasModalVisible] = useState(false);
+  const [editingParam, setEditingParam] = useState<ParamItem | null>(null);
   const [inputValue, setInputValue] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingParam, setEditingParam] = useState<{ id: string; label: string } | null>(null);
 
-  const handleOpenModal = (item: ParamItem) => {
-    setEditingParam(item as any);
-    setInputValue(item.customLabel || item.label);
-    setModalVisible(true);
+  const handleOpenAliasModal = (p: ParamItem) => {
+    setEditingParam(p);
+    setInputValue(p.customLabel ?? "");
+    setAliasModalVisible(true);
   };
+
   const handleSaveLabel = () => {
     if (!editingParam) return;
+    const key = editingParam.key;
     setParamList((prev) =>
       prev.map((p) =>
-        p.key === (editingParam as any).key ? { ...p, customLabel: inputValue } : p
+        p.key === key
+          ? {
+            ...p,
+            customLabel: inputValue,
+          }
+          : p
       )
     );
-    setModalVisible(false);
-
-    // 重新解析一次顯示式→避免舊自訂名殘留，並更新 toks
-    const { real, used, tokens } = convertDisplayToReal(displayExpression);
-    setRealExpression(real);
-    setUsedParams(used);
-    setToks(tokens);
+    setAliasModalVisible(false);
   };
 
-  /* ========================= 表頭（顯示 customLabel 優先） ========================= */
-  const headers: HeaderCol[] = useMemo(() => {
-    const base = previewResults.length ? previewResults : records;
-    if (!base.length) return [{ key: "公式結果", label: "公式結果" }];
-
-    const rawKeys =
-      Object.keys(base[0])?.filter((k) => k !== uniqueKey && k !== "key") ?? [];
-
-    // 三向對映，將欄位名（不論 UUID/label/customLabel）顯示為自訂名（若有）或原 label
-    const labelMap = Object.fromEntries(
-      effectiveParams.flatMap((p: any) => {
-        const id = p?.[uniqueKey] ?? p?.question_id ?? p?.key;
-        const show = p.customLabel || p.label;
-        const pairs: [string, string][] = [];
-        if (id) pairs.push([String(id), show]);
-        if (p.label) pairs.push([String(p.label), show]);
-        if (p.customLabel) pairs.push([String(p.customLabel), show]);
-        return pairs;
-      })
-    );
-
-    const cols = rawKeys.map((k) => ({
-      key: k,
-      label: (labelMap as any)[k] || k,
-    }));
-
-    if (!cols.find((c) => c.key === "公式結果")) {
-      cols.push({ key: "公式結果", label: "公式結果" });
-    }
-    return cols;
-  }, [previewResults, records, effectiveParams, uniqueKey]);
-
-  const columnWidths = headers.map((h) =>
-    h.key === "created_at" ? 200 : Math.max(h.label.length * 10 + 80, 100)
-  );
-
-  const openEditor = () => {
-    setDisplayExpression((prev) => prev || "");
-    setVisible(true);
-  };
-
-  /* ========================= 套用並關閉（寫入 storage，含 toks） ========================= */
+  /* ========= 套用 ========= */
   const handleApplyAndClose = useCallback(async () => {
-    const formulaPayload = {
-      displayExpression,
-      realExpression,
-      previewResults,
-      formula_used_params: usedParams,
-      toks, // ★ 一起存
-      updatedAt: new Date().toISOString(),
-    };
-
     try {
       if (statisticsId != null && sectionId != null) {
         const storageKey = buildDatasetKey(statisticsId, sectionId);
-
-        const raw = await AsyncStorage.getItem(storageKey);
-        let obj: any = {};
-        if (raw) {
-          try { obj = JSON.parse(raw) ?? {}; } catch { obj = {}; }
-        }
-
-        const next = { ...obj, formula_builder: formulaPayload };
-        await AsyncStorage.setItem(storageKey, JSON.stringify(next));
+        const payload = JSON.stringify({
+          displayExpression,
+          realExpression,
+          previewResults,
+        });
+        await AsyncStorage.setItem(storageKey, payload);
       }
     } catch (err) {
-      console.warn("Failed to save formula to storage:", err);
+      console.warn("Failed to save formula:", err);
     }
 
-    onChange?.({ expression: realExpression, value: 0, displayText: displayExpression });
+    const prettyPreview = previewResults.map((row) => {
+      const out: any = {};
+      headers.forEach((h) => {
+        out[h.label] = row[h.key];
+      });
+      return out;
+    });
+
+    onChange?.({
+      expression: realExpression,
+      value: 0,
+      displayText: displayExpression,
+      previewResults: prettyPreview,
+      formula_used_params: usedParams,
+    });
     setVisible(false);
-  }, [displayExpression, realExpression, previewResults, usedParams, toks, statisticsId, sectionId, onChange]);
+  }, [
+    displayExpression,
+    realExpression,
+    previewResults,
+    usedParams,
+    statisticsId,
+    sectionId,
+    onChange,
+    headers,
+  ]);
 
-  // 初始載入 storage：帶回 display/real/preview/usedParams/toks
-  useEffect(() => {
-    const loadSaved = async () => {
-      try {
-        if (statisticsId == null || sectionId == null) return;
-        const storageKey = buildDatasetKey(statisticsId, sectionId);
-        const saved = await AsyncStorage.getItem(storageKey);
-        if (!saved) return;
-
-        const parsed: any = JSON.parse(saved);
-        const fb = parsed?.formula_builder;
-        if (fb) {
-          if (typeof fb.displayExpression === "string") setDisplayExpression(fb.displayExpression);
-          if (typeof fb.realExpression === "string") setRealExpression(fb.realExpression);
-          if (Array.isArray(fb.previewResults)) setPreviewResults(fb.previewResults);
-          if (Array.isArray(fb.formula_used_params)) setUsedParams(fb.formula_used_params);
-          if (Array.isArray(fb.toks)) setToks(fb.toks as NewToken[]);
-        }
-      } catch (err) {
-        console.warn('載入已存資料失敗：', err);
-      }
-    };
-    loadSaved();
-  }, [statisticsId, sectionId]);
-
+  /* ========================= UI ========================= */
   return (
     <>
-      {/* === 外層輸入框 === */}
+      {/* 外層顯示框 */}
       <TouchableOpacity
-        onPress={openEditor}
-        style={[styles.inputBox, style]}
-        activeOpacity={0.8}
+        style={[styles.inputWrap, style]}
+        onPress={() => setVisible(true)}
+        activeOpacity={0.7}
       >
         <TextInput
           editable={false}
           placeholder={placeholder}
           value={displayExpression}
-          placeholderTextColor={"rgba(0,0,0,0.35)"}
+          placeholderTextColor="rgba(0,0,0,0.35)"
           style={styles.input}
         />
         <Text style={{ color: "#777" }}>✎</Text>
       </TouchableOpacity>
 
-      {/* === 主編輯器 Modal === */}
-      <Modal visible={visible} animationType="slide">
+      {/* === 公式編輯器 Modal === */}
+      <Modal
+        visible={visible}
+        animationType="slide"
+        onRequestClose={() => setVisible(false)}
+      >
         <SafeAreaProvider>
           <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
             <KeyboardAvoidingView
               style={{ flex: 1 }}
               behavior={Platform.OS === "ios" ? "padding" : undefined}
             >
-              <ScrollView
-                contentContainerStyle={{
-                  padding: 16,
-                  paddingBottom: insets.bottom + 60,
-                }}
-              >
-                {/* Header */}
-                <View style={styles.header}>
-                  <Text style={styles.headerTitle}>{t("公式編輯器")}</Text>
-                  <TouchableOpacity onPress={() => setVisible(false)}>
-                    <Text style={styles.headerAction}>{t("關閉")}</Text>
-                  </TouchableOpacity>
-                </View>
+              <View style={{ flex: 1 }}>
+                <ScrollView
+                  contentContainerStyle={{
+                    padding: 16,
+                    paddingBottom: insets.bottom + 60,
+                  }}
+                >
+                  {/* Header */}
+                  <View style={styles.header}>
+                    <Text style={styles.headerTitle}>{t("公式編輯器")}</Text>
+                    <TouchableOpacity onPress={() => setVisible(false)}>
+                      <Text style={styles.headerAction}>{t("關閉")}</Text>
+                    </TouchableOpacity>
+                  </View>
 
-                {/* 公式輸入 */}
-                <Text style={styles.h3}>{t("輸入公式")}</Text>
-                <TextInput
-                  ref={inputRef}
-                  style={styles.freeInput}
-                  value={displayExpression}
-                  onChangeText={onDisplayChange}
-                  onSelectionChange={(e) =>
-                    setSelection(e.nativeEvent.selection)
-                  }
-                  placeholder="例如：SUM(`題目1-調勻池pH值v1`, `題目2-...`)"
-                  placeholderTextColor="rgba(185,184,184,0.5)"
-                  multiline
-                />
+                  {/* 公式輸入 */}
+                  <Text style={styles.h3}>{t("輸入公式")}</Text>
+                  <TextInput
+                    ref={inputRef}
+                    style={styles.editorInput}
+                    value={displayExpression}
+                    onChangeText={handleDisplayChange}
+                    onSelectionChange={(e) => {
+                      const sel = e.nativeEvent.selection;
+                      setSelection(sel);
+                      selectionRef.current = sel;
+                    }}
+                    placeholder="例如：COUNTIF(`廚餘設備檢查：閥門Ａ 高風險`)"
+                    placeholderTextColor="rgba(185,184,184,0.5)"
+                    multiline
+                  />
 
-                {/* 可用參數（可點插入 / 可編輯自訂名） */}
-                <Text style={styles.h3}>{t("可用參數")}</Text>
-                <View style={styles.rowWrap}>
-                  {paramList.map((p: any) => {
-                    const displayLabel = p.customLabel;
+                  {/* 可用參數 */}
+                  <Text style={styles.h3}>{t("可用參數")}</Text>
+                  <View style={styles.rowWrap}>
+                    {paramList.map((p: any) => {
+                      const displayLabel = p.customLabel;
 
-                    return (
+                      return (
+                        <TouchableOpacity
+                          key={p.key}
+                          style={styles.paramBtn}
+                          onPress={() => onSelectParam(p)}
+                          activeOpacity={0.8}
+                        >
+                          <WsFlex>
+                            <View>
+                              <Text style={styles.originalLabel}>{p.label}</Text>
+                              {displayLabel && (
+                                <Text style={styles.customLabel}>{`參數：${displayLabel}`}</Text>
+                              )}
+                            </View>
+                            <WsIconBtn
+                              padding={0}
+                              style={{ marginLeft: 8, zIndex: 99 }}
+                              size={28}
+                              name="md-edit"
+                              label="編輯"
+                              onPress={() => handleOpenAliasModal(p)}
+                            />
+                          </WsFlex>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* 參數別名 Modal */}
+                  <Modal
+                    visible={aliasModalVisible}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => setAliasModalVisible(false)}
+                  >
+                    <View style={styles.modalOverlay}>
+                      <View style={styles.modalBox}>
+                        <WsState
+                          style={{ flex: 1, marginTop: 16 }}
+                          label={t('參數名稱')}
+                          placeholder={t('輸入')}
+                          value={inputValue}
+                          onChange={setInputValue}
+                        />
+                        <WsFlex style={{ position: 'absolute', right: 16, bottom: 16 }}>
+                          <TouchableOpacity
+                            style={{
+                              paddingHorizontal: 16,
+                              paddingVertical: 9,
+                              borderColor: $color.gray,
+                              borderRadius: 25,
+                              borderWidth: 1,
+                              width: 110,
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              height: 48
+                            }}
+                            onPress={() => setAliasModalVisible(false)}
+                          >
+                            <WsText size={14} color={$color.gray}>{t('取消')}</WsText>
+                          </TouchableOpacity>
+                          <WsGradientButton style={{ width: 110 }} onPress={handleSaveLabel}>
+                            {t('確定')}
+                          </WsGradientButton>
+                        </WsFlex>
+                      </View>
+                    </View>
+                  </Modal>
+
+                  {/* 可用函數 */}
+                  <Text style={styles.h3}>{t("可用函數")}</Text>
+                  <View style={styles.fnWrap}>
+                    {fnDefs.map((f) => (
                       <TouchableOpacity
-                        key={p.key || p[uniqueKey] || p.question_id}
-                        style={styles.paramBtn}
-                        onPress={() => onSelectParam(p)}
+                        key={f.key}
+                        style={styles.fnCard}
+                        onPress={() => onInsertFunction(f)}
                         activeOpacity={0.8}
                       >
-                        <WsFlex>
-                          <View>
-                            <Text style={styles.originalLabel}>{p.label}</Text>
-                            {displayLabel && (
-                              <Text style={styles.customLabel}>{`參數：${displayLabel}`}</Text>
-                            )}
-                          </View>
-                          <WsIconBtn
-                            padding={0}
-                            style={{ marginLeft: 8, zIndex: 99 }}
-                            size={28}
-                            name="md-edit"
-                            label="編輯"
-                            onPress={() => handleOpenModal(p)}
-                          />
-                        </WsFlex>
+                        <Text style={{ fontWeight: "700", color: "#3f51b5" }}>
+                          {f.key}（{f.label}）
+                        </Text>
+                        <Text style={{ fontSize: 12, color: "#666" }}>
+                          {f.example || f.insert}
+                        </Text>
                       </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                {/* 自訂名稱 Modal */}
-                <Modal
-                  visible={modalVisible}
-                  transparent
-                  animationType="fade"
-                  onRequestClose={() => setModalVisible(false)}
-                >
-                  <View style={styles.modalOverlay}>
-                    <View style={styles.modalBox}>
-                      <WsState
-                        style={{ flex: 1, marginTop: 16 }}
-                        label={t('參數名稱')}
-                        placeholder={t('輸入')}
-                        value={inputValue}
-                        onChange={setInputValue}
-                      />
-                      <WsFlex style={{ position: 'absolute', right: 16, bottom: 16 }}>
-                        <TouchableOpacity
-                          style={{
-                            paddingHorizontal: 16,
-                            paddingVertical: 9,
-                            borderColor: $color.gray,
-                            borderRadius: 25,
-                            borderWidth: 1,
-                            width: 110,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            height: 48
-                          }}
-                          onPress={() => setModalVisible(false)}
-                        >
-                          <WsText size={14} color={$color.gray}>{t('取消')}</WsText>
-                        </TouchableOpacity>
-                        <WsGradientButton style={{ width: 110 }} onPress={handleSaveLabel}>
-                          {t('確定')}
-                        </WsGradientButton>
-                      </WsFlex>
-                    </View>
+                    ))}
                   </View>
-                </Modal>
 
-                {/* 可用函數 */}
-                <Text style={styles.h3}>{t("可用函數")}</Text>
-                <View style={styles.fnWrap}>
-                  {fnDefs.map((f) => (
+                  {/* 操作按鈕 */}
+                  <View style={styles.row}>
                     <TouchableOpacity
-                      key={f.key}
-                      style={styles.fnCard}
-                      onPress={() => onInsertFunction(f.insert)}
-                      activeOpacity={0.8}
+                      style={[styles.calcBtn, { backgroundColor: "#0b5aaa" }]}
+                      onPress={() => {
+                        if (!realExpression && displayExpression) {
+                          handleDisplayChange(displayExpression);
+                        }
+                        setPreviewOverlayVisible(true);
+                      }}
+                      activeOpacity={0.85}
                     >
-                      <Text style={{ fontWeight: "700", color: "#3f51b5" }}>
-                        {f.key}（{f.label}）
-                      </Text>
-                      <Text style={{ fontSize: 12, color: "#666" }}>
-                        {f.insert}
-                      </Text>
+                      <Text style={{ color: "#fff" }}>{t("預覽")}</Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
+                    <TouchableOpacity
+                      style={styles.calcBtn}
+                      onPress={handleApplyAndClose}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={{ color: "#fff" }}>{t("套用並關閉")}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.calcBtn, { backgroundColor: $color.danger }]}
+                      onPress={() => {
+                        setDisplayExpression("");
+                        setRealExpression("");
+                        setPreviewResults([]);
+                        setUsedParams([]);
+                        setLastClickType(null);
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={{ color: "#fff" }}>{t("清空")}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
 
-                {/* 操作按鈕 */}
-                <View style={styles.row}>
-                  <TouchableOpacity
-                    style={[styles.calcBtn, { backgroundColor: "#0b5aaa" }]}
-                    onPress={() => setTableVisible(true)}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={{ color: "#fff" }}>{t("預覽")}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.calcBtn}
-                    onPress={handleApplyAndClose}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={{ color: "#fff" }}>{t("套用並關閉")}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.calcBtn, { backgroundColor: "#b42318" }]}
-                    onPress={clearExpression}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={{ color: "#fff" }}>{t("清除")}</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
+                {/* 預覽 overlay 疊在同一個 Modal 上 */}
+                {previewOverlayVisible && (
+                  <View style={styles.previewOverlay}>
+                    <View style={styles.header}>
+                      <Text style={styles.headerTitle}>{t("預覽結果")}</Text>
+                      <TouchableOpacity onPress={() => setPreviewOverlayVisible(false)}>
+                        <Text style={styles.headerAction}>{t("關閉")}</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {!realExpression ? (
+                      <View style={{ padding: 16 }}>
+                        <Text style={{ color: "#666" }}>
+                          {t("尚未輸入有效公式，無法預覽結果")}
+                        </Text>
+                      </View>
+                    ) : !records?.length ? (
+                      <View style={{ padding: 16 }}>
+                        <Text style={{ color: "#666" }}>
+                          {t("目前沒有資料可預覽（records 為空）")}
+                        </Text>
+                      </View>
+                    ) : (
+                      <ScrollView horizontal>
+                        <View style={{ padding: 16 }}>
+                          {headers.length === 0 ? (
+                            <Text style={{ color: "#666" }}>{t("沒有可顯示的欄位")}</Text>
+                          ) : (
+                            <>
+                              <View style={[styles.tableRow, styles.tableHeader]}>
+                                {headers.map((h, idx) => (
+                                  <Text
+                                    key={h.key}
+                                    style={[
+                                      styles.cell,
+                                      styles.headerCell,
+                                      { width: columnWidths[idx] },
+                                    ]}
+                                  >
+                                    {h.label}
+                                  </Text>
+                                ))}
+                              </View>
+                              {previewResults.map((r, i) => (
+                                <View
+                                  key={i}
+                                  style={[
+                                    styles.tableRow,
+                                    { backgroundColor: i % 2 ? "#fafafa" : "#fff" },
+                                  ]}
+                                >
+                                  {headers.map((h, idx) => (
+                                    <Text
+                                      key={h.key}
+                                      style={[styles.cell, { width: columnWidths[idx] }]}
+                                    >
+                                      {String(r[h.key] ?? "")}
+                                    </Text>
+                                  ))}
+                                </View>
+                              ))}
+                            </>
+                          )}
+                        </View>
+                      </ScrollView>
+                    )}
+                  </View>
+                )}
+              </View>
             </KeyboardAvoidingView>
           </SafeAreaView>
         </SafeAreaProvider>
-
-        {/* 📊 預覽表格 */}
-        <Modal visible={tableVisible} animationType="fade" transparent>
-          <View style={styles.overlay}>
-            <View style={styles.tableModal}>
-              <View style={styles.tableHeader}>
-                <Text style={styles.tableTitle}>{t("試算結果預覽")}</Text>
-                <TouchableOpacity onPress={() => setTableVisible(false)}>
-                  <Text style={{ color: "#3f51b5" }}>{t("關閉")}</Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView horizontal>
-                <View style={{ borderWidth: 1, borderColor: "#ddd", borderRadius: 8 }}>
-                  <View style={[styles.tableRow, { backgroundColor: "#eef4ff" }]}>
-                    {headers.map((h, idx) => (
-                      <Text
-                        key={h.key}
-                        style={[styles.cell, styles.headerCell, { width: columnWidths[idx] }]}
-                      >
-                        {h.label}
-                      </Text>
-                    ))}
-                  </View>
-                  {previewResults.map((r, i) => (
-                    <View
-                      key={i}
-                      style={[styles.tableRow, { backgroundColor: i % 2 ? "#fafafa" : "#fff" }]}
-                    >
-                      {headers.map((h, idx) => (
-                        <Text key={h.key} style={[styles.cell, { width: columnWidths[idx] }]}>
-                          {(() => {
-                            const raw = r[h.key];
-                            if (Array.isArray(raw)) {
-                              return raw
-                                .map((n: any) => (Number.isFinite(n) ? Math.round(n * 100) / 100 : n))
-                                .join(", ");
-                            }
-                            if (typeof raw === "number" && Number.isFinite(raw)) {
-                              return (Math.round(raw * 100) / 100).toString();
-                            }
-                            return String(raw ?? "");
-                          })()}
-                        </Text>
-                      ))}
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
       </Modal>
     </>
   );
 }
 
+/* ========================= 樣式 ========================= */
 const styles = StyleSheet.create({
-  inputBox: {
-    borderWidth: 0.5,
-    borderRadius: 5,
+  inputWrap: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    justifyContent: "space-between",
   },
-  input: { flex: 1, fontSize: 16 },
-  header: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  headerTitle: { flex: 1, fontSize: 16, fontWeight: "700" },
-  headerAction: { color: "#3f51b5", fontSize: 16 },
-  h3: { fontSize: 14, fontWeight: "600", marginTop: 16 },
-  freeInput: {
+  input: {
+    flex: 1,
+    padding: 0,
+    margin: 0,
+    marginRight: 8,
+    color: "#222",
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#ddd",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerTitle: { fontSize: 16, fontWeight: "600", color: "#111" },
+  headerAction: { color: "#0b79d0", fontSize: 14 },
+  h3: { fontSize: 14, fontWeight: "600", marginTop: 16, marginBottom: 8 },
+  editorInput: {
+    minHeight: 80,
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
     padding: 8,
-    minHeight: 60,
-    fontSize: 16,
+    textAlignVertical: "top",
   },
-  fnWrap: { flexDirection: "column", gap: 8, marginTop: 4 },
-  fnCard: {
+  rowWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: -4,
+  },
+  paramBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#f3f5ff",
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#d0d7ff",
+    marginHorizontal: 4,
+    marginVertical: 4,
+  },
+  originalLabel: { fontSize: 13, color: "#111" },
+  customLabel: { fontSize: 11, color: "#666", marginTop: 2 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalBox: {
+    width: "80%",
+    height: 260,
+    backgroundColor: "#ffffffff",
+    borderRadius: 10,
+    padding: 16,
+  },
+  fnWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: -4,
+  },
+  fnCard: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderRadius: 8,
-    padding: 10,
-    backgroundColor: "#f9f9ff",
+    borderWidth: 1,
+    borderColor: "#d0d7ff",
+    marginHorizontal: 4,
+    marginVertical: 4,
+    backgroundColor: "#f3f5ff",
   },
   row: { flexDirection: "row", gap: 8, marginTop: 16 },
   calcBtn: {
@@ -874,58 +1630,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
   },
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
+  tableRow: {
+    flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-  },
-  tableModal: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 16,
-    width: "95%",
-    maxHeight: "80%",
   },
   tableHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#ccc",
   },
-  tableTitle: { fontSize: 16, fontWeight: "700" },
-  tableRow: { flexDirection: "row", borderBottomWidth: 1, borderColor: "rgba(0,0,0,0.06)" },
-  cell: { paddingVertical: 6, paddingHorizontal: 8, textAlign: "center" },
-  headerCell: { fontWeight: "700" },
-  rowWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  cell: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontSize: 12,
+    color: "#111",
   },
-  paramBtn: {
-    margin: 6,
-    padding: 8,
+  headerCell: {
+    fontWeight: "600",
+    color: "#333",
+  },
+  previewOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "#fff",
-    borderRadius: 8,
-    borderWidth: 0.5,
-    justifyContent: 'space-between'
   },
-  container: { padding: 12 },
-  originalLabel: { color: "#5d5d5d", fontSize: 12 },
-  customLabel: { color: "#0a0a0a", fontSize: 12, marginTop: 4, borderTopWidth: 0.5 },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(144, 142, 142, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalBox: {
-    width: "80%",
-    height: 260,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 16,
-  },
-  modalTitle: { color: "#090909", fontSize: 14, marginBottom: 8 },
-  btnRow: { flexDirection: "row", justifyContent: "space-between" },
 });

@@ -200,17 +200,6 @@ export default function FormulaRelationsMobileDemo({
 
           <WsFlex justifyContent={"space-between"}>
             <View style={styles.actionBar}>
-              {/* <WsIconBtn
-                padding={0}
-                style={{
-                }}
-                size={28}
-                name="md-edit"
-                label="編輯"
-                onPress={() =>
-                  setModalActiveFormula(true)
-                }
-              /> */}
               <WsIconBtn
                 padding={0}
                 style={{ marginLeft: 8 }}
@@ -319,7 +308,6 @@ export default function FormulaRelationsMobileDemo({
 
             <WsState
               type="formula"
-              questionType="single-choice"
               style={{
                 marginVertical: 8,
               }}

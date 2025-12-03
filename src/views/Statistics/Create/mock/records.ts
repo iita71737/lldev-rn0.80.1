@@ -28,6 +28,8 @@ export const records = [
 export const U11 = "6dcd7702-1d22-4a36-b0a2-05533f0e592e";
 export const U22 = "b8e3a0f1-7c29-4d1a-9a3b-5f62e7de1c01";
 export const U33 = "0047b9f6-9f7a-48ba-8690-4b6ec21a1491";
+export const U44 = "e2889124-a75e-422d-b29f-82001adca605";
+export const U55 = "08447686-b51b-466f-bb41-986fd4c6d36f";
 
 export const params002 = [
   {
@@ -107,6 +109,14 @@ export const params002 = [
     "option_id": "69e90250-0c64-44df-a9d4-48f179b92ddd",
     "question_id": "0047b9f6-9f7a-48ba-8690-4b6ec21a1491"
   },
+  {
+    "label": "題目4-袋式集塵器-廢氣風量、溫度",
+    "question_id": "e2889124-a75e-422d-b29f-82001adca605"
+  },
+   {
+    "label": "題目5-調勻池pH值v55",
+    "question_id": "08447686-b51b-466f-bb41-986fd4c6d36f"
+  },
 ];
 
 export const records002 = [
@@ -115,7 +125,7 @@ export const records002 = [
     [U11]: [
       {
         "id": "1fdf9b1b-0e1a-4256-97e9-bba5784a321",
-        "name": "廚餘設備檢查：閥門Ａ 無異常",
+        "name": "廚餘設備檢查：閥門Ａ 低風險",
         "risk_level": 21
       }
     ],
@@ -132,7 +142,9 @@ export const records002 = [
         "name": "溫度: 高度風險",
         "risk_level": 23
       }
-    ]
+    ],
+    [U44]: 30,
+    [U55]: 50
   },
   {
     created_at: "2025-08-01T02:00:00+08:00",
@@ -156,6 +168,8 @@ export const records002 = [
         "name": "溫度：合規",
         "risk_level": 25
       }
-    ]
+    ],
+    [U44]: 33,
+    [U55]: 55
   },
 ];

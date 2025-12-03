@@ -16,10 +16,9 @@ import {
 import $color from '@/__reactnative_stone/global/color';
 import { RAW_QUESTIONS } from './mock/questions';
 import RelationshipFormulaBlock from './RelationshipFormulaBlock';
-import { useTranslation } from 'react-i18next';
 
 export type ChipItem = {
-  key: string;              // ✅ 只存「選項(葉) id」
+  key: string;              // ✅ 只存「選項(葉) id」或題目 id（單層）
   label: string;
   withInput?: boolean;
   question_id?: string;     // ✅ 額外欄位：此 chip 所屬「題目 id」
@@ -36,7 +35,6 @@ type Version3BlockProps = {
   selectedTitle?: string;
   section?: { id?: string };
   statisticsId?: string;
-  selectedQuesType?: string;
   isOpen?: boolean;
   onPreview?: () => void;
 };
@@ -53,15 +51,7 @@ export default function ChecklistVersionBlock({
   selectedTitle = '已選擇',
   section,
   statisticsId,
-  selectedQuesType,
 }: Version3BlockProps) {
-  const { t } = useTranslation();
-  const { width } = Dimensions.get('window');
-
-  const prevStepRef = React.useRef<number | undefined>(undefined);
-  const prevTypeRef = React.useRef<string | undefined>(undefined);
-  const prevSectionIdRef = React.useRef<string | undefined>(undefined);
-
   // ===== MultiToggle 內部狀態 =====
   const [multiToggleOpen, setMultiToggleOpen] = React.useState(false);
   const [multiToggleTree, setMultiToggleTree] = React.useState<any[]>([]);
@@ -201,48 +191,11 @@ export default function ChecklistVersionBlock({
     setMultiToggleOpen(true);
   }, []);
 
-  // Step0 類型/Section 切換清理
-  React.useEffect(() => {
-    if (step !== 0) {
-      prevStepRef.current = step;
-      return;
-    }
-
-    const prevType = prevTypeRef.current;
-    const nextType = selectedQuesType;
-
-    const prevSectionId = prevSectionIdRef.current;
-    const nextSectionId = section?.id;
-
-    const bothTruthy = !!prevType && !!nextType;
-    const typeChanged = prevType !== undefined && prevType !== nextType;
-    const inSameSection = prevSectionId === nextSectionId;
-    const stillInStep0 = prevStepRef.current === 0;
-
-    const shouldClear =
-      stillInStep0 &&
-      typeChanged &&
-      bothTruthy &&
-      inSameSection;
-
-    if (shouldClear) {
-      updateChips({ selected_questions: [] });
-      setChoiceIdsByQuestion({});
-      setMultiToggleOpen(false);
-      setPendingQuestion(null);
-      setMultiToggleTree([]);
-    }
-
-    if (nextType) prevTypeRef.current = nextType;
-    if (nextSectionId) prevSectionIdRef.current = nextSectionId;
-    prevStepRef.current = 0;
-  }, [selectedQuesType, section?.id, step, updateChips]);
-
-  // 傳給公式區：question_id 使用 chip.key（多層選單為葉 id；單層仍為題目 id）
+  // 傳給公式區：question_id 使用 chip.question_id，option_id 使用 chip.key
   const chipsForFormula = React.useMemo(() => ({
     selected_questions: (chips?.selected_questions ?? []).map(c => ({
-      question_id: c.question_id ?? null,  // ← 用 chip 內的題目 id
-      option_id: c.key,                    // ← 選項(leaf) id，如不需要可刪掉這行
+      question_id: c.question_id ?? null,
+      option_id: c.key,
       label: c.label,
     }))
   }), [chips]);
@@ -267,7 +220,7 @@ export default function ChecklistVersionBlock({
         )}
       </View>
 
-      {/* Step 0：題目清單 */}
+      {/* Step 0：題目清單（不再依題型篩選，直接顯示全部 RAW_QUESTIONS） */}
       <View
         style={{ display: step === 0 ? 'flex' : 'none' }}
         pointerEvents={step === 0 ? 'auto' : 'none'}
@@ -277,9 +230,6 @@ export default function ChecklistVersionBlock({
             data={RAW_QUESTIONS}
             keyExtractor={(item: any) => String(item.id)}
             renderItem={({ item, index }) => {
-              if (item?.last_version?.question_type_setting?.value !== selectedQuesType) {
-                return null;
-              }
               return (
                 <LlStatisticsQuestionCard001
                   key={item.id}
@@ -474,3 +424,4 @@ const styles = StyleSheet.create({
   },
   chipCloseTxt: { color: '#111', fontSize: 14, lineHeight: 18 },
 });
+

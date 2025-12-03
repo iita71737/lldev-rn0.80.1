@@ -1079,15 +1079,12 @@ ${demoData?.end_time ? moment(demoData?.end_time).format('YYYY-MM-DD HH:mm:ss') 
           <WsPaddingContainer>
             <WsState
               type="formula"
-              questionType="single-choice"
               style={{
                 marginVertical: 8
               }}
               label={t('公式​')}
               placeholder={t('輸入')}
               value={formulaData?.expression}
-              // params={params}
-              // records={records}
               params={params002}
               records={records002}
               onChange={(p) =>

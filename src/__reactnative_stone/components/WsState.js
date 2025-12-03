@@ -186,7 +186,6 @@ const WsState = React.forwardRef((props, ref) => {
     statisticsId,
     sectionId,
     step,
-    questionType,
     desVisible,
   } = props
 
@@ -1007,27 +1006,9 @@ const WsState = React.forwardRef((props, ref) => {
         </>
       )}
 
-      {(type == 'formula' && questionType !== 'single-choice') && (
+      {(type == 'formula') && (
         <>
           <WsFormulaBuilder002
-            placeholder={placeholder}
-            value={value}
-            onChange={onChange}
-            disabled={disabled}
-            isError={isError}
-            params={params}
-            records={records}
-            style={style}
-            statisticsId={statisticsId}
-            sectionId={sectionId}
-            step={step}
-          />
-        </>
-      )}
-
-      {(type == 'formula' && questionType === 'single-choice') && (
-        <>
-          <WsFormulaBuilder003
             placeholder={placeholder}
             value={value}
             onChange={onChange}
