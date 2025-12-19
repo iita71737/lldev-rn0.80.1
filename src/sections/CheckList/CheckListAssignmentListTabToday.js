@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Text, View, ScrollView, FlatList, Clipboard, TouchableOpacity } from 'react-native'
+import { Text, View, ScrollView, FlatList, TouchableOpacity } from 'react-native'
 import {
   LlCheckListCard005,
   WsPaddingContainer,

@@ -334,14 +334,6 @@ const CheckListShow = ({ route }) => {
 
   const $_setTabItems = () => {
     setTabItems([
-      // {
-      //   value: 'CheckListResultOverview',
-      //   label: t('總覽'),
-      //   view: CheckListOverview,
-      //   props: {
-      //     id: id
-      //   }
-      // },
       {
         value: 'CheckListQuestion',
         label: t('題目'),

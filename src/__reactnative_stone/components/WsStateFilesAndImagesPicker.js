@@ -358,7 +358,6 @@ const WsStateFilesAndImagesPicker = props => {
   const $_onBrowsePress = async () => {
     try {
       const response = await pick({})
-      console.log(response, 'response---');
       const _value = [...value]
       for (const item of response) {
         await processResponse(item, _value);

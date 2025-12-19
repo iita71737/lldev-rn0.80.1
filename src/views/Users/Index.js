@@ -7,7 +7,7 @@ import {
   Button,
   Dimensions,
   TouchableOpacity,
-  Clipboard
+  // Clipboard
 } from 'react-native'
 import {
   WsPage,
@@ -37,6 +37,7 @@ import {
   setRefreshCounter
 } from '@/store/data'
 import { useSelector } from 'react-redux'
+import Clipboard from '@react-native-clipboard/clipboard';
 
 const UsersIndex = ({ navigation }) => {
   const { t, i18n } = useTranslation()

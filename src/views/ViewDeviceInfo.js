@@ -10,7 +10,7 @@ import {
   PermissionsAndroid,
   TouchableWithoutFeedback,
   TouchableOpacity,
-  Clipboard,
+  // Clipboard,
   Linking,
   AppState,
   Button
@@ -40,6 +40,7 @@ import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native
 import { getDistance } from 'geolib';
 import Geolocation from '@react-native-community/geolocation';
 import AndroidOpenSettings from 'react-native-android-open-settings'
+import Clipboard from '@react-native-clipboard/clipboard';
 
 const ViewDeviceInfo = ({ navigation }) => {
   const { t, i18n } = useTranslation()

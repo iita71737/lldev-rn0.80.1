@@ -258,6 +258,7 @@ const WsStateForm = props => {
                         uploadBtnIcon={field.uploadBtnIcon}
                         customizedNameKey={field.customizedNameKey}
                         style={field.style}
+                        canOrder={field.canOrder}
                       />
                     )}
                   </View>

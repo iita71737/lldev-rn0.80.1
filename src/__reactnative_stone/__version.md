@@ -1,4 +1,4 @@
-v0.80.1.8.4
+v0.80.1.10.1
 
 # react-native upgrade to 0.80.1
 # yarn add mathjs
@@ -12,3 +12,4 @@ v0.80.1.8.4
 # v0.80.1.7.2 hidden for demo
 # yarn add react-native-maps
 # v0.80.1.8.2 - pdf tool
+# yarn add @react-native-clipboard/clipboard

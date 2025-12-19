@@ -16,6 +16,7 @@ import $color from '@/__reactnative_stone/global/color';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import TinyMCEEditor from '@/views/PDFTool/TinyMCEEditor';
 import DraggableFlatList from 'react-native-draggable-flatlist';
+import JoditEditor from 'views/PDFTool/JoditEditor';
 
 // -------------------- 型別 --------------------
 
@@ -92,6 +93,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const [editMotionModalVisible, setEditMotionModalVisible] = useState(false);
   const [editingMotion, setEditingMotion] = useState<Motion | null>(null);
   const [content, setContent] = useState('<p>這是原始 HTML</p>');
+  const [motionFiles, setMotionFiles] = useState<Array>([]);
 
   // --------- 議案排序相關 state ---------
   // 哪一個 group 正在「議案排序模式」
@@ -236,6 +238,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                   style={{ marginLeft: 8 }}
                 />
               </WsFlex>
+
             </WsFlex>
           </TouchableOpacity>
 
@@ -247,10 +250,10 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             >
               <View style={{ marginTop: 8 }}>
                 <WsInfo
-                  label={t('議案名稱')}
+                  label={t('項目符號')}
                   style={{ flexDirection: 'row', alignItem: 'center' }}
                   labelColor={$color.gray}
-                  value={motion.name}
+                  value={t('第一案')}
                 />
               </View>
 
@@ -274,7 +277,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
 
               <View style={{ marginTop: 8 }}>
                 <WsInfo
-                  label={t('列席人員')}
+                  label={t('列席單位')}
                   style={{
                     flexDirection: 'row',
                     alignItem: 'center',
@@ -287,15 +290,29 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
 
               <View style={{ marginTop: 8 }}>
                 <WsInfo
+                  label={t('列席人員')}
+                  style={{
+                    flexDirection: 'row',
+                    alignItem: 'center',
+                    flexWrap: 'wrap',
+                  }}
+                  labelColor={$color.gray}
+                  value={motion.attendees}
+                />
+              </View>
+
+              <View style={{ marginTop: 8, marginBottom: 8 }}>
+                <WsInfo
                   label={t('附件')}
                   labelColor={$color.gray}
                   type="files"
-                  value={motion.attaches}
+                  value={['docd.docx']}
                 />
               </View>
 
               {/* 這裡可以掛你原本的 PDF 轉檔狀態卡片 */}
               <LlPDFConvertingCard001 />
+
             </WsPaddingContainer>
           )}
         </View>
@@ -419,6 +436,44 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               </WsFlex>
 
             </WsFlex>
+
+            <View style={{ marginTop: 8 }}>
+              <WsInfo
+                type={'filesAndImages'}
+                label={t('時序表範本')}
+                style={{
+                }}
+                labelColor={$color.gray}
+                value={['時序表範本.xlsx']}
+              />
+            </View>
+
+            <View style={{ marginTop: 8 }}>
+              <WsInfo
+                label={t('此​議案​群​組​對應​的​目錄​範本​區塊​')}
+                style={{
+                  // flexDirection: 'row',
+                  alignItem: 'center',
+                  flexWrap: 'wrap',
+                }}
+                labelColor={$color.gray}
+                value={'xxxxxxx'}
+              />
+            </View>
+
+            <View style={{ marginTop: 8 }}>
+              <WsInfo
+                label={t('此​議案​群​組​對應​的​議程​範本​區塊​')}
+                style={{
+                  // flexDirection: 'row',
+                  alignItem: 'center',
+                  flexWrap: 'wrap',
+                }}
+                labelColor={$color.gray}
+                value={'zzzzzzz'}
+              />
+            </View>
+
           </TouchableOpacity>
 
           {/* 外層 body：群組展開後的議案列表 */}
@@ -549,7 +604,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
           <WsState
             type="text"
             style={{
-              marginTop: 8,
+              marginTop: 16,
             }}
             label={t('名稱')}
             value={''}
@@ -588,17 +643,30 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             style={{
               marginTop: 8,
             }}
-            label={t('列席​人​員')}
+            label={t('列席人員')}
             value={''}
             onChange={() => { }}
             keyboardAwareRef={scrollRef}
           />
 
-          <TinyMCEEditor
+          {/* <TinyMCEEditor
             initialHtml={content}
             onChange={(html) => {
               console.log('edited HTML:', html);
               setContent(html); // 你也可以存到 state / 丟回後端
+            }}
+          /> */}
+
+          <WsText
+            style={{
+              marginTop: 16,
+            }}>{t('內容')}
+          </WsText>
+          <JoditEditor
+            initialHtml={content}
+            onChange={(html) => {
+              console.log('edited HTML:', html);
+              // setContent(html); // 你也可以存到 state / 丟回後端
             }}
           />
 
@@ -609,8 +677,10 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             type="filesAndImages"
             label={t('議案附件')}
             labelIcon={'md-photo'}
-            value={[]}
+            value={motionFiles}
             onChange={$event => {
+              console.log($event,'event--')
+              setMotionFiles($event)
             }}
           />
 

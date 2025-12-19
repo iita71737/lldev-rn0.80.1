@@ -2882,6 +2882,35 @@ PODS:
   - RNCCheckbox (0.5.20):
     - BEMCheckBox (~> 1.4)
     - React-Core
+  - RNCClipboard (1.16.3):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - RNCMaskedView (0.3.2):
     - boost
     - DoubleConversion
@@ -3495,6 +3524,7 @@ DEPENDENCIES:
   - RNBootSplash (from `../node_modules/react-native-bootsplash`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-community/async-storage`)"
   - "RNCCheckbox (from `../node_modules/@react-native-community/checkbox`)"
+  - "RNCClipboard (from `../node_modules/@react-native-clipboard/clipboard`)"
   - "RNCMaskedView (from `../node_modules/@react-native-masked-view/masked-view`)"
   - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
   - "RNCPushNotificationIOS (from `../node_modules/@react-native-community/push-notification-ios`)"
@@ -3736,6 +3766,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-community/async-storage"
   RNCCheckbox:
     :path: "../node_modules/@react-native-community/checkbox"
+  RNCClipboard:
+    :path: "../node_modules/@react-native-clipboard/clipboard"
   RNCMaskedView:
     :path: "../node_modules/@react-native-masked-view/masked-view"
   RNCPicker:
@@ -3893,6 +3925,7 @@ SPEC CHECKSUMS:
   RNBootSplash: 7f8f79309bc73584c50a630207b199e3f8d1438c
   RNCAsyncStorage: 87d0d3d6193e79bd435e955f8998d2040aa60d67
   RNCCheckbox: 33b44487ca8008394ce658cc32b26eab04f426ef
+  RNCClipboard: b228d492733d66e0126e18ce66c6d2f90bacc7e5
   RNCMaskedView: 7e0ce15656772a939ff0d269100bca3a182163c8
   RNCPicker: 3959648fed5fbfe8065368fbdf2420c7e73b2587
   RNCPushNotificationIOS: 6c4ca3388c7434e4a662b92e4dfeeee858e6f440
@@ -3918,6 +3951,6 @@ SPEC CHECKSUMS:
   VisionCamera: 9a8f98ae344fe5d148f84bb45829f9e4caab9d2f
   Yoga: daa1e4de4b971b977b23bc842aaa3e135324f1f3
 
-PODFILE CHECKSUM: c1a9f90ec62bdd5caf5dfbb8887bfc4f19094f4e
+PODFILE CHECKSUM: 571a7e5f3a84258305648ed754cb9f09e92d6321
 
 COCOAPODS: 1.16.2

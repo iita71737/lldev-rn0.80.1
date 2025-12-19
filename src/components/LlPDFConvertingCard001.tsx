@@ -24,12 +24,11 @@ const LlPDFConvertingCard001: React.FC<Props> = ({
   );
 };
 
-const CARD_WIDTH = 286
+const CARD_WIDTH = 296
 const CARD_HEIGHT = 72;
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingHorizontal: 16
   },
   card: {
     width: CARD_WIDTH,

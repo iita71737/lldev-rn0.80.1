@@ -31,7 +31,9 @@ const WsStateFileItem = props => {
     fileExtension,
     uploadSuffix,
     uploadToFileStore = false,
-    testID
+    testID,
+    orderMode = 'default',
+    onDragPressIn
   } = props
 
   // Redux
@@ -96,7 +98,6 @@ const WsStateFileItem = props => {
   };
 
   const $_uploadStart = async () => {
-    console.log(lazyUri, '$_uploadStart--');
     // 先取得實體路徑
     if (!uploadToFileStore) {
       let uri = Platform.OS === 'android'
@@ -107,8 +108,6 @@ const WsStateFileItem = props => {
       const _uploadUrl = uploadUrl && uploadSuffix
         ? `${uploadUrl}/${encodeURI(fileName)}?${uploadSuffix}`
         : `${uploadUrl}/${encodeURI(fileName)}`;
-
-      console.log(uri, 'uri');
 
       try {
         const res = await RNBlobUtil.fetch(
@@ -273,14 +272,30 @@ const WsStateFileItem = props => {
                 $_getSource().file?.source_url === null && $_getSource().file?.name !== 'invalid scope' ? true : false
               }
             />
-            <TouchableOpacity onPress={onRemove} testID={'ws-outline-delete'}>
-              <WsIconCircle
-                name="ws-outline-delete"
-                size={20}
-                color={$color.white}
-                backgroundColor={$color.danger}
-              />
-            </TouchableOpacity>
+            {orderMode === 'sort' ? (
+              <Pressable
+                disabled={!onDragPressIn}
+                onPressIn={onDragPressIn}
+                onLongPress={onDragPressIn}
+                hitSlop={8}
+              >
+                <WsIconCircle
+                  name="ws-outline-drag-horizontal"
+                  size={20}
+                  color={$color.white}
+                  backgroundColor={$color.gray}
+                />
+              </Pressable>
+            ) : (
+              <TouchableOpacity onPress={onRemove} testID={'ws-outline-delete'}>
+                <WsIconCircle
+                  name="ws-outline-delete"
+                  size={20}
+                  color={$color.white}
+                  backgroundColor={$color.danger}
+                />
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </WsFlex>

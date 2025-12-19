@@ -74,7 +74,7 @@ const WsStateCheckBox002 = props => {
             }}
             name={iconRight}
             size={iconRightSize}
-            color={iconRightColor}
+            color={disabled ? $color.white5d : iconRightColor}
           />
         )}
         <WsDes

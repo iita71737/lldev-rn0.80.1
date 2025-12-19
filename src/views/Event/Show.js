@@ -115,6 +115,7 @@ const EventShow = ({ navigation, route }) => {
         moment(event.improvement_limited_period)
       )
     }
+    console.log(_event,'_event--')
     await AsyncStorage.setItem('EventUpdate', JSON.stringify(_event))
   }
 

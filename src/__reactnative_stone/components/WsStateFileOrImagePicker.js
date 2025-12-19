@@ -353,7 +353,6 @@ const WsStateFileOrImagePicker = props => {
   const $_onBrowsePress = async () => {
     try {
       const response = await pick({})
-      console.log(response, 'response---');
       const file = response[0]
       const ext = file.name?.split('.').pop()?.toLowerCase()
       let uri = file.uri
@@ -361,8 +360,6 @@ const WsStateFileOrImagePicker = props => {
 
       // Android spec
       const localFilePath = await copyContentUriToFile(uri, fileName);
-      console.log(localFilePath, 'localFilePath');
-      console.log(fileName, 'fileName');
 
       // ✅ 若為 HEIC，進行轉檔並修改副檔名
       if (ext === 'heic') {

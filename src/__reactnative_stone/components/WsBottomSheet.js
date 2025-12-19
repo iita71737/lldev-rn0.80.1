@@ -64,7 +64,7 @@ const WsBottomSheet = props => {
         backdropComponent={renderBackdrop} // overlay
         handleIndicatorStyle={{ display: "none" }} //handlebar
         containerStyle={{
-          zIndex: 9999, // 提高層級
+          zIndex: 999, // 提高層級
           elevation: 10, // 針對 Android 提高顯示層級
         }}
       >

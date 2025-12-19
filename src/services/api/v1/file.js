@@ -311,5 +311,15 @@ export default {
       }
     })
     return res
-  }
+  },
+  async getWordFields({ params }) {
+    const fileId = params?.file_id
+    return base.index({
+      modelName: `file/word_fields/${fileId}`,
+      params: {
+        ...params,
+        ...S_Processor.getFactoryParams()
+      }
+    })
+  },
 }

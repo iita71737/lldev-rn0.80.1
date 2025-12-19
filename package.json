@@ -13,10 +13,11 @@
   },
   "dependencies": {
     "@babel/plugin-transform-runtime": "7.28.0",
-    "@gorhom/bottom-sheet": "^5",
+    "@gorhom/bottom-sheet": "^5.2.8",
     "@mgcrea/react-native-dnd": "2.5.3",
     "@native-html/table-plugin": "5.3.1",
     "@react-native-camera-roll/camera-roll": "5.2.3",
+    "@react-native-clipboard/clipboard": "^1.16.3",
     "@react-native-community/async-storage": "^1.12.1",
     "@react-native-community/blur": "4.4.1",
     "@react-native-community/checkbox": "0.5.20",

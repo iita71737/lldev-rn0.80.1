@@ -19,7 +19,7 @@ import {
   Modal,
   TextInput,
   PanResponder,
-  findNodeHandle
+  findNodeHandle,
 } from 'react-native'
 import {
   WsFlex,
@@ -70,7 +70,8 @@ import {
   LlGuidelineRelatedTask001,
   LlGuidelineRelatedActs001,
   LlGuidelineRelatedGuidelines001,
-  LlPDFMotionGroupCard001
+  LlPDFMotionGroupCard001,
+  WsCard,
 } from '@/components'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
@@ -78,153 +79,31 @@ import S_Act from '@/services/api/v1/act'
 import S_ArticleVersion from '@/services/api/v1/article_version'
 import { useSelector } from 'react-redux'
 import store from '@/store'
-import {
-  setFactoryTags,
-  setRefreshCounter
-} from '@/store/data'
+import { setFactoryTags, setRefreshCounter } from '@/store/data'
 import { addToCollectIds, deleteCollectId } from '@/store/data'
 import { useTranslation } from 'react-i18next'
 import { setCurrentAct } from '@/store/data'
 import S_FactoryTag from '@/services/api/v1/factory_tag'
-import AsyncStorage from '@react-native-community/async-storage'
-import S_ActVersion from '@/services/api/v1/act_version'
-import S_Guideline from '@/services/api/v1/guideline'
-import S_GuidelineVersion from '@/services/api/v1/guideline_version'
-import S_GuidelineArticleVersion from '@/services/api/v1/guideline_article_version'
-import S_GuidelineAdmin from '@/services/api/v1/guideline_admin'
-import S_GuidelineVersionAdmin from '@/services/api/v1/guideline_version_admin'
-import S_GuidelineArticleVersionAdmin from '@/services/api/v1/guideline_article_version_admin'
-import S_GuidelineArticleAdmin from '@/services/api/v1/guideline_article_admin'
-import { actions, RichEditor, RichToolbar } from "react-native-pell-rich-editor";
-import IonIcon from 'react-native-vector-icons/Ionicons'
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
-import effects from '@/services/api/v1/effects'
-import { DraggableList } from './DraggableList'
-import ViewArticleShowForModal from '@/views/Act/ArticleShowForModal'
-import { decode } from 'html-entities';
-import guideline_status from '@/services/api/v1/guideline_status'
-import RNFS from 'react-native-fs';
-import Share from 'react-native-share';
-import { pick, types } from '@react-native-documents/picker'
-import * as XLSX from "xlsx";
-import { Table, Row, Rows, TableWrapper } from 'react-native-table-component';
-import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
-import FileViewer from "react-native-file-viewer";
-import _ from 'lodash';
+import AsyncStorage from "@react-native-community/async-storage";
+import _ from 'lodash'
+import Clipboard from '@react-native-clipboard/clipboard'
+import S_MeetingTemplate from '@/services/api/v1/meeting_template'
+import S_File from '@/services/api/v1/file'
 
 export type PDFProposalItem = {
-  id: string;
-  name: string;
-  sequence: string;
-  parent_article_version_id: string | null;
-  type: 'title' | 'article';
-};
-
-// -------------------- Demo 假資料 --------------------
-
-const DEFAULT_GROUPS: Group[] = [
-  {
-    id: 'g-1',
-    name: '自訂議案群組名稱 ex: 報告事項',
-    sequence: 1,
-    articles: [
-      {
-        id: 'a-101',
-        name: '行銷活動執行報告',
-        sequence: 1,
-        proposerDept: '行銷部',
-        reporterName: '陳xx資深副理',
-        attendees:
-          '投資部/李xx資深副理, 陳xx部長, 財務部/王xx組長',
-        content: '這裡是議案內容…',
-        attaches: [
-          {
-            id: 'f-9001',
-            name: 'DOCX_TestPage ver.1',
-            fileType: 'docx',
-            url: 'https://example.com/files/DOCX_TestPage_v1.docx',
-          },
-          {
-            id: 'f-9002',
-            name: 'DOCX_TestPage ver.1',
-            fileType: 'docx',
-            url: 'https://example.com/files/DOCX_TestPage_v1.docx',
-          },
-        ],
-        proposalFile: {
-          id: 'pf-1',
-          name: 'DOCX_TestPage ver.1',
-          fileType: 'docx',
-          url: 'https://example.com/files/DOCX_TestPage_v1.docx',
-        },
-        decisionSummary:
-          'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-        decisionDetail:
-          'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-        updatedAt: '2025-11-20T10:00:00Z',
-      },
-    ],
-  },
-  {
-    id: 'g-2',
-    name: '自訂議案群組名稱2 ex: 討論事項',
-    sequence: 2,
-    articles: [
-      {
-        id: 'a-102',
-        name: '年度預算案',
-        sequence: 1,
-        proposerDept: '財務部',
-        reporterName: '王xx協理',
-        attendees: '財務部、人資部、業務部',
-        content: '年度預算案內容 ...',
-        attaches: [
-          {
-            id: 'f-9003',
-            name: '預算說明.pdf',
-            fileType: 'pdf',
-            url: 'https://example.com/files/budget.pdf',
-          },
-        ],
-        proposalFile: {
-          id: 'pf-2',
-          name: 'Budget_Proposal_2025.docx',
-          fileType: 'docx',
-          url: 'https://example.com/files/Budget_Proposal_2025.docx',
-        },
-        decisionSummary: '會議決議簡述 ...',
-        decisionDetail: '會議決議詳細內容 ...',
-        updatedAt: '2025-11-18T13:22:10Z',
-      },
-      {
-        id: 'a-103',
-        name: '廠務設備更新案',
-        sequence: 2,
-        proposerDept: '廠務部',
-        reporterName: '林xx副理',
-        attendees: '廠務部、採購部、財務部',
-        content: '主旨：設備老舊，需汰換更新 ...',
-        attaches: [],
-        proposalFile: null,
-        decisionSummary: '採購設備型號待確認',
-        decisionDetail: '詳細決議內容 ...',
-        updatedAt: '2025-11-19T09:12:44Z',
-      },
-    ],
-  },
-];
-
-
+  id: string
+  name: string
+  sequence: string
+  parent_article_version_id: string | null
+  type: 'title' | 'article'
+}
 
 const PDFToolAdminTemplateShow = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
   const { width, height } = Dimensions.get('window')
 
   // Params
-  const {
-    id,
-    refreshKey
-  } = route.params
+  const { id } = route.params
 
   // REDUX
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
@@ -232,69 +111,47 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
   const currentFactoryTags = useSelector(state => state.data.factoryTags)
 
   // STATES
-  const [loading, setLoading] = React.useState(true)
-  const [modalActive003, setModalActive003] = React.useState(false)
-  const [guideline, setGuideline] = React.useState('d3a1b6a0-6ca9-4e1a-b68c-2d6f46b141ac')
-  const [guidelineVersion, setGuidelineVersion] = React.useState('b604a285-5625-4248-949e-b44f4fe6b54a')
-  const [popupDelete, setPopupDelete] = React.useState(false)
+  const [loading, setLoading] = useState(true)
+  const [popupDelete, setPopupDelete] = useState(false)
 
-  const [addMotionModalVisible, setAddMotionModalVisible] = React.useState(false)
-  const [addMotionGroupModalVisible, setAddMotionGroupModalVisible] = React.useState(false)
-  const [popupDeleteMotionGroup, setPopupDeleteMotionGroup] = React.useState(false)
+  const [meetingTemplate, setMeetingTemplate] = useState<any>(null)
+  const meetingTemplateRef = useRef(null)
+  const [wordFields, setWordFields] = useState([])
+  const wordFieldsRef = useRef([])
 
-  // filter
-  const [filterFields] = React.useState({
-    act_type: {
-      type: 'checkbox',
-      label: t('法規類別'),
-      storeKey: 'actTypes'
-    },
-    act_status: {
-      type: 'checkbox',
-      label: t('法規狀態'),
-      storeKey: "actStatus"
-    },
-    button: {
-      type: 'date_range',
-      label: t('異動日期'),
-      time_field: 'announce_at'
-    },
-    system_subclasses: {
-      type: 'system_subclass',
-      label: t('領域')
-    },
-    factory_tags: {
-      type: 'checkbox',
-      label: t('標籤'),
-      items: currentFactoryTags ? currentFactoryTags : [],
-      searchVisible: true,
-      selectAllVisible: false,
-      defaultSelected: false
-    },
-  })
+  const $_setStorage = async () => {
+    const mt = meetingTemplateRef.current
+    // 1) 如果 mt 還沒來，就不要存
+    if (!mt?.id) {
+      Alert.alert(t('資料載入中，請稍後再試'))
+      return
+    }
+    // 2) word fields 保底
+    let wf = wordFieldsRef.current || []
+    if (!wf.length && mt?.attach?.file?.id) {
+      const res2 = await S_File.getWordFields({
+        params: { file_id: mt.attach.file.id }
+      })
+      wf = normalizeWordFields(res2?.data ?? res2)
+      setWordFields(wf)
+      wordFieldsRef.current = wf
+    }
+    // 3) attach / items 用 null 保底（避免 undefined 被 stringify 吃掉）
+    const _file_attaches = {
+      file: mt?.attach?.file ?? null,
+      file_version: mt?.attach?.file_version ?? null,
+      word_fields: wf ?? [],
+      meeting_template_items: mt?.meeting_template_items ?? [],
+    }
+    const _meetingTemplate = {
+      ...mt,
+      file_attaches: [_file_attaches],
+    }
+    await AsyncStorage.setItem('PDFToolAdminTemplateEdit', JSON.stringify(_meetingTemplate))
+  }
 
-
-  // Option
   const $_setNavigationOption = () => {
     navigation.setOptions({
-      headerRight: () => {
-        return (
-          <>
-            <WsFlex>
-              <WsIconBtn
-                name="ws-outline-edit-pencil"
-                size={24}
-                color={$color.white}
-                style={{
-                }}
-                onPress={() => {
-                  setIsBottomSheetActive(true)
-                }}
-              />
-            </WsFlex>
-          </>
-        )
-      },
       headerLeft: () => {
         return (
           <WsIconBtn
@@ -302,83 +159,199 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
             name="ws-outline-arrow-left"
             color="white"
             size={24}
-            style={{
-              marginRight: 4
-            }}
+            style={{ marginRight: 4 }}
             onPress={() => {
               navigation.goBack()
             }}
           />
         )
+      },
+      headerRight: () => {
+        return (
+          <>
+            <WsIconBtn
+              name="ws-outline-edit-pencil"
+              size={24}
+              color={$color.white}
+              style={{
+                marginRight: 4
+              }}
+              onPress={async () => {
+                await $_setStorage()
+                setIsBottomSheetActive(true)
+              }}
+            />
+          </>
+        )
+      },
+    })
+  }
+
+  // 去重 + 依 sequence 排序（避免你資料中 customerName 重複）
+  const normalizeWordFields = (raw = []) => {
+    const seen = new Set()
+    return (Array.isArray(raw) ? raw : [])
+      .filter(f => {
+        const key = f?.value
+        if (!key) return false
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .sort((a, b) => String(a?.sequence || '').localeCompare(String(b?.sequence || '')))
+  }
+
+  const $_fetchMeetingTemplate = async () => {
+    try {
+      setLoading(true)
+      const res = await S_MeetingTemplate.show({ modelId: id })
+      const _template = {
+        ...res,
+        file_attachs: [res?.attach]
       }
-    })
-    setLoading(false)
+      setMeetingTemplate(_template)
+      if (res) {
+        const res2 = await S_File.getWordFields({
+          params: {
+            file_id: res?.attach?.file?.id
+          }
+        })
+        const fields = normalizeWordFields(res2?.data ?? res2)
+        setWordFields(fields)
+      }
+    } catch (e) {
+      console.log(e, 'fetch meeting_template failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // SERVICES
-  const $_fetchGuideline = async (e) => {
-    console.log(id, 'guidelineId');
-    setLoading(true)
-    const res = await S_GuidelineAdmin.show({
-      modelId: id
-    })
-    setLoading(false)
-  }
-
-  // bottom-sheet
-  const [isBottomSheetActive, setIsBottomSheetActive] = React.useState(false)
-  const bottomSheetItems = React.useMemo(() => [
-    ...(true
-      ? [
-        {
-          to: {
-            name: 'GuidelineAdminUpdate',
-            params: {
-              id: id
-            }
+  const [dialogVisible, setDialogVisible] = React.useState(false)
+  const [isBottomSheetActive, setIsBottomSheetActive] = useState(false)
+  const bottomSheetItems = React.useMemo(
+    () => [
+      {
+        to: {
+          name: 'PDFToolAdminTemplateEdit',
+          params: {
+            id: id,
           },
-          icon: 'ws-outline-edit-pencil',
-          label: t('編輯範本')
         },
-        {
-          color: $color.danger,
-          labelColor: $color.danger,
-          icon: 'ws-outline-delete',
-          label: t('刪除範本')
-        }] : []),
-  ], [id])
+        icon: 'ws-outline-edit-pencil',
+        label: t('編輯範本'),
+      },
+      {
+        onPress: () => {
+          setDialogVisible(true)
+        },
+        color: $color.danger,
+        labelColor: $color.danger,
+        icon: 'ws-outline-delete',
+        label: t('刪除範本'),
+      },
+    ],
+    [id, t],
+  )
+  const $_onBottomSheetItemPress = item => {
+    if (item.to) {
+      navigation.navigate(item.to)
+    } else {
+      item.onPress()
+    }
+  }
 
-  React.useEffect(() => {
+  useEffect(() => {
+    $_fetchMeetingTemplate()
     $_setNavigationOption()
-    // $_fetchGuideline()
   }, [id])
+
+  useEffect(() => {
+    meetingTemplateRef.current = meetingTemplate
+  }, [meetingTemplate])
+
+  useEffect(() => {
+    wordFieldsRef.current = wordFields
+  }, [wordFields])
+
+
+
+  const renderVariableItem = ({ item }: { item: any }) => {
+    const fieldName =
+      item?.meeting_template_field?.name ??
+      item?.meeting_template_field?.value ??
+      ''
+
+    const onCopy = () => {
+      const rawValue = item?.value ?? ''
+      Clipboard.setString(rawValue)
+      Alert.alert(t('已成功複製'))
+    }
+
+    return (
+      <View style={{ marginHorizontal: 16, marginTop: 12 }}>
+        <WsCard
+          borderRadius={12}
+          style={{
+            paddingVertical: 10,
+            paddingHorizontal: 16,
+            borderWidth: 1,
+            borderColor: $color.gray,
+          }}
+        >
+          {/* 第 1 行：變數 + copy */}
+          <WsFlex alignItems="center" style={{ marginBottom: 6 }}>
+            <WsText size={14} style={{ width: 108 }}>
+              {t('變數')}
+            </WsText>
+
+            <WsText size={14}>{item?.value ?? ''}</WsText>
+
+            <TouchableOpacity style={{ marginLeft: 8 }} onPress={onCopy}>
+              <WsIcon name="md-content-copy" size={20} color={$color.primary} />
+            </TouchableOpacity>
+          </WsFlex>
+
+          {/* 第 2 行：名稱 */}
+          <WsFlex alignItems="center" style={{ marginBottom: 4 }}>
+            <WsText size={14} style={{ width: 108 }}>
+              {t('名稱')}
+            </WsText>
+            <WsText size={14} numberOfLines={1}>
+              {item?.name ?? ''}
+            </WsText>
+          </WsFlex>
+
+          {/* 第 3 行：對應欄位 */}
+          <WsFlex alignItems="center">
+            <WsText size={14} style={{ width: 108 }}>
+              {t('對應欄位')}
+            </WsText>
+            <WsText size={14} numberOfLines={1}>
+              {fieldName}
+            </WsText>
+          </WsFlex>
+        </WsCard>
+      </View>
+    )
+  }
 
   return (
     <>
-
-      <FlatList
-        data={DEFAULT_GROUPS}
-        keyExtractor={(item, index) => index}
-        ListFooterComponent={() => {
-          return (
+      {!meetingTemplate ? (
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          <WsSkeleton />
+        </View>
+      ) : (
+        <FlatList
+          data={meetingTemplate?.meeting_template_items ?? []}
+          keyExtractor={(item: any) => item.id}
+          renderItem={renderVariableItem}
+          ListHeaderComponent={() => (
             <>
-              <View
-                style={{
-                  height: 50,
-                }}
-              >
-              </View>
-            </>
-          )
-        }}
-        ListHeaderComponent={() => {
-          // setModels(models)
-          return (
-            <>
-              <WsPaddingContainer
-                style={{
-                }}>
-                <WsText size={24}>{t('使用者​自訂格式​範本​名​稱')}</WsText>
+              <WsPaddingContainer style={{ paddingTop: 8, paddingBottom: 8 }}>
+                <WsText size={24}>
+                  {meetingTemplate?.name ?? t('使用者​自訂格式​範本​名​稱')}
+                </WsText>
               </WsPaddingContainer>
 
               <WsPaddingContainer
@@ -388,34 +361,54 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
                   paddingBottom: 16,
                   paddingHorizontal: 16,
                   backgroundColor: $color.white,
+                  zIndex: 1
                 }}
               >
-                <WsInfo
-                  label={t('範本')}
-                  type="filesAndImages"
-                  style={{
-                  }}
-                  value={[]}
-                />
+                {/* 範本檔案 */}
+                <WsInfo label={t('範本')} type="filesAndImages" value={meetingTemplate?.file_attachs} />
 
+                {/* 標籤 */}
+                <View style={{ marginTop: 8 }}>
+                  <WsInfo type="tags" value={meetingTemplate?.factory_tags} />
+                </View>
+
+                <View style={{ marginTop: 8 }}>
+                  <WsInfo
+                    label={t('備註')}
+                    value={meetingTemplate?.remark}
+                  />
+                </View>
+              </WsPaddingContainer>
+
+              <WsPaddingContainer
+                padding={0}
+                style={{
+                  paddingTop: 8,
+                  paddingHorizontal: 16,
+                }}
+              >
+                <WsText size={14} fontWeight={500}>
+                  {t('標記設定')}
+                </WsText>
               </WsPaddingContainer>
             </>
-          )
-        }}
-        renderItem={({ item, index, items }) => {
-          return (
-            <>
-              <Text>{item?.name}</Text>
-            </>
-          )
-        }}
-      />
+          )}
+          ListEmptyComponent={() => (
+            <WsPaddingContainer>
+              <WsText color={$color.gray}>{t('尚無標記')}</WsText>
+            </WsPaddingContainer>
+          )}
+          ListFooterComponent={() => <View style={{ height: 50 }} />}
+        />
+      )}
+
 
       <WsPopup
         active={popupDelete}
         onClose={() => {
           setPopupDelete(false)
-        }}>
+        }}
+      >
         <View
           style={{
             width: width * 0.9,
@@ -424,17 +417,19 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
             borderRadius: 10,
             flexDirection: 'row',
             justifyContent: 'center',
-            alignItems: 'center'
-          }}>
+            alignItems: 'center',
+          }}
+        >
           <WsText
             size={18}
             color={$color.black}
             style={{
               position: 'absolute',
               left: 16,
-              top: 16
+              top: 16,
             }}
-          >{t('確定要刪除嗎？')}
+          >
+            {t('確定要刪除嗎？')}
           </WsText>
           <WsFlex
             style={{
@@ -451,18 +446,20 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
                 borderRadius: 25,
                 borderWidth: 1,
                 width: 110,
-                alignItems: 'center'
+                alignItems: 'center',
               }}
               onPress={() => {
                 setPopupDelete(false)
-              }}>
+              }}
+            >
               <WsText
                 style={{
-                  padding: 1
+                  padding: 1,
                 }}
                 size={14}
                 color={$color.gray}
-              >{t('取消')}
+              >
+                {t('取消')}
               </WsText>
             </TouchableOpacity>
             <WsGradientButton
@@ -471,7 +468,8 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
               }}
               onPress={() => {
                 setPopupDelete(false)
-              }}>
+              }}
+            >
               {t('確定')}
             </WsGradientButton>
           </WsFlex>
@@ -484,197 +482,17 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
           setIsBottomSheetActive(false)
         }}
         items={bottomSheetItems}
-        snapPoints={[150, 308]}
-        onItemPress={(e) => {
-
-        }}
+        snapPoints={[150, 208]}
+        onItemPress={$_onBottomSheetItemPress}
       />
-
-
-      <WsModal
-        title={t('批次新增')}
-        visible={addMotionModalVisible}
-        headerLeftOnPress={() => {
-          setAddMotionModalVisible(false)
-        }}
-        onBackButtonPress={() => {
-          setAddMotionModalVisible(false)
-        }}
-        footerBtnLeftText={t('取消')}
-        footerBtnRightText={t('確定')}
-      >
-        <View
-          style={{
-            paddingHorizontal: 16
-          }}
-        >
-          <WsState
-            label={t('提案​單上​傳格式​範本​')}
-            testID={'WsCharts-picker002'}
-            style={{
-              marginTop: 16
-            }}
-            borderRadius={10}
-            borderWidth={0.3}
-            placeholder={t('輸入')}
-            type="picker"
-            value={''}
-            onChange={$event => {
-            }}
-            items={[
-              {
-                label: t('依建立日期由近至遠'),
-                value: {
-                  order_way: 'desc',
-                  order_by: 'created_at'
-                }
-              },
-              {
-                label: t('依更新時間由近至遠'),
-                value: {
-                  order_way: 'desc',
-                  order_by: 'updated_at'
-                }
-              },
-            ]}
-          />
-          <WsState
-            style={{
-              marginTop: 8
-            }}
-            type="filesAndImages"
-            label={t('提案單')}
-            labelIcon={'md-photo'}
-            value={[]}
-            onChange={$event => {
-            }}
-          />
-        </View>
-      </WsModal>
-
-      <WsModal
-        title={t('新增議案群組')}
-        visible={addMotionGroupModalVisible}
-        headerLeftOnPress={() => {
-          setAddMotionGroupModalVisible(false)
-        }}
-        onBackButtonPress={() => {
-          setAddMotionGroupModalVisible(false)
-        }}
-        footerBtnLeftText={t('取消')}
-        footerBtnRightText={t('確定')}
-      >
-        <View
-          style={{
-            padding: 16
-          }}
-        >
-          <WsState
-            style={{}}
-            label={t('名稱')}
-            placeholder={t('輸入')}
-            value={''}
-            onChange={() => { }}
-          />
-
-          <WsState
-            label={t('匯出​時序表格式​範本​')}
-            testID={'WsCharts-picker002'}
-            style={{
-              marginTop: 16
-            }}
-            placeholder={t('輸入')}
-            type="picker"
-            value={''}
-            onChange={$event => {
-            }}
-            items={[
-              {
-                label: t('依建立日期由近至遠'),
-                value: {
-                  order_way: 'desc',
-                  order_by: 'created_at'
-                }
-              },
-              {
-                label: t('依更新時間由近至遠'),
-                value: {
-                  order_way: 'desc',
-                  order_by: 'updated_at'
-                }
-              },
-            ]}
-          />
-        </View>
-      </WsModal>
-
-      <WsPopup
-        active={popupDeleteMotionGroup}
-        onClose={() => {
-          setPopupDeleteMotionGroup(false)
-        }}>
-        <View
-          style={{
-            width: width * 0.9,
-            height: height * 0.2,
-            backgroundColor: $color.white,
-            borderRadius: 10,
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-          <WsText
-            size={18}
-            color={$color.black}
-            style={{
-              position: 'absolute',
-              left: 16,
-              top: 16
-            }}
-          >{t('確定要刪除嗎？')}
-          </WsText>
-          <WsFlex
-            style={{
-              position: 'absolute',
-              right: 16,
-              bottom: 16,
-            }}
-          >
-            <TouchableOpacity
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderColor: $color.gray,
-                borderRadius: 25,
-                borderWidth: 1,
-                width: 110,
-                alignItems: 'center'
-              }}
-              onPress={() => {
-                setPopupDeleteMotionGroup(false)
-              }}>
-              <WsText
-                style={{
-                  padding: 1
-                }}
-                size={14}
-                color={$color.gray}
-              >{t('取消')}
-              </WsText>
-            </TouchableOpacity>
-            <WsGradientButton
-              style={{
-                width: 110,
-              }}
-              onPress={() => {
-                setPopupDeleteMotionGroup(false)
-              }}>
-              {t('確定')}
-            </WsGradientButton>
-          </WsFlex>
-        </View>
-      </WsPopup>
-
+      <WsDialogDelete
+        id={id}
+        to="PDFToolAdminIndex"
+        modelName="meeting_template"
+        visible={dialogVisible}
+        text={t('確定刪除嗎？')}
+        setVisible={setDialogVisible}
+      />
     </>
   )
 }

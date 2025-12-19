@@ -1768,10 +1768,10 @@
   resolved "https://registry.yarnpkg.com/@formidable-webview/webshell/-/webshell-2.6.0.tgz#64704c0b513206e71b23118b3c9d096f0d545005"
   integrity sha512-FwQQDajg1xs7W3CUiUNJMvdjgLjKLDGzs0XPzoVg0Dunhold1Jg7w5pihUdvVugFlNtkSpXMA+du9QDHE8lmpg==
 
-"@gorhom/bottom-sheet@^5":
-  version "5.1.8"
-  resolved "https://registry.yarnpkg.com/@gorhom/bottom-sheet/-/bottom-sheet-5.1.8.tgz#65547917f5b1dae5a1291dabd4ea8bfee09feba4"
-  integrity sha512-QuYIVjn3K9bW20n5bgOSjvxBYoWG4YQXiLGOheEAMgISuoT6sMcA270ViSkkb0fenPxcIOwzCnFNuxmr739T9A==
+"@gorhom/bottom-sheet@^5.2.8":
+  version "5.2.8"
+  resolved "https://registry.yarnpkg.com/@gorhom/bottom-sheet/-/bottom-sheet-5.2.8.tgz#25e49122c30ffe83d3813b3bcf3dec39f3359aeb"
+  integrity sha512-+N27SMpbBxXZQ/IA2nlEV6RGxL/qSFHKfdFKcygvW+HqPG5jVNb1OqehLQsGfBP+Up42i0gW5ppI+DhpB7UCzA==
   dependencies:
     "@gorhom/portal" "1.0.14"
     invariant "^2.2.4"
@@ -2281,6 +2281,11 @@
   version "5.2.3"
   resolved "https://registry.yarnpkg.com/@react-native-camera-roll/camera-roll/-/camera-roll-5.2.3.tgz#6427f32ac19396c739354aa9fb573ba14798757f"
   integrity sha512-GNdFJj5F2pPQw6RH/BxbT0Ner+WPCm6olmjLn8JBlaRQ0IBX4K9l44YKJLJZsMJ54uqiKK0fDiRzT90Eg0iuIg==
+
+"@react-native-clipboard/clipboard@^1.16.3":
+  version "1.16.3"
+  resolved "https://registry.yarnpkg.com/@react-native-clipboard/clipboard/-/clipboard-1.16.3.tgz#7807a90fd9984bf4d3a96faf2eee20457984a9bd"
+  integrity sha512-cMIcvoZKIrShzJHEaHbTAp458R9WOv0fB6UyC7Ek4Qk561Ow/DrzmmJmH/rAZg21Z6ixJ4YSdFDC14crqIBmCQ==
 
 "@react-native-community/art@^1.1.2":
   version "1.2.0"

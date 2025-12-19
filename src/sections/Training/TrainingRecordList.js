@@ -336,7 +336,6 @@ const TrainingRecordList = (props) => {
       formData: formData,
       internal_training_id: id
     }
-    // console.log(JSON.stringify(_params), '_params---');
     try {
       const _importExcel = await S_TrainingTimeRecord.importExcel({ params: _params })
       // console.log(_importExcel, '_importExcel');

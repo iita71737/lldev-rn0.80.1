@@ -43,7 +43,7 @@ const PDFToolAdminIndex = () => {
     },
     {
       value: 'PDFToolTemplateList',
-      label: i18next.t('格式範本'),
+      label: i18next.t('範本'),
       view: PDFToolTemplateList,
       props: {
       },

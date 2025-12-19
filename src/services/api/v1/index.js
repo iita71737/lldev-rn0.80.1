@@ -71,6 +71,10 @@ import alliance from '@/services/api/v1/alliance'
 import area from '@/services/api/v1/area'
 import area_section from '@/services/api/v1/area_section'
 import factory_statistic_group from '@/services/api/v1/factory_statistic_group'
+import meeting_template_field from '@/services/api/v1/meeting_template_field'
+import meeting_template from '@/services/api/v1/meeting_template'
+import meeting_template_type from '@/services/api/v1/meeting_template_type'
+import item_label_type from '@/services/api/v1/item_label_type'
 
 export default {
   act,
@@ -145,5 +149,9 @@ export default {
   alliance,
   area,
   area_section,
-  factory_statistic_group
+  factory_statistic_group,
+  meeting_template_field,
+  meeting_template,
+  meeting_template_type,
+  item_label_type
 }

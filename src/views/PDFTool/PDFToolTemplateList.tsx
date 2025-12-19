@@ -59,46 +59,16 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
   const [filterFields] = React.useState({
     button: {
       type: 'date_range',
-      label: t('修正發布日'),
-      time_field: 'announce_at'
+      label: t('編輯時間'),
+      time_field: 'updated_at'
     },
-    owner: {
+    meeting_template_type: {
       type: 'belongsto',
-      label: t('管理者'),
+      label: t('類型'),
       nameKey: 'name',
-      modelName: 'user',
-      serviceIndexKey: 'simplifyFactoryIndex',
-      customizedNameKey: 'userAndEmail',
-      placeholder: t('選擇')
-    },
-    guideline_status: {
-      label: t('施行狀態'),
-      placeholder: t('選擇'),
-      type: 'belongstomany',
-      modelName: 'guideline_status',
-      nameKey: 'name',
+      modelName: 'meeting_template_type',
       serviceIndexKey: 'index',
-      hasMeta: false,
-      translate: false,
-      params: {
-        order_by: 'sequence',
-        order_way: 'asc',
-        get_all: '1'
-      }
-    },
-    has_unreleased: {
-      type: 'checkbox',
-      label: t('發布狀態'),
-      items: [
-        {
-          id: 0,
-          name: t('發布'),
-        },
-        {
-          id: 1,
-          name: t('未發布'),
-        },
-      ]
+      placeholder: t('選擇')
     },
     factory_tags: {
       type: 'checkbox',
@@ -156,7 +126,7 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
           }
         },
         icon: 'md-add',
-        label: t('新​增格式​範本')
+        label: t('新增範本')
       }
     ])
   }
@@ -183,11 +153,12 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
       />
 
       <WsPageIndex
-        modelName={'guideline_admin'}
+        modelName={'meeting_template'}
         serviceIndexKey={'index'}
         params={_params}
         searchLabel={'名稱'}
         filterFields={filterFields}
+        hasMeta={false}
         ListFooterComponent={() => {
           return (
             <>

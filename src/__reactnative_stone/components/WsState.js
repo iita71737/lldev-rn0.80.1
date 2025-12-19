@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { View, Pressable, TouchableOpacity, Dimensions, TextInput } from 'react-native'
 import {
   WsStateCheckBox,
@@ -49,7 +49,8 @@ import {
   WsFormulaBuilder,
   WsFormulaBuilder002,
   WsStateMultiLevelToggle,
-  WsFormulaBuilder003
+  WsFormulaBuilder003,
+  WsTag
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import $theme from '@/__reactnative_stone/global/theme'
@@ -187,6 +188,7 @@ const WsState = React.forwardRef((props, ref) => {
     sectionId,
     step,
     desVisible,
+    canOrder = false
   } = props
 
   // i18n
@@ -199,6 +201,11 @@ const WsState = React.forwardRef((props, ref) => {
   const [visible, setVisible] = React.useState(false)
   const [remindValue, setRemindValue] = React.useState()
   const [passwordVisible, setPasswordVisible] = React.useState(true)
+
+  const [orderMode, setOrderMode] = useState('default')
+  const [orderConfirmToken, setOrderConfirmToken] = useState(0)
+  const [orderCancelToken, setOrderCancelToken] = useState(0)
+
 
   // Effect
   React.useEffect(() => {
@@ -272,8 +279,38 @@ const WsState = React.forwardRef((props, ref) => {
               )
               }
             </View>
-          )
-          }
+          )}
+          {type === 'Ll_filesAndImages' && Array.isArray(value) && value.length > 1 && (
+            <>
+              {orderMode === 'default' ? (
+                <TouchableOpacity onPress={() => setOrderMode('sort')}>
+                  <WsTag>{t('排序')}</WsTag>
+                </TouchableOpacity>
+              ) : (
+                <WsFlex>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setOrderCancelToken(v => v + 1)
+                      setOrderMode('default')
+                    }}
+                  >
+                    <WsTag>{t('取消')}</WsTag>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      setOrderConfirmToken(v => v + 1)
+                      setOrderMode('default')
+                    }}
+                    style={{ marginLeft: 8 }}
+                  >
+                    <WsTag>{t('確認')}</WsTag>
+                  </TouchableOpacity>
+                </WsFlex>
+              )}
+            </>
+          )}
+
         </WsFlex>
       )}
       {type == 'text' && (
@@ -771,6 +808,9 @@ const WsState = React.forwardRef((props, ref) => {
           limitFileExtension={limitFileExtension}
           uploadBtnText={uploadBtnText}
           uploadBtnIcon={uploadBtnIcon}
+          orderMode={orderMode}
+          orderConfirmToken={orderConfirmToken}
+          orderCancelToken={orderCancelToken}
         />
       )}
       {type == 'Ll_relatedAct' && (
@@ -1041,7 +1081,7 @@ const WsState = React.forwardRef((props, ref) => {
                 setVisible(true)
               }
             }}>
-            <WsFlex style={[autoFocus ? null : { marginTop: 12 }]}>
+            <WsFlex style={[autoFocus ? null : { marginTop: 4 }]}>
               <WsIcon
                 name="md-info-outline"
                 color={remindColor}

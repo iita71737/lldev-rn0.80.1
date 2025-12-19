@@ -49,6 +49,7 @@ import ViewGuidelineAdminShow from '@/views/ActGuideline/GuidelineManage/Guideli
 import AsyncStorage from '@react-native-community/async-storage'
 import S_GuidelineAdmin from '@/services/api/v1/guideline_admin'
 import S_GuidelineVersionAdmin from '@/services/api/v1/guideline_version_admin'
+import S_MeetingTemplate from '@/services/api/v1/meeting_template'
 import store from '@/store'
 import {
   setRefreshCounter,
@@ -57,6 +58,7 @@ import PDFToolAdminIndex from '@/views/PDFTool/PDFToolAdminIndex'
 import PDFToolAdminShow from '@/views/PDFTool/PDFToolAdminShow'
 import H_time from '@/helpers/time';
 import PDFToolAdminTemplateShow from '@/views/PDFTool/PDFToolAdminTemplateShow'
+import PDFToolAdminExportShow from '@/views/PDFTool/PDFToolAdminExportShow'
 
 const StackSetting = createStackNavigator()
 const RoutesAct = () => {
@@ -114,7 +116,6 @@ const RoutesAct = () => {
       },
     },
     format_time: {
-      editable: false,
       multiline: true,
       placeholder: t('YYYY-MM-DD HH:mm'),
     },
@@ -123,15 +124,55 @@ const RoutesAct = () => {
       multiline: true,
       placeholder: t('輸入'),
     },
-    file_attaches001: {
-      modelName: 'event',
-      type: 'Ll_filesAndImages',
+    motion_template: {
+      type: 'belongsto',
       label: t('提案​單上​傳格式​範本​'),
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'user',
+      serviceIndexKey: 'simplifyFactoryIndex',
+      customizedNameKey: 'userAndEmail',
+      rules: 'required',
     },
-    file_attaches002: {
-      modelName: 'event',
-      type: 'Ll_filesAndImages',
-      label: t('議案​預覽格式​範本​'),
+    meeting_template: {
+      type: 'belongsto',
+      label: t('議程​範本​'),
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'user',
+      serviceIndexKey: 'simplifyFactoryIndex',
+      customizedNameKey: 'userAndEmail',
+      rules: 'required',
+    },
+    catelog_template: {
+      type: 'belongsto',
+      label: t('目錄​範本​'),
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'user',
+      serviceIndexKey: 'simplifyFactoryIndex',
+      customizedNameKey: 'userAndEmail',
+      rules: 'required',
+    },
+    cover_template: {
+      type: 'belongsto',
+      label: t('封面範本'),
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'user',
+      serviceIndexKey: 'simplifyFactoryIndex',
+      customizedNameKey: 'userAndEmail',
+      rules: 'required',
+    },
+    motion_template_format: {
+      type: 'belongsto',
+      label: t('項目符號'),
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'item_label_type',
+      serviceIndexKey: 'index',
+      hasMeta: false,
+      rules: 'required',
     },
     owner: {
       type: 'belongsto',
@@ -144,7 +185,8 @@ const RoutesAct = () => {
       rules: 'required',
       style: {
         borderTopWidth: 1,
-        paddingTop: 8
+        paddingTop: 8,
+        marginTop: 8
       },
     },
     expired_at: {
@@ -176,6 +218,21 @@ const RoutesAct = () => {
       },
       searchBarVisible: true
     },
+    factory_tags: {
+      type: 'Ll_relatedTags',
+      label: t('標籤'),
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'factory_tag',
+      serviceIndexKey: 'indexV2',
+      hasMeta: false,
+      params: {
+        lang: 'tw',
+        order_by: 'sequence',
+        order_way: 'asc',
+        get_all: 1
+      }
+    },
     remark: {
       label: t('備註'),
       multiline: true,
@@ -187,154 +244,37 @@ const RoutesAct = () => {
       modelName: 'factory_statistic_group',
       type: 'Ll_filesAndImages',
       label: t('附件'),
+      canOrder: true
     }
   }
 
   const fieldsForTemplate = {
+    file_attaches: {
+      modelName: 'meeting_template',
+      type: 'Ll_filesAndImages',
+      label: t('範本'),
+      oneFile: true,
+      rules: 'allMarkSetting',
+    },
     name: {
       type: 'text',
-      label: t('名稱'),
+      label: t('標題'),
       placeholder: `${t('輸入')}`,
       rules: 'required',
     },
-    file_attaches: {
-      modelName: 'event',
-      type: 'Ll_filesAndImages',
-      label: t('新​增格式​範本​'),
-    },
-  }
-
-  const fieldsCreateVersion = {
-    name: {
-      type: 'text',
-      label: t('標題'),
-      placeholder: `${t('請輸入')}${t('標題')}`,
-      rules: 'required',
-    },
-    announce_at: {
-      type: 'date',
-      placeholder: t('YYYY-MM-DD'),
-      label: t('修正發布日'),
-      rules: 'required',
-      getMinimumDate: fieldValue => {
-        const _min = moment(fieldValue.announce_at, "YYYY-MM-DD").format("YYYY-MM-DD");
-        return _min
-      }
-    },
-    effect_at: {
-      type: 'date',
-      placeholder: t('YYYY-MM-DD'),
-      label: t('生效日'),
-      getMinimumDate: fieldValue => {
-        const _min = moment(fieldValue.effect_at, "YYYY-MM-DD").format("YYYY-MM-DD");
-        return _min
-      }
-    },
-    remark: {
-      label: t('說明'),
-      multiline: true,
-      placeholder: t('輸入'),
-    },
-    file_attaches: {
-      modelName: 'event',
-      type: 'Ll_filesAndImages',
-      label: t('附件'),
-    },
-    related_acts_articles: {
-      type: 'Ll_relatedAct',
-      label: t('關聯法規'),
-      modelName: 'act',
-      serviceIndexKey: 'index',
-      parentId: factory ? factory.id : null,
-      params: {
-        lang: 'tw',
-        order_by: 'announce_at',
-        order_way: 'desc',
-        time_field: 'announce_at',
-        act_status: currentActStatus ? currentActStatus[0].id : ''
-      }
-    },
-    related_guidelines_articles: {
-      type: 'Ll_relatedGuideline',
-      label: t('相關內規'),
-      modelName: 'guideline',
-      serviceIndexKey: 'index',
-      parentId: factory ? factory.id : null,
-      params: {
-        lang: 'tw',
-        order_by: 'announce_at',
-        order_way: 'desc'
-      }
-    },
-  }
-
-  const fieldsForNotLastVersion = {
-    name: {
-      type: 'text',
-      label: t('標題'),
-      placeholder: `${t('請輸入')}${t('標題')}`,
-      rules: 'required',
-    },
-    announce_at: {
-      type: 'date',
-      placeholder: t('YYYY-MM-DD'),
-      label: t('修正發布日'),
-      rules: 'required',
-    },
-    effect_at: {
-      type: 'date',
-      placeholder: t('YYYY-MM-DD'),
-      label: t('生效日'),
-    },
-    remark: {
-      label: t('說明'),
-      multiline: true,
-      placeholder: t('輸入'),
-      rules: 'required',
-    },
-    file_attaches: {
-      modelName: 'event',
-      type: 'Ll_filesAndImages',
-      label: t('附件'),
-    },
-    related_acts_articles: {
-      type: 'Ll_relatedAct',
-      label: t('關聯法規'),
-      modelName: 'act',
-      serviceIndexKey: 'index',
-      parentId: factory ? factory.id : null,
-      params: {
-        lang: 'tw',
-        order_by: 'announce_at',
-        order_way: 'desc',
-        time_field: 'announce_at',
-        act_status: currentActStatus ? currentActStatus[0].id : ''
-      }
-    },
-    related_guidelines_articles: {
-      type: 'Ll_relatedGuideline',
-      label: t('相關內規'),
-      modelName: 'guideline',
-      serviceIndexKey: 'index',
-      parentId: factory ? factory.id : null,
-      params: {
-        lang: 'tw',
-        order_by: 'announce_at',
-        order_way: 'desc'
-      }
-    }
-  }
-
-  const fieldsForEditNoVersion = {
-    owner: {
+    meeting_template_type: {
       type: 'belongsto',
-      label: t('管理者'),
-      placeholder: `${t('選擇')}`,
+      label: t('範本類型'),
       nameKey: 'name',
-      modelName: 'user',
-      serviceIndexKey: 'simplifyFactoryIndex',
-      customizedNameKey: 'userAndEmail',
-      rules: 'required',
+      modelName: 'meeting_template_type',
+      serviceIndexKey: 'index',
+      hasMeta: false,
+      rules: 'required'
+    },
+    remark: {
+      label: t('備註'),
+      multiline: true,
+      placeholder: t('輸入'),
     },
     factory_tags: {
       type: 'Ll_relatedTags',
@@ -351,113 +291,78 @@ const RoutesAct = () => {
         get_all: 1
       }
     },
-    guideline_status: {
-      type: 'belongsto002_CRUD',
-      modelName: 'guideline_status',
-      nameKey: 'name',
-      serviceIndexKey: 'index',
-      label: t('施行狀態'),
-      translate: false,
-      addIconLabel: t('新增施行狀態'),
-      manageIconLabel: t('管理施行狀態'),
-      parentId: factory ? factory.id : null,
-      rules: 'required'
-    },
-    users: {
-      type: 'belongstomany',
-      label: t('檢閱權限-依成員'),
-      placeholder: t('選擇'),
-      nameKey: 'name',
-      modelName: 'user',
-      serviceIndexKey: 'simplifyFactoryIndex',
-      customizedNameKey: 'userAndEmail',
-      selectAllVisible: false,
-      cancelAllVisible: false,
-      searchBarVisible: true,
-    },
-    user_factory_roles_all: {
-      type: 'multipleBelongstomany',
-      label: t('權限-依角色'),
-      placeholder: t('選擇'),
-      nameKey: 'name',
-      innerLabel: [t('自訂角色'), t('預設角色')],
-      modelName: ['user_role', 'user_factory_role_template'],
-      serviceIndexKey: 'index',
-      hasMeta: false,
-      selectAllVisible: false,
-      cancelAllVisible: false,
-      searchBarVisible: true,
-    },
   }
 
-  // 建立內規
-  const submitForCreate = async (_postData, navigation) => {
-    // console.log(JSON.stringify(_postData), '_postData submitForCreate');
-    const _data = S_GuidelineAdmin.formattedDataForCreate(_postData, currentUser)
-    // console.log(JSON.stringify(_data), '_data submitForCreate');
+  const submitForCreateTemplate = async (_postData, navigation) => {
+    // console.log(JSON.stringify(_postData), '_postData submitForCreateTemplate');
+    const _data = S_MeetingTemplate.formattedDataForCreate(_postData, currentUser)
+    // console.log(JSON.stringify(_data), '_data submitForCreateTemplate');
     try {
-      const res = await S_GuidelineAdmin.create({
+      const res = await S_MeetingTemplate.create({
         data: _data
       })
       if (res) {
-        // Alert.alert(t('內規建立成功'))
-        navigation.replace('RoutesAct', {
-          screen: 'GuidelineAdminShow',
+        navigation.replace('RoutesPDFTool', {
+          screen: 'PDFToolAdminTemplateShow',
           params: {
             id: res.id
           }
         })
       }
-      // await AsyncStorage.removeItem('GuidelineCreate')
     } catch (e) {
-      Alert.alert(t('內規建立異常'))
-      console.error(e.message, 'submitForCreate')
-      navigation.navigate('RoutesAct', {
-        screen: 'GuidelineAdminIndex'
+      Alert.alert(t('範本建立異常'))
+      console.error(e.message, 'submitForCreateTemplate')
+      navigation.navigate('RoutesPDFTool', {
+        screen: 'PDFToolAdminIndex'
       })
     }
   }
 
   // 編輯內規版本
-  const submitForEdit = async (
+  const submitForEditTemplate = async (
     _formattedValue,
     modelId,
     versionId,
     navigation,
     currentUserId
   ) => {
-    // console.log(versionId, '=versionId=');
-    console.log(JSON.stringify(_formattedValue), '_formattedValue--');
-    const _data = S_GuidelineVersionAdmin.formattedDataForEdit(_formattedValue, currentUserId)
-    console.log(JSON.stringify(_data), 'S_GuidelineVersionAdmin.update');
+    // console.log(JSON.stringify(_formattedValue), '_formattedValue--');
+    const _data = S_MeetingTemplate.formattedMeetingTemplateForEdit(_formattedValue, currentUserId)
+    // console.log(JSON.stringify(_data), 'S_GuidelineVersionAdmin.update');
     try {
-      const res = await S_GuidelineVersionAdmin.update({
-        modelId: versionId,
+      const res = await S_MeetingTemplate.update({
+        modelId: modelId,
         data: _data
       })
       if (res) {
-        store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
-        navigation.reset({
-          index: 1,
-          routes: [
-            {
-              name: 'GuidelineAdminIndex',
-            },
-            {
-              name: 'GuidelineAdminShow',
-              params: {
-                id: modelId,
-                refreshKey: Date.now()
-              }
-            },
-          ],
-          key: null
+        // store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
+        // navigation.reset({
+        //   index: 1,
+        //   routes: [
+        //     {
+        //       name: 'PDFToolAdminIndex',
+        //     },
+        //     {
+        //       name: 'PDFToolAdminTemplateShow',
+        //       params: {
+        //         id: modelId,
+        //         refreshKey: Date.now()
+        //       }
+        //     },
+        //   ],
+        //   key: null
+        // })
+        navigation.replace('RoutesPDFTool', {
+          screen: 'PDFToolAdminTemplateShow',
+          params: {
+            id: res.id
+          }
         })
       }
     } catch (e) {
-      Alert.alert('編輯內規異常')
-      console.error(e.message, 'submitForEdit')
-      navigation.navigate('GuidelineAdminIndex', {})
+      Alert.alert('編輯範本異常')
+      console.error(e.message, 'submitForEditTemplate')
+      navigation.navigate('PDFToolAdminIndex', {})
     }
   }
 
@@ -525,7 +430,7 @@ const RoutesAct = () => {
       Alert.alert(t('編輯內規異常'))
       console.error(e.message, 'submitForEditNoVersion')
       navigation.navigate('RoutesAct', {
-        screen: 'GuidelineAdminIndex'
+        screen: 'PDFToolAdminIndex'
       })
     }
   }
@@ -554,11 +459,16 @@ const RoutesAct = () => {
             'format_time',
             'meeting_place',
             'file_attaches',
-            'file_attaches002',
             'scopes_users',
             'roles',
             'remark',
-            'file_attaches001'
+            'motion_template',
+            'meeting_template',
+            'catelog_template',
+            'cover_template',
+            'motion_template_format',
+            'factory_tags',
+            'meeting_template_type'
           ]
         }
       }
@@ -593,10 +503,28 @@ const RoutesAct = () => {
           initialParams={{
             name: 'PDFToolAdminCreate',
             title: t('新增議事'),
-            modelName: 'pdfTool',
+            modelName: 'meeting',
             fields: fields,
             stepSettings: stepSettings,
-            submitFunction: submitForCreate,
+            submitFunction: submitForCreateTemplate,
+          }}
+        />
+
+        <StackSetting.Screen
+          name="PDFToolAdminUpdate"
+          component={scopeFilterScreen('guideline-admin-create', WsStepRoutesUpdate)}
+          options={{
+            title: t('編輯議事'),
+            headerShown: false,
+            ...$option.headerOption
+          }}
+          initialParams={{
+            name: 'PDFToolAdminUpdate',
+            title: t('編輯議事'),
+            modelName: 'meeting',
+            fields: fields,
+            stepSettings: stepSettings,
+            submitFunction: submitForCreateTemplate,
           }}
         />
 
@@ -604,17 +532,17 @@ const RoutesAct = () => {
           name="PDFToolAdminCreateTemplate"
           component={scopeFilterScreen('guideline-admin-create', WsStepRoutesCreate)}
           options={{
-            title: t('新​增格式​範本​'),
+            title: t('新​增​範本​'),
             headerShown: false,
             ...$option.headerOption
           }}
           initialParams={{
             name: 'PDFToolAdminCreate',
-            title: t('新​增格式​範本​'),
-            modelName: 'pdfTool',
+            title: t('新​增​範本​'),
+            modelName: 'meeting_template',
             fields: fieldsForTemplate,
             stepSettings: stepSettings,
-            submitFunction: submitForCreate,
+            submitFunction: submitForCreateTemplate,
           }}
         />
 
@@ -631,7 +559,34 @@ const RoutesAct = () => {
           name="PDFToolAdminTemplateShow"
           component={scopeFilterScreen('guideline-admin-create', PDFToolAdminTemplateShow)}
           options={{
-            title: t('議事內頁'),
+            title: t('範本內頁'),
+            ...gOption.headerOption
+          }}
+        />
+
+        <StackSetting.Screen
+          name="PDFToolAdminTemplateEdit"
+          component={scopeFilterScreen('guideline-admin-create', WsStepRoutesUpdate)}
+          options={{
+            title: t('編輯範本'),
+            headerShown: false,
+            ...$option.headerOption
+          }}
+          initialParams={{
+            name: 'PDFToolAdminTemplateEdit',
+            title: t('編輯範本'),
+            modelName: 'meeting_template',
+            fields: fieldsForTemplate,
+            stepSettings: stepSettings,
+            submitFunction: submitForEditTemplate,
+          }}
+        />
+
+        <StackSetting.Screen
+          name="PDFToolAdminExportShow"
+          component={scopeFilterScreen('guideline-admin-create', PDFToolAdminExportShow)}
+          options={{
+            title: t('匯出紀錄內頁'),
             ...gOption.headerOption
           }}
         />
