@@ -111,10 +111,10 @@ const LlFileFolderCard = ({
   // helper
   const removeLastSlashSegment = (path) => {
     if (!path.includes('/')) {
-      return '最上層';
+      return `${t('最上層')}`;
     }
     const lastSlashIndex = path.lastIndexOf('/');
-    return `最上層/${path.substring(0, lastSlashIndex)}`;
+    return `${t('最上層')}/${path.substring(0, lastSlashIndex)}`;
   }
 
   // Breadcrumbs
@@ -256,6 +256,7 @@ const LlFileFolderCard = ({
                 folder_path: item.folder_path,
                 folder_uuid_path: item.folder_uuid_path,
                 tab: tab,
+                folderScope: _folderScope ? _folderScope : undefined
               }
             })
           } else if (item.type === 'file_folder' && tab === 'tab4') {
@@ -445,7 +446,7 @@ const LlFileFolderCard = ({
                 <TouchableOpacity
                   disabled={true}
                 >
-                  <WsText color={$color.black} size={12}>{'最上層'}</WsText>
+                  <WsText color={$color.black} size={12}>{t('最上層')}</WsText>
                 </TouchableOpacity>
                 {breadcrumbs.map((crumb, index) => (
                   <>

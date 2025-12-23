@@ -98,10 +98,10 @@ const LlFIleFolderMoveView = (props) => {
   // helper
   const removeLastSlashSegment = (path) => {
     if (!path.includes('/')) {
-      return '最上層';
+      return t('最上層');
     }
     const lastSlashIndex = path.lastIndexOf('/');
-    return `最上層/${path.substring(0, lastSlashIndex)}`;
+    return `${t('最上層')}/${path.substring(0, lastSlashIndex)}`;
   }
 
   // Breadcrumbs
@@ -218,7 +218,7 @@ const LlFIleFolderMoveView = (props) => {
                 setCurrentFileFolder(null)
               }}
             >
-              <WsText color={$color.primary} size={14}>{'最上層'}</WsText>
+              <WsText color={$color.primary} size={14}>{t('最上層')}</WsText>
             </TouchableOpacity>
             {currentBreadcrumbs && currentBreadcrumbs.map((crumb, index) => (
               <>

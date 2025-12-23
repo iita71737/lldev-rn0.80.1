@@ -122,6 +122,10 @@ import _ from 'lodash'
 import DraggableFlatList from 'react-native-draggable-flatlist'
 import { useNavigation } from '@react-navigation/native'
 import Clipboard from '@react-native-clipboard/clipboard';
+import MeetingInfoTab, { EsGoalVariable } from './Tabs/MeetingInfoTab'
+import MotionGroupTab, { Group } from './Tabs/MotionGroupTab'
+import ExportRecordTab from './Tabs/ExportRecordTab'
+
 
 // -------------------- 型別 --------------------
 
@@ -179,29 +183,8 @@ type ExportRecord = {
   fileUrl?: string;
 };
 
-const MOCK_EXPORT_RECORDS: ExportRecord[] = [
-  {
-    id: 'r1',
-    title: '第一題',
-    exportedAt: '2025-11-20T09:12:00Z',
-    exporter: '王小明',
-  },
-  {
-    id: 'r2',
-    title: '第一題-拷貝222',
-    exportedAt: '2025-11-20T09:30:00Z',
-    exporter: '王小明',
-  },
-  {
-    id: 'r3',
-    title: '第二題',
-    exportedAt: '2025-11-19T14:05:00Z',
-    exporter: '陳曉華',
-  }
-];
 
 // -------------------- Demo 假資料 --------------------
-
 const VARIABLE_ITEMS: EsGoalVariable[] = [
   {
     id: 'v1',
@@ -388,8 +371,6 @@ const EXPORT_ITEMS: ExportItem[] = [
   },
 ]
 
-// -------------------- 共用 Checkbox Row --------------------
-
 type CheckboxRowProps = {
   label: string;
   checked: boolean;
@@ -420,20 +401,6 @@ const CheckboxRow: React.FC<CheckboxRowProps> = ({
     </View>
   );
 };
-
-// -------------------- Tabs 內用的小元件 --------------------
-
-type MotionGroupTabProps = {
-  mode: 'default' | 'dragSort'
-  data: Group[]
-  onEnterSort: () => void
-  onCancelSort: () => void
-  onConfirmSort: () => void
-  onDragEnd: (data: Group[]) => void
-  setAddMotionModalVisible: (v: boolean) => void
-  setAddMotionGroupModalVisible: (v: boolean) => void
-  setPopupDeleteMotionGroup: (v: boolean) => void
-}
 
 type EsGoalVariable = {
   id: string
@@ -473,16 +440,9 @@ const EsGoalVariableItem: React.FC<EsGoalVariableItemProps> = ({ item }) => {
           <WsText size={14}>
             {item.customName || t('使用者自定名稱')}
           </WsText>
-
-          {/* <WsIcon
-            name={open ? 'md-arrow-drop-up' : 'md-arrow-drop-down'}
-            size={28}
-            color={$color.danger}
-          /> */}
         </WsFlex>
 
         {/* 展開內容 */}
-        {/* {open && ( */}
         <View style={{ marginTop: 8 }}>
           {/* 變數 */}
           <WsFlex
@@ -525,824 +485,10 @@ const EsGoalVariableItem: React.FC<EsGoalVariableItemProps> = ({ item }) => {
             </WsText>
           </WsFlex>
         </View>
-        {/* )} */}
       </WsCard>
     </TouchableOpacity>
   )
 }
-
-/* --- FlatList 的 renderItem --- */
-const renderVariableItem = ({ item }: { item: EsGoalVariable }) => (
-  <EsGoalVariableItem item={item} />
-)
-
-// 新增：議事內容 Tab（原本的 renderHeader 內容搬進來）
-const MeetingInfoTab: React.FC = () => {
-  const { t } = useTranslation()
-
-  // 變數設定列表（目前用假資料）
-  const [variableList] = useState<EsGoalVariable[]>(VARIABLE_ITEMS)
-
-  return (
-    <ScrollView style={{ flex: 1, backgroundColor: $color.white }}>
-      <WsPaddingContainer
-        padding={0}
-        style={{
-          paddingTop: 16,
-          paddingBottom: 8,
-          paddingHorizontal: 16,
-          backgroundColor: $color.white,
-        }}
-      >
-        <WsText size={24}>{t('使用者​自訂​議事標題')}</WsText>
-      </WsPaddingContainer>
-
-      <WsPaddingContainer
-        padding={0}
-        style={{
-          paddingTop: 8,
-          paddingBottom: 8,
-          paddingHorizontal: 16,
-          backgroundColor: $color.white,
-        }}
-      >
-
-        <View style={{ marginTop: 8 }}>
-          <WsInfo
-            labelWidth={100}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-            label={t('主席')}
-            color={$color.black5l}
-            value={t('陳曉琪')}
-          />
-        </View>
-
-        <View style={{ marginTop: 8 }}>
-          <WsInfo
-            labelWidth={100}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-            label={t('時間')}
-            color={$color.black5l}
-            value={t('一一四年十一月二十日（星期四）上午9時30分')}
-          />
-        </View>
-
-        <View style={{ marginTop: 8 }}>
-          <WsInfo
-            labelWidth={100}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-            label={t('地點')}
-            color={$color.black5l}
-            value={t('富邦大樓')}
-          />
-        </View>
-
-        <View
-          style={{
-            marginTop: 8
-          }}
-        >
-          <WsInfo
-            type="filesAndImages"
-            label={t('提案​單上​傳格式​範本​')}
-            value={['123']}
-          />
-        </View>
-
-        <View
-          style={{
-            marginTop: 8
-          }}
-        >
-          <WsInfo
-            type="filesAndImages"
-            label={t('議程​範本​')}
-            value={['123']}
-          />
-        </View>
-
-        <View
-          style={{
-            marginTop: 8
-          }}
-        >
-          <WsInfo
-            type="filesAndImages"
-            label={t('目錄​範本​')}
-            value={['123']}
-          />
-        </View>
-
-
-        <View
-          style={{
-            marginTop: 8
-          }}
-        >
-          <WsInfo
-            type="filesAndImages"
-            label={t('封面​範本​')}
-            value={['123']}
-          />
-        </View>
-
-        <View style={{ marginTop: 8 }}>
-          <WsInfo
-            labelWidth={100}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-            label={t('項目符號')}
-            color={$color.black5l}
-            value={t('第1案')}
-          />
-        </View>
-
-        <View
-          style={{
-            marginTop: 16,
-            borderTopWidth: 1,
-            paddingTop: 16,
-          }}
-        >
-          <WsInfo
-            labelWidth={100}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-            label={t('負責人')}
-            value={t('王大明')}
-          />
-        </View>
-
-        <View style={{ marginTop: 8 }}>
-          <WsInfo
-            labelWidth={100}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-            label={t('期限')}
-            color={$color.black5l}
-            value={moment().format('YYYY-MM-DD')}
-          />
-        </View>
-
-        <View style={{ marginTop: 8 }}>
-          <WsInfo
-            labelWidth={100}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-            label={t('人員')}
-            type={'users'}
-            valueFontSize={14}
-            value={['陳​小​其', '王小會​']}
-          />
-        </View>
-
-        <View style={{ marginTop: 8 }}>
-          <WsInfo
-            labelWidth={100}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-            label={t('角色')}
-            type={'belongstomany'}
-            valueFontSize={14}
-            value={['部​長​', '課長']}
-          />
-        </View>
-
-        {/* 標籤 */}
-        <View style={{ marginTop: 8 }}>
-          <WsInfo
-            type="tags"
-            value={[1, 2, 3]}
-            style={{
-            }}
-          />
-        </View>
-
-        <View
-          style={{
-            marginTop: 8
-          }}
-        >
-          <WsInfo
-            labelWidth={100}
-            value={
-              '123'
-            }
-            label={t('備註')}
-            style={{
-              flexDirection: 'row',
-            }}
-          />
-        </View>
-
-        <View
-          style={{
-            marginTop: 8,
-          }}
-        >
-          <WsInfo
-            type="filesAndImages"
-            label={t('附件')}
-            value={['321.docx']}
-          />
-        </View>
-
-        <View
-          style={{
-            marginTop: 8,
-          }}
-        >
-          <WsInfo
-            type="filesAndImages"
-            label={t('簽到表')}
-            value={['簽到表.pdf']}
-          />
-        </View>
-
-      </WsPaddingContainer>
-
-      <WsPaddingContainer
-        padding={0}
-        style={{
-          marginTop: 8,
-          paddingBottom: 8,
-          backgroundColor: $color.primary11l,
-        }}
-      >
-        <FlatList
-          data={variableList}
-          keyExtractor={item => item.id}
-          renderItem={renderVariableItem}
-          ListHeaderComponent={() => (
-            <>
-
-              <WsPaddingContainer
-                padding={0}
-                style={{
-                  paddingTop: 16,
-                  paddingBottom: 16,
-                  paddingHorizontal: 16,
-                  backgroundColor: $color.primary11l,
-                }}
-              >
-                {/* 範本檔案 */}
-                <WsInfo
-                  label={t('提案單範本')}
-                  type="filesAndImages"
-                  value={[
-                    {
-                      file: {
-                        file_type: 'docx',
-                        id: '2e4c7393-8690-4ac7-a277-004f1ffa1b21',
-                        is_invalid: 0,
-                        name: '提案單格式',
-                        source_url:
-                          'https://api.ll-esh-app.wasateam.com/api/factory/23/guideline/attach/1764827954buY8O/%E6%8F%90%E6%A1%88%E5%96%AE%E6%A0%BC%E5%BC%8F.docx?au=1&expires=1765209300&signature=b7b02b0bc017abdd9024a8a25d7ca9b71ee5c97094f0fb3af7435b3ad4d79d51',
-                        version_number: 1,
-                      },
-                      file_version: null,
-                    },
-                  ]}
-                />
-
-                {/* 標籤 */}
-                <View style={{ marginTop: 0 }}>
-                  <WsInfo
-                    type="tags"
-                    value={[1, 2, 3]}
-                    style={{
-                    }}
-                  />
-                </View>
-              </WsPaddingContainer>
-
-              <WsPaddingContainer
-                padding={0}
-                style={{
-                  paddingTop: 8,
-                  paddingHorizontal: 16,
-                }}
-              >
-                <WsText size={14} fontWeight={500}>{t('範本變數')}</WsText>
-              </WsPaddingContainer>
-            </>
-          )}
-          ListFooterComponent={() => <View style={{ height: 50 }} />}
-        />
-      </WsPaddingContainer>
-
-    </ScrollView>
-  )
-}
-
-const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
-  mode,
-  data,
-  onEnterSort,
-  onCancelSort,
-  onConfirmSort,
-  onDragEnd,
-  setAddMotionModalVisible,
-  setAddMotionGroupModalVisible,
-  setPopupDeleteMotionGroup,
-}) => {
-  const { t } = useTranslation()
-
-  // 排序 / 新增 操作列
-  const renderListHeader = () => (
-    <WsFlex
-      style={{
-        paddingTop: 8,
-        marginVertical: 8,
-        paddingHorizontal: 16,
-      }}
-      justifyContent="space-between"
-    >
-      <View />
-
-      <WsFlex
-        style={{
-          marginRight: 4,
-        }}
-      >
-        {/* 左邊：排序 / 取消 */}
-        <TouchableOpacity
-          style={{
-            alignItems: 'flex-end',
-            marginRight: 8,
-          }}
-          onPress={() => {
-            if (mode === 'default') {
-              onEnterSort()
-            } else {
-              onCancelSort()
-            }
-          }}
-        >
-          <WsTag>
-            {mode === 'default' ? t('排序') : t('取消')}
-          </WsTag>
-        </TouchableOpacity>
-
-        {/* 右邊：新增 / 確定 */}
-        <TouchableOpacity
-          style={{
-            alignItems: 'flex-end',
-            marginRight: 8,
-          }}
-          onPress={() => {
-            if (mode === 'default') {
-              setAddMotionGroupModalVisible(true)
-            } else {
-              onConfirmSort()
-            }
-          }}
-        >
-          <WsTag>
-            {mode === 'default' ? t('新增') : t('確定')}
-          </WsTag>
-        </TouchableOpacity>
-      </WsFlex>
-    </WsFlex>
-  )
-
-  return (
-    <DraggableFlatList
-      style={{
-      }}
-      data={data}
-      keyExtractor={(item) => item.id}
-      ListHeaderComponent={renderListHeader}
-      ListFooterComponent={() => <View style={{ height: 50 }} />}
-      renderItem={({ item, drag, isActive, getIndex }) => {
-        // 一般模式：顯示完整群組卡片
-        if (mode === 'default') {
-          return (
-            <LlPDFMotionGroupCard001
-              key={item.id}
-              item={item}
-              onPressAddGroup={() => {
-                setAddMotionModalVisible(true)
-              }}
-              onPressEditGroup={() => {
-                setAddMotionGroupModalVisible(true)
-              }}
-              onPressDeleteGroup={async () => {
-                setPopupDeleteMotionGroup(true)
-              }}
-            />
-          )
-        }
-
-        // 排序模式：簡易拖曳卡片
-        const order = (getIndex?.() ?? 0) + 1
-
-        return (
-          <TouchableOpacity
-            style={{
-            }}
-            onPressIn={drag}
-            onLongPress={drag}
-          >
-            <WsCard
-              borderRadius={10}
-              style={{
-                backgroundColor: $color.primary10l,
-                marginTop: 8,
-                marginHorizontal: 16,
-              }}
-            >
-              <WsFlex justifyContent="space-between">
-                <WsText>{`${order}  ${item.name}`}</WsText>
-                <WsIcon
-                  name="ws-outline-drag-horizontal"
-                  size={24}
-                  style={{ marginRight: 8 }}
-                />
-              </WsFlex>
-            </WsCard>
-          </TouchableOpacity>
-        )
-      }}
-      onDragEnd={({ data }) => {
-        if (mode === 'dragSort') {
-          onDragEnd(data as Group[])
-        }
-      }}
-    />
-  )
-}
-
-// 匯出格式 Tab（上方有「匯出」按鈕，下方是預覽卡片）
-type ExportFormatTabProps = {
-  onPressExport: () => void
-}
-
-const ExportFormatTab: React.FC<ExportFormatTabProps> = ({ onPressExport }) => {
-  const { t } = useTranslation()
-
-  return (
-    <View style={{ flex: 1 }}>
-      {/* 標題 + 匯出按鈕（靠右） */}
-      <TouchableOpacity
-        style={{
-          alignSelf: 'flex-end',
-          marginRight: 16,
-          marginTop: 8,
-        }}
-        onPress={onPressExport}
-      >
-        <WsTag>{t('匯出')}</WsTag>
-      </TouchableOpacity>
-
-      {/* 下面是匯出格式預覽卡片（靜態） */}
-      <WsCard
-        borderRadius={10}
-        style={{
-          marginTop: 16,
-          marginHorizontal: 16,
-          paddingVertical: 16,
-          paddingHorizontal: 16,
-        }}
-      >
-        <WsFlex style={{ marginBottom: 12 }}>
-          <WsText>{t('封面範本')}</WsText>
-          <WsText style={{ marginLeft: 32 }}>A {t('範本')}</WsText>
-        </WsFlex>
-
-        <WsFlex style={{ marginBottom: 12 }}>
-          <WsText>{t('目錄範本')}</WsText>
-          <WsText style={{ marginLeft: 32 }}>B {t('範本')}</WsText>
-        </WsFlex>
-
-        <WsFlex style={{ marginBottom: 12 }}>
-          <WsText>{t('議程範本')}</WsText>
-          <WsText style={{ marginLeft: 32 }}>C {t('範本')}</WsText>
-        </WsFlex>
-      </WsCard>
-    </View>
-  )
-}
-
-
-
-// 匯出紀錄 Tab（用 WsPageIndex）
-const ExportRecordTab: React.FC = () => {
-  const { t } = useTranslation()
-  const { width } = Dimensions.get('window')
-  const navigation = useNavigation<any>()
-
-  const __params = React.useMemo(() => {
-    return {
-      order_by: 'created_at',
-      order_way: 'desc',
-      time_field: 'created_at'
-    }
-  }, [])
-
-  const filterFields = React.useMemo(() => ({
-    area_sections: {
-      type: 'checkbox',
-      label: t('子地區'),
-      storeKey: 'subAreas',
-      selectAllVisible: false,
-      cancelAllVisible: false
-    },
-    act_type: {
-      type: 'checkbox',
-      label: t('法規類別'),
-      storeKey: 'actTypes',
-      selectAllVisible: false,
-      cancelAllVisible: false
-    },
-    act_status: {
-      type: 'checkbox',
-      label: t('法規狀態'),
-      storeKey: 'actStatus',
-      selectAllVisible: false,
-      cancelAllVisible: false
-    },
-    button: {
-      type: 'date_range',
-      label: t('異動日期'),
-      time_field: 'announce_at'
-    },
-    system_subclasses: {
-      type: 'system_subclass',
-      label: t('領域')
-    },
-    factory_tags: {
-      type: 'checkbox',
-      label: t('標籤'),
-      storeKey: 'factoryTags',
-      searchVisible: true,
-      selectAllVisible: false,
-      cancelAllVisible: false,
-      defaultSelected: false
-    },
-  }), [t])
-
-  /** 新增：控制「編輯匯出紀錄」的 WsPopup */
-  const [editPopupVisible, setEditPopupVisible] = useState(false)
-  const [editingRecord, setEditingRecord] = useState<any>(null)
-
-  return (
-    <View style={{ flex: 1 }}>
-      <WsPageIndex
-        mode={'pagination'}
-        hasMeta={true}
-        modelName={'internal_training'}
-        serviceIndexKey={'index'}
-        params={__params}
-        searchVisible={true}
-        filterVisible={false}
-        filterFields={filterFields}
-        renderItem={({ item, index }) => {
-          return (
-            <>
-              <TouchableOpacity
-                onPress={() => {
-                  navigation.push('RoutesPDFTool', {
-                    screen: 'PDFToolAdminExportShow',
-                    params: {
-                      id: item?.id
-                    }
-                  })
-                }}
-              >
-                <WsCard
-                  padding={16}
-                  style={{
-                    marginHorizontal: 8,
-                    marginVertical: 4,
-                    backgroundColor: $color.white
-                  }}
-                >
-                  <WsFlex
-                    style={{
-                      marginTop: 8,
-                    }}
-                    justifyContent={'space-between'}
-                  >
-                    <WsFlex>
-                      <WsDes
-                        color={$color.black}
-                        style={{
-                          marginRight: 8
-                        }}
-                      >
-                        {t('標題')}
-                      </WsDes>
-                      <WsDes>{item?.name}</WsDes>
-                    </WsFlex>
-
-                    <WsFlex>
-                      {/* 這裡完成 md-edit：打開 WsPopup */}
-                      <WsIconBtn
-                        padding={0}
-                        name="md-edit"
-                        size={24}
-                        color={$color.primary} editingRecor
-                        style={{
-                          top: -2
-                        }}
-                        onPress={() => {
-                          setEditingRecord(item)
-                          setEditPopupVisible(true)
-                        }}
-                      />
-                      <WsIconBtn
-                        padding={0}
-                        name="md-file-download"
-                        size={24}
-                        color={$color.primary}
-                        style={{
-                          marginLeft: 16
-                        }}
-                        onPress={() => {
-                          // 下載處理之後再補
-                        }}
-                      />
-                    </WsFlex>
-                  </WsFlex>
-
-                  <WsFlex
-                    style={{
-                      marginTop: 8
-                    }}
-                  >
-                    <WsDes
-                      color={$color.black}
-                      style={{
-                        marginRight: 8
-                      }}
-                    >
-                      {t('匯出時間')}
-                    </WsDes>
-                    <WsDes>{moment(item?.updated_at).format('YYYY-MM-DD HH:mm:ss')}</WsDes>
-                  </WsFlex>
-
-                  <WsFlex
-                    style={{
-                      marginTop: 8
-                    }}
-                  >
-                    <WsDes
-                      color={$color.black}
-                      style={{
-                        marginRight: 8
-                      }}
-                    >
-                      {t('匯出人')}
-                    </WsDes>
-                    <WsDes>{item?.principal?.name}</WsDes>
-                  </WsFlex>
-
-                  <WsFlex
-                    style={{
-                      marginTop: 8
-                    }}
-                  >
-                    <WsDes
-                      color={$color.black}
-                      style={{
-                        marginRight: 8
-                      }}
-                    >
-                      {t('處理中')}
-                    </WsDes>
-                    <WsDes>{moment(item?.updated_at).format('YYYY-MM-DD HH:mm:ss')}</WsDes>
-                  </WsFlex>
-                </WsCard>
-              </TouchableOpacity>
-            </>
-          )
-        }}
-      >
-      </WsPageIndex>
-
-      <View
-        style={{
-          height: 16
-        }}
-      />
-
-      {/* ⭐ 新增的 WsPopup：點 md-edit 會出現 */}
-      <WsPopup
-        active={editPopupVisible}
-        onClose={() => {
-          setEditPopupVisible(false)
-          setEditingRecord(null)
-        }}
-      >
-        <View
-          style={{
-            width: width * 0.9,
-            backgroundColor: $color.white,
-            borderRadius: 10,
-            justifyContent: 'center',
-            padding: 16,
-          }}
-        >
-          <WsText
-            size={18}
-            color={$color.black}
-            style={{
-            }}
-          >
-            {t('編輯匯出紀錄')}
-          </WsText>
-
-          <WsState
-            style={{}}
-            label={t('標題')}
-            placeholder={t('輸入')}
-            value={editingRecord?.name}
-            onChange={() => { }}
-          />
-
-          <WsState
-            multiline={true}
-            style={{
-              marginTop: 8
-            }}
-            label={t('備註')}
-            placeholder={t('輸入')}
-            value={editingRecord?.remark}
-            onChange={() => { }}
-          />
-
-          <WsFlex
-            justifyContent={'flex-end'}
-            style={{
-              marginTop: 16
-            }}
-          >
-            <TouchableOpacity
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderColor: $color.gray,
-                borderRadius: 25,
-                borderWidth: 1,
-                width: 110,
-                alignItems: 'center',
-              }}
-              onPress={() => {
-                setEditPopupVisible(false)
-                setEditingRecord(null)
-              }}
-            >
-              <WsText
-                style={{ padding: 1 }}
-                size={14}
-                color={$color.gray}
-              >
-                {t('取消')}
-              </WsText>
-            </TouchableOpacity>
-
-            <WsGradientButton
-              style={{
-                width: 110,
-              }}
-              onPress={() => {
-                // 之後如果有「編輯匯出紀錄」頁面，可以在這裡 navigation.push
-                // 目前先單純關閉 popup
-                setEditPopupVisible(false)
-                // navigation.push('RoutesPDFTool', { ... })
-              }}
-            >
-              {t('確定')}
-            </WsGradientButton>
-          </WsFlex>
-        </View>
-      </WsPopup>
-    </View>
-  )
-}
-
-
-// -------------------- 主元件 --------------------
 
 const PDFToolAdminShow = ({ navigation, route }) => {
   const { t } = useTranslation()
@@ -1380,11 +526,10 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   // 正式資料
   const [groups, setGroups] = useState<Group[]>(DEFAULT_GROUPS)
+  const [motions, setMotions] = useState<Motion | null>(null);
 
   // 排序預覽資料
   const [tempGroups, setTempGroups] = useState<Group[] | null>(null)
-
-  const [draggedValue, setDraggedVale] = useState<Group[] | undefined>()
 
   // filter（這段先保留你原本的設定）
   const [filterFields] = useState({
@@ -1525,7 +670,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const confirmDragSort = () => {
     if (tempGroups) {
       setGroups(tempGroups)
-      setDraggedVale(tempGroups)
     }
     setTempGroups(null)
     setMode('default')
@@ -1579,14 +723,15 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   }
 
 
-  // WsTabView 的 items：view 是「元件本身」，不是 JSX
   const tabItems = useMemo(
     () => [
       {
         value: 'meeting_info',
         label: t('議事內容'),
         view: MeetingInfoTab,
-        props: {},
+        props: {
+          variableList: VARIABLE_ITEMS,
+        },
       },
       {
         value: 'motion_group',
@@ -1598,10 +743,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           onEnterSort: enterDragSortMode,
           onCancelSort: cancelDragSort,
           onConfirmSort: confirmDragSort,
-          onDragEnd: (data: Group[]) => {
-            setTempGroups(data)
-            setDraggedVale(data)
-          },
+          onDragEnd: (data: Group[]) => setTempGroups(data),
           setAddMotionModalVisible,
           setAddMotionGroupModalVisible,
           setPopupDeleteMotionGroup,
@@ -1616,6 +758,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     ],
     [t, mode, listData],
   )
+
 
   // 在 PDFToolAdminShow 裡
   const renderExportItem = (item: ExportItem, level = 0) => {
@@ -1822,7 +965,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             paddingHorizontal: 16,
           }}
         >
-          <WsState
+          {/* <WsState
             label={t('提案​單上​傳格式​範本​')}
             testID={'WsCharts-picker002'}
             style={{
@@ -1851,17 +994,18 @@ const PDFToolAdminShow = ({ navigation, route }) => {
                 },
               },
             ]}
-          />
+          /> */}
           <WsState
             style={{
               marginTop: 8,
             }}
-            type="filesAndImages"
+            type="Ll_filesAndImages"
             label={t('提案單')}
-            labelIcon={'md-photo'}
-            value={[]}
-            onChange={$event => {
-            }}
+            modelName="meeting"
+            value={motions}
+            onChange={setMotions}
+            remindBtnDisabled={true}
+            desVisible={false}
           />
         </View>
       </WsModal>

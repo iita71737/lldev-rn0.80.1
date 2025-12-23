@@ -149,7 +149,7 @@ const LlFileCard001 = (props) => {
               <TouchableOpacity
                 disabled={true}
               >
-                <WsText color={$color.black} size={12}>{'最上層'}</WsText>
+                <WsText color={$color.black} size={12}>{t('最上層')}</WsText>
               </TouchableOpacity>
               {breadcrumbs.map((crumb, index) => (
                 <React.Fragment key={crumb.uuid || index}>

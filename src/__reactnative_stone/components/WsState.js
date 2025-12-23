@@ -792,7 +792,6 @@ const WsState = React.forwardRef((props, ref) => {
           oneFile={oneFile}
           uploadToFileStore={uploadToFileStore}
           testID={testID}
-          desVisible={desVisible}
         />
       )}
       {type == 'Ll_filesAndImages' && (
@@ -811,6 +810,7 @@ const WsState = React.forwardRef((props, ref) => {
           orderMode={orderMode}
           orderConfirmToken={orderConfirmToken}
           orderCancelToken={orderCancelToken}
+          desVisible={desVisible}
         />
       )}
       {type == 'Ll_relatedAct' && (

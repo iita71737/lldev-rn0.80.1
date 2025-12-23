@@ -59,8 +59,8 @@ import PDFToolAdminShow from '@/views/PDFTool/PDFToolAdminShow'
 import H_time from '@/helpers/time';
 import PDFToolAdminTemplateShow from '@/views/PDFTool/PDFToolAdminTemplateShow'
 import PDFToolAdminExportShow from '@/views/PDFTool/PDFToolAdminExportShow'
-
 const StackSetting = createStackNavigator()
+
 const RoutesAct = () => {
   const { t, i18n } = useTranslation()
 
@@ -126,7 +126,7 @@ const RoutesAct = () => {
     },
     motion_template: {
       type: 'belongsto',
-      label: t('提案​單上​傳格式​範本​'),
+      label: t('提案​單範本​'),
       placeholder: `${t('選擇')}`,
       nameKey: 'name',
       modelName: 'user',
@@ -172,7 +172,6 @@ const RoutesAct = () => {
       modelName: 'item_label_type',
       serviceIndexKey: 'index',
       hasMeta: false,
-      rules: 'required',
     },
     owner: {
       type: 'belongsto',
@@ -255,6 +254,8 @@ const RoutesAct = () => {
       label: t('範本'),
       oneFile: true,
       rules: 'allMarkSetting',
+      remind: t('注意，​重新​上​傳​範本，​會覆​蓋標記​設定​'),
+      remindColor: $color.danger,
     },
     name: {
       type: 'text',
@@ -335,23 +336,6 @@ const RoutesAct = () => {
         data: _data
       })
       if (res) {
-        // store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
-        // navigation.reset({
-        //   index: 1,
-        //   routes: [
-        //     {
-        //       name: 'PDFToolAdminIndex',
-        //     },
-        //     {
-        //       name: 'PDFToolAdminTemplateShow',
-        //       params: {
-        //         id: modelId,
-        //         refreshKey: Date.now()
-        //       }
-        //     },
-        //   ],
-        //   key: null
-        // })
         navigation.replace('RoutesPDFTool', {
           screen: 'PDFToolAdminTemplateShow',
           params: {

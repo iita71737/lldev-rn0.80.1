@@ -93,7 +93,24 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const [editMotionModalVisible, setEditMotionModalVisible] = useState(false);
   const [editingMotion, setEditingMotion] = useState<Motion | null>(null);
   const [content, setContent] = useState('<p>這是原始 HTML</p>');
+
+  const [motions, setMotions] = useState<Motion | null>(null);
   const [motionFiles, setMotionFiles] = useState<Array>([]);
+
+  const [updateProposalModalVisible, setUpdateProposalModalVisible] = useState(false)
+  const [updateProposalTargetMotion, setUpdateProposalTargetMotion] = useState<Motion | null>(null)
+
+  const [proposalFilesValue, setProposalFilesValue] = useState<any>(null)
+
+  const openUpdateProposalModal = (group: Group, motion: Motion) => {
+    setUpdateProposalTargetMotion(motion)
+    setUpdateProposalModalVisible(true)
+  }
+
+  const closeUpdateProposalModal = () => {
+    setUpdateProposalModalVisible(false)
+    setUpdateProposalTargetMotion(null)
+  }
 
   // --------- 議案排序相關 state ---------
   // 哪一個 group 正在「議案排序模式」
@@ -178,7 +195,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     const isArticleCollapsed = motionCollapsed[motion.id] ?? false;
 
     return (
-      <View key={motion.id} style={{ marginTop: 12 }}>
+      <View key={motion.id} style={{ marginTop: 16 }}>
         {/* 內層 header */}
         <View
           style={{
@@ -194,7 +211,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             onPress={() => toggleMotion(motion.id)}
           >
             <WsFlex
-              style={{ paddingVertical: 12, paddingHorizontal: 8 }}
+              style={{ paddingVertical: 12, paddingHorizontal: 12 }}
               justifyContent="space-between"
               alignItems="center"
             >
@@ -205,33 +222,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               <WsFlex>
                 <WsIconBtn
                   padding={0}
-                  name="ws-outline-edit-pencil"
-                  size={24}
-                  color={$color.primary}
-                  style={{ marginLeft: 8 }}
-                  onPress={() => openEditMotionModal(motion)}
-                />
-                <WsIconBtn
-                  padding={0}
-                  name="ws-outline-delete"
-                  size={24}
-                  color={$color.danger}
-                  style={{ marginLeft: 8 }}
-                  onPress={() => onPressDeleteGroup?.(group)}
-                />
-                <WsIconBtn
-                  padding={0}
-                  name="ws-outline-eye-open"
-                  size={24}
-                  color={$color.primary}
-                  style={{ marginLeft: 8 }}
-                  onPress={() => {
-                    // TODO: 開一個只讀檢視 modal
-                  }}
-                />
-
-                <WsIconBtn
-                  padding={0}
                   name={isArticleCollapsed ? 'md-unfold-more' : 'md-unfold-less'}
                   size={24}
                   color={$color.primary3l}
@@ -240,6 +230,44 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               </WsFlex>
 
             </WsFlex>
+
+            <WsFlex
+              style={{ paddingBottom: 12, paddingHorizontal: 12 }}
+              justifyContent="space-bewteen"
+            >
+              <TouchableOpacity
+                onPress={() => openUpdateProposalModal(group, motion)}
+              >
+                <WsTag>{t('更新提案單')}</WsTag>
+              </TouchableOpacity>
+              <WsIconBtn
+                padding={0}
+                name="ws-outline-edit-pencil"
+                size={24}
+                color={$color.primary}
+                style={{ marginLeft: 8 }}
+                onPress={() => openEditMotionModal(motion)}
+              />
+              <WsIconBtn
+                padding={0}
+                name="ws-outline-delete"
+                size={24}
+                color={$color.danger}
+                style={{ marginLeft: 8 }}
+                onPress={() => onPressDeleteGroup?.(group)}
+              />
+              <WsIconBtn
+                padding={0}
+                name="ws-outline-eye-open"
+                size={24}
+                color={$color.primary}
+                style={{ marginLeft: 8 }}
+                onPress={() => {
+                  // TODO: 開一個只讀檢視 modal
+                }}
+              />
+            </WsFlex>
+
           </TouchableOpacity>
 
           {/* 內層 body */}
@@ -557,51 +585,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
           keyboardShouldPersistTaps="handled"
         >
           <WsState
-            label={t('提案​單上​傳格式​範本​')}
-            testID={'WsCharts-picker002'}
-            style={{
-              marginTop: 16,
-            }}
-            borderRadius={10}
-            borderWidth={0.3}
-            placeholder={t('輸入')}
-            type="picker"
-            value={''}
-            onChange={$event => {
-            }}
-            items={[
-              {
-                label: t('依建立日期由近至遠'),
-                value: {
-                  order_way: 'desc',
-                  order_by: 'created_at',
-                },
-              },
-              {
-                label: t('依更新時間由近至遠'),
-                value: {
-                  order_way: 'desc',
-                  order_by: 'updated_at',
-                },
-              },
-            ]}
-          />
-          <WsState
-            style={{
-              marginTop: 8,
-            }}
-            type="filesAndImages"
-            label={t('提案單')}
-            value={[]}
-            onChange={$event => {
-            }}
-            remind={t('！​注意，​重新​上傳​提案​單，​會覆​蓋​名稱、​提案​單位、​報告人、​列席​人員、​內容。​')}
-            remindColor={$color.danger}
-            remindBtnDisabled={true}
-            desVisible={false}
-          />
-
-          <WsState
             type="text"
             style={{
               marginTop: 16,
@@ -610,9 +593,26 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             value={''}
             onChange={() => { }}
             rules={'required'}
-            remind={t('！​注意，​修改會​讓​提案​單​跟​欄位​不​一致。​​')}
+            remind={t('注意，​修改​以​下​欄​位​會讓​提案​單​跟​欄位​不​一​致​​​')}
             remindBtnDisabled={true}
             remindColor={$color.danger}
+          />
+
+          <WsState
+            style={{
+              marginTop: 16,
+            }}
+            label={t('項目符號')}
+            type="belongsto"
+            modelName={'item_label_type'}
+            serviceIndexKey={'index'}
+            nameKey={'name'}
+            hasMeta={false}
+            value={''}
+            params={{
+            }}
+            onChange={async $event => {
+            }}
           />
 
           <WsState
@@ -649,14 +649,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             keyboardAwareRef={scrollRef}
           />
 
-          {/* <TinyMCEEditor
-            initialHtml={content}
-            onChange={(html) => {
-              console.log('edited HTML:', html);
-              setContent(html); // 你也可以存到 state / 丟回後端
-            }}
-          /> */}
-
           <WsText
             style={{
               marginTop: 16,
@@ -672,14 +664,13 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
 
           <WsState
             style={{
-              marginTop: 8,
+              marginTop: 16,
             }}
-            type="filesAndImages"
-            label={t('議案附件')}
-            labelIcon={'md-photo'}
+            type="Ll_filesAndImages"
+            label={t('附件')}
             value={motionFiles}
             onChange={$event => {
-              console.log($event,'event--')
+              console.log($event, 'event--')
               setMotionFiles($event)
             }}
           />
@@ -712,6 +703,44 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             style={{
               height: 100,
             }}
+          />
+        </ScrollView>
+      </WsModal>
+
+      <WsModal
+        title={t('更新提案單')}
+        visible={updateProposalModalVisible}
+        headerLeftOnPress={closeUpdateProposalModal}
+        onBackButtonPress={closeUpdateProposalModal}
+        footerBtnLeftText={t('取消')}
+        footerBtnLeftOnPress={closeUpdateProposalModal}
+        footerBtnRightText={t('確定')}
+        footerBtnRightOnPress={() => {
+          // TODO: 這裡要做真正更新：
+          // 1) proposalFilesValue 取新上傳的提案單
+          // 2) call API / 或透過 callback 往外丟
+          // 3) 成功後 close
+          closeUpdateProposalModal()
+        }}
+        avoidKeyboard={false}
+        childrenScroll={false}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <WsState
+            style={{ marginTop: 16 }}
+            type="Ll_filesAndImages"
+            label={t('提案單')}
+            modelName="meeting"
+            value={proposalFilesValue}
+            onChange={setProposalFilesValue}
+            remind={t('！​注意，​重新​上傳​提案​單，​會覆​蓋​名稱、​提案​單位、​報告人、​列席​人員、​內容。​')}
+            remindColor={$color.danger}
+            remindBtnDisabled={true}
+            desVisible={false}
           />
         </ScrollView>
       </WsModal>

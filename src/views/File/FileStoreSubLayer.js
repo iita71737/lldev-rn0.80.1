@@ -74,6 +74,8 @@ const FileStoreSubLayer = ({ route }, props) => {
     ? hasPermission(folderScope.scopes, 'file-create')
     : false;
 
+  console.log('folderScope', folderScope);
+  
   // Fields
   const fields = {
     name: {
@@ -381,10 +383,10 @@ const FileStoreSubLayer = ({ route }, props) => {
   }
   const removeLastSlashSegment = (path) => {
     if (!path.includes('/')) {
-      return '最上層';
+      return `${t('最上層')}`;
     }
     const lastSlashIndex = path.lastIndexOf('/');
-    return `最上層/${path.substring(0, lastSlashIndex)}`;
+    return `${t('最上層')}/${path.substring(0, lastSlashIndex)}`;
   }
   // FUNC
   const handleBreadcrumbPress = (index) => {
@@ -772,7 +774,7 @@ const FileStoreSubLayer = ({ route }, props) => {
                   navigation.navigate('FileStore')
                 }}
               >
-                <WsText color={$color.primary}>{'最上層'}</WsText>
+                <WsText color={$color.primary}>{t('最上層')}</WsText>
               </TouchableOpacity>
               {currentBreadcrumbs && currentBreadcrumbs.map((crumb, index) => (
                 <>

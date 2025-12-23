@@ -4,7 +4,6 @@ import {
   Dimensions,
   TouchableOpacity,
   Platform,
-  Alert,
   TextInput,
   PermissionsAndroid,
 } from 'react-native'
@@ -14,7 +13,6 @@ import {
   WsUpdateBtn,
   WsGrid,
   WsStateFileItem,
-  WsPopup,
   LlPopupAlert,
   WsLoading,
   WsState,
@@ -81,8 +79,8 @@ const LlFilesAndImagesPicker = props => {
     return null
   }
 
-  // 去重 + 依 sequence 排序
-  const normalizeWordFields = (raw = []) => {
+  // 去重 + 依 sequence 排序（避免重複）
+  const normalizeWordFields = useCallback((raw = []) => {
     const seen = new Set()
     return (Array.isArray(raw) ? raw : [])
       .filter(f => {
@@ -93,9 +91,9 @@ const LlFilesAndImagesPicker = props => {
         return true
       })
       .sort((a, b) => String(a?.sequence || '').localeCompare(String(b?.sequence || '')))
-  }
+  }, [])
 
-  // 用 meeting_template_items 反推 wordFieldSettings
+  // 用 meeting_template_items 反推 wordFieldSettings（編輯模式）
   const buildSettingsFromMeetingTemplateItems = (items = []) => {
     const next = {}
     ;(Array.isArray(items) ? items : []).forEach(it => {
@@ -103,8 +101,7 @@ const LlFilesAndImagesPicker = props => {
       if (!key) return
 
       const mtf = it?.meeting_template_field
-      const mtfId =
-        typeof mtf === 'string' ? mtf : (mtf?.id ?? null)
+      const mtfId = typeof mtf === 'string' ? mtf : (mtf?.id ?? null)
       const mtfName =
         typeof mtf === 'object'
           ? (mtf?.name ?? mtf?.value ?? '')
@@ -112,9 +109,7 @@ const LlFilesAndImagesPicker = props => {
 
       next[key] = {
         name: it?.name ?? '',
-        esgoal_field: mtfId
-          ? { id: mtfId, name: mtfName }
-          : null,
+        esgoal_field: mtfId ? { id: mtfId, name: mtfName } : null,
       }
     })
     return next
@@ -179,13 +174,43 @@ const LlFilesAndImagesPicker = props => {
 
       return next
     })
-  }, [value, modelName])
+  }, [value, modelName, normalizeWordFields])
 
+  // ✅ 抽共用：抓 word fields + 初始化 UI（local/fileStore/other 都用）
+  const fetchAndInitMeetingTemplateWordFields = useCallback(async (fileId) => {
+    if (!fileId) return
+    try {
+      const res = await S_File.getWordFields({ params: { file_id: fileId } })
+      const fields = normalizeWordFields(res?.data ?? res)
+
+      wordFieldsFileIdRef.current = fileId
+      lastCommittedSigRef.current = {}
+      didInitFromValueRef.current = true // 進入上傳後就不再用 value 初始化蓋掉使用者編輯
+
+      setWordFields(fields)
+      setWordFieldSettings(prev => {
+        const next = { ...prev }
+        fields.forEach(f => {
+          const key = f.value
+          const defaultName = f?.name ?? '' // ✅ 原封不動
+          if (!next[key]) {
+            next[key] = { name: defaultName, esgoal_field: null }
+          } else if (next[key].name === '' || next[key].name == null) {
+            next[key] = { ...(next[key] || {}), name: defaultName }
+          }
+        })
+        return next
+      })
+    } catch (err) {
+      console.warn('[LlFilesAndImagesPicker] getWordFields failed:', err)
+    }
+  }, [normalizeWordFields])
+
+  // ✅ 把 wordFields + settings 組成 meeting_template_items，塞回 value
   const commitWordFieldSettingsToValue = useCallback((settings) => {
     const fileId = wordFieldsFileIdRef.current
     if (!fileId) return
 
-    // ✅ 把 wordFields + settings 組成 meeting_template_items（依 wordFields 順序）
     const meetingTemplateItems = (Array.isArray(wordFields) ? wordFields : [])
       .map((wf) => {
         const key = wf?.value
@@ -201,7 +226,7 @@ const LlFilesAndImagesPicker = props => {
           value: key,
           sequence: wf?.sequence ?? null,
           meeting_template_field: esId,
-          factory: factory?.id,
+          factory: factory?.id ?? null,
         }
       })
       .filter(Boolean)
@@ -221,6 +246,7 @@ const LlFilesAndImagesPicker = props => {
     onChange(next)
   }, [onChange, wordFields, factory?.id])
 
+  // ✅ 設定完成就 commit（以 esgoal_field.id 為準）
   useEffect(() => {
     if (modelName !== 'meeting_template') return
     if (!wordFieldsFileIdRef.current) return
@@ -234,6 +260,7 @@ const LlFilesAndImagesPicker = props => {
       const esId = esObj?.id ?? esObj
       const complete = !!esId
       if (!complete) return
+
       const sig = `${name}|${String(esId)}`
       if (lastCommittedSigRef.current[key] !== sig) {
         lastCommittedSigRef.current[key] = sig
@@ -324,36 +351,11 @@ const LlFilesAndImagesPicker = props => {
     }
   }
 
+  // ✅ Local：上傳後如果 meeting_template → 打 getWordFields
   const onUploadFromLocalComplete = async (file) => {
     if (modelName === 'meeting_template') {
-      try {
-        const fileId = file?.id || file?.file?.id
-        if (fileId) {
-          const res = await S_File.getWordFields({ params: { file_id: fileId } })
-          const fields = normalizeWordFields(res?.data ?? res)
-
-          wordFieldsFileIdRef.current = fileId
-          lastCommittedSigRef.current = {}
-          didInitFromValueRef.current = true // 進入上傳模式後就不再用 value 初始化
-
-          setWordFields(fields)
-          setWordFieldSettings(prev => {
-            const next = { ...prev }
-            fields.forEach(f => {
-              const key = f.value
-              const defaultName = f?.name ?? ''
-              if (!next[key]) {
-                next[key] = { name: defaultName, esgoal_field: null }
-              } else if (next[key].name === '' || next[key].name == null) {
-                next[key] = { ...(next[key] || {}), name: defaultName }
-              }
-            })
-            return next
-          })
-        }
-      } catch (err) {
-        console.warn('[LlFilesAndImagesPicker] getWordFields failed:', err)
-      }
+      const fileId = file?.id || file?.file?.id
+      await fetchAndInitMeetingTemplateWordFields(fileId)
     }
 
     if (!oneFile) {
@@ -365,7 +367,8 @@ const LlFilesAndImagesPicker = props => {
     }
   }
 
-  const onUploadFromFileStoreComplete = (files, relatedVersion) => {
+  // ✅ FileStore：選檔後如果 meeting_template → 對「新增的第一個檔」打 getWordFields
+  const onUploadFromFileStoreComplete = async (files, relatedVersion) => {
     const toUrls = (files || []).map(item => {
       if (relatedVersion === 'latest') {
         return { file: { ...item } }
@@ -376,19 +379,29 @@ const LlFilesAndImagesPicker = props => {
       return null
     }).filter(Boolean)
 
+    let pickedFileId = null
+
     if (!oneFile) {
       const _value = value ? [...value] : []
       const newFiles = toUrls.filter(newFile =>
         !_value.some(existingFile => existingFile.file?.id === newFile.file?.id)
       )
-      onChange([..._value, ...newFiles])
+      const updated = [..._value, ...newFiles]
+      onChange(updated)
+
+      pickedFileId = newFiles?.[0]?.file?.id ?? null
     } else {
       onChange(toUrls)
+      pickedFileId = toUrls?.[0]?.file?.id ?? null
+    }
+
+    if (modelName === 'meeting_template' && pickedFileId) {
+      await fetchAndInitMeetingTemplateWordFields(pickedFileId)
     }
   }
 
-  const onUploadFromOtherFileStoreComplete = (files, relatedVersion) => {
-    // 同上
+  // ✅ OtherFileStore：同上
+  const onUploadFromOtherFileStoreComplete = async (files, relatedVersion) => {
     const toUrls = (files || []).map(item => {
       if (relatedVersion === 'latest') {
         return { file: { ...item } }
@@ -399,14 +412,24 @@ const LlFilesAndImagesPicker = props => {
       return null
     }).filter(Boolean)
 
+    let pickedFileId = null
+
     if (!oneFile) {
       const _value = value ? [...value] : []
       const newFiles = toUrls.filter(newFile =>
         !_value.some(existingFile => existingFile.file?.id === newFile.file?.id)
       )
-      onChange([..._value, ...newFiles])
+      const updated = [..._value, ...newFiles]
+      onChange(updated)
+
+      pickedFileId = newFiles?.[0]?.file?.id ?? null
     } else {
       onChange(toUrls)
+      pickedFileId = toUrls?.[0]?.file?.id ?? null
+    }
+
+    if (modelName === 'meeting_template' && pickedFileId) {
+      await fetchAndInitMeetingTemplateWordFields(pickedFileId)
     }
   }
 
@@ -483,7 +506,7 @@ const LlFilesAndImagesPicker = props => {
       {value != '' && value != null && (
         orderMode === 'sort' ? (
           <DraggableFlatList
-            style={{ paddingBottom: 16 }}
+            contentContainerStyle={{ paddingBottom: 16 }}
             data={orderDraft}
             keyExtractor={(item, index) =>
               `${item?.file?.id || item?.id || item?.lazyUri || 'item'}-${index}`
@@ -641,7 +664,7 @@ const LlFilesAndImagesPicker = props => {
                   label={t('對應ESGoal欄位')}
                   rules={'required'}
                   errorMessage={!esgoalField && [t('此項目為必填')]}
-                  value={esgoalField ?? undefined}
+                  value={esgoalField ?? null}
                   onChange={(v) => {
                     setWordFieldSettings(prev => ({
                       ...prev,

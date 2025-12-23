@@ -109,10 +109,10 @@ const LlFileFolderCard002 = ({
   // helper
   const removeLastSlashSegment = (path) => {
     if (!path.includes('/')) {
-      return '最上層';
+      return t('最上層');
     }
     const lastSlashIndex = path.lastIndexOf('/');
-    return `最上層/${path.substring(0, lastSlashIndex)}`;
+    return `${t('最上層')}/${path.substring(0, lastSlashIndex)}`;
   }
 
   // Breadcrumbs
@@ -426,7 +426,7 @@ const LlFileFolderCard002 = ({
                 <TouchableOpacity
                   disabled={true}
                 >
-                  <WsText color={$color.black} size={12}>{'最上層'}</WsText>
+                  <WsText color={$color.black} size={12}>{t('最上層')}</WsText>
                 </TouchableOpacity>
                 {breadcrumbs.map((crumb, index) => (
                   <>

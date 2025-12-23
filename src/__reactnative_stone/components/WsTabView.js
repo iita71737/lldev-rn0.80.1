@@ -274,6 +274,7 @@ const WsTabView = props => {
                       position: 'absolute',
                       left: -4,
                       zIndex: !isAtStart ? 999 : -999,
+                      // borderWidth: 1,
                     }}
                     onPress={() =>
                       scrollViewRef.current.scrollTo({ x: 0, animated: true })
@@ -288,7 +289,6 @@ const WsTabView = props => {
                         name={"md-chevron-left"}
                         size={24}
                         style={{
-                          backgroundColor: $color.white,
                         }}
                       >
                       </WsIcon>
@@ -418,7 +418,6 @@ const WsTabView = props => {
                         name={"md-chevron-right"}
                         size={24}
                         style={{
-                          backgroundColor: $color.white,
                         }}
                       >
                       </WsIcon>
