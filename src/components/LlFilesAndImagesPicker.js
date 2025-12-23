@@ -49,6 +49,7 @@ const LlFilesAndImagesPicker = props => {
     orderMode = 'default',
     orderConfirmToken,
     orderCancelToken,
+    exportAttachmentName
   } = props
 
   // redux
@@ -96,22 +97,22 @@ const LlFilesAndImagesPicker = props => {
   // 用 meeting_template_items 反推 wordFieldSettings（編輯模式）
   const buildSettingsFromMeetingTemplateItems = (items = []) => {
     const next = {}
-    ;(Array.isArray(items) ? items : []).forEach(it => {
-      const key = it?.value // "${meeting_time}"
-      if (!key) return
+      ; (Array.isArray(items) ? items : []).forEach(it => {
+        const key = it?.value // "${meeting_time}"
+        if (!key) return
 
-      const mtf = it?.meeting_template_field
-      const mtfId = typeof mtf === 'string' ? mtf : (mtf?.id ?? null)
-      const mtfName =
-        typeof mtf === 'object'
-          ? (mtf?.name ?? mtf?.value ?? '')
-          : (it?.name ?? '')
+        const mtf = it?.meeting_template_field
+        const mtfId = typeof mtf === 'string' ? mtf : (mtf?.id ?? null)
+        const mtfName =
+          typeof mtf === 'object'
+            ? (mtf?.name ?? mtf?.value ?? '')
+            : (it?.name ?? '')
 
-      next[key] = {
-        name: it?.name ?? '',
-        esgoal_field: mtfId ? { id: mtfId, name: mtfName } : null,
-      }
-    })
+        next[key] = {
+          name: it?.name ?? '',
+          esgoal_field: mtfId ? { id: mtfId, name: mtfName } : null,
+        }
+      })
     return next
   }
 
@@ -488,6 +489,21 @@ const LlFilesAndImagesPicker = props => {
     }
   }, [value])
 
+  // meeting modelName
+  const updateItemAt = (arr, index, patch) =>
+    arr.map((it, i) => (i === index ? { ...(it || {}), ...(patch || {}) } : it))
+
+  const handleItemChange = useCallback((index, patch) => {
+    // ✅ 更新 parent 的 value
+    const next = updateItemAt(Array.isArray(value) ? value : [], index, patch)
+    onChange(next)
+
+    // ✅ 若你排序模式用的是 orderDraft，要同步一下避免畫面不一致
+    if (orderMode === 'sort') {
+      setOrderDraft(prev => updateItemAt(Array.isArray(prev) ? prev : [], index, patch))
+    }
+  }, [value, onChange, orderMode])
+
   return (
     <>
       <LlFilesAndImagesPickerModal
@@ -583,6 +599,9 @@ const LlFilesAndImagesPicker = props => {
                     modelName={modelName}
                     uploadToFileStore={uploadToFileStore}
                     onRemove={() => $_checkDeleteScope(item, itemIndex)}
+                    exportAttachmentName={exportAttachmentName}
+                    itemIndex={itemIndex}
+                    onItemChange={(patch) => handleItemChange(itemIndex, patch)}
                   />
                 )}
               </>

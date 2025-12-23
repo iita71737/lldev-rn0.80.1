@@ -96,6 +96,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
 
   const [motions, setMotions] = useState<Motion | null>(null);
   const [motionFiles, setMotionFiles] = useState<Array>([]);
+  const [exportAttachmentName, setExportAttachmentName] = useState<boolean>(false); 
 
   const [updateProposalModalVisible, setUpdateProposalModalVisible] = useState(false)
   const [updateProposalTargetMotion, setUpdateProposalTargetMotion] = useState<Motion | null>(null)
@@ -666,8 +667,22 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             style={{
               marginTop: 16,
             }}
+            type="checkbox"
+            label={t('是否​匯出​附件​名​稱')}
+            value={exportAttachmentName}
+            onChange={$event => {
+              setExportAttachmentName($event)
+            }}
+          />
+
+          <WsState
+            style={{
+              marginTop: 16,
+            }}
             type="Ll_filesAndImages"
             label={t('附件')}
+            modelName="meeting"
+            exportAttachmentName={exportAttachmentName}
             value={motionFiles}
             onChange={$event => {
               console.log($event, 'event--')

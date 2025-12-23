@@ -174,15 +174,6 @@ type ExportItem = {
   children?: ExportItem[]
 }
 
-// 匯出紀錄用
-type ExportRecord = {
-  id: string;
-  title: string;
-  exportedAt: string; // ISO 字串
-  exporter: string;
-  fileUrl?: string;
-};
-
 
 // -------------------- Demo 假資料 --------------------
 const VARIABLE_ITEMS: EsGoalVariable[] = [
@@ -515,6 +506,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const [addMotionModalVisible, setAddMotionModalVisible] = useState(false)
   const [addMotionGroupModalVisible, setAddMotionGroupModalVisible] = useState(false)
   const [popupDeleteMotionGroup, setPopupDeleteMotionGroup] = useState(false)
+  const [popupDeleteMeetingVisible, setPopupDeleteMeetingVisible] = useState(false)
 
   // 匯出 Modal
   const [exportModalVisible, setExportModalVisible] = useState(false)
@@ -576,7 +568,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
                 setIsBottomSheetActive(true)
               }}
             />
-            <WsIconBtn
+            {/* <WsIconBtn
               name="ws-outline-logout"
               size={24}
               color={$color.white}
@@ -586,7 +578,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
               onPress={() => {
                 setExportModalVisible(true)
               }}
-            />
+            /> */}
           </WsFlex>
         )
       },
@@ -624,11 +616,59 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         icon: 'ws-outline-edit-pencil',
         label: t('編輯議事'),
       },
+      // ✅ 匯出：總匯出（打開你原本的 export modal）
+      {
+        icon: 'ws-outline-logout',
+        label: t('匯出'),
+        onPress: () => {
+          setIsBottomSheetActive(false)
+          setExportModalVisible(true)
+        },
+      },
+      // ✅ 匯出封面
+      {
+        icon: 'md-file-download',
+        label: t('匯出封面'),
+        onPress: () => {
+          setIsBottomSheetActive(false)
+          // TODO: 你要串後端的話在這裡呼叫
+          // 先用現有的 modal 也可以：預設只勾封面
+          setExportChecked({ cover_a: true })
+          setExportModalVisible(true)
+        },
+      },
+
+      // ✅ 匯出目錄
+      {
+        icon: 'md-file-download',
+        label: t('匯出目錄'),
+        onPress: () => {
+          setIsBottomSheetActive(false)
+          setExportChecked({ toc_b: true })
+          setExportModalVisible(true)
+        },
+      },
+
+      // ✅ 匯出時序表
+      {
+        icon: 'md-file-download',
+        label: t('匯出時序表'),
+        onPress: () => {
+          setIsBottomSheetActive(false)
+          // 你目前 EXPORT_ITEMS 沒有「時序表」id，我先用 agenda_c 代替示例
+          // ✅ 建議你新增一個 export item id: 'timeline_d' 之類會更直覺
+          setExportChecked({ agenda_c: true })
+          setExportModalVisible(true)
+        },
+      },
       {
         color: $color.danger,
         labelColor: $color.danger,
         icon: 'ws-outline-delete',
         label: t('刪除議事'),
+        onPress: () => {
+          setPopupDeleteMeetingVisible(true)
+         }
       },
     ],
     [id, t],
@@ -938,7 +978,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           setIsBottomSheetActive(false)
         }}
         items={bottomSheetItems}
-        snapPoints={[150, 308]}
+        snapPoints={[150, 368]}
         onItemPress={(item) => {
           if (item.to) {
             navigation.navigate(item.to)
@@ -1170,6 +1210,79 @@ const PDFToolAdminShow = ({ navigation, route }) => {
               }}
               onPress={() => {
                 setPopupDeleteMotionGroup(false)
+              }}
+            >
+              {t('確定')}
+            </WsGradientButton>
+          </WsFlex>
+        </View>
+      </WsPopup>
+
+      <WsPopup
+        active={popupDeleteMeetingVisible}
+        onClose={() => {
+          setPopupDeleteMeetingVisible(false)
+        }}
+      >
+        <View
+          style={{
+            width: width * 0.9,
+            height: height * 0.2,
+            backgroundColor: $color.white,
+            borderRadius: 10,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <WsText
+            size={18}
+            color={$color.black}
+            style={{
+              position: 'absolute',
+              left: 16,
+              top: 16,
+            }}
+          >
+            {t('確定要刪除嗎？')}
+          </WsText>
+          <WsFlex
+            style={{
+              position: 'absolute',
+              right: 16,
+              bottom: 16,
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderColor: $color.gray,
+                borderRadius: 25,
+                borderWidth: 1,
+                width: 110,
+                alignItems: 'center',
+              }}
+              onPress={() => {
+                setPopupDeleteMeetingVisible(false)
+              }}
+            >
+              <WsText
+                style={{
+                  padding: 1,
+                }}
+                size={14}
+                color={$color.gray}
+              >
+                {t('取消')}
+              </WsText>
+            </TouchableOpacity>
+            <WsGradientButton
+              style={{
+                width: 110,
+              }}
+              onPress={() => {
+                setPopupDeleteMeetingVisible(false)
               }}
             >
               {t('確定')}

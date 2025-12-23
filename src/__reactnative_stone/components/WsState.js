@@ -188,7 +188,8 @@ const WsState = React.forwardRef((props, ref) => {
     sectionId,
     step,
     desVisible,
-    canOrder = false
+    canOrder = false,
+    exportAttachmentName
   } = props
 
   // i18n
@@ -811,6 +812,7 @@ const WsState = React.forwardRef((props, ref) => {
           orderConfirmToken={orderConfirmToken}
           orderCancelToken={orderCancelToken}
           desVisible={desVisible}
+          exportAttachmentName={exportAttachmentName}
         />
       )}
       {type == 'Ll_relatedAct' && (

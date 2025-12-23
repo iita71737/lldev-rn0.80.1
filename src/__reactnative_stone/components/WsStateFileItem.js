@@ -12,9 +12,12 @@ import axios from 'axios'
 import factory from '@/services/api/v1/factory'
 import S_url from '@/__reactnative_stone/services/app/url'
 import RNBlobUtil from 'react-native-blob-util'
+import { WsState } from 'components'
+import { useTranslation } from 'react-i18next'
 
 const WsStateFileItem = props => {
   const { width, height } = Dimensions.get('window')
+  const { t } = useTranslation()
 
   // Props
   const {
@@ -33,7 +36,10 @@ const WsStateFileItem = props => {
     uploadToFileStore = false,
     testID,
     orderMode = 'default',
-    onDragPressIn
+    onDragPressIn,
+    itemIndex,
+    onItemChange,
+    exportAttachmentName
   } = props
 
   // Redux
@@ -229,9 +235,29 @@ const WsStateFileItem = props => {
     }
   }, [needUpload])
 
+  const exportName = value?.export_attachment_name ?? $_getFileName()
+
   // Render
   return (
     <>
+      {
+        modelName === 'meeting' &&
+        orderMode !== 'sort' &&
+        exportAttachmentName && (
+          <WsState
+            style={
+              [
+                { marginBottom: 8, marginTop: itemIndex === 0 ? 0 : 16 }
+              ]
+            }
+            type="text"
+            label={t('匯出​附件​名​稱')}
+            value={exportName}
+            onChange={(text) => {
+              onItemChange?.({ export_attachment_name: text })
+            }}
+          />
+        )}
       <WsFlex>
         {needUpload && (
           <View
