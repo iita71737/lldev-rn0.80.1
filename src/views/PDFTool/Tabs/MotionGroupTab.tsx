@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { View, TouchableOpacity } from 'react-native'
 import DraggableFlatList from 'react-native-draggable-flatlist'
 import { useTranslation } from 'react-i18next'
-import { WsFlex, WsTag, WsCard, WsText, WsIcon, LlPDFMotionGroupCard001 } from '@/components'
+import { WsFlex, WsTag, WsCard, WsText, WsIcon, LlPDFMotionGroupCard001, WsSkeleton } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
+import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
 
 export type FileInfo = {
   id: string
@@ -35,36 +36,80 @@ export type Group = {
 }
 
 export type MotionGroupTabProps = {
+  meeting: any
+  refreshKey?: number
   mode: 'default' | 'dragSort'
   data: Group[]
   onEnterSort: () => void
   onCancelSort: () => void
   onConfirmSort: () => void
   onDragEnd: (data: Group[]) => void
-  setAddMotionModalVisible: (v: boolean) => void
-  setAddMotionGroupModalVisible: (v: boolean) => void
-  setPopupDeleteMotionGroup: (v: boolean) => void
+  onOpenAddMotion: (group: Group) => void
+  onOpenAddGroup: () => void
+  onOpenEditGroup: (group: Group) => void
+  onOpenDeleteMeetingItem: (group: Group, meetingItem: Motion) => void
+  onOpenDeleteGroup: (group: Group) => void
 }
 
 const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
+  meeting,
+  refreshKey,
   mode,
   data,
   onEnterSort,
   onCancelSort,
   onConfirmSort,
   onDragEnd,
-  setAddMotionModalVisible,
-  setAddMotionGroupModalVisible,
-  setPopupDeleteMotionGroup,
+  onOpenAddMotion,
+  onOpenAddGroup,
+  onOpenEditGroup,
+  onOpenDeleteMeetingItem,
+  onOpenDeleteGroup,
 }) => {
   const { t } = useTranslation()
+  const [loading, setLoading] = useState(true)
+  const [meetingItemGroups, setMeetingItemGroups] = useState<Group[]>(data)
+
+  const $_fetchMeetingItemGroups = async (meetingId: string, isMounted: () => boolean) => {
+    setLoading(true)
+    try {
+      const res = await S_MeetingItemGroup.index({ params: { meetingId } })
+      if (!isMounted()) return
+      setMeetingItemGroups(res?.data ?? [])
+    } catch (err) {
+      if (!isMounted()) return
+      console.log('S_MeetingItemGroup.index error', err)
+      setMeetingItemGroups([])
+    } finally {
+      if (!isMounted()) return
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!meeting?.id) {
+      setLoading(false)
+      return
+    }
+    let mounted = true
+    const isMounted = () => mounted
+    $_fetchMeetingItemGroups(meeting.id, isMounted)
+    return () => {
+      mounted = false
+    }
+  }, [meeting?.id, refreshKey])
+
+  useEffect(() => {
+    if (!meeting?.id) {
+      setMeetingItemGroups(data)
+    }
+  }, [data, meeting?.id])
 
   const renderListHeader = () => (
     <WsFlex
       style={{
-        paddingTop: 8,
-        marginVertical: 8,
-        paddingHorizontal: 16,
+        marginVertical: 16,
+        paddingHorizontal: 8,
       }}
       justifyContent="space-between"
     >
@@ -75,7 +120,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
           style={{ alignItems: 'flex-end', marginRight: 8 }}
           onPress={() => {
             if (mode === 'default') onEnterSort()
-            else onCancelSort()
+            else onCancelSort() 
           }}
         >
           <WsTag>{mode === 'default' ? t('排序') : t('取消')}</WsTag>
@@ -84,7 +129,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
         <TouchableOpacity
           style={{ alignItems: 'flex-end', marginRight: 8 }}
           onPress={() => {
-            if (mode === 'default') setAddMotionGroupModalVisible(true)
+            if (mode === 'default') onOpenAddGroup()
             else onConfirmSort()
           }}
         >
@@ -94,9 +139,17 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
     </WsFlex>
   )
 
+  if (loading) {
+    return (
+      <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+        <WsSkeleton />
+      </View>
+    )
+  }
+
   return (
     <DraggableFlatList
-      data={data}
+      data={meetingItemGroups}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={renderListHeader}
       ListFooterComponent={() => <View style={{ height: 50 }} />}
@@ -106,9 +159,11 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
             <LlPDFMotionGroupCard001
               key={item.id}
               item={item}
-              onPressAddGroup={() => setAddMotionModalVisible(true)}
-              onPressEditGroup={() => setAddMotionGroupModalVisible(true)}
-              onPressDeleteGroup={() => setPopupDeleteMotionGroup(true)}
+              refreshKey={refreshKey}
+              onPressAddGroup={onOpenAddMotion}
+              onPressEditGroup={onOpenEditGroup}
+              onPressDeleteMeetingItem={onOpenDeleteMeetingItem}
+              onPressDeleteGroup={onOpenDeleteGroup}
             />
           )
         }
@@ -133,7 +188,10 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
         )
       }}
       onDragEnd={({ data }) => {
-        if (mode === 'dragSort') onDragEnd(data as Group[])
+        if (mode === 'dragSort') {
+          setMeetingItemGroups(data as Group[])
+          onDragEnd(data as Group[])
+        }
       }}
     />
   )

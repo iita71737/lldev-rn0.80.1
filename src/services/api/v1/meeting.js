@@ -68,9 +68,6 @@ export default {
     const fileId = item?.file?.id ?? item?.file ?? null;
     if (!fileId) return null;
     // 3) file_version 來源優先序：
-    //    (a) item.file_version.id
-    //    (b) item.file.last_version.id   ✅ 你貼的資料在這裡
-    //    (c) item.file_version (若已是 id)
     const fileVersionId =
       item?.file_version?.id ??
       item?.file?.last_version?.id ??
@@ -136,43 +133,30 @@ export default {
       params: S_Processor.getFactoryParams()
     })
   },
-  formattedMeetingTemplateForEdit(_postData) {
+  formattedMeetingForEdit(meeting) {
     const state = store.getState()
     const factoryId = state.data.currentFactory?.id
-    const fileAttach = Array.isArray(_postData?.file_attaches)
-      ? _postData.file_attaches[0]
-      : null
     return {
-      // ===== 基本欄位 =====
-      meeting_template_type: _postData?.meeting_template_type ?? null,
-      name: _postData?.name ?? null,
-      factory: factoryId ?? null,
-      remark: _postData?.remark ?? null,
-      // ===== 標籤 =====
-      factory_tags: Array.isArray(_postData?.factory_tags)
-        ? _postData.factory_tags.map(tag => tag.id)
-        : [],
-      // ===== 檔案 =====
-      attach: fileAttach
-        ? {
-          file: fileAttach?.file?.id ?? null,
-          file_version: fileAttach?.file_version?.id ?? null,
-        }
-        : null,
-      // ===== 標記設定（核心）=====
-      meeting_templateＦ_items: Array.isArray(fileAttach?.meeting_template_items)
-        ? fileAttach.meeting_template_items.map(item => ({
-          // ⚠️ edit 時「有 id 就帶，沒有就不帶」
-          ...(item.id ? { id: item.id } : {}),
-
-          name: item?.name ?? null,
-          value: item?.value ?? null,
-          sequence: item?.sequence ?? null,
-          meeting_template_field: item?.meeting_template_field ?? null,
-          factory: item?.factory ?? factoryId ?? null,
-        }))
-        : [],
-    }
+      name: meeting.name ?? undefined,
+      remark: meeting.remark ?? undefined,
+      chairperson: meeting.chairperson ?? undefined,
+      meeting_date: meeting.meeting_date ?? undefined,
+      date_format: meeting.date_format ?? undefined,
+      meeting_date_format: meeting.meeting_date_format ?? undefined,
+      location: meeting.location ?? undefined,
+      owner: meeting.owner ?? undefined,
+      expired_at: meeting.expired_at ?? undefined,
+      meeting_item_template: meeting.meeting_item_template ?? undefined,
+      meeting_template: meeting.meeting_template ?? undefined,
+      contents_template: meeting.contents_template ?? undefined,
+      cover_template: meeting.cover_template ?? undefined,
+      item_label_type: meeting.item_label_type ?? undefined,
+      factory_tags: meeting?.factory_tags ?? [],
+      file_attaches: meeting.attaches ?? [],
+      sign_in_form: meeting.sign_in_form ? [meeting.sign_in_form] : undefined,
+      // users: Array.isArray(meeting.users) ? meeting.users.map(pickUser) : [],
+      // roles: Array.isArray(meeting.roles) ? meeting.roles : [],
+    };
   },
   async update({ data, modelId }) {
     return base.update({
@@ -184,4 +168,34 @@ export default {
       },
     })
   },
+  formattedDataForEdit(_postData, currentUserId) {
+    const state = store.getState()
+    const currentFactoryId = state?.data?.currentFactory?.id ?? null
+    const _data = {
+      factory: currentFactoryId ? currentFactoryId : undefined,
+      name: _postData.name,
+      remark: _postData.remark,
+      chairperson: _postData.chairperson ? _postData.chairperson : undefined,
+      meeting_date: _postData.meeting_date ? _postData.meeting_date : undefined,
+      date_format: _postData.date_format ? _postData.date_format : undefined,
+      meeting_date_format: _postData.meeting_date_format ? _postData.meeting_date_format : undefined,
+      location: _postData.location ? _postData.location : undefined,
+      owner: _postData.owner ? _postData.owner : undefined,
+      expired_at: _postData.expired_at ? _postData.expired_at : undefined,
+      meeting_item_template: _postData.meeting_item_template ? _postData.meeting_item_template : undefined,
+      meeting_template: _postData.meeting_template ? _postData.meeting_template : undefined,
+      contents_template: _postData.contents_template ? _postData.contents_template : undefined,
+      cover_template: _postData.cover_template ? _postData.cover_template : undefined,
+      item_label_type: _postData.item_label_type ? _postData.item_label_type : undefined,
+      factory_tags: _postData?.factory_tags?.map(_ => _.id) ?? [],
+      attaches: _postData.file_attaches ? this.formattedForFileStore(_postData.file_attaches) : [],
+      sign_in_form: _postData.sign_in_form ? this.formattedForSignInForm(_postData.sign_in_form) : undefined,
+      users: _postData.users ? _postData.users : [],
+      user_factory_roles: _postData.roles && _postData.roles.length > 0 ?
+        this.getArrayByUserFactoryRole(_postData.roles) : [],
+      user_factory_role_templates: _postData.roles && _postData.roles.length > 0 ?
+        this.getArrayByUserFactoryRoleTemplate(_postData.roles) : [],
+    }
+    return _data
+  }
 }

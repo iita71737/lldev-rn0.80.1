@@ -78,7 +78,8 @@ import {
   LlPDFMotionGroupCard001,
   WsCard,
   WsTabView,
-  WsStateCheckBox002
+  WsStateCheckBox002,
+  WsUpdateBtn
 } from '@/components'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
@@ -103,6 +104,7 @@ import S_GuidelineAdmin from '@/services/api/v1/guideline_admin'
 import S_GuidelineVersionAdmin from '@/services/api/v1/guideline_version_admin'
 import S_GuidelineArticleVersionAdmin from '@/services/api/v1/guideline_article_version_admin'
 import S_GuidelineArticleAdmin from '@/services/api/v1/guideline_article_admin'
+import S_Meeting from '@/services/api/v1/meeting'
 import { actions, RichEditor, RichToolbar } from 'react-native-pell-rich-editor'
 import IonIcon from 'react-native-vector-icons/Ionicons'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
@@ -125,7 +127,9 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import MeetingInfoTab, { EsGoalVariable } from './Tabs/MeetingInfoTab'
 import MotionGroupTab, { Group } from './Tabs/MotionGroupTab'
 import ExportRecordTab from './Tabs/ExportRecordTab'
-
+import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
+import S_MeetingItem from '@/services/api/v1/meeting_item'
+import file from 'services/api/v1/file'
 
 // -------------------- 型別 --------------------
 
@@ -174,120 +178,6 @@ type ExportItem = {
   children?: ExportItem[]
 }
 
-
-// -------------------- Demo 假資料 --------------------
-const VARIABLE_ITEMS: EsGoalVariable[] = [
-  {
-    id: 'v1',
-    customName: '使用者自定名稱 1',
-    variableName: '變數1',
-    esGoalField: 'ESGoal_Field_001',
-  },
-  {
-    id: 'v2',
-    customName: '使用者自定名稱 2',
-    variableName: '變數2',
-    esGoalField: 'ESGoal_Field_ABC',
-  },
-  {
-    id: 'v3',
-    customName: '使用者自定名稱 3',
-    variableName: '變數3',
-    esGoalField: 'ESGoal_Field_XYZ',
-  },
-]
-
-const DEFAULT_GROUPS: Group[] = [
-  {
-    id: 'g-1',
-    name: '自訂議案群組名稱 ex: 報告事項',
-    sequence: 1,
-    articles: [
-      {
-        id: 'a-101',
-        name: '行銷活動執行報告',
-        sequence: 1,
-        proposerDept: '行銷部',
-        reporterName: '陳xx資深副理',
-        attendees:
-          '投資部/李xx資深副理, 陳xx部長, 財務部/王xx組長',
-        content: '這裡是議案內容…',
-        attaches: [
-          {
-            id: 'f-9001',
-            name: 'DOCX_TestPage ver.1',
-            fileType: 'docx',
-            url: 'https://example.com/files/DOCX_TestPage_v1.docx',
-          },
-          {
-            id: 'f-9002',
-            name: 'DOCX_TestPage ver.1',
-            fileType: 'docx',
-            url: 'https://example.com/files/DOCX_TestPage_v1.docx',
-          },
-        ],
-        proposalFile: {
-          id: 'pf-1',
-          name: 'DOCX_TestPage ver.1',
-          fileType: 'docx',
-          url: 'https://example.com/files/DOCX_TestPage_v1.docx',
-        },
-        decisionSummary:
-          'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-        decisionDetail:
-          'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-        updatedAt: '2025-11-20T10:00:00Z',
-      },
-    ],
-  },
-  {
-    id: 'g-2',
-    name: '自訂議案群組名稱2 ex: 討論事項',
-    sequence: 2,
-    articles: [
-      {
-        id: 'a-102',
-        name: '年度預算案',
-        sequence: 1,
-        proposerDept: '財務部',
-        reporterName: '王xx協理',
-        attendees: '財務部、人資部、業務部',
-        content: '年度預算案內容 ...',
-        attaches: [
-          {
-            id: 'f-9003',
-            name: '預算說明.pdf',
-            fileType: 'pdf',
-            url: 'https://example.com/files/budget.pdf',
-          },
-        ],
-        proposalFile: {
-          id: 'pf-2',
-          name: 'Budget_Proposal_2025.docx',
-          fileType: 'docx',
-          url: 'https://example.com/files/Budget_Proposal_2025.docx',
-        },
-        decisionSummary: '會議決議簡述 ...',
-        decisionDetail: '會議決議詳細內容 ...',
-        updatedAt: '2025-11-18T13:22:10Z',
-      },
-      {
-        id: 'a-103',
-        name: '廠務設備更新案',
-        sequence: 2,
-        proposerDept: '廠務部',
-        reporterName: '林xx副理',
-        attendees: '廠務部、採購部、財務部',
-        content: '主旨：設備老舊，需汰換更新 ...',
-        attaches: [],
-        proposalFile: null,
-        decisionSummary: '採購設備型號待確認',
-        decisionDetail: '詳細決議內容 ...',
-        updatedAt: '2025-11-19T09:12:44Z',
-      },
-    ],
-  },
-]
 
 // 匯出範圍樹狀資料
 const EXPORT_ITEMS: ExportItem[] = [
@@ -386,100 +276,11 @@ const CheckboxRow: React.FC<CheckboxRowProps> = ({
         checkboxText={label}
         value={checked}
         onChange={onChange}
-        // 下面可依你畫面微調
         iconRightSize={22}
       />
     </View>
   );
 };
-
-type EsGoalVariable = {
-  id: string
-  customName: string        // 使用者自定名稱
-  variableName: string      // 變數名稱 (ex: 變數2)
-  esGoalField: string       // 對應 ESGoal 欄位
-}
-
-type EsGoalVariableItemProps = {
-  item: EsGoalVariable
-}
-
-const EsGoalVariableItem: React.FC<EsGoalVariableItemProps> = ({ item }) => {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={() => setOpen(prev => !prev)}
-      style={{ marginHorizontal: 16, marginTop: 12 }}
-    >
-      <WsCard
-        borderRadius={12}
-        style={{
-          paddingVertical: 8,
-          paddingHorizontal: 16,
-          borderWidth: 1,
-          borderColor: $color.gray,
-        }}
-      >
-        {/* 第一行：使用者自定名稱 + 展開 icon */}
-        <WsFlex
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <WsText size={14}>
-            {item.customName || t('使用者自定名稱')}
-          </WsText>
-        </WsFlex>
-
-        {/* 展開內容 */}
-        <View style={{ marginTop: 8 }}>
-          {/* 變數 */}
-          <WsFlex
-            style={{ marginBottom: 8 }}
-            alignItems="center"
-          >
-            <WsText size={14} style={{ width: 160 }}>
-              {t('變數')}
-            </WsText>
-            <WsText size={14}>
-              {`{${item.variableName}}`}
-            </WsText>
-
-            <TouchableOpacity
-              style={{
-                marginLeft: 8
-              }}
-              onPress={async () => {
-                const text = await Clipboard.getString(`{${item.variableName}}`);
-                Alert.alert(t('已成功複製'))
-                console.log(text, 'text')
-              }}
-            >
-              <WsIcon
-                name={'md-content-copy'}
-                size={28}
-                color={$color.primary}
-              />
-            </TouchableOpacity>
-
-          </WsFlex>
-
-          {/* 對應 ESGoal 欄位 */}
-          <WsFlex alignItems="center">
-            <WsText size={14} style={{ width: 160 }}>
-              {t('對應ESGoal欄位')}
-            </WsText>
-            <WsText size={14} numberOfLines={1}>
-              {item.esGoalField}
-            </WsText>
-          </WsFlex>
-        </View>
-      </WsCard>
-    </TouchableOpacity>
-  )
-}
 
 const PDFToolAdminShow = ({ navigation, route }) => {
   const { t } = useTranslation()
@@ -487,9 +288,10 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   // Params
   const {
-    id,
-    refreshKey,
+    id
   } = route.params
+
+  console.log(id, '=id=')
 
   // REDUX
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
@@ -503,10 +305,30 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true)
   const [popupDelete, setPopupDelete] = useState(false)
 
-  const [addMotionModalVisible, setAddMotionModalVisible] = useState(false)
+  // meeting_item_upload
+  const [submitMeetingItemLoading, setSubmitMeetingItemLoading] = useState(false)
+  const [fileData, setFileData] = useState();
+  const [meetingItemGroupIdForUpload, setMeetingItemGroupIdForUpload] = useState<string | null>(null)
+
   const [addMotionGroupModalVisible, setAddMotionGroupModalVisible] = useState(false)
   const [popupDeleteMotionGroup, setPopupDeleteMotionGroup] = useState(false)
+  const [popupDeleteMeetingItemVisible, setPopupDeleteMeetingItemVisible] = useState(false)
+  const [deleteMeetingItemTarget, setDeleteMeetingItemTarget] = useState<{ groupId?: string; meetingItemId?: string } | null>(null)
+  const [deleteMeetingItemGroupId, setDeleteMeetingItemGroupId] = useState<string | null>(null)
+
+  const [addMotionModalVisible, setAddMotionModalVisible] = useState(false)
   const [popupDeleteMeetingVisible, setPopupDeleteMeetingVisible] = useState(false)
+
+  // 議事
+  const [meeting, setMeeting] = useState<any>(null);
+  const [meetingItemGroupRefreshKey, setMeetingItemGroupRefreshKey] = useState(0)
+
+  // 議案群組
+  const [meetingItemGroupName, setMeetingItemGroupName] = useState('');
+  const [scheduleTemplate, setSchduleTemplate] = useState<null>(null);
+  const [bindContentsTemplate, setBindContentsTemplate] = useState<null>(null);
+  const [bindMeetingTemplate, setBindMeetingTemplate] = useState<null>(null);
+  const [editingMeetingItemGroup, setEditingMeetingItemGroup] = useState<any>(null);
 
   // 匯出 Modal
   const [exportModalVisible, setExportModalVisible] = useState(false)
@@ -517,42 +339,21 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const [mode, setMode] = useState<'default' | 'dragSort'>('default')
 
   // 正式資料
-  const [groups, setGroups] = useState<Group[]>(DEFAULT_GROUPS)
+  const [groups, setGroups] = useState<Group[]>([])
   const [motions, setMotions] = useState<Motion | null>(null);
 
   // 排序預覽資料
   const [tempGroups, setTempGroups] = useState<Group[] | null>(null)
 
-  // filter（這段先保留你原本的設定）
-  const [filterFields] = useState({
-    act_type: {
-      type: 'checkbox',
-      label: t('法規類別'),
-      storeKey: 'actTypes',
-    },
-    act_status: {
-      type: 'checkbox',
-      label: t('法規狀態'),
-      storeKey: 'actStatus',
-    },
-    button: {
-      type: 'date_range',
-      label: t('異動日期'),
-      time_field: 'announce_at',
-    },
-    system_subclasses: {
-      type: 'system_subclass',
-      label: t('領域'),
-    },
-    factory_tags: {
-      type: 'checkbox',
-      label: t('標籤'),
-      items: currentFactoryTags ? currentFactoryTags : [],
-      searchVisible: true,
-      selectAllVisible: false,
-      defaultSelected: false,
-    },
-  })
+  const $_setStorage = async () => {
+    try {
+      const _defaultValue = S_Meeting.formattedMeetingForEdit(meeting)
+      const payload = JSON.stringify(_defaultValue)
+      await AsyncStorage.setItem('PDFToolAdminUpdate', payload)
+    } catch (e) {
+      console.log('Error setting PDFToolAdminUpdate:', e)
+    }
+  }
 
   // Header options
   const $_setNavigationOption = () => {
@@ -564,7 +365,8 @@ const PDFToolAdminShow = ({ navigation, route }) => {
               name="ws-outline-edit-pencil"
               size={24}
               color={$color.white}
-              onPress={() => {
+              onPress={async () => {
+                await $_setStorage()
                 setIsBottomSheetActive(true)
               }}
             />
@@ -655,26 +457,29 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         label: t('刪除議事'),
         onPress: () => {
           setPopupDeleteMeetingVisible(true)
-         }
+        }
       },
     ],
     [id, t],
   )
 
   // SERVICES
-  const $_fetchGuideline = async (e?) => {
-    console.log(id, 'guidelineId')
+  const $_fetchMeeting = async () => {
     setLoading(true)
-    const res = await S_GuidelineAdmin.show({
+    const res = await S_Meeting.show({
       modelId: id,
     })
+    setMeeting(res)
     setLoading(false)
   }
 
   useEffect(() => {
-    $_setNavigationOption()
-    // $_fetchGuideline()
+    $_fetchMeeting()
   }, [id])
+
+  useEffect(() => {
+    $_setNavigationOption()
+  }, [meeting])
 
   // 進入排序模式：複製目前 groups
   const enterDragSortMode = () => {
@@ -750,6 +555,89 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   }
 
 
+  const $_resetMeetingItemGroupForm = () => {
+    setMeetingItemGroupName('')
+    setSchduleTemplate(null)
+    setBindContentsTemplate(null)
+    setBindMeetingTemplate(null)
+  }
+
+  const $_openAddMeetingItemGroupModal = () => {
+    setEditingMeetingItemGroup(null)
+    $_resetMeetingItemGroupForm()
+    setAddMotionGroupModalVisible(true)
+  }
+
+  const $_openEditMeetingItemGroupModal = (group: any) => {
+    setEditingMeetingItemGroup(group)
+    setMeetingItemGroupName(group?.name ?? '')
+    setSchduleTemplate(group?.schedule_template ?? group?.schedule_template_id ?? null)
+    setBindContentsTemplate(
+      group?.contents_template_variable ??
+      group?.contents_template_item ??
+      group?.contents_template ??
+      null
+    )
+    setBindMeetingTemplate(
+      group?.meeting_template_variable ??
+      group?.meeting_template_item ??
+      group?.meeting_template ??
+      null
+    )
+    setAddMotionGroupModalVisible(true)
+  }
+
+  const $_submitMeetingItemGroup = async () => {
+    try {
+      if (!id) {
+        Alert.alert(t('資料載入中，請稍後再試'))
+        return
+      }
+      const $_getId = (value: any) => value?.id ?? value ?? null
+      const _params = {
+        meetingId: id,
+        name: meetingItemGroupName,
+        schedule_template: $_getId(scheduleTemplate),
+        contents_template_variable: $_getId(bindContentsTemplate),
+        meeting_template_variable: $_getId(bindMeetingTemplate)
+      }
+      const res = editingMeetingItemGroup?.id
+        ? await S_MeetingItemGroup.update({
+          data: _params,
+          modelId: editingMeetingItemGroup.id
+        })
+        : await S_MeetingItemGroup.create({ data: _params });
+      if (res) {
+        console.log(res, 'resresres')
+        setAddMotionGroupModalVisible(false)
+        setEditingMeetingItemGroup(null)
+        $_resetMeetingItemGroupForm()
+        setMeetingItemGroupRefreshKey(prev => prev + 1)
+      }
+    } catch (e) {
+
+    }
+  }
+
+  const $_openAddMotionModal = (group: Group) => {
+    setMeetingItemGroupIdForUpload(group?.id ?? null)
+    setFileData(undefined)
+    setAddMotionModalVisible(true)
+  }
+
+  const $_openDeleteMeetingItem = (group: Group, meetingItem: Motion) => {
+    setDeleteMeetingItemTarget({
+      groupId: group?.id,
+      meetingItemId: meetingItem?.id,
+    })
+    setPopupDeleteMeetingItemVisible(true)
+  }
+
+  const $_openDeleteMeetingItemGroup = (group: Group) => {
+    setDeleteMeetingItemGroupId(group?.id ?? null)
+    setPopupDeleteMotionGroup(true)
+  }
+
   const tabItems = useMemo(
     () => [
       {
@@ -757,7 +645,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         label: t('議事內容'),
         view: MeetingInfoTab,
         props: {
-          variableList: VARIABLE_ITEMS,
+          meetingId: id,
         },
       },
       {
@@ -765,15 +653,19 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         label: t('議案群組'),
         view: MotionGroupTab,
         props: {
+          meeting: meeting,
+          refreshKey: meetingItemGroupRefreshKey,
           mode,
-          data: listData,
+          data: [],
           onEnterSort: enterDragSortMode,
           onCancelSort: cancelDragSort,
           onConfirmSort: confirmDragSort,
           onDragEnd: (data: Group[]) => setTempGroups(data),
-          setAddMotionModalVisible,
-          setAddMotionGroupModalVisible,
-          setPopupDeleteMotionGroup,
+          onOpenAddMotion: $_openAddMotionModal,
+          onOpenAddGroup: $_openAddMeetingItemGroupModal,
+          onOpenEditGroup: $_openEditMeetingItemGroupModal,
+          onOpenDeleteMeetingItem: $_openDeleteMeetingItem,
+          onOpenDeleteGroup: $_openDeleteMeetingItemGroup,
         },
       },
       {
@@ -783,8 +675,134 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         props: {},
       },
     ],
-    [t, mode, listData],
+    [
+      t,
+      mode,
+      meeting,
+      id,
+      meetingItemGroupRefreshKey,
+      $_openAddMotionModal,
+      $_openAddMeetingItemGroupModal,
+      $_openEditMeetingItemGroupModal,
+      $_openDeleteMeetingItem,
+      $_openDeleteMeetingItemGroup,
+    ],
   )
+
+  // 匯入Word
+  const pickWordFile = async () => {
+    try {
+      console.log('📂 開始選擇 Word 檔案...')
+      // 1️⃣ 打開檔案選擇器
+      const res = await pick({
+        mode: 'import',
+        mimeTypes: [
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
+        ]
+      })
+      if (!res || res.length === 0) {
+        console.warn('❌ 沒有選擇檔案')
+        return;
+      }
+      const fileUri = res[0].uri
+      const fileName = res[0].name || ''
+      const isDocx = fileName.toLowerCase().endsWith('.docx')
+      if (!isDocx) {
+        Alert.alert(t('請選擇 .docx 檔案'))
+        return
+      }
+      const fileType =
+        res[0].type ||
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      setFileData({
+        uri: fileUri,
+        name: fileName,
+        type: fileType,
+      })
+      console.log(`📄 已選擇: ${fileName} (${fileUri})`)
+      // 2️⃣ 讀取檔案內容
+      Alert.alert(t('成功'), `${t('成功匯入')} ${fileName}`)
+    } catch (err) {
+      // Android 有 code；iOS 可能只有 message
+      const isCancel =
+        err?.code === 'DOCUMENT_PICKER_CANCELED' ||
+        err?.message?.includes('user canceled') ||
+        err?.message?.includes('The operation was cancelled')
+      if (isCancel) {
+        console.log('✅ 使用者取消選擇')
+      } else {
+        console.error('❌ 發生其他錯誤:', err)
+      }
+    }
+    setLoading(false)
+  };
+
+  const $_submitMeetingItem = async () => {
+    const formData = new FormData();
+    formData.append('factory', currentFactory.id);
+    formData.append('item_label', meeting?.item_label_type?.id);
+    formData.append('meeting', id);
+    formData.append('file', fileData);
+    const _params = {
+      formData: formData,
+      meeting_item_group_id: meetingItemGroupIdForUpload
+    }
+    console.log(formData,'formData---')
+    console.log(_params,'_params---')
+    try {
+      if (!meetingItemGroupIdForUpload) {
+        Alert.alert(t('請先選擇議案群組'))
+        return
+      }
+      if (!fileData) {
+        Alert.alert(t('請先上傳檔案'))
+        return
+      }
+      setSubmitMeetingItemLoading(true)
+      const _meetingItem = await S_MeetingItem.importMeetingItemWord({ params: _params })
+      console.log(_meetingItem, '_meetingItem');
+      setAddMotionModalVisible(false)
+      setMeetingItemGroupIdForUpload(null)
+      setFileData(undefined)
+      Alert.alert(t('建立​成功，​伺服器​正在​處理​中，​請到​匯出紀​錄確認​處理​狀態'))
+      setMeetingItemGroupRefreshKey(prev => prev + 1)
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSubmitMeetingItemLoading(false)
+    }
+  }
+
+  const $_confirmDeleteMeetingItem = async () => {
+    const meetingItemId = deleteMeetingItemTarget?.meetingItemId
+    if (!meetingItemId) {
+      Alert.alert(t('請先選擇議案'))
+      return
+    }
+    try {
+      await S_MeetingItem.delete({ modelId: meetingItemId })
+      setPopupDeleteMeetingItemVisible(false)
+      setDeleteMeetingItemTarget(null)
+      setMeetingItemGroupRefreshKey(prev => prev + 1)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const $_confirmDeleteMeetingItemGroup = async () => {
+    if (!deleteMeetingItemGroupId) {
+      Alert.alert(t('請先選擇議案群組'))
+      return
+    }
+    try {
+      await S_MeetingItemGroup.delete({ modelId: deleteMeetingItemGroupId })
+      setPopupDeleteMotionGroup(false)
+      setDeleteMeetingItemGroupId(null)
+      setMeetingItemGroupRefreshKey(prev => prev + 1)
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
 
   // 在 PDFToolAdminShow 裡
@@ -980,44 +998,74 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         visible={addMotionModalVisible}
         headerLeftOnPress={() => {
           setAddMotionModalVisible(false)
+          setMeetingItemGroupIdForUpload(null)
+          setFileData(undefined)
         }}
         onBackButtonPress={() => {
           setAddMotionModalVisible(false)
+          setMeetingItemGroupIdForUpload(null)
+          setFileData(undefined)
         }}
         footerBtnLeftText={t('取消')}
+        footerBtnLeftOnPress={() => {
+          setAddMotionModalVisible(false)
+          setMeetingItemGroupIdForUpload(null)
+          setFileData(undefined)
+        }}
         footerBtnRightText={t('確定')}
+        footerBtnRightOnPress={() => {
+          $_submitMeetingItem()
+        }}
       >
         <View
           style={{
+            marginVertical: 16,
             paddingHorizontal: 16,
           }}
         >
-          <WsState
-            style={{
-              marginTop: 8,
+          {fileData && (
+            <WsInfo
+              style={{
+                marginTop: 8,
+              }}
+              label={t('已上傳提案單')}
+              value={fileData.name}
+            >
+            </WsInfo>
+          )}
+          <WsUpdateBtn
+            onPress={() => {
+              pickWordFile()
             }}
-            type="Ll_filesAndImages"
-            label={t('提案單')}
-            modelName="meeting"
-            value={motions}
-            onChange={setMotions}
-            remindBtnDisabled={true}
-            desVisible={false}
-          />
+          >
+            {t('上傳')}
+          </WsUpdateBtn>
         </View>
       </WsModal>
 
       <WsModal
-        title={t('新增議案群組')}
+        title={editingMeetingItemGroup ? t('編輯議案群組') : t('新增議案群組')}
         visible={addMotionGroupModalVisible}
         headerLeftOnPress={() => {
           setAddMotionGroupModalVisible(false)
+          setEditingMeetingItemGroup(null)
+          $_resetMeetingItemGroupForm()
         }}
         onBackButtonPress={() => {
           setAddMotionGroupModalVisible(false)
+          setEditingMeetingItemGroup(null)
+          $_resetMeetingItemGroupForm()
         }}
         footerBtnLeftText={t('取消')}
+        footerBtnLeftOnPress={() => {
+          setAddMotionGroupModalVisible(false)
+          setEditingMeetingItemGroup(null)
+          $_resetMeetingItemGroupForm()
+        }}
         footerBtnRightText={t('確定')}
+        footerBtnRightOnPress={() => {
+          $_submitMeetingItemGroup()
+        }}
       >
         <View
           style={{
@@ -1028,76 +1076,56 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             style={{}}
             label={t('名稱')}
             placeholder={t('輸入')}
-            value={''}
-            onChange={() => { }}
-          />
-
-          <WsState
-            label={t('時序表格式​範本​')}
-            style={{
-              marginTop: 16,
-            }}
-            placeholder={t('輸入')}
-            type="picker"
-            value={''}
-            onChange={$event => {
-            }}
-            items={[
-              {
-                label: t('依建立日期由近至遠'),
-                value: {
-                  order_way: 'desc',
-                  order_by: 'created_at',
-                },
-              },
-              {
-                label: t('依更新時間由近至遠'),
-                value: {
-                  order_way: 'desc',
-                  order_by: 'updated_at',
-                },
-              },
-            ]}
+            value={meetingItemGroupName}
+            onChange={setMeetingItemGroupName}
           />
 
           <WsState
             style={{
               marginTop: 16,
             }}
-            preText={'Ver. '}
+            label={t('時序表範本')}
+            type="belongsto"
+            modelName={'meeting_template'}
+            serviceIndexKey={'index'}
+            nameKey={'name'}
+            hasMeta={false}
+            value={scheduleTemplate}
+            onChange={setSchduleTemplate}
+          />
+
+          <WsState
+            style={{
+              marginTop: 16,
+            }}
             label={t('此​議案​群​組​對應​的​目錄​範本​區塊​')}
             type="belongsto"
-            modelName={'guideline_version'}
-            serviceIndexKey={'indexAnnounce'}
-            nameKey={'announce_at'}
+            modelName={'meeting_template_item'}
+            serviceIndexKey={'index'}
+            nameKey={'name'}
             hasMeta={false}
-            formatNameKey={'YYYY-MM-DD'}
-            value={''}
             params={{
-              guideline_id: id,
+              meeting_template: meeting?.contents_template?.id
             }}
-            onChange={async $event => {
-            }}
+            value={bindContentsTemplate}
+            onChange={setBindContentsTemplate}
           />
 
           <WsState
             style={{
               marginTop: 16,
             }}
-            preText={'Ver. '}
-            label={t('此​議案​群​組​對應​的​議程​範本​區塊​')}
+            label={t('此​議案​群​組​對應​的​議程範本​區塊​')}
             type="belongsto"
-            modelName={'guideline_version'}
-            serviceIndexKey={'indexAnnounce'}
-            nameKey={'announce_at'}
+            modelName={'meeting_template_item'}
+            serviceIndexKey={'index'}
+            nameKey={'name'}
             hasMeta={false}
-            formatNameKey={'YYYY-MM-DD'}
-            value={''}
             params={{
-              guideline_id: id,
+              meeting_template: meeting?.meeting_template?.id
             }}
-            onChange={async $event => {
-            }}
+            value={bindMeetingTemplate}
+            onChange={setBindMeetingTemplate}
           />
         </View>
       </WsModal>
@@ -1106,6 +1134,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         active={popupDeleteMotionGroup}
         onClose={() => {
           setPopupDeleteMotionGroup(false)
+          setDeleteMeetingItemGroupId(null)
         }}
       >
         <View
@@ -1166,7 +1195,82 @@ const PDFToolAdminShow = ({ navigation, route }) => {
                 width: 110,
               }}
               onPress={() => {
-                setPopupDeleteMotionGroup(false)
+                $_confirmDeleteMeetingItemGroup()
+              }}
+            >
+              {t('確定')}
+            </WsGradientButton>
+          </WsFlex>
+        </View>
+      </WsPopup>
+
+      <WsPopup
+        active={popupDeleteMeetingItemVisible}
+        onClose={() => {
+          setPopupDeleteMeetingItemVisible(false)
+          setDeleteMeetingItemTarget(null)
+        }}
+      >
+        <View
+          style={{
+            width: width * 0.9,
+            height: height * 0.2,
+            backgroundColor: $color.white,
+            borderRadius: 10,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <WsText
+            size={18}
+            color={$color.black}
+            style={{
+              position: 'absolute',
+              left: 16,
+              top: 16,
+            }}
+          >
+            {t('確定要刪除嗎？')}
+          </WsText>
+          <WsFlex
+            style={{
+              position: 'absolute',
+              right: 16,
+              bottom: 16,
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderColor: $color.gray,
+                borderRadius: 25,
+                borderWidth: 1,
+                width: 110,
+                alignItems: 'center',
+              }}
+              onPress={() => {
+                setPopupDeleteMeetingItemVisible(false)
+                setDeleteMeetingItemTarget(null)
+              }}
+            >
+              <WsText
+                style={{
+                  padding: 1,
+                }}
+                size={14}
+                color={$color.gray}
+              >
+                {t('取消')}
+              </WsText>
+            </TouchableOpacity>
+            <WsGradientButton
+              style={{
+                width: 110,
+              }}
+              onPress={() => {
+                $_confirmDeleteMeetingItem()
               }}
             >
               {t('確定')}

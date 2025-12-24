@@ -328,6 +328,40 @@ const RoutesAct = () => {
     }
   }
 
+  // 編輯議事
+  const submitForEditMeeting = async (
+    _formattedValue,
+    modelId,
+    versionId,
+    navigation,
+    currentUserId
+  ) => {
+    console.log(JSON.stringify(_formattedValue), '_formattedValue--');
+    const _data = S_Meeting.formattedDataForEdit(_formattedValue)
+    console.log(JSON.stringify(_data), 'submitForEditMeeting');
+    try {
+      const res = await S_Meeting.update({
+        modelId: modelId,
+        data: _data
+      })
+      if (res) {
+        navigation.replace('RoutesPDFTool', {
+          screen: 'PDFToolAdminShow',
+          params: {
+            id: res.id
+          }
+        })
+      }
+      // await AsyncStorage.removeItem('GuidelineAdminUpdateNoVersion')
+    } catch (e) {
+      Alert.alert(t('編輯議事異常'))
+      console.error(e.message, 'submitForEditNoVersion')
+      navigation.navigate('RoutesPDFTool', {
+        screen: 'PDFToolAdminIndex'
+      })
+    }
+  }
+
   // add template
   const submitForCreateTemplate = async (_postData, navigation) => {
     // console.log(JSON.stringify(_postData), '_postData submitForCreateTemplate');
@@ -430,40 +464,6 @@ const RoutesAct = () => {
     }
   }
 
-  // 編輯內規
-  const submitForEditNoVersion = async (
-    _formattedValue,
-    modelId,
-    versionId,
-    navigation,
-    currentUserId
-  ) => {
-    // console.log(modelId,'modelId');
-    // console.log(JSON.stringify(_postData), '_postData submitForEditNoVersion');
-    const _data = S_GuidelineAdmin.formattedDataForEdit(_formattedValue)
-    try {
-      const res = await S_GuidelineAdmin.update({
-        modelId: modelId,
-        data: _data
-      })
-      if (res) {
-        navigation.replace('RoutesAct', {
-          screen: 'GuidelineAdminShow',
-          params: {
-            id: res.id
-          }
-        })
-      }
-      // await AsyncStorage.removeItem('GuidelineAdminUpdateNoVersion')
-    } catch (e) {
-      Alert.alert(t('編輯內規異常'))
-      console.error(e.message, 'submitForEditNoVersion')
-      navigation.navigate('RoutesAct', {
-        screen: 'PDFToolAdminIndex'
-      })
-    }
-  }
-
   const stepSettings = [
     {
       getShowFields(fieldsValue) {
@@ -555,7 +555,7 @@ const RoutesAct = () => {
             modelName: 'meeting',
             fields: fields,
             stepSettings: stepSettings,
-            submitFunction: submitForCreateTemplate,
+            submitFunction: submitForEditMeeting
           }}
         />
 
