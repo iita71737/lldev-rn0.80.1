@@ -60,6 +60,7 @@ import H_time from '@/helpers/time';
 import PDFToolAdminTemplateShow from '@/views/PDFTool/PDFToolAdminTemplateShow'
 import PDFToolAdminExportShow from '@/views/PDFTool/PDFToolAdminExportShow'
 const StackSetting = createStackNavigator()
+import S_Meeting from '@/services/api/v1/meeting'
 
 const RoutesAct = () => {
   const { t, i18n } = useTranslation()
@@ -77,61 +78,53 @@ const RoutesAct = () => {
       placeholder: `${t('輸入')}`,
       rules: 'required',
     },
-    chairman: {
+    chairperson: {
       label: t('主席'),
       placeholder: t('輸入'),
     },
-    meeting_time: {
+    meeting_date: {
       type: 'datetime',
       placeholder: t('YYYY-MM-DD HH:mm'),
       label: t('時間'),
       rules: 'required',
     },
-    meeting_time_type: {
-      type: 'picker',
+    date_format: {
+      type: 'belongsto',
       label: t('時間格式'),
-      items:
-        [
-          {
-            label: t('YYYY-MM-DD hh:mm'),
-            value: '西元'
-          },
-          {
-            label: t('一一四年十一月二十日（星期四）上午9時30分'),
-            value: '民國'
-          },
-        ],
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'data_format',
+      serviceIndexKey: 'index',
+      rules: 'required',
       updateValueOnChange: (event, value, field, fields) => {
-        console.log(event, 'event')
-        console.log(value, 'value')
-        if (event === '民國') {
-          value.meeting_time_type = '民國'
-          value.format_time = H_time.getRocChineseDateTime(value.meeting_time, true, 'Asia/Taipei');
+        console.log(event, 'event222')
+        console.log(value, 'value222')
+        if (event?.value === 'roc_format') {
+          value.meeting_date_format = H_time.getRocChineseDateTime(value.meeting_date, false, 'Asia/Taipei');
           return value
-        } else if (event === '西元') {
-          value.meeting_time_type = '西元'
-          value.format_time = value.meeting_time
+        } else if (event?.value === 'default') {
+          value.meeting_date_format = value.meeting_date
           return value
         }
       },
     },
-    format_time: {
+    meeting_date_format: {
       multiline: true,
       placeholder: t('YYYY-MM-DD HH:mm'),
     },
-    meeting_place: {
+    location: {
       label: t('地點'),
       multiline: true,
       placeholder: t('輸入'),
     },
-    motion_template: {
+    meeting_item_template: {
       type: 'belongsto',
       label: t('提案​單範本​'),
       placeholder: `${t('選擇')}`,
       nameKey: 'name',
-      modelName: 'user',
-      serviceIndexKey: 'simplifyFactoryIndex',
-      customizedNameKey: 'userAndEmail',
+      modelName: 'meeting_template',
+      serviceIndexKey: 'index',
+      hasMeta: false,
       rules: 'required',
     },
     meeting_template: {
@@ -139,19 +132,19 @@ const RoutesAct = () => {
       label: t('議程​範本​'),
       placeholder: `${t('選擇')}`,
       nameKey: 'name',
-      modelName: 'user',
-      serviceIndexKey: 'simplifyFactoryIndex',
-      customizedNameKey: 'userAndEmail',
+      modelName: 'meeting_template',
+      serviceIndexKey: 'index',
+      hasMeta: false,
       rules: 'required',
     },
-    catelog_template: {
+    contents_template: {
       type: 'belongsto',
       label: t('目錄​範本​'),
       placeholder: `${t('選擇')}`,
       nameKey: 'name',
-      modelName: 'user',
-      serviceIndexKey: 'simplifyFactoryIndex',
-      customizedNameKey: 'userAndEmail',
+      modelName: 'meeting_template',
+      serviceIndexKey: 'index',
+      hasMeta: false,
       rules: 'required',
     },
     cover_template: {
@@ -159,12 +152,12 @@ const RoutesAct = () => {
       label: t('封面範本'),
       placeholder: `${t('選擇')}`,
       nameKey: 'name',
-      modelName: 'user',
-      serviceIndexKey: 'simplifyFactoryIndex',
-      customizedNameKey: 'userAndEmail',
+      modelName: 'meeting_template',
+      serviceIndexKey: 'index',
+      hasMeta: false,
       rules: 'required',
     },
-    motion_template_format: {
+    item_label_type: {
       type: 'belongsto',
       label: t('項目符號'),
       placeholder: `${t('選擇')}`,
@@ -194,7 +187,7 @@ const RoutesAct = () => {
       label: t('期限'),
       rules: 'required',
     },
-    scopes_users: {
+    users: {
       type: 'belongstomany',
       label: `${t('限閱人員')}`,
       nameKey: 'name',
@@ -240,10 +233,15 @@ const RoutesAct = () => {
       testID: '事件說明'
     },
     file_attaches: {
-      modelName: 'factory_statistic_group',
+      modelName: 'meeting',
       type: 'Ll_filesAndImages',
       label: t('附件'),
       canOrder: true
+    },
+    sign_in_form: {
+      modelName: 'meeting',
+      type: 'Ll_filesAndImages',
+      label: t('簽到表'),
     }
   }
 
@@ -294,6 +292,43 @@ const RoutesAct = () => {
     },
   }
 
+  // add meeting
+  const submitForCreateMeeting = async (_postData, navigation) => {
+    console.log(JSON.stringify(_postData), '_postData submitForCreateMeeting');
+    const _data = S_Meeting.formattedDataForCreate(_postData, currentUser)
+    console.log(JSON.stringify(_data), '_data submitForCreateTemplate');
+    try {
+      const res = await S_Meeting.create({
+        data: _data
+      })
+      if (res) {
+        navigation.reset({
+          index: 1,
+          routes: [
+            {
+              name: 'PDFToolAdminIndex',
+            },
+            {
+              name: 'PDFToolAdminShow',
+              params: {
+                id: res.id,
+                initTabIndex: 0
+              }
+            }
+          ],
+          key: null
+        })
+      }
+    } catch (e) {
+      Alert.alert(t('議事建立異常'))
+      console.error(e.message, 'submitForCreateTemplate')
+      navigation.navigate('RoutesPDFTool', {
+        screen: 'PDFToolAdminIndex'
+      })
+    }
+  }
+
+  // add template
   const submitForCreateTemplate = async (_postData, navigation) => {
     // console.log(JSON.stringify(_postData), '_postData submitForCreateTemplate');
     const _data = S_MeetingTemplate.formattedDataForCreate(_postData, currentUser)
@@ -303,11 +338,21 @@ const RoutesAct = () => {
         data: _data
       })
       if (res) {
-        navigation.replace('RoutesPDFTool', {
-          screen: 'PDFToolAdminTemplateShow',
-          params: {
-            id: res.id
-          }
+        navigation.reset({
+          index: 1,
+          routes: [
+            {
+              name: 'PDFToolAdminIndex',
+            },
+            {
+              name: 'PDFToolAdminTemplateShow',
+              params: {
+                id: res.id,
+                initTabIndex: 1
+              }
+            }
+          ],
+          key: null
         })
       }
     } catch (e) {
@@ -437,22 +482,23 @@ const RoutesAct = () => {
             'name',
             'owner',
             'expired_at',
-            'chairman',
-            'meeting_time',
-            'meeting_time_type',
-            'format_time',
-            'meeting_place',
+            'chairperson',
+            'meeting_date',
+            'date_format',
+            'meeting_date_format',
+            'location',
             'file_attaches',
-            'scopes_users',
+            'users',
             'roles',
             'remark',
-            'motion_template',
+            'meeting_item_template',
             'meeting_template',
-            'catelog_template',
+            'contents_template',
             'cover_template',
-            'motion_template_format',
+            'item_label_type',
             'factory_tags',
-            'meeting_template_type'
+            'meeting_template_type',
+            'sign_in_form'
           ]
         }
       }
@@ -473,6 +519,7 @@ const RoutesAct = () => {
           options={({ navigation }) => ({
             title: t('議事管理'),
             ...gOption.headerOption,
+            headerShown: false,
           })}
         />
 
@@ -490,7 +537,7 @@ const RoutesAct = () => {
             modelName: 'meeting',
             fields: fields,
             stepSettings: stepSettings,
-            submitFunction: submitForCreateTemplate,
+            submitFunction: submitForCreateMeeting,
           }}
         />
 
@@ -521,7 +568,7 @@ const RoutesAct = () => {
             ...$option.headerOption
           }}
           initialParams={{
-            name: 'PDFToolAdminCreate',
+            name: 'PDFToolAdminCreateTemplate',
             title: t('新​增​範本​'),
             modelName: 'meeting_template',
             fields: fieldsForTemplate,

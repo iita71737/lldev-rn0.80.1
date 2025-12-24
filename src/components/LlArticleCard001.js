@@ -129,6 +129,8 @@ const LlArticleCard001 = props => {
     }
   }
 
+  // console.log(article, 'articleQQ')
+
   return (
     <>
       {article && (
@@ -177,6 +179,19 @@ const LlArticleCard001 = props => {
                 }}
               >
                 {article.section}
+              </WsTitle>
+            }
+
+            {article.sub_section != '' &&
+              <WsTitle
+                fontSize={18}
+                fontWeight={'600'}
+                style={{
+                  marginBottom: 16,
+                  // borderWidth:1,
+                }}
+              >
+                {article.sub_section}
               </WsTitle>
             }
 

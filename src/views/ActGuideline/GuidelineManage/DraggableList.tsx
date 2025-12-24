@@ -52,6 +52,8 @@ export const DraggableList: FunctionComponent<{ items: ItemProps[], setInitSeque
     itemLayouts[id] = e.nativeEvent.layout.y;
   };
 
+console.log(items,'itemsAAA')
+
 
   // STATES：使用 _items 存放目前最新的排序資料
   const [_items, setItems] = useState<ItemProps[]>(items);

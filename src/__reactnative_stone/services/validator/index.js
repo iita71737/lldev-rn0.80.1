@@ -171,7 +171,7 @@ export default {
         _error = gMessage['incorrect telephone format.']
       }
     } else if (ruleName == 'allMarkSetting') {
-      _valid = false
+      _valid = true
       // ✅ 新增：meeting_template 的完整性檢查
       // 若 value[0] 同時有 word_fields 與 meeting_template_items，必須長度相等
       if (Array.isArray(value) && value.length > 0) {
@@ -179,6 +179,7 @@ export default {
         const wf = first?.word_fields
         const items = first?.meeting_template_items
         if (Array.isArray(wf) && Array.isArray(items)) {
+          _valid = false
           // 你要的規則：兩者長度必須相等才算 valid
           if (wf.length != items.length) {
             _valid = false

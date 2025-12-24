@@ -1,0 +1,187 @@
+import base from '@/__reactnative_stone/services/wasaapi/v1/__base'
+import S_Processor from '@/services/app/processor'
+import moment from 'moment'
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+import store from '@/store'
+
+export default {
+  async index({ params }) {
+    const unit = params?.factory
+    return base.index({
+      preUrl: S_Processor.getFactoryPreUrl(unit),
+      modelName: `meeting`,
+      params: {
+        ...params,
+        ...S_Processor.getFactoryParams(unit),
+        ...S_Processor.getLocaleParams()
+      }
+    })
+  },
+  getArrayByUserFactoryRole(roles) {
+    const _user_factory_roles = roles.map(_role => {
+      if (_role.role_type === 'user_role') {
+        return {
+          role_id: _role.id,
+          role_type: 'factory'
+        };
+      }
+      else {
+        return null;
+      }
+    }).filter(item => item !== null);
+    return _user_factory_roles
+  },
+  getArrayByUserFactoryRoleTemplate(roles) {
+    const _user_factory_role_templates = roles.map(_role => {
+      if (_role.role_type === 'user_factory_role_template' || _role.role_type === 'template') {
+        return {
+          role_id: _role.id,
+          role_type: 'template'
+        };
+      } else {
+        return null;
+      }
+    }).filter(item => item !== null);
+    return _user_factory_role_templates
+  },
+  formattedForFileStore(attaches) {
+    return attaches.map(item => {
+      const newItem = {
+        file: item.file.id
+      };
+      if (item.file_version) {
+        newItem.file_version = item.file_version.id;
+      }
+      return newItem;
+    });
+  },
+  formattedForSignInForm(input) {
+    if (!input) return null;
+    // 1) sign_in_form 可能是陣列 -> 取第一筆
+    const item = Array.isArray(input) ? input[0] : input;
+    if (!item) return null;
+    // 2) 你的結構通常是 item.file.id
+    const fileId = item?.file?.id ?? item?.file ?? null;
+    if (!fileId) return null;
+    // 3) file_version 來源優先序：
+    //    (a) item.file_version.id
+    //    (b) item.file.last_version.id   ✅ 你貼的資料在這裡
+    //    (c) item.file_version (若已是 id)
+    const fileVersionId =
+      item?.file_version?.id ??
+      item?.file?.last_version?.id ??
+      item?.file_version ??
+      null;
+
+    const payload = { file: fileId };
+    if (fileVersionId) payload.file_version = fileVersionId;
+
+    return payload;
+  },
+  formattedDataForCreate(_postData, currentUserId) {
+    const state = store.getState()
+    const currentFactoryId = state?.data?.currentFactory?.id ?? null
+    const _data = {
+      factory: currentFactoryId ? currentFactoryId : undefined,
+      name: _postData.name,
+      remark: _postData.remark,
+      chairperson: _postData.chairperson ? _postData.chairperson : undefined,
+      meeting_date: _postData.meeting_date ? _postData.meeting_date : undefined,
+      date_format: _postData.date_format ? _postData.date_format : undefined,
+      meeting_date_format: _postData.meeting_date_format ? _postData.meeting_date_format : undefined,
+      location: _postData.location ? _postData.location : undefined,
+      owner: _postData.owner ? _postData.owner : undefined,
+      expired_at: _postData.expired_at ? _postData.expired_at : undefined,
+      meeting_item_template: _postData.meeting_item_template ? _postData.meeting_item_template : undefined,
+      meeting_template: _postData.meeting_template ? _postData.meeting_template : undefined,
+      contents_template: _postData.contents_template ? _postData.contents_template : undefined,
+      cover_template: _postData.cover_template ? _postData.cover_template : undefined,
+      item_label_type: _postData.item_label_type ? _postData.item_label_type : undefined,
+      factory_tags: _postData?.factory_tags?.map(_ => _.id) ?? [],
+      attaches: _postData.file_attaches ? this.formattedForFileStore(_postData.file_attaches) : [],
+      sign_in_form: _postData.sign_in_form ? this.formattedForSignInForm(_postData.sign_in_form) : undefined,
+      users: _postData.users ? _postData.users : [],
+      user_factory_roles: _postData.roles && _postData.roles.length > 0 ?
+        this.getArrayByUserFactoryRole(_postData.roles) : [],
+      user_factory_role_templates: _postData.roles && _postData.roles.length > 0 ?
+        this.getArrayByUserFactoryRoleTemplate(_postData.roles) : [],
+    }
+    return _data
+  },
+  async create({ data }) {
+    return base.create({
+      preUrl: S_Processor.getFactoryPreUrl(),
+      modelName: 'meeting',
+      data: {
+        ...data,
+        ...S_Processor.getFactoryData()
+      },
+    })
+  },
+  async show({ modelId }) {
+    return base.show({
+      modelId: modelId,
+      modelName: 'meeting',
+      params: S_Processor.getFactoryParams(),
+    })
+  },
+  async delete({ modelId }) {
+    return base.delete({
+      modelName: 'meeting',
+      modelId: modelId,
+      params: S_Processor.getFactoryParams()
+    })
+  },
+  formattedMeetingTemplateForEdit(_postData) {
+    const state = store.getState()
+    const factoryId = state.data.currentFactory?.id
+    const fileAttach = Array.isArray(_postData?.file_attaches)
+      ? _postData.file_attaches[0]
+      : null
+    return {
+      // ===== 基本欄位 =====
+      meeting_template_type: _postData?.meeting_template_type ?? null,
+      name: _postData?.name ?? null,
+      factory: factoryId ?? null,
+      remark: _postData?.remark ?? null,
+      // ===== 標籤 =====
+      factory_tags: Array.isArray(_postData?.factory_tags)
+        ? _postData.factory_tags.map(tag => tag.id)
+        : [],
+      // ===== 檔案 =====
+      attach: fileAttach
+        ? {
+          file: fileAttach?.file?.id ?? null,
+          file_version: fileAttach?.file_version?.id ?? null,
+        }
+        : null,
+      // ===== 標記設定（核心）=====
+      meeting_templateＦ_items: Array.isArray(fileAttach?.meeting_template_items)
+        ? fileAttach.meeting_template_items.map(item => ({
+          // ⚠️ edit 時「有 id 就帶，沒有就不帶」
+          ...(item.id ? { id: item.id } : {}),
+
+          name: item?.name ?? null,
+          value: item?.value ?? null,
+          sequence: item?.sequence ?? null,
+          meeting_template_field: item?.meeting_template_field ?? null,
+          factory: item?.factory ?? factoryId ?? null,
+        }))
+        : [],
+    }
+  },
+  async update({ data, modelId }) {
+    return base.update({
+      modelId: modelId,
+      modelName: 'meeting',
+      data: {
+        ...data,
+        ...S_Processor.getFactoryData()
+      },
+    })
+  },
+}

@@ -191,7 +191,6 @@ const WsStateDate = props => {
           cancelText={t('取消')}
           open={visible}
           onConfirm={(date) => {
-            console.log(date, 'dateVV');
             setVisible(false)
             setDateValue($_setDate(date))
             onChange($_setDate(date))

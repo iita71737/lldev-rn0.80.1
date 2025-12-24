@@ -117,13 +117,20 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
     });
   }
 
+  // Storage
+  const $_clearStorage = async () => {
+    await AsyncStorage.removeItem('PDFToolAdminCreateTemplate')
+  }
+
+  // Bottom Sheet
   const $_setBottomSheet = () => {
     setBottomSheetItems([
       {
-        to: {
-          name: 'PDFToolAdminCreateTemplate',
-          params: {
-          }
+        onPress: () => {
+          $_clearStorage()
+          navigation.push('RoutesPDFTool', {
+            screen: 'PDFToolAdminCreateTemplate',
+          })
         },
         icon: 'md-add',
         label: t('新增範本')
@@ -139,8 +146,8 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
   }
 
   React.useEffect(() => {
-    $_setNavigationOption()
-    $_setBottomSheet()
+    // $_setNavigationOption()
+    // $_setBottomSheet()
   }, [])
 
   return (

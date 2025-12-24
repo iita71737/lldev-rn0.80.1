@@ -1,6 +1,6 @@
 import React from 'react'
 import { TouchableOpacity, View, Dimensions, StyleProp, ViewStyle } from 'react-native'
-import { WsText, WsTag, WsCard, WsFlex, WsInfo } from '@/components'
+import { WsText, WsTag, WsCard, WsFlex, WsInfo, WsSpec } from '@/components'
 import { useTranslation } from 'react-i18next'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
@@ -62,6 +62,40 @@ const LlPDFToolListCard001: React.FC<Props> = React.memo(props => {
           <WsText style={{ maxWidth: width * 0.86 }} numberOfLines={titleNumberOfLines}>
             {item?.name ?? ''}
           </WsText>
+        </View>
+
+        <View>
+          <WsInfo
+            labelSize={14}
+            labelColor={$color.black5l}
+            labelWidth={100}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginTop: 8
+            }}
+            label={t('負責人')}
+            type="user"
+            value={item.owner}
+          />
+        </View>
+
+        <View
+          style={{
+            marginTop: 8
+          }}
+        >
+          <WsInfo
+            labelSize={14}
+            labelColor={$color.black5l}
+            labelWidth={100}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+            label={t('議事日期')}
+            value={moment(item.meeting_date).format('YYYY-MM-DD')}
+          />
         </View>
 
         {/* Tags */}

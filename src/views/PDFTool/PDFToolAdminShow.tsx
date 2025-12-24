@@ -568,17 +568,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
                 setIsBottomSheetActive(true)
               }}
             />
-            {/* <WsIconBtn
-              name="ws-outline-logout"
-              size={24}
-              color={$color.white}
-              style={{
-                marginRight: 4,
-              }}
-              onPress={() => {
-                setExportModalVisible(true)
-              }}
-            /> */}
           </WsFlex>
         )
       },
@@ -655,8 +644,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         label: t('匯出時序表'),
         onPress: () => {
           setIsBottomSheetActive(false)
-          // 你目前 EXPORT_ITEMS 沒有「時序表」id，我先用 agenda_c 代替示例
-          // ✅ 建議你新增一個 export item id: 'timeline_d' 之類會更直覺
           setExportChecked({ agenda_c: true })
           setExportModalVisible(true)
         },
@@ -1005,36 +992,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             paddingHorizontal: 16,
           }}
         >
-          {/* <WsState
-            label={t('提案​單上​傳格式​範本​')}
-            testID={'WsCharts-picker002'}
-            style={{
-              marginTop: 16,
-            }}
-            borderRadius={10}
-            borderWidth={0.3}
-            placeholder={t('輸入')}
-            type="picker"
-            value={''}
-            onChange={$event => {
-            }}
-            items={[
-              {
-                label: t('依建立日期由近至遠'),
-                value: {
-                  order_way: 'desc',
-                  order_by: 'created_at',
-                },
-              },
-              {
-                label: t('依更新時間由近至遠'),
-                value: {
-                  order_way: 'desc',
-                  order_by: 'updated_at',
-                },
-              },
-            ]}
-          /> */}
           <WsState
             style={{
               marginTop: 8,

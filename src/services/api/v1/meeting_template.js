@@ -123,7 +123,6 @@ export default {
         }
       })
     }
-
     return _data
   },
   async create({ data }) {

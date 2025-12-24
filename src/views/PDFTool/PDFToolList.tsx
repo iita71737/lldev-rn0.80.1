@@ -169,8 +169,8 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
   }
 
   React.useEffect(() => {
-    $_setNavigationOption()
-    $_setBottomSheet()
+    // $_setNavigationOption()
+    // $_setBottomSheet()
   }, [])
 
   return (
@@ -183,7 +183,7 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
       />
 
       <WsPageIndex
-        modelName={'guideline_admin'}
+        modelName={'meeting'}
         serviceIndexKey={'index'}
         params={_params}
         searchLabel={'名稱'}
@@ -207,7 +207,6 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
                 key={item.id}
                 ownerVisible={true}
                 item={item}
-       
                 onPress={() => {
                   navigation.push('RoutesPDFTool', {
                     screen: 'PDFToolAdminShow',
@@ -226,16 +225,6 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
         }}
       >
       </WsPageIndex>
-
-      <WsBottomSheet
-        snapPoints={[148, 148]}
-        isActive={isBottomSheetActive}
-        onDismiss={() => {
-          setIsBottomSheetActive(false)
-        }}
-        items={bottomSheetItems}
-        onItemPress={$_onBottomSheetItemPress}
-      />
     </>
   )
 }

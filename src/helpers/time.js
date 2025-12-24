@@ -122,18 +122,18 @@ export default {
     let _recordDays = null;
     switch (frequency) {
       case 'day':
-        _frequency = i18next.t('每{number}天',{number:frequencyTimes});
+        _frequency = i18next.t('每{number}天', { number: frequencyTimes });
         break;
       case 'week':
-        _frequency = i18next.t('每{number}週',{number:frequencyTimes});
-        _recordDays = recordDays.map(item => this.setWeekday(item.record_day )).toString(',');
+        _frequency = i18next.t('每{number}週', { number: frequencyTimes });
+        _recordDays = recordDays.map(item => this.setWeekday(item.record_day)).toString(',');
         break;
       case 'month':
-        _frequency = i18next.t('每{number}個月',{number:frequencyTimes});
+        _frequency = i18next.t('每{number}個月', { number: frequencyTimes });
         _recordDays = recordDays.map(item => item.record_day === 'last_day' ? i18next.t('最後一天') : item.record_day).toString(',');
         break;
       case 'year':
-        _frequency = i18next.t('每{number}年',{number:frequencyTimes});
+        _frequency = i18next.t('每{number}年', { number: frequencyTimes });
         break;
       default:
         break;
@@ -164,36 +164,29 @@ export default {
     return result;
   },
   getRocChineseDateTime(time, isSourceUtcTime = false, tz) {
+    console.log(time, 'timeQAQ')
     if (!time) return '';
-
-    // 先根據來源是否為 UTC 建出 moment 物件，再轉到指定時區（若有）
-    let m = isSourceUtcTime ? moment.utc(time) : moment(time);
-    if (tz) {
-      m = m.tz(tz);
+    let m
+    if (isSourceUtcTime) {
+      m = moment.utc(time)
+      if (tz) m = m.tz(tz)        // ✅ UTC → 指定時區（會換時間）
+    } else {
+      m = tz ? moment.tz(time, tz) : moment(time) // ✅ 用 tz 解析（不換時間）
     }
-
-    // 民國年：year - 1911
+    // 確保 weekday 是中文（如果你有載入 zh-tw）
+    m = m.locale('zh-tw');
     const rocYear = m.year() - 1911;
     const yearText = `${toChineseYearDigits(rocYear)}年`;
-
-    const month = m.month() + 1; // 0-based
+    const month = m.month() + 1;
     const day = m.date();
     const monthText = `${toChineseIntUnder100(month)}月`;
     const dayText = `${toChineseIntUnder100(day)}日`;
-
-    // 星期：用 moment 的 zh-tw locale，或自己翻譯
-    // 如果你有 i18n 對應，也可以改成 i18next.t('星期四') 類似寫法
     const weekdayText = `（${m.format('dddd')}）`;
-
-    // 上午 / 下午
     const hour = m.hour();
     const meridiem = hour < 12 ? '上午' : '下午';
-    // 12 小時制
-    const hour12 = Number(m.format('h')); // 1~12
-    const minute = m.format('mm'); // "00".."59"
-
+    const hour12 = Number(m.format('h'));
+    const minute = m.format('mm');
     const timeText = `${meridiem}${hour12}時${minute}分`;
-
     return `${yearText}${monthText}${dayText}${weekdayText}${timeText}`;
-  },
+  }
 }

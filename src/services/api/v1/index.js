@@ -75,6 +75,8 @@ import meeting_template_field from '@/services/api/v1/meeting_template_field'
 import meeting_template from '@/services/api/v1/meeting_template'
 import meeting_template_type from '@/services/api/v1/meeting_template_type'
 import item_label_type from '@/services/api/v1/item_label_type'
+import meeting from '@/services/api/v1/meeting'
+import data_format from '@/services/api/v1/data_format'
 
 export default {
   act,
@@ -153,5 +155,7 @@ export default {
   meeting_template_field,
   meeting_template,
   meeting_template_type,
-  item_label_type
+  item_label_type,
+  meeting,
+  data_format
 }
