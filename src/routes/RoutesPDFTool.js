@@ -242,6 +242,7 @@ const RoutesAct = () => {
       modelName: 'meeting',
       type: 'Ll_filesAndImages',
       label: t('簽到表'),
+      oneFile: true
     }
   }
 
@@ -294,9 +295,9 @@ const RoutesAct = () => {
 
   // add meeting
   const submitForCreateMeeting = async (_postData, navigation) => {
-    console.log(JSON.stringify(_postData), '_postData submitForCreateMeeting');
+    // console.log(JSON.stringify(_postData), '_postData submitForCreateMeeting');
     const _data = S_Meeting.formattedDataForCreate(_postData, currentUser)
-    console.log(JSON.stringify(_data), '_data submitForCreateTemplate');
+    // console.log(JSON.stringify(_data), '_data submitForCreateTemplate');
     try {
       const res = await S_Meeting.create({
         data: _data
@@ -364,9 +365,9 @@ const RoutesAct = () => {
 
   // add template
   const submitForCreateTemplate = async (_postData, navigation) => {
-    // console.log(JSON.stringify(_postData), '_postData submitForCreateTemplate');
+    console.log(JSON.stringify(_postData), '_postData submitForCreateTemplate');
     const _data = S_MeetingTemplate.formattedDataForCreate(_postData, currentUser)
-    // console.log(JSON.stringify(_data), '_data submitForCreateTemplate');
+    console.log(JSON.stringify(_data), '_data submitForCreateTemplate');
     try {
       const res = await S_MeetingTemplate.create({
         data: _data

@@ -52,26 +52,18 @@ export default {
           _filtersValue.start_time = undefined,
             _filtersValue.end_time = undefined
         } else if (value && value.range === "1month") {
-          // _filtersValue.start_time = moment().subtract(1, 'months').format('YYYY-MM-DD'),
-          //   _filtersValue.end_time = moment().format('YYYY-MM-DD')
           _filtersValue.start_time = moment().subtract(1, 'months').utc().toISOString();
           _filtersValue.end_time = moment().utc().toISOString();
           _filtersValue.time_field = filtersValue.time_field ? filtersValue.time_field : undefined
         } else if (value && value.range === "3month") {
-          // _filtersValue.start_time = moment().subtract(3, 'months').format('YYYY-MM-DD'),
-          //   _filtersValue.end_time = moment().format('YYYY-MM-DD')
           _filtersValue.start_time = moment().subtract(3, 'months').utc().toISOString();
           _filtersValue.end_time = moment().utc().toISOString();
           _filtersValue.time_field = filtersValue.time_field ? filtersValue.time_field : undefined
         } else if (value && value.range === "custom") {
-          // _filtersValue.start_time = moment(value.start_time).format('YYYY-MM-DD HH:mm:ss Z'),
-          //   _filtersValue.end_time = moment(value.end_time).endOf('day').format('YYYY-MM-DD HH:mm:ss Z')
           _filtersValue.start_time = moment(value.start_time).utc().toISOString();
           _filtersValue.end_time = moment(value.end_time).endOf('day').utc().toISOString();
           _filtersValue.time_field = filtersValue.time_field ? filtersValue.time_field : undefined
         } else {
-          // _filtersValue.start_time = value && value.start_time ? value.start_time : undefined
-          // _filtersValue.end_time = value && value.end_time ? value.end_time : undefined
           _filtersValue.start_time = value && value.start_time ? moment(value.start_time).utc().toISOString() : undefined;
           _filtersValue.end_time = value && value.end_time ? moment(value.end_time).utc().toISOString() : undefined;
           _filtersValue.time_field = filtersValue.time_field ? filtersValue.time_field : undefined

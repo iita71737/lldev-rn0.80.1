@@ -105,6 +105,8 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
   // Params
   const { id } = route.params
 
+  console.log(id,'=id=')
+
   // REDUX
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
   const currentFactory = useSelector(state => state.data.currentFactory)
@@ -312,11 +314,11 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
           </WsFlex>
 
           {/* 第 2 行：名稱 */}
-          <WsFlex alignItems="center" style={{ marginBottom: 4 }}>
+          <WsFlex alignItems="center" style={{ marginBottom: 4 }} flexWrap={'wrap'}>
             <WsText size={14} style={{ width: 108 }}>
               {t('名稱')}
             </WsText>
-            <WsText size={14} numberOfLines={1}>
+            <WsText size={14}>
               {item?.name ?? ''}
             </WsText>
           </WsFlex>

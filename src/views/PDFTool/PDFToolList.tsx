@@ -49,9 +49,6 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
   }, [currentRefreshCounter]);
 
   // States
-  const [isBottomSheetActive, setIsBottomSheetActive] = React.useState(false)
-  const [bottomSheetItems, setBottomSheetItems] = React.useState([])
-
   const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false)
   const [snackBarText, setSnackBarText] = React.useState(
     t('已儲存至「我的收藏」')
@@ -59,46 +56,17 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
   const [filterFields] = React.useState({
     button: {
       type: 'date_range',
-      label: t('修正發布日'),
-      time_field: 'announce_at'
+      label: t('期限'),
+      time_field: 'expired_at',
     },
     owner: {
       type: 'belongsto',
-      label: t('管理者'),
+      label: t('負責人'),
       nameKey: 'name',
       modelName: 'user',
       serviceIndexKey: 'simplifyFactoryIndex',
       customizedNameKey: 'userAndEmail',
       placeholder: t('選擇')
-    },
-    guideline_status: {
-      label: t('施行狀態'),
-      placeholder: t('選擇'),
-      type: 'belongstomany',
-      modelName: 'guideline_status',
-      nameKey: 'name',
-      serviceIndexKey: 'index',
-      hasMeta: false,
-      translate: false,
-      params: {
-        order_by: 'sequence',
-        order_way: 'asc',
-        get_all: '1'
-      }
-    },
-    has_unreleased: {
-      type: 'checkbox',
-      label: t('發布狀態'),
-      items: [
-        {
-          id: 0,
-          name: t('發布'),
-        },
-        {
-          id: 1,
-          name: t('未發布'),
-        },
-      ]
     },
     factory_tags: {
       type: 'checkbox',
@@ -109,69 +77,6 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
       defaultSelected: false
     },
   })
-
-  // Option
-  const $_setNavigationOption = () => {
-    navigation.setOptions({
-      headerRight: true ? () => {
-        return (
-          <WsIconBtn
-            name="md-add"
-            color={$color.white}
-            size={24}
-            style={{
-              marginRight: 4
-            }}
-            onPress={() => {
-              setIsBottomSheetActive(true)
-            }}
-          />
-        )
-      } : undefined,
-      headerLeft: () => {
-        return (
-          <WsIconBtn
-            testID="backButton"
-            name="ws-outline-arrow-left"
-            color="white"
-            size={24}
-            style={{
-              marginRight: 4
-            }}
-            onPress={() => {
-              navigation.goBack()
-            }}
-          />
-        );
-      }
-    });
-  }
-
-  const $_setBottomSheet = () => {
-    setBottomSheetItems([
-      {
-        to: {
-          name: 'PDFToolAdminCreate',
-          params: {
-          }
-        },
-        icon: 'md-add',
-        label: t('新增議事')
-      }
-    ])
-  }
-  const $_onBottomSheetItemPress = item => {
-    if (item.to) {
-      navigation.navigate(item.to)
-    } else {
-      item.onPress()
-    }
-  }
-
-  React.useEffect(() => {
-    // $_setNavigationOption()
-    // $_setBottomSheet()
-  }, [])
 
   return (
     <>
@@ -186,7 +91,7 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
         modelName={'meeting'}
         serviceIndexKey={'index'}
         params={_params}
-        searchLabel={'名稱'}
+        searchLabel={t('標題')}
         filterFields={filterFields}
         ListFooterComponent={() => {
           return (

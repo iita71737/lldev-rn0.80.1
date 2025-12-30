@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { View, TouchableOpacity } from 'react-native'
 import DraggableFlatList from 'react-native-draggable-flatlist'
 import { useTranslation } from 'react-i18next'
 import { WsFlex, WsTag, WsCard, WsText, WsIcon, LlPDFMotionGroupCard001, WsSkeleton } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
+import S_MeetingItem from '@/services/api/v1/meeting_item'
+import PDFToolDraggableList, { PDFToolDraggableListRef } from '@/views/PDFTool/PDFToolDraggableList'
 
 export type FileInfo = {
   id: string
@@ -42,7 +44,7 @@ export type MotionGroupTabProps = {
   data: Group[]
   onEnterSort: () => void
   onCancelSort: () => void
-  onConfirmSort: () => void
+  onConfirmSort: (payload: { meeting_item_groups: any[] }) => void
   onDragEnd: (data: Group[]) => void
   onOpenAddMotion: (group: Group) => void
   onOpenAddGroup: () => void
@@ -69,8 +71,12 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
   const [meetingItemGroups, setMeetingItemGroups] = useState<Group[]>(data)
+  const [meetingItemListByGroup, setMeetingItemListByGroup] = useState<Record<string, any[]>>({})
+  const [loadingMeetingItems, setLoadingMeetingItems] = useState(false)
+  const draggableListRef = useRef<PDFToolDraggableListRef | null>(null)
 
   const $_fetchMeetingItemGroups = async (meetingId: string, isMounted: () => boolean) => {
+    console.log(meetingId,'=meetingId=')
     setLoading(true)
     try {
       const res = await S_MeetingItemGroup.index({ params: { meetingId } })
@@ -100,10 +106,103 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   }, [meeting?.id, refreshKey])
 
   useEffect(() => {
+    if (mode !== 'dragSort') return
+    if (!meetingItemGroups.length) return
+    let mounted = true
+    const fetchAllMeetingItems = async () => {
+      setLoadingMeetingItems(true)
+      try {
+        const results = await Promise.all(
+          meetingItemGroups.map(group =>
+            S_MeetingItem.index({ params: { meeting_item_group_id: group.id } })
+          )
+        )
+        if (!mounted) return
+        const nextMap: Record<string, any[]> = {}
+        meetingItemGroups.forEach((group, index) => {
+          nextMap[group.id] = results[index]?.data ?? []
+        })
+        setMeetingItemListByGroup(nextMap)
+      } catch (err) {
+        if (!mounted) return
+        console.log('S_MeetingItem.index error', err)
+        setMeetingItemListByGroup({})
+      } finally {
+        if (!mounted) return
+        setLoadingMeetingItems(false)
+      }
+    }
+    fetchAllMeetingItems()
+    return () => {
+      mounted = false
+    }
+  }, [mode, meetingItemGroups])
+
+  useEffect(() => {
     if (!meeting?.id) {
       setMeetingItemGroups(data)
     }
   }, [data, meeting?.id])
+
+  if (loading) {
+    return (
+      <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+        <WsSkeleton />
+      </View>
+    )
+  }
+
+  const toFlatItems = () => {
+    return meetingItemGroups.flatMap(group => {
+      const meetingItems =
+        meetingItemListByGroup[group.id] ??
+        (Array.isArray((group as any).meeting_items)
+          ? (group as any).meeting_items
+          : Array.isArray((group as any).meetingItems)
+            ? (group as any).meetingItems
+            : Array.isArray((group as any).articles)
+              ? (group as any).articles
+              : [])
+      const groupItem = {
+        id: group.id,
+        name: group.name,
+      }
+      const itemEntries = meetingItems.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        item_label: item?.item_label?.name ?? item?.item_label ?? item?.name ?? '',
+        meeting_item_group: group.id,
+      }))
+      return [groupItem, ...itemEntries]
+    })
+  }
+
+  const applyPayloadToGroups = (payload: { meeting_item_groups: any[] }) => {
+    const payloadGroups = payload.meeting_item_groups || []
+    const groupMap = new Map(payloadGroups.map(pg => [pg.id, pg]))
+    return meetingItemGroups
+      .map(group => {
+        const pg = groupMap.get(group.id)
+        if (!pg) return group
+        const currentItems = Array.isArray((group as any).meeting_items)
+          ? (group as any).meeting_items
+          : Array.isArray((group as any).meetingItems)
+            ? (group as any).meetingItems
+            : Array.isArray((group as any).articles)
+              ? (group as any).articles
+              : []
+        const itemMap = new Map(currentItems.map((item: any) => [item.id, item]))
+        const nextItems = (pg.meeting_items || [])
+          .map((pItem: any) => itemMap.get(pItem.id))
+          .filter(Boolean)
+        return {
+          ...group,
+          sequence: pg.sequence ?? group.sequence,
+          meeting_items: nextItems,
+        }
+      })
+      .sort((a: any, b: any) => (a.sequence || '').localeCompare(b.sequence || ''))
+  }
 
   const renderListHeader = () => (
     <WsFlex
@@ -116,33 +215,71 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
       <View />
 
       <WsFlex style={{ marginRight: 4 }}>
-        <TouchableOpacity
-          style={{ alignItems: 'flex-end', marginRight: 8 }}
-          onPress={() => {
-            if (mode === 'default') onEnterSort()
-            else onCancelSort() 
-          }}
-        >
-          <WsTag>{mode === 'default' ? t('排序') : t('取消')}</WsTag>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{ alignItems: 'flex-end', marginRight: 8 }}
-          onPress={() => {
-            if (mode === 'default') onOpenAddGroup()
-            else onConfirmSort()
-          }}
-        >
-          <WsTag>{mode === 'default' ? t('新增') : t('確定')}</WsTag>
-        </TouchableOpacity>
+        {mode === 'default' ? (
+          <>
+            <TouchableOpacity
+              style={{ alignItems: 'flex-end', marginRight: 8 }}
+              onPress={() => {
+                onEnterSort()
+              }}
+            >
+              <WsTag>{t('排序')}</WsTag>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ alignItems: 'flex-end', marginRight: 8 }}
+              onPress={() => {
+                onOpenAddGroup()
+              }}
+            >
+              <WsTag>{t('新增')}</WsTag>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <TouchableOpacity
+              style={{ alignItems: 'flex-end', marginRight: 8 }}
+              onPress={() => {
+                const payload = draggableListRef.current?.getPayload()
+                if (payload) {
+                  const updated = applyPayloadToGroups(payload)
+                  setMeetingItemGroups(updated as Group[])
+                  onConfirmSort(payload)
+                } else {
+                  onConfirmSort({ meeting_item_groups: [] })
+                }
+              }}
+            >
+              <WsTag>{t('確定')}</WsTag>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ alignItems: 'flex-end', marginRight: 8 }}
+              onPress={() => {
+                onCancelSort()
+              }}
+            >
+              <WsTag>{t('取消')}</WsTag>
+            </TouchableOpacity>
+          </>
+        )}
       </WsFlex>
     </WsFlex>
   )
 
-  if (loading) {
+  if (mode === 'dragSort') {
+    const flatItems = toFlatItems()
     return (
-      <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-        <WsSkeleton />
+      <View style={{ flex: 1 }}>
+        {renderListHeader()}
+        {loadingMeetingItems ? (
+          <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+            <WsSkeleton />
+          </View>
+        ) : (
+          <PDFToolDraggableList
+            ref={draggableListRef}
+            items={flatItems}
+          />
+        )}
       </View>
     )
   }

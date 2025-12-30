@@ -102,7 +102,8 @@ export default {
             value: item?.value,
             sequence: item?.sequence,
             meeting_template_field: item?.meeting_template_field,
-            factory: item?.factory ?? _data.factory
+            factory: item?.factory ?? _data.factory,
+            has_line_break: item?.has_line_break ?? undefined
           }
         })
       }

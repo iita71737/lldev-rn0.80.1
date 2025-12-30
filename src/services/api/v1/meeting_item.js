@@ -20,7 +20,7 @@ export default {
   async show({ modelId }) {
     return base.show({
       modelId: modelId,
-      modelName: 'meeting_item_group',
+      modelName: 'meeting_item',
       params: S_Processor.getFactoryParams()
     })
   },

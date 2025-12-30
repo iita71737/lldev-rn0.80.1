@@ -309,6 +309,8 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const [submitMeetingItemLoading, setSubmitMeetingItemLoading] = useState(false)
   const [fileData, setFileData] = useState();
   const [meetingItemGroupIdForUpload, setMeetingItemGroupIdForUpload] = useState<string | null>(null)
+  const [meetingItemListIndex, setMeetingItemListIndex] = useState<number | null>(null)
+  const [itemLabel, setItemLabel] = useState<string | null>(null)
 
   const [addMotionGroupModalVisible, setAddMotionGroupModalVisible] = useState(false)
   const [popupDeleteMotionGroup, setPopupDeleteMotionGroup] = useState(false)
@@ -321,7 +323,9 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   // 議事
   const [meeting, setMeeting] = useState<any>(null);
+  console.log(meeting?.meeting_template?.id,'=meeting.meeting_template.id=')
   const [meetingItemGroupRefreshKey, setMeetingItemGroupRefreshKey] = useState(0)
+  const [meetingItemGroupSortPayload, setMeetingItemGroupSortPayload] = useState<any>(null)
 
   // 議案群組
   const [meetingItemGroupName, setMeetingItemGroupName] = useState('');
@@ -499,7 +503,25 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   }
 
   // 確認排序：把 temp 套用回正式資料
-  const confirmDragSort = () => {
+  const confirmDragSort = async (payload?: { meeting_item_groups: any[] }) => {
+    if (payload) {
+      setMeetingItemGroupSortPayload(payload)
+    }
+    if (payload && id) {
+      console.log(id, 'id===')
+      console.log(JSON.stringify(payload), 'payloadpayload')
+      try {
+        await S_Meeting.updateSequence({
+          modelId: id,
+          data: {
+            meeting_item_groups: payload.meeting_item_groups ?? [],
+          },
+        })
+        setMeetingItemGroupRefreshKey(prev => prev + 1)
+      } catch (err) {
+        console.log('S_Meeting.updateSequence error', err)
+      }
+    }
     if (tempGroups) {
       setGroups(tempGroups)
     }
@@ -619,9 +641,24 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     }
   }
 
-  const $_openAddMotionModal = (group: Group) => {
+  const $_openAddMotionModal = async (group: Group) => {
     setMeetingItemGroupIdForUpload(group?.id ?? null)
+    setMeetingItemListIndex(null)
+    setItemLabel(null)
     setFileData(undefined)
+    if (group?.id) {
+      try {
+        const res = await S_MeetingItem.index({
+          params: { meeting_item_group_id: group.id }
+        })
+        const nextIndex = (res?.data?.length ?? 0) + 1
+        setMeetingItemListIndex(nextIndex)
+        const nextLabel = $_buildMeetingItemLabel(meeting?.item_label_type?.value, nextIndex)
+        setItemLabel(nextLabel)
+      } catch (err) {
+        console.log('S_MeetingItem.index error', err)
+      }
+    }
     setAddMotionModalVisible(true)
   }
 
@@ -689,66 +726,98 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     ],
   )
 
-  // 匯入Word
+  const normalizeFileName = (name: string) => {
+    if (!name) return 'file';
+    return name
+      .trim()
+      .replace(/\s+/g, '_'); // ✅ 只處理空白 → _
+  };
+
+  const $_toChineseNumber = (value: number) => {
+    const digits = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+    if (value <= 0) return ''
+    if (value < 10) return digits[value]
+    if (value < 100) {
+      const tens = Math.floor(value / 10)
+      const ones = value % 10
+      const tensText = tens === 1 ? '十' : `${digits[tens]}十`
+      return ones ? `${tensText}${digits[ones]}` : tensText
+    }
+    if (value < 1000) {
+      const hundreds = Math.floor(value / 100)
+      const rest = value % 100
+      const restText = rest ? $_toChineseNumber(rest) : ''
+      return `${digits[hundreds]}百${restText}`
+    }
+    return String(value)
+  }
+
+  const $_buildMeetingItemLabel = (pattern?: string, index?: number) => {
+    if (!index) return ''
+    if (!pattern) return String(index)
+    if (pattern.includes('第') && pattern.includes('案')) {
+      return `第${$_toChineseNumber(index)}案`
+    }
+    return String(index)
+  }
+
+
+
   const pickWordFile = async () => {
     try {
-      console.log('📂 開始選擇 Word 檔案...')
-      // 1️⃣ 打開檔案選擇器
       const res = await pick({
         mode: 'import',
         mimeTypes: [
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         ]
       })
-      if (!res || res.length === 0) {
-        console.warn('❌ 沒有選擇檔案')
-        return;
-      }
+
+      if (!res || res.length === 0) return
+
       const fileUri = res[0].uri
-      const fileName = res[0].name || ''
-      const isDocx = fileName.toLowerCase().endsWith('.docx')
-      if (!isDocx) {
+      const originalName = res[0].name || ''
+      const safeFileName = normalizeFileName(originalName)
+
+      if (!safeFileName.toLowerCase().endsWith('.docx')) {
         Alert.alert(t('請選擇 .docx 檔案'))
         return
       }
-      const fileType =
-        res[0].type ||
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
       setFileData({
         uri: fileUri,
-        name: fileName,
-        type: fileType,
+        name: safeFileName,
+        type:
+          res[0].type ||
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       })
-      console.log(`📄 已選擇: ${fileName} (${fileUri})`)
-      // 2️⃣ 讀取檔案內容
-      Alert.alert(t('成功'), `${t('成功匯入')} ${fileName}`)
+
+      console.log('📄 原始檔名:', originalName)
+      console.log('✅ 上傳檔名:', safeFileName)
+
+      Alert.alert(t('成功'), `${t('成功匯入')} ${safeFileName}`)
     } catch (err) {
-      // Android 有 code；iOS 可能只有 message
       const isCancel =
         err?.code === 'DOCUMENT_PICKER_CANCELED' ||
         err?.message?.includes('user canceled') ||
         err?.message?.includes('The operation was cancelled')
-      if (isCancel) {
-        console.log('✅ 使用者取消選擇')
-      } else {
-        console.error('❌ 發生其他錯誤:', err)
-      }
+
+      if (!isCancel) console.error(err)
     }
-    setLoading(false)
-  };
+  }
+
 
   const $_submitMeetingItem = async () => {
     const formData = new FormData();
     formData.append('factory', currentFactory.id);
-    formData.append('item_label', meeting?.item_label_type?.id);
+    formData.append('item_label', itemLabel ?? '');
     formData.append('meeting', id);
     formData.append('file', fileData);
     const _params = {
       formData: formData,
       meeting_item_group_id: meetingItemGroupIdForUpload
     }
-    console.log(formData,'formData---')
-    console.log(_params,'_params---')
+    console.log(formData, 'formData---')
+    console.log(_params, '_params---')
     try {
       if (!meetingItemGroupIdForUpload) {
         Alert.alert(t('請先選擇議案群組'))
@@ -799,6 +868,17 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       setPopupDeleteMotionGroup(false)
       setDeleteMeetingItemGroupId(null)
       setMeetingItemGroupRefreshKey(prev => prev + 1)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const $_deteleMeeting = async () => {
+    if (!id) return
+    try {
+      await S_Meeting.detele({ modelId: id })
+      store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
+      navigation.goBack()
     } catch (e) {
       console.error(e)
     }
@@ -999,30 +1079,54 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         headerLeftOnPress={() => {
           setAddMotionModalVisible(false)
           setMeetingItemGroupIdForUpload(null)
+          setMeetingItemListIndex(null)
+          setItemLabel(null)
           setFileData(undefined)
         }}
         onBackButtonPress={() => {
           setAddMotionModalVisible(false)
           setMeetingItemGroupIdForUpload(null)
+          setMeetingItemListIndex(null)
+          setItemLabel(null)
           setFileData(undefined)
         }}
         footerBtnLeftText={t('取消')}
         footerBtnLeftOnPress={() => {
           setAddMotionModalVisible(false)
           setMeetingItemGroupIdForUpload(null)
+          setMeetingItemListIndex(null)
+          setItemLabel(null)
           setFileData(undefined)
         }}
         footerBtnRightText={t('確定')}
         footerBtnRightOnPress={() => {
           $_submitMeetingItem()
         }}
-      >
+        >
         <View
           style={{
             marginVertical: 16,
             paddingHorizontal: 16,
           }}
         >
+          {meetingItemListIndex !== null && (
+            <WsInfo
+              style={{
+                marginTop: 8,
+              }}
+              label={t('預計新增序號')}
+              value={String(meetingItemListIndex)}
+            />
+          )}
+          {itemLabel && (
+            <WsInfo
+              style={{
+                marginTop: 8,
+              }}
+              label={t('預計項目名稱')}
+              value={itemLabel}
+            />
+          )}
           {fileData && (
             <WsInfo
               style={{
@@ -1115,7 +1219,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             style={{
               marginTop: 16,
             }}
-            label={t('此​議案​群​組​對應​的​議程範本​區塊​')}
+            label={t('此​議案​群​組​對應​的​議程​範本​區塊​')}
             type="belongsto"
             modelName={'meeting_template_item'}
             serviceIndexKey={'index'}
@@ -1343,6 +1447,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
                 width: 110,
               }}
               onPress={() => {
+                $_deteleMeeting()
                 setPopupDeleteMeetingVisible(false)
               }}
             >

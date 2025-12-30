@@ -92,7 +92,7 @@ export default {
       meeting_date_format: _postData.meeting_date_format ? _postData.meeting_date_format : undefined,
       location: _postData.location ? _postData.location : undefined,
       owner: _postData.owner ? _postData.owner : undefined,
-      expired_at: _postData.expired_at ? _postData.expired_at : undefined,
+      expired_at: _postData.expired_at ? moment(_postData.expired_at).utc() : undefined,
       meeting_item_template: _postData.meeting_item_template ? _postData.meeting_item_template : undefined,
       meeting_template: _postData.meeting_template ? _postData.meeting_template : undefined,
       contents_template: _postData.contents_template ? _postData.contents_template : undefined,
@@ -132,6 +132,9 @@ export default {
       modelId: modelId,
       params: S_Processor.getFactoryParams()
     })
+  },
+  async detele({ modelId }) {
+    return this.delete({ modelId })
   },
   formattedMeetingForEdit(meeting) {
     const state = store.getState()
@@ -197,5 +200,15 @@ export default {
         this.getArrayByUserFactoryRoleTemplate(_postData.roles) : [],
     }
     return _data
-  }
+  },
+  async updateSequence({ modelId, data }) {
+    const res = await base.patch({
+      modelName: `meeting/${modelId}/update/sequence`,
+      data: {
+        ...data,
+        ...S_Processor.getFactoryParams(),
+      }
+    })
+    return res
+  },
 }

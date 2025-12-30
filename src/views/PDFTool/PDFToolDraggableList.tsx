@@ -3,27 +3,24 @@ import {
   Draggable,
   Droppable,
   DndProviderProps,
-} from "@mgcrea/react-native-dnd";
-import React, { type FunctionComponent, useState, useRef } from "react";
+} from '@mgcrea/react-native-dnd'
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import {
   SafeAreaView,
   View,
   Dimensions,
-  ScrollView,
-  Pressable
-} from "react-native";
+} from 'react-native'
 import {
   GestureHandlerRootView,
   State,
-  PanGestureHandler
-} from "react-native-gesture-handler";
-import $color from '@/__reactnative_stone/global/color'
+} from 'react-native-gesture-handler'
 import {
   WsCard,
   WsFlex,
   WsText,
-  WsIcon
+  WsIcon,
 } from '@/components'
+import $color from '@/__reactnative_stone/global/color'
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -33,254 +30,346 @@ import Animated, {
   scrollTo,
   useAnimatedReaction,
   runOnJS,
-} from 'react-native-reanimated';
+} from 'react-native-reanimated'
 import { useTranslation } from 'react-i18next'
 
-type ItemProps = {
-  id: string;
-  name: string;
-  sequence: string;
-  parent_article_version_id: string | null
-};
+type FlatItem = {
+  id: string
+  name?: string
+  item_label?: string | { name?: string }
+  meeting_item_group?: string
+}
 
-export const DraggableList: FunctionComponent<{ items: ItemProps[], setInitSequencePayload: (payload: any) => void }> = ({ items, setInitSequencePayload }) => {
-  const { height: screenHeight, width } = Dimensions.get("window");
-  const { t, i18n } = useTranslation()
+type SortItem = {
+  id: string
+  name?: string
+  item_label?: string | { name?: string }
+  type: 'group' | 'item'
+  parentId: string | null
+  sequence: string
+}
 
-  const itemLayouts = useRef<{ [id: string]: number }>({}).current;
-  const onItemLayout = (id: string) => (e: LayoutChangeEvent) => {
-    itemLayouts[id] = e.nativeEvent.layout.y;
-  };
+type MeetingItem = {
+  id: string
+  sequence: string
+  item_label: string
+  meeting_item_group: string
+}
 
-console.log(items,'itemsAAA')
+type MeetingItemGroup = {
+  id: string
+  sequence: string
+  meeting_items: MeetingItem[]
+}
 
+type Props = {
+  items: FlatItem[]
+}
 
-  // STATES：使用 _items 存放目前最新的排序資料
-  const [_items, setItems] = useState<ItemProps[]>(items);
-  const [selectedItems, setSelectedItems] = useState<ItemProps[]>([]);
-  const [hoverItem, setHoverItem] = useState<string | null>(null);
+export type PDFToolDraggableListRef = {
+  getPayload: () => { meeting_item_groups: MeetingItemGroup[] }
+}
 
-  const itemsSV = useSharedValue<ItemProps[]>(items);
-  const [listKey, setListKey] = useState(Date.now()); // refresh
+const padSeq = (num: number) => String(num).padStart(4, '0')
 
-  const [hoverPositionState, setHoverPositionState] = useState<'child' | 'sibling' | null>(null);
-  const hoverPosition = useSharedValue<'child' | 'sibling' | null>(null);
+const buildSortItems = (items: FlatItem[]): SortItem[] => {
+  const groupOrder: string[] = []
+  const groupNameMap = new Map<string, string | undefined>()
+  items.forEach(item => {
+    if (!item.meeting_item_group) {
+      groupOrder.push(item.id)
+      groupNameMap.set(item.id, item.name)
+    }
+  })
+  const groupSeqMap = new Map<string, string>()
+  groupOrder.forEach((groupId, index) => {
+    groupSeqMap.set(groupId, padSeq(index + 1))
+  })
+  const itemCountByGroup = new Map<string, number>()
 
+  let currentGroupId: string | null = null
+  const result: SortItem[] = []
+  items.forEach(item => {
+    if (!item.meeting_item_group) {
+      currentGroupId = item.id
+      const groupSeq = groupSeqMap.get(item.id) ?? padSeq(groupOrder.length + 1)
+      result.push({
+        id: item.id,
+        name: item.name ?? groupNameMap.get(item.id),
+        type: 'group',
+        parentId: null,
+        sequence: groupSeq,
+      })
+      return
+    }
+    const groupId = item.meeting_item_group ?? currentGroupId
+    if (!groupId) return
+    const count = (itemCountByGroup.get(groupId) ?? 0) + 1
+    itemCountByGroup.set(groupId, count)
+    const groupSeq = groupSeqMap.get(groupId) ?? padSeq(groupOrder.length + 1)
+    result.push({
+      id: item.id,
+      name: item.name,
+      item_label: item.item_label,
+      type: 'item',
+      parentId: groupId,
+      sequence: `${groupSeq}-${padSeq(count)}`,
+    })
+  })
+  return result
+}
 
-  // 使用 SharedValue 來控制拖曳動畫
-  const isDragging = useSharedValue(false);
-  const dragX = useSharedValue(0);
-  const dragY = useSharedValue(0);
+const applySequences = (items: SortItem[]) => {
+  const childrenMap: { [key: string]: SortItem[] } = {}
+  items.forEach(item => {
+    const parentKey = item.parentId ?? '__root__'
+    if (!childrenMap[parentKey]) {
+      childrenMap[parentKey] = []
+    }
+    childrenMap[parentKey].push(item)
+  })
+
+  const assignSequences = (parentId: string | null, parentSequence: string) => {
+    const key = parentId ?? '__root__'
+    const children = childrenMap[key] || []
+    children.forEach((child, index) => {
+      const newSeq = parentSequence
+        ? `${parentSequence}-${padSeq(index + 1)}`
+        : padSeq(index + 1)
+      child.sequence = newSeq
+      assignSequences(child.id, newSeq)
+    })
+  }
+
+  assignSequences(null, '')
+  return items
+}
+
+const buildPayload = (items: SortItem[]) => {
+  const groups = items
+    .filter(item => item.type === 'group')
+    .sort((a, b) => a.sequence.localeCompare(b.sequence))
+  const itemsByGroup = new Map<string, SortItem[]>()
+  items
+    .filter(item => item.type === 'item')
+    .forEach(item => {
+      const groupId = item.parentId
+      if (!groupId) return
+      if (!itemsByGroup.has(groupId)) itemsByGroup.set(groupId, [])
+      itemsByGroup.get(groupId)!.push(item)
+    })
+
+  const meeting_item_groups: MeetingItemGroup[] = groups.map(group => {
+    const children = (itemsByGroup.get(group.id) || [])
+      .sort((a, b) => a.sequence.localeCompare(b.sequence))
+    const meeting_items: MeetingItem[] = children.map((child, index) => {
+      const itemLabel =
+        typeof child.item_label === 'string'
+          ? child.item_label
+          : child.item_label?.name ?? child.name ?? ''
+      return {
+        id: child.id,
+        sequence: padSeq(index + 1),
+        item_label: itemLabel,
+        meeting_item_group: group.id,
+      }
+    })
+    return {
+      id: group.id,
+      sequence: group.sequence,
+      meeting_items,
+    }
+  })
+
+  return { meeting_item_groups }
+}
+
+const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items }, ref) => {
+  const { height: screenHeight, width } = Dimensions.get('window')
+  const { t } = useTranslation()
+
+  const [_items, setItems] = useState<SortItem[]>(() => applySequences(buildSortItems(items)))
+  const [selectedItems, setSelectedItems] = useState<SortItem[]>([])
+  const [hoverItem, setHoverItem] = useState<string | null>(null)
+
+  const itemsSV = useSharedValue<SortItem[]>(_items)
+  const [listKey, setListKey] = useState(Date.now())
+
+  const [hoverPositionState, setHoverPositionState] = useState<'child' | 'sibling' | null>(null)
+  const hoverPosition = useSharedValue<'child' | 'sibling' | null>(null)
+
+  useEffect(() => {
+    const next = applySequences(buildSortItems(items))
+    setItems(next)
+    itemsSV.value = next
+    setListKey(Date.now())
+  }, [items])
+
+  useImperativeHandle(ref, () => ({
+    getPayload: () => buildPayload(_items),
+  }), [_items])
+
+  const itemLayouts = useRef<{ [id: string]: number }>({}).current
+  const onItemLayout = (id: string) => (e: any) => {
+    itemLayouts[id] = e.nativeEvent.layout.y
+  }
+
+  const isDragging = useSharedValue(false)
+  const dragX = useSharedValue(0)
+  const dragY = useSharedValue(0)
   const animatedStyle = useAnimatedStyle(() => ({
-    position: "absolute",
+    position: 'absolute',
     left: dragX.value,
     top: dragY.value,
     opacity: isDragging.value ? 1 : 0,
-    transform: [{ translateX: 0 }, { translateY: -100 }],
-  }));
+    transform: [{ translateX: 0 }, { translateY: 0 }],
+  }))
 
-  // 建立 Animated ScrollView ref 與滾動偏移的 shared value
-  const scrollViewRef = useAnimatedRef<Animated.ScrollView>();
-  const scrollOffset = useSharedValue(0);
+  const scrollViewRef = useAnimatedRef<Animated.ScrollView>()
+  const scrollOffset = useSharedValue(0)
 
-  // 使用 useAnimatedScrollHandler 監控 ScrollView 的滾動
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
-      scrollOffset.value = event.contentOffset.y;
+      scrollOffset.value = event.contentOffset.y
     },
-  });
-  // 持續監控拖曳的 dragY 值，當接近邊界時自動滾動
+  })
+
   useAnimatedReaction(
     () => dragY.value,
     (currentDragY) => {
-      const threshold = 80; // 當拖曳物件距離螢幕邊緣小於 80 像素時觸發
+      const threshold = 80
       const headerHeight = 100
-      const scrollSpeed = 5; // 每次滾動的距離（可依需求調整）
-      // 向上滾動（拖曳物件接近上邊緣）
+      const scrollSpeed = 5
       if (currentDragY - headerHeight < threshold) {
-        scrollOffset.value = Math.max(scrollOffset.value - scrollSpeed, 0);
-        scrollTo(scrollViewRef, 0, scrollOffset.value, false);
-      }
-      // 向下滾動（拖曳物件接近下邊緣）
-      else if (currentDragY > screenHeight - threshold) {
-        scrollOffset.value = scrollOffset.value + scrollSpeed;
-        scrollTo(scrollViewRef, 0, scrollOffset.value, false);
+        scrollOffset.value = Math.max(scrollOffset.value - scrollSpeed, 0)
+        scrollTo(scrollViewRef, 0, scrollOffset.value, false)
+      } else if (currentDragY > screenHeight - threshold) {
+        scrollOffset.value = scrollOffset.value + scrollSpeed
+        scrollTo(scrollViewRef, 0, scrollOffset.value, false)
       }
     }
-  );
+  )
 
-
-  // 排序用函式，邏輯保持不變
-  const sortOrderPayload = (payload: { order: any[] }) => {
-    const originalOrder = payload.order;
-    const childrenMap: { [key: string]: any[] } = {};
-    originalOrder.forEach(item => {
-      const p = item.parentId; // 父層 id (null 表示頂層)
-      if (!childrenMap[p]) {
-        childrenMap[p] = [];
-      }
-      childrenMap[p].push(item);
-    });
-    const assignSequences = (parentId: any, parentSequence: string) => {
-      const children = childrenMap[parentId] || [];
-      children.forEach((child, index) => {
-        const newSeq = parentSequence
-          ? `${parentSequence}-${(index + 1).toString().padStart(4, '0')}`
-          : (index + 1).toString().padStart(4, '0');
-        child.sequence = newSeq;
-        assignSequences(child.id, newSeq);
-      });
-    };
-    assignSequences(null, '');
-    return { order: originalOrder };
-  };
-
-  // helper：重新排序，修改後使用 item.id 作為查找依據
-  const reorderItemWithMode = (
-    activeId: string,
-    targetId: string,
-    mode: ReorderMode
-  ) => {
+  const reorderItemWithMode = (activeId: string, targetId: string, mode: 'child' | 'sibling' | null) => {
+    const isSameId = (left: string | number, right: string | number) =>
+      String(left) === String(right)
     setItems(prevItems => {
-      if (activeId === targetId) return prevItems;
+      if (isSameId(activeId, targetId)) return prevItems
+      const modelsCopy: SortItem[] = JSON.parse(JSON.stringify(prevItems))
+      const selectedItem = modelsCopy.find(item => isSameId(item.id, activeId))
+      const targetItem = modelsCopy.find(item => isSameId(item.id, targetId))
+      if (!selectedItem || !targetItem) return prevItems
 
-      const modelsCopy = JSON.parse(JSON.stringify(prevItems));
-      const selectedItem = modelsCopy.find(item => item.id === activeId);
-      const targetItem = modelsCopy.find(item => item.id === targetId);
-      if (!selectedItem || !targetItem) return prevItems;
-
-      // 防止把 item 拖到自己的子樹中
-      if (
-        targetItem.sequence.startsWith(selectedItem.sequence) &&
-        targetItem.sequence !== selectedItem.sequence
-      ) {
-        return prevItems;
-      }
-
-      const subtreeItems = modelsCopy.filter(item =>
-        item.sequence.startsWith(selectedItem.sequence)
-      );
+      const subtreeItems = selectedItem.type === 'group'
+        ? modelsCopy.filter(item => item.sequence.startsWith(selectedItem.sequence))
+        : modelsCopy.filter(item => isSameId(item.id, selectedItem.id))
       const remaining = modelsCopy.filter(
-        item => !item.sequence.startsWith(selectedItem.sequence)
-      );
+        item => !subtreeItems.some(sub => isSameId(sub.id, item.id))
+      )
 
-      // 設定父層 ID
-      if (mode === 'child') {
-        subtreeItems.forEach(item => {
-          if (item.id === selectedItem.id) {
-            item.parent_article_version_id = targetItem.id;
-          }
-        });
-      } else if (mode === 'sibling') {
-        const targetParentId = targetItem.parent_article_version_id || null;
-        subtreeItems.forEach(item => {
-          if (item.id === selectedItem.id) {
-            item.parent_article_version_id = targetParentId;
-          }
-        });
-      }
-
-      // 插入到目標項目後方
-      const targetIndex = remaining.findIndex(item => item.id === targetItem.id);
-      if (targetIndex === -1) {
-        remaining.push(...subtreeItems);
+      let nextParentId: string | null = null
+      if (selectedItem.type === 'group') {
+        nextParentId = null
+      } else if (mode === 'child') {
+        nextParentId = targetItem.type === 'group'
+          ? targetItem.id
+          : targetItem.parentId
       } else {
-        remaining.splice(targetIndex + 1, 0, ...subtreeItems);
+        nextParentId = targetItem.parentId
       }
 
-      // API 格式轉換並重排 sequence
-      const transformToApiFormat = (data: any[]) => ({
-        order: data.map(item => ({
-          id: item.id,
-          sequence: item.sequence,
-          parentId: item.parent_article_version_id || null,
-          type: item.type
-        })),
-      });
-      const apiPayload = transformToApiFormat(remaining);
-      const newPayload = sortOrderPayload(apiPayload);
-      setInitSequencePayload(newPayload);
-
-      newPayload.order.forEach(orderItem => {
-        const target = modelsCopy.find(item => item.id === orderItem.id);
-        if (target) {
-          target.sequence = orderItem.sequence;
-          target.parent_article_version_id = orderItem.parentId;
+      subtreeItems.forEach(item => {
+        if (item.id === selectedItem.id) {
+          item.parentId = nextParentId ?? null
         }
-      });
+      })
 
-      modelsCopy.sort((a, b) => a.sequence.localeCompare(b.sequence));
-      setListKey(Date.now());
-      return modelsCopy;
-    });
-  };
+      const targetIndex = remaining.findIndex(item => isSameId(item.id, targetItem.id))
+      if (targetIndex === -1) {
+        remaining.push(...subtreeItems)
+      } else {
+        remaining.splice(targetIndex + 1, 0, ...subtreeItems)
+      }
 
-  // handleDragEnd 保持不變，改用新的 id（字串形式）
-  const handleDragEnd: DndProviderProps["onDragEnd"] = ({ active, over }) => {
-    "worklet";
+      const nextItems = applySequences(remaining)
+      setListKey(Date.now())
+      return nextItems
+    })
+  }
+
+  const handleDragEnd: DndProviderProps['onDragEnd'] = ({ active, over }) => {
+    'worklet'
     if (over) {
-      isDragging.value = false; // 確保動畫結束
-      runOnJS(reorderItemWithMode)(active.id, over.id, hoverPosition.value);
+      isDragging.value = false
+      runOnJS(reorderItemWithMode)(String(active.id), String(over.id), hoverPosition.value)
     }
-  };
+  }
 
-  // handleBegin：使用 _items 取得最新狀態，並根據拖曳項目的 sequence 過濾所有子層（包含自己）
-  const handleBegin: DndProviderProps["onBegin"] = (event, meta) => {
-    "worklet";;
-    isDragging.value = true;
-    dragX.value = withSpring(event.absoluteX + 10);
-    dragY.value = withSpring(event.absoluteY);
+  const getDragPosition = (event: any, meta: any) => {
+    'worklet'
+    const layout = meta?.activeLayout
+    const absX = event?.absoluteX
+    const absY = event?.absoluteY
+    const baseX = typeof absX === 'number' && isFinite(absX)
+      ? absX
+      : layout?.pageX ?? layout?.x ?? 0
+    const baseY = typeof absY === 'number' && isFinite(absY)
+      ? absY
+      : layout?.pageY ?? layout?.y ?? 0
+    return {
+      x: baseX + 16,
+      y: baseY + 16,
+    }
+  }
 
-    // 🔁 改用 _items 而不是 SharedValue
-    const latestItems = JSON.parse(JSON.stringify(itemsSV.value));
+  const handleBegin: DndProviderProps['onBegin'] = (event, meta) => {
+    'worklet'
+    isDragging.value = true
+    const pos = getDragPosition(event, meta)
+    dragX.value = withSpring(pos.x)
+    dragY.value = withSpring(pos.y)
 
-    // 📦 避免錯誤的 sequence
-    const draggedItem = latestItems.find(item => item.id === meta.activeId);
-    if (!draggedItem) return;
+    const latestItems = JSON.parse(JSON.stringify(itemsSV.value))
+    const activeId = meta?.activeId != null ? String(meta.activeId) : ''
+    const draggedItem = latestItems.find((item: SortItem) => String(item.id) === activeId)
+    if (!draggedItem) return
 
-    // 🧠 用 sequence 精準抓子項
-    const selectedList = latestItems.filter(item =>
-      item.sequence?.startsWith(draggedItem.sequence)
-    );
-    selectedList.sort((a, b) => a.sequence.localeCompare(b.sequence));
-    runOnJS(setSelectedItems)(selectedList);
-  };
+    const selectedList = draggedItem.type === 'group'
+      ? latestItems.filter((item: SortItem) => item.sequence.startsWith(draggedItem.sequence))
+      : latestItems.filter((item: SortItem) => String(item.id) === String(draggedItem.id))
+    selectedList.sort((a: SortItem, b: SortItem) => a.sequence.localeCompare(b.sequence))
+    runOnJS(setSelectedItems)(selectedList)
+  }
 
+  const handleUpdate: DndProviderProps['onUpdate'] = (event, meta) => {
+    'worklet'
+    isDragging.value = true
+    const pos = getDragPosition(event, meta)
+    dragX.value = withSpring(pos.x)
+    dragY.value = withSpring(pos.y)
+    const isMoveAsChild = meta?.activeLayout?.x > 0
+    hoverPosition.value = isMoveAsChild ? 'child' : 'sibling'
+    runOnJS(setHoverItem)(meta?.droppableActiveId != null ? String(meta.droppableActiveId) : null)
+    runOnJS(setHoverPositionState)(hoverPosition.value)
+  }
 
-  // handleUpdate 保持不變
-  const handleUpdate: DndProviderProps["onUpdate"] = (event, meta) => {
-    "worklet";
-    dragX.value = withSpring(event.absoluteX);
-    dragY.value = withSpring(event.absoluteY);
-
-    const isMoveAsChild = meta?.activeLayout?.x > 0;
-    const isMoveAsSibling = meta?.activeLayout?.x <= 0;
-
-    hoverPosition.value = isMoveAsChild ? 'child' : 'sibling';
-
-    runOnJS(setHoverItem)(meta?.droppableActiveId ?? null);
-    runOnJS(setHoverPositionState)(hoverPosition.value);
-  };
-
-  // handleFinalize：拖曳完成後清空選取與拖曳狀態
-  const handleFinalize: DndProviderProps["onFinalize"] = ({ state }, event) => {
-    "worklet";
-    isDragging.value = false;
-    dragX.value = 0;
-    dragY.value = 0;
-    runOnJS(setSelectedItems)([]);
-    runOnJS(setHoverItem)(null);
+  const handleFinalize: DndProviderProps['onFinalize'] = ({ state }) => {
+    'worklet'
+    isDragging.value = false
+    dragX.value = 0
+    dragY.value = 0
+    runOnJS(setSelectedItems)([])
+    runOnJS(setHoverItem)(null)
     if (state !== State.FAILED) {
     }
-  };
+  }
 
-  React.useEffect(() => {
-    itemsSV.value = _items;
-  }, [_items]);
+  useEffect(() => {
+    itemsSV.value = _items
+  }, [_items])
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-
       <WsFlex
         style={{
           backgroundColor: $color.white2d,
@@ -314,7 +403,7 @@ console.log(items,'itemsAAA')
       </WsFlex>
 
       <Animated.ScrollView
-        key={listKey} // 250605-refresh
+        key={listKey}
         ref={scrollViewRef}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
@@ -327,84 +416,87 @@ console.log(items,'itemsAAA')
             onFinalize={handleFinalize}
             onDragEnd={handleDragEnd}
           >
-            {_items.map((item) => (
-              <Droppable
-                key={item.id}
-                id={item.id}
-                data={item}
-                style={{
-                }}
-              >
-                <View onLayout={onItemLayout(item.id)}>
-                  <Draggable
-                    key={item.id}
-                    id={item.id}
-                    data={item}
-                    disabled={selectedItems.some(sel => sel.id === item.id)}
-                    style={{
-                    }}
-                  >
-                    <WsCard
-                      borderRadius={10}
-                      style={{
-                        marginHorizontal: 8,
-                        padding: 16,
-                        borderWidth: 0.3,
-                        // backgroundColor: $color.primary10l,
-                        marginTop: 4,
-                        marginLeft: (item.sequence?.split("-").length - 1) * 16 + 8,
-                        borderBottomWidth: 5,
-                        borderBottomColor:
-                          item.id === hoverItem
-                            ? hoverPositionState === 'child'
-                              ? 'pink'
-                              : hoverPositionState === 'sibling'
-                                ? $color.yellow11l
-                                : 'transparent'
-                            : 'transparent',
-                        backgroundColor:
-                          item.id === hoverItem && (!selectedItems.some(sel => sel.id === item.id))
-                            ? hoverPositionState === 'child'
-                              ? 'pink'
-                              : hoverPositionState === 'sibling'
-                                ? $color.yellow11l
-                                : 'transparent'
-                            : $color.primary10l,
-                      }}
+            {_items.map((item) => {
+              const dragId = String(item.id)
+              return (
+                <Droppable
+                  key={dragId}
+                  id={dragId}
+                  data={item}
+                >
+                  <View onLayout={onItemLayout(item.id)}>
+                    <Draggable
+                      key={dragId}
+                      id={dragId}
+                      data={item}
+                      disabled={selectedItems.some(sel => sel.id === item.id)}
                     >
-                      {/* for debugging */}
-                      {/* <WsText color={$color.gray} size={14}>{item.id}</WsText> */}
-
-                      <WsFlex justifyContent='space-between'>
-                        <WsText
-                          style={{
-                            maxWidth: width * 0.8
-                          }}
-                          color={$color.black}
-                          size={14}>{item.name}
-                        </WsText>
-                        <WsIcon
-                          name="ws-outline-drag-horizontal"
-                          size={24}
-                          style={{ marginRight: 8 }}
-                        />
-                      </WsFlex>
-                    </WsCard>
-                  </Draggable>
-                </View>
-              </Droppable>
-            ))}
+                      <WsCard
+                        borderRadius={10}
+                        style={{
+                          marginHorizontal: 8,
+                          padding: 16,
+                          borderWidth: 0.3,
+                          marginTop: 4,
+                          marginLeft: item.type === 'item' ? 24 : 8,
+                          borderBottomWidth: 5,
+                          borderBottomColor:
+                            String(item.id) === hoverItem
+                              ? hoverPositionState === 'child'
+                                ? 'pink'
+                                : hoverPositionState === 'sibling'
+                                  ? $color.yellow11l
+                                  : 'transparent'
+                              : 'transparent',
+                          backgroundColor:
+                            String(item.id) === hoverItem && (!selectedItems.some(sel => sel.id === item.id))
+                              ? hoverPositionState === 'child'
+                                ? 'pink'
+                                : hoverPositionState === 'sibling'
+                                  ? $color.yellow11l
+                                  : 'transparent'
+                              : $color.primary10l,
+                        }}
+                      >
+                        <WsFlex justifyContent="space-between">
+                          <WsText
+                            style={{
+                              maxWidth: width * 0.8
+                            }}
+                            color={$color.black}
+                            size={14}
+                          >
+                            {item.type === 'group'
+                              ? `${item.sequence}. ${item.name || t('議案群組')}`
+                              : `${item.sequence.split('-').slice(-1)[0]}. ${typeof item.item_label === 'string'
+                                ? item.item_label
+                                : item.item_label?.name ?? item.name ?? t('項目名稱')
+                              }`}
+                          </WsText>
+                          <WsIcon
+                            name="ws-outline-drag-horizontal"
+                            size={24}
+                            style={{ marginRight: 8 }}
+                          />
+                        </WsFlex>
+                      </WsCard>
+                    </Draggable>
+                  </View>
+                </Droppable>
+              )
+            })}
           </DndProvider>
         </GestureHandlerRootView>
       </Animated.ScrollView>
 
-      {/* 顯示的組合視圖 */}
       <Animated.View
         style={[
           {
             backgroundColor: 'transparent',
             padding: 10,
             borderRadius: 8,
+            zIndex: 999,
+            elevation: 10,
           },
           animatedStyle
         ]}
@@ -414,7 +506,7 @@ console.log(items,'itemsAAA')
           <View
             key={item.id}
             style={{
-              marginLeft: item.sequence?.split("-").length * 16,
+              marginLeft: item.type === 'item' ? 24 : 8,
               minWidth: width * 0.5
             }}
           >
@@ -429,13 +521,19 @@ console.log(items,'itemsAAA')
                 marginTop: 4,
               }}
             >
-              <WsText color={$color.white6d} size={14}>{item.name}</WsText>
+              <WsText color={$color.white6d} size={14}>
+                {item.type === 'group'
+                  ? item.name || t('議案群組')
+                  : typeof item.item_label === 'string'
+                    ? item.item_label
+                    : item.item_label?.name ?? item.name ?? t('項目名稱')}
+              </WsText>
             </WsCard>
           </View>
         ))}
       </Animated.View>
-    </SafeAreaView >
-  );
-};
+    </SafeAreaView>
+  )
+})
 
-export default DraggableList;
+export default PDFToolDraggableList

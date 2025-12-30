@@ -69,6 +69,7 @@ const LlPDFToolListCard001: React.FC<Props> = React.memo(props => {
             labelSize={14}
             labelColor={$color.black5l}
             labelWidth={100}
+            labelFontWeight={500}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -89,12 +90,32 @@ const LlPDFToolListCard001: React.FC<Props> = React.memo(props => {
             labelSize={14}
             labelColor={$color.black5l}
             labelWidth={100}
+            labelFontWeight={500}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
             }}
             label={t('議事日期')}
-            value={moment(item.meeting_date).format('YYYY-MM-DD')}
+            value={moment(item.meeting_date).format('YYYY-MM-DD HH:mm:ss')}
+          />
+        </View>
+
+        <View
+          style={{
+            marginTop: 8
+          }}
+        >
+          <WsInfo
+            labelSize={14}
+            labelColor={$color.black5l}
+            labelWidth={100}
+            labelFontWeight={500}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+            label={t('編輯時間')}
+            value={moment(item.updated_at).format('YYYY-MM-DD HH:mm:ss')}
           />
         </View>
 

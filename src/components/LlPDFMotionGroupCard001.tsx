@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { View, TouchableOpacity, ScrollView, Dimensions, Alert } from 'react-native';
+import { View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import {
@@ -16,7 +16,6 @@ import {
 } from '@/components';
 import $color from '@/__reactnative_stone/global/color';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import TinyMCEEditor from '@/views/PDFTool/TinyMCEEditor';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import JoditEditor from 'views/PDFTool/JoditEditor';
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group';
@@ -67,6 +66,8 @@ type Props = {
 
 // -------------------- Component 本體 --------------------
 
+const initialMeetingItemContent = '<p>這是原始 HTML</p>';
+
 const LlPDFMotionGroupCard001: React.FC<Props> = ({
   style,
   item,
@@ -79,8 +80,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation();
   const scrollRef = useRef<KeyboardAwareScrollView | null>(null);
-  const richText = useRef<any>(null);
-  const { width, height } = Dimensions.get('window');
   const currentFactory = useSelector(state => state.data.currentFactory);
 
   // 決定實際要畫哪些群組
@@ -96,9 +95,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const [meetingItemListByGroup, setMeetingItemListByGroup] = useState<Record<string, Motion[]>>({});
   const [editMotionModalVisible, setEditMotionModalVisible] = useState(false);
   const [editingMotion, setEditingMotion] = useState<Motion | null>(null);
-  const [content, setContent] = useState('<p>這是原始 HTML</p>');
 
-  const [motions, setMotions] = useState<Motion | null>(null);
   const [motionFiles, setMotionFiles] = useState<Array>([]);
   const [exportAttachmentName, setExportAttachmentName] = useState<boolean>(false);
 
@@ -106,6 +103,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const [updateProposalTargetMotion, setUpdateProposalTargetMotion] = useState<Motion | null>(null)
   const [updateFileData, setUpdateFileData] = useState();
   const [updateMeetingItemId, setUpdateMeetingItemId] = useState<string | null>(null)
+  const [updateProposalGroupId, setUpdateProposalGroupId] = useState<string | null>(null)
   const [updateProposalLoading, setUpdateProposalLoading] = useState(false)
   const [editMeetingItemName, setEditMeetingItemName] = useState('')
   const [editMeetingItemSequence, setEditMeetingItemSequence] = useState('')
@@ -121,6 +119,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const openUpdateProposalModal = (group: Group, motion: Motion) => {
     setUpdateProposalTargetMotion(motion)
     setUpdateMeetingItemId(motion?.id ?? null)
+    setUpdateProposalGroupId(group?.id ?? null)
     setUpdateFileData(undefined)
     setUpdateProposalModalVisible(true)
   }
@@ -129,6 +128,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     setUpdateProposalModalVisible(false)
     setUpdateProposalTargetMotion(null)
     setUpdateMeetingItemId(null)
+    setUpdateProposalGroupId(null)
     setUpdateFileData(undefined)
   }
 
@@ -146,6 +146,13 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     setMotionFiles([])
   }
 
+  const normalizeFileName = (name: string) => {
+    if (!name) return 'file';
+    return name
+      .trim()
+      .replace(/\s+/g, '_'); // ✅ 只處理空白 → _
+  };
+
   const pickWordFile = async () => {
     try {
       const res = await pick({
@@ -158,9 +165,9 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
         return
       }
       const fileUri = res[0].uri
-      const fileName = res[0].name || ''
-      const isDocx = fileName.toLowerCase().endsWith('.docx')
-      if (!isDocx) {
+      const originalName = res[0].name || ''
+      const safeFileName = normalizeFileName(originalName)
+      if (!safeFileName.toLowerCase().endsWith('.docx')) {
         Alert.alert(t('請選擇 .docx 檔案'))
         return
       }
@@ -169,7 +176,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       setUpdateFileData({
         uri: fileUri,
-        name: fileName,
+        name: safeFileName,
         type: fileType,
       })
     } catch (err) {
@@ -184,7 +191,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   }
 
   const submitUpdateProposal = async () => {
-    if (!updateMeetingItemId) { 
+    if (!updateMeetingItemId) {
       Alert.alert(t('請先選擇議案'))
       return
     }
@@ -192,19 +199,26 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
       Alert.alert(t('請先上傳檔案'))
       return
     }
+    const readableItemLabel =
+      typeof updateProposalTargetMotion?.item_label === 'string'
+        ? updateProposalTargetMotion?.item_label
+        : updateProposalTargetMotion?.item_label?.name ?? ''
     const formData = new FormData();
     formData.append('factory', currentFactory.id);
-    formData.append('item_label', updateProposalTargetMotion?.item_label?.id);
+    formData.append('item_label', readableItemLabel);
     formData.append('file', updateFileData);
     const _params = {
       formData: formData,
       meeting_item_it: updateMeetingItemId
     }
-    console.log(_params, '_params_params_params')
+    console.log(_params, 'formData---')
     try {
       setUpdateProposalLoading(true)
       await S_MeetingItem.updateMeetingItemWord({ params: _params })
       closeUpdateProposalModal()
+      if (updateProposalGroupId) {
+        await fetchMeetingItemList(updateProposalGroupId)
+      }
       Alert.alert(t('更新成功，伺服器正在處理中，請到匯出紀錄確認處理狀態'))
     } catch (e) {
       console.error(e);
@@ -344,7 +358,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const fetchMeetingItemGroup = async (groupId: string) => {
     try {
       const _res = await S_MeetingItemGroup.show({ modelId: groupId });
-      console.log(_res, '_res_res_res')
+      console.log(_res, 'S_MeetingItemGroup.show')
     } catch (err) {
       console.log('S_MeetingItemGroup.show error', err);
     }
@@ -355,9 +369,40 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
       const res = await S_MeetingItem.index({
         params: { meeting_item_group_id: groupId }
       });
+      const list = res?.data ?? [];
+      const getParseStatus = (item: Motion) =>
+        String(item?.parse_status?.name ?? item?.parse_status ?? '').toUpperCase();
+      const completeItems = list.filter(item => getParseStatus(item) === 'COMPLETE');
+      if (!completeItems.length) {
+        setMeetingItemListByGroup(prev => ({
+          ...prev,
+          [groupId]: list,
+        }));
+        return;
+      }
+      const detailResults = await Promise.all(
+        completeItems.map(item =>
+          S_MeetingItem.show({ modelId: item.id })
+            .then(detail => detail?.data ?? detail)
+            .catch(err => {
+              console.log('S_MeetingItem.show error', err);
+              return null;
+            })
+        )
+      );
+      const detailMap = new Map<string, Motion>();
+      detailResults.forEach((detail, index) => {
+        if (!detail) return;
+        const itemId = completeItems[index]?.id;
+        if (itemId) detailMap.set(itemId, detail as Motion);
+      });
+      const merged = list.map(item => {
+        const detail = detailMap.get(item.id);
+        return detail ? { ...item, ...detail } : item;
+      });
       setMeetingItemListByGroup(prev => ({
         ...prev,
-        [groupId]: res?.data ?? [],
+        [groupId]: merged,
       }));
     } catch (err) {
       console.log('S_MeetingItem.index error', err);
@@ -498,33 +543,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               />
             </View>
 
-            <WsFlex
-              style={{ paddingBottom: 12, paddingHorizontal: 12 }}
-              justifyContent="space-bewteen"
-            >
-              <TouchableOpacity
-                onPress={() => openUpdateProposalModal(group, meetingItem)}
-              >
-                <WsTag>{t('更新提案單')}</WsTag>
-              </TouchableOpacity>
-              <WsIconBtn
-                padding={0}
-                name="ws-outline-edit-pencil"
-                size={24}
-                color={$color.primary}
-                style={{ marginLeft: 8 }}
-                onPress={() => openEditMeetingItemModal(meetingItem)}
-              />
-              <WsIconBtn
-                padding={0}
-                name="ws-outline-delete"
-                size={24}
-                color={$color.danger}
-                style={{ marginLeft: 8 }}
-                onPress={() => onPressDeleteMeetingItem?.(group, meetingItem)}
-              />
-            </WsFlex>
-
           </TouchableOpacity>
 
           {/* 內層 body */}
@@ -533,6 +551,32 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               padding={0}
               style={{ paddingHorizontal: 16, paddingBottom: 16 }}
             >
+              <WsFlex
+                style={{ paddingTop: 8, paddingBottom: 12 }}
+                justifyContent="space-bewteen"
+              >
+                <TouchableOpacity
+                  onPress={() => openUpdateProposalModal(group, meetingItem)}
+                >
+                  <WsTag>{t('更新提案單')}</WsTag>
+                </TouchableOpacity>
+                <WsIconBtn
+                  padding={0}
+                  name="ws-outline-edit-pencil"
+                  size={24}
+                  color={$color.primary}
+                  style={{ marginLeft: 8 }}
+                  onPress={() => openEditMeetingItemModal(meetingItem)}
+                />
+                <WsIconBtn
+                  padding={0}
+                  name="ws-outline-delete"
+                  size={24}
+                  color={$color.danger}
+                  style={{ marginLeft: 8 }}
+                  onPress={() => onPressDeleteMeetingItem?.(group, meetingItem)}
+                />
+              </WsFlex>
               <View style={{ marginTop: 8 }}>
                 <WsInfo
                   label={t('項目名稱')}
@@ -588,6 +632,11 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
 
               <View style={{ marginTop: 8 }}>
                 <WsInfo
+                  style={{
+                    flexDirection: 'row',
+                    alignItem: 'center',
+                    flexWrap: 'wrap',
+                  }}
                   label={t('列席單位/列席人員')}
                   labelColor={$color.gray}
                   value={attendeesInvited}
@@ -666,6 +715,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             style={{
               paddingTop: 8,
               paddingHorizontal: 16,
+              paddingBottom: groupCollapsed ? 8 : 0
             }}
           >
             <WsFlex
@@ -687,109 +737,80 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               />
             </WsFlex>
 
-            <WsFlex
-              style={{
-                marginTop: 8,
-                marginBottom: isGroupCollapsed ? 8 : 0
-              }}
-              justifyContent="space-bewteen"
-            >
-              <WsFlex
-                style={{
-                  flex: 1
-                }}
-              >
-                <WsIconBtn
-                  padding={0}
-                  name="md-add"
-                  size={24}
-                  color={$color.primary}
-                  onPress={() => onPressAddGroup?.(group)}
-                />
-                <WsIconBtn
-                  padding={0}
-                  name="ws-outline-edit-pencil"
-                  size={24}
-                  style={{ marginLeft: 8 }}
-                  color={$color.primary}
-                  onPress={() => onPressEditGroup?.(group)}
-                />
-                <WsIconBtn
-                  padding={0}
-                  name="ws-outline-delete"
-                  size={24}
-                  style={{ marginLeft: 8 }}
-                  color={$color.danger}
-                  onPress={() => onPressDeleteGroup?.(group)}
-                />
-              </WsFlex>
-
-              {/* meetingItem 排序模式切換 + 確定 / 取消 */}
-              {/* <WsFlex
-                style={{
-                }}
-              >
-                {isMeetingItemSortMode ? (
-                  <>
-                    <TouchableOpacity
-                      style={{ marginRight: 8 }}
-                      onPress={cancelMeetingItemSort}
-                    >
-                      <WsTag>{t('取消')}</WsTag>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={confirmMeetingItemSort}
-                    >
-                      <WsTag>{t('確定')}</WsTag>
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => startMeetingItemSort(group)}
-                  >
-                    <WsTag>{t('排序項目')}</WsTag>
-                  </TouchableOpacity>
-                )}
-              </WsFlex> */}
-
-            </WsFlex>
-
-            <View style={{ marginTop: 8 }}>
-              <WsInfo
-                type={'filesAndImages'}
-                label={t('時序表範本')}
-                style={{
-                }}
-                labelColor={$color.gray}
-                value={[item?.schedule_template?.attach]}
-              />
-            </View>
-
-            <View style={{ marginTop: 8 }}>
-              <WsInfo
-                label={t('此​議案​群​組​對應​的​目錄​範本​區塊​')}
-                style={{
-                }}
-                labelColor={$color.gray}
-                value={item?.contents_template_variable?.value}
-              />
-            </View>
-
-            <View style={{ marginTop: 8, marginBottom: 16 }}>
-              <WsInfo
-                label={t('此議案群組對應的議程範本區塊')}
-                style={{
-                }}
-                labelColor={$color.gray}
-                value={item?.meeting_template_variable?.value}
-              />
-            </View>
-
           </TouchableOpacity>
 
           {/* 外層 body：群組展開後的 meetingItem 列表 */}
           {!isGroupCollapsed && (
             <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
+              <WsFlex
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  paddingHorizontal: 4,
+                }}
+                justifyContent="space-bewteen"
+              >
+                <WsFlex
+                  style={{
+                    flex: 1
+                  }}
+                >
+                  <WsIconBtn
+                    padding={0}
+                    name="md-add"
+                    size={24}
+                    color={$color.primary}
+                    onPress={() => onPressAddGroup?.(group)}
+                  />
+                  <WsIconBtn
+                    padding={0}
+                    name="ws-outline-edit-pencil"
+                    size={24}
+                    style={{ marginLeft: 8 }}
+                    color={$color.primary}
+                    onPress={() => onPressEditGroup?.(group)}
+                  />
+                  <WsIconBtn
+                    padding={0}
+                    name="ws-outline-delete"
+                    size={24}
+                    style={{ marginLeft: 8 }}
+                    color={$color.danger}
+                    onPress={() => onPressDeleteGroup?.(group)}
+                  />
+                </WsFlex>
+              </WsFlex>
+
+              <View style={{ marginTop: 8 }}>
+                <WsInfo
+                  type={'filesAndImages'}
+                  label={t('時序表範本')}
+                  style={{
+                  }}
+                  labelColor={$color.gray}
+                  value={[item?.schedule_template?.attach]}
+                />
+              </View>
+
+              <View style={{ marginTop: 8 }}>
+                <WsInfo
+                  label={t('此​議案​群​組​對應​的​目錄​範本​區塊​')}
+                  style={{
+                  }}
+                  labelColor={$color.gray}
+                  value={item?.contents_template_variable?.value}
+                />
+              </View>
+
+              <View style={{ marginTop: 8, marginBottom: 16 }}>
+                <WsInfo
+                  label={t('此議案群組對應的議程範本區塊')}
+                  style={{
+                  }}
+                  labelColor={$color.gray}
+                  value={item?.meeting_template_variable?.value}
+                />
+              </View>
               {isMeetingItemSortMode ? (
                 // 排序模式：用 DraggableFlatList 拖曳排序（只顯示簡化版 row）
                 <DraggableFlatList
@@ -937,7 +958,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             }}>{t('內容')}
           </WsText>
           <JoditEditor
-            initialHtml={content}
+            initialHtml={initialMeetingItemContent}
             onChange={(html) => {
               console.log('edited HTML:', html);
               // setContent(html); // 你也可以存到 state / 丟回後端

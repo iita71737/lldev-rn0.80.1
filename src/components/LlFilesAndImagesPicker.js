@@ -219,6 +219,7 @@ const LlFilesAndImagesPicker = props => {
         const esObj = s?.esgoal_field
         const esId = esObj?.id ?? null
         const esName = esObj?.name ?? null
+        const _has_line_break = wf?.has_line_break ?? false 
 
         if (!esId || !esName) return null
 
@@ -228,6 +229,7 @@ const LlFilesAndImagesPicker = props => {
           sequence: wf?.sequence ?? null,
           meeting_template_field: esId,
           factory: factory?.id ?? null,
+          has_line_break: _has_line_break ?? undefined
         }
       })
       .filter(Boolean)
