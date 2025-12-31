@@ -109,7 +109,6 @@ import { actions, RichEditor, RichToolbar } from 'react-native-pell-rich-editor'
 import IonIcon from 'react-native-vector-icons/Ionicons'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import effects from '@/services/api/v1/effects'
-import { DraggableList } from './DraggableList'
 import ViewArticleShowForModal from '@/views/Act/ArticleShowForModal'
 import { decode } from 'html-entities'
 import guideline_status from '@/services/api/v1/guideline_status'
@@ -291,12 +290,9 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     id
   } = route.params
 
-  console.log(id, '=id=')
-
   // REDUX
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
   const currentFactory = useSelector(state => state.data.currentFactory)
-  const currentFactoryTags = useSelector(state => state.data.factoryTags)
 
   // Tabs
   const [index, setIndex] = useState(0)
@@ -307,10 +303,10 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   // meeting_item_upload
   const [submitMeetingItemLoading, setSubmitMeetingItemLoading] = useState(false)
-  const [fileData, setFileData] = useState();
+  const [fileDataList, setFileDataList] = useState<any[]>([]);
+  const [fileLabelText, setFileLabelText] = useState<string>('')
   const [meetingItemGroupIdForUpload, setMeetingItemGroupIdForUpload] = useState<string | null>(null)
   const [meetingItemListIndex, setMeetingItemListIndex] = useState<number | null>(null)
-  const [itemLabel, setItemLabel] = useState<string | null>(null)
 
   const [addMotionGroupModalVisible, setAddMotionGroupModalVisible] = useState(false)
   const [popupDeleteMotionGroup, setPopupDeleteMotionGroup] = useState(false)
@@ -323,9 +319,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   // 議事
   const [meeting, setMeeting] = useState<any>(null);
-  console.log(meeting?.meeting_template?.id,'=meeting.meeting_template.id=')
   const [meetingItemGroupRefreshKey, setMeetingItemGroupRefreshKey] = useState(0)
-  const [meetingItemGroupSortPayload, setMeetingItemGroupSortPayload] = useState<any>(null)
 
   // 議案群組
   const [meetingItemGroupName, setMeetingItemGroupName] = useState('');
@@ -344,7 +338,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   // 正式資料
   const [groups, setGroups] = useState<Group[]>([])
-  const [motions, setMotions] = useState<Motion | null>(null);
 
   // 排序預覽資料
   const [tempGroups, setTempGroups] = useState<Group[] | null>(null)
@@ -478,6 +471,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   }
 
   useEffect(() => {
+     console.log(id, '=id=')
     $_fetchMeeting()
   }, [id])
 
@@ -504,9 +498,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   // 確認排序：把 temp 套用回正式資料
   const confirmDragSort = async (payload?: { meeting_item_groups: any[] }) => {
-    if (payload) {
-      setMeetingItemGroupSortPayload(payload)
-    }
     if (payload && id) {
       console.log(id, 'id===')
       console.log(JSON.stringify(payload), 'payloadpayload')
@@ -528,10 +519,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     setTempGroups(null)
     setMode('default')
   }
-
-  // 列表用的 data：依模式選 groups 或 tempGroups
-  const listData: Group[] =
-    mode === 'dragSort' && tempGroups ? tempGroups : groups
 
   // 匯出範圍勾選：遞迴切換（勾 parent 會連同 child）
   // 匯出範圍勾選：支援 parent <-> children 連動
@@ -569,9 +556,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           }
         })
       }
-
       syncParents(EXPORT_ITEMS)
-
       return nextState
     })
   }
@@ -644,17 +629,19 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const $_openAddMotionModal = async (group: Group) => {
     setMeetingItemGroupIdForUpload(group?.id ?? null)
     setMeetingItemListIndex(null)
-    setItemLabel(null)
-    setFileData(undefined)
+    setFileDataList([])
+    setFileLabelText('')
     if (group?.id) {
       try {
         const res = await S_MeetingItem.index({
-          params: { meeting_item_group_id: group.id }
+          params: {
+            meeting_item_group_id: group.id,
+            order_way: 'asc',
+            order_by: 'sequence',
+          }
         })
         const nextIndex = (res?.data?.length ?? 0) + 1
         setMeetingItemListIndex(nextIndex)
-        const nextLabel = $_buildMeetingItemLabel(meeting?.item_label_type?.value, nextIndex)
-        setItemLabel(nextLabel)
       } catch (err) {
         console.log('S_MeetingItem.index error', err)
       }
@@ -767,6 +754,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     try {
       const res = await pick({
         mode: 'import',
+        allowMultiSelection: true,
         mimeTypes: [
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         ]
@@ -774,27 +762,35 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
       if (!res || res.length === 0) return
 
-      const fileUri = res[0].uri
-      const originalName = res[0].name || ''
-      const safeFileName = normalizeFileName(originalName)
+      const safeFiles = res.map(file => {
+        const rawName = file.name || ''
+        const safeName = normalizeFileName(rawName)
+        return {
+          uri: file.uri,
+          name: safeName,
+          type:
+            file.type ||
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        }
+      })
 
-      if (!safeFileName.toLowerCase().endsWith('.docx')) {
+      const hasNonDocx = safeFiles.some(file => !file.name.toLowerCase().endsWith('.docx'))
+      if (hasNonDocx) {
         Alert.alert(t('請選擇 .docx 檔案'))
         return
       }
 
-      setFileData({
-        uri: fileUri,
-        name: safeFileName,
-        type:
-          res[0].type ||
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      setFileDataList(safeFiles)
+
+      const labelLines = safeFiles.map((file, idx) => {
+        const displayIndex = (meetingItemListIndex ?? 1) + idx
+        const label = $_buildMeetingItemLabel(meeting?.item_label_type?.value, displayIndex)
+        return `${label} - ${file.name}`
       })
+      setFileLabelText(labelLines.join('\n'))
 
-      console.log('📄 原始檔名:', originalName)
-      console.log('✅ 上傳檔名:', safeFileName)
-
-      Alert.alert(t('成功'), `${t('成功匯入')} ${safeFileName}`)
+      console.log('✅ 上傳檔名:', safeFiles.map(file => file.name).join(', '))
+      Alert.alert(t('成功'), t('成功匯入'))
     } catch (err) {
       const isCancel =
         err?.code === 'DOCUMENT_PICKER_CANCELED' ||
@@ -807,32 +803,36 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
 
   const $_submitMeetingItem = async () => {
-    const formData = new FormData();
-    formData.append('factory', currentFactory.id);
-    formData.append('item_label', itemLabel ?? '');
-    formData.append('meeting', id);
-    formData.append('file', fileData);
-    const _params = {
-      formData: formData,
-      meeting_item_group_id: meetingItemGroupIdForUpload
-    }
-    console.log(formData, 'formData---')
-    console.log(_params, '_params---')
     try {
       if (!meetingItemGroupIdForUpload) {
         Alert.alert(t('請先選擇議案群組'))
         return
       }
-      if (!fileData) {
+      if (!fileDataList.length) {
         Alert.alert(t('請先上傳檔案'))
         return
       }
       setSubmitMeetingItemLoading(true)
-      const _meetingItem = await S_MeetingItem.importMeetingItemWord({ params: _params })
-      console.log(_meetingItem, '_meetingItem');
+      const baseIndex = meetingItemListIndex ?? 1
+      for (let index = 0; index < fileDataList.length; index += 1) {
+        const file = fileDataList[index]
+        const formData = new FormData();
+        formData.append('factory', currentFactory.id);
+        formData.append('sequence', String(index + 1).padStart(4, '0'));
+        formData.append('item_label', $_buildMeetingItemLabel(meeting?.item_label_type?.value, baseIndex + index));
+        formData.append('meeting', id);
+        formData.append('file', file);
+        const _params = {
+          formData: formData,
+          meeting_item_group_id: meetingItemGroupIdForUpload
+        }
+        const _meetingItem = await S_MeetingItem.importMeetingItemWord({ params: _params })
+        console.log(_meetingItem, '_meetingItem');
+      }
       setAddMotionModalVisible(false)
       setMeetingItemGroupIdForUpload(null)
-      setFileData(undefined)
+      setFileDataList([])
+      setFileLabelText('')
       Alert.alert(t('建立​成功，​伺服器​正在​處理​中，​請到​匯出紀​錄確認​處理​狀態'))
       setMeetingItemGroupRefreshKey(prev => prev + 1)
     } catch (e) {
@@ -1080,60 +1080,60 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           setAddMotionModalVisible(false)
           setMeetingItemGroupIdForUpload(null)
           setMeetingItemListIndex(null)
-          setItemLabel(null)
-          setFileData(undefined)
+          setFileDataList([])
+          setFileLabelText('')
         }}
         onBackButtonPress={() => {
           setAddMotionModalVisible(false)
           setMeetingItemGroupIdForUpload(null)
           setMeetingItemListIndex(null)
-          setItemLabel(null)
-          setFileData(undefined)
+          setFileDataList([])
+          setFileLabelText('')
         }}
         footerBtnLeftText={t('取消')}
         footerBtnLeftOnPress={() => {
           setAddMotionModalVisible(false)
           setMeetingItemGroupIdForUpload(null)
           setMeetingItemListIndex(null)
-          setItemLabel(null)
-          setFileData(undefined)
+          setFileDataList([])
+          setFileLabelText('')
         }}
         footerBtnRightText={t('確定')}
         footerBtnRightOnPress={() => {
           $_submitMeetingItem()
         }}
-        >
+      >
+        {submitMeetingItemLoading && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              zIndex: 999,
+              justifyContent: 'center',
+              alignItems: 'center',
+              // backgroundColor: 'rgba(0,0,0,0.2)',
+            }}
+          >
+            <WsLoading />
+          </View>
+        )}
+        
         <View
           style={{
             marginVertical: 16,
             paddingHorizontal: 16,
           }}
         >
-          {meetingItemListIndex !== null && (
+          {fileDataList.length > 0 && (
             <WsInfo
               style={{
                 marginTop: 8,
               }}
-              label={t('預計新增序號')}
-              value={String(meetingItemListIndex)}
-            />
-          )}
-          {itemLabel && (
-            <WsInfo
-              style={{
-                marginTop: 8,
-              }}
-              label={t('預計項目名稱')}
-              value={itemLabel}
-            />
-          )}
-          {fileData && (
-            <WsInfo
-              style={{
-                marginTop: 8,
-              }}
-              label={t('已上傳提案單')}
-              value={fileData.name}
+              label={t('已選擇提案單')}
+              value={fileLabelText}
             >
             </WsInfo>
           )}

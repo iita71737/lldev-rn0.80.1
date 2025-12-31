@@ -59,10 +59,11 @@ import PDFToolAdminShow from '@/views/PDFTool/PDFToolAdminShow'
 import H_time from '@/helpers/time';
 import PDFToolAdminTemplateShow from '@/views/PDFTool/PDFToolAdminTemplateShow'
 import PDFToolAdminExportShow from '@/views/PDFTool/PDFToolAdminExportShow'
+import PDFToolAdminBatchEditMeetingItemGroup from '@/views/PDFTool/PDFToolAdminBatchEditMeetingItemGroup'
 const StackSetting = createStackNavigator()
 import S_Meeting from '@/services/api/v1/meeting'
 
-const RoutesAct = () => {
+const RoutesPDFTool = () => {
   const { t, i18n } = useTranslation()
 
   // Redux
@@ -308,6 +309,9 @@ const RoutesAct = () => {
           routes: [
             {
               name: 'PDFToolAdminIndex',
+              params: {
+                initTabIndex: 1
+              }
             },
             {
               name: 'PDFToolAdminShow',
@@ -337,23 +341,61 @@ const RoutesAct = () => {
     navigation,
     currentUserId
   ) => {
-    console.log(JSON.stringify(_formattedValue), '_formattedValue--');
+    // console.log(JSON.stringify(_formattedValue), '_formattedValue--');
     const _data = S_Meeting.formattedDataForEdit(_formattedValue)
-    console.log(JSON.stringify(_data), 'submitForEditMeeting');
+    // console.log(JSON.stringify(_data), 'submitForEditMeeting');
     try {
+      const stored = await AsyncStorage.getItem('PDFToolAdminUpdate')
+      const prev = stored ? JSON.parse(stored) : null
+      const prevContentsId = prev?.contents_template ?? prev?.contents_template
+      const prevMeetingId = prev?.meeting_template ?? prev?.meeting_template
+      const nextContentsId = _formattedValue?.contents_template ?? _formattedValue?.contents_template
+      const nextMeetingId = _formattedValue?.meeting_template ?? _formattedValue?.meeting_template
+      const isTemplateChanged =
+        (prevContentsId && nextContentsId && prevContentsId !== nextContentsId) ||
+        (prevMeetingId && nextMeetingId && prevMeetingId !== nextMeetingId)
+      // console.log(isTemplateChanged, 'isTemplateChangedisTemplateChanged')
       const res = await S_Meeting.update({
         modelId: modelId,
         data: _data
       })
       if (res) {
+        const meetingId = res?.id ?? modelId
+        if (isTemplateChanged) {
+          Alert.alert(
+            t('目錄範本或議程範本有異動，要批次編輯議案群組的對應的目錄範本區塊及對應的議程範本區塊嗎？'),
+            '',
+            [
+              {
+                text: t('否'),
+                style: 'cancel',
+                onPress: () => {
+                  navigation.replace('RoutesPDFTool', {
+                    screen: 'PDFToolAdminShow',
+                    params: { id: meetingId }
+                  })
+                },
+              },
+              {
+                text: t('是'),
+                onPress: () => {
+                  navigation.replace('RoutesPDFTool', {
+                    screen: 'PDFToolAdminBatchEditMeetingItemGroup',
+                    params: { id: meetingId }
+                  })
+                },
+              },
+            ]
+          )
+          return
+        }
         navigation.replace('RoutesPDFTool', {
           screen: 'PDFToolAdminShow',
           params: {
-            id: res.id
+            id: meetingId
           }
         })
       }
-      // await AsyncStorage.removeItem('GuidelineAdminUpdateNoVersion')
     } catch (e) {
       Alert.alert(t('編輯議事異常'))
       console.error(e.message, 'submitForEditNoVersion')
@@ -378,12 +420,14 @@ const RoutesAct = () => {
           routes: [
             {
               name: 'PDFToolAdminIndex',
+              params: {
+                initTabIndex: 1
+              }
             },
             {
               name: 'PDFToolAdminTemplateShow',
               params: {
                 id: res.id,
-                initTabIndex: 1
               }
             }
           ],
@@ -409,7 +453,8 @@ const RoutesAct = () => {
   ) => {
     // console.log(JSON.stringify(_formattedValue), '_formattedValue--');
     const _data = S_MeetingTemplate.formattedMeetingTemplateForEdit(_formattedValue, currentUserId)
-    // console.log(JSON.stringify(_data), 'S_GuidelineVersionAdmin.update');
+    console.log(modelId,'modelId')
+    console.log(JSON.stringify(_data), 'S_GuidelineVersionAdmin.update');
     try {
       const res = await S_MeetingTemplate.update({
         modelId: modelId,
@@ -423,8 +468,11 @@ const RoutesAct = () => {
           }
         })
       }
+      if (res?.meeting_template_type?.value === 'meeting' || res?.meeting_template_type?.value === 'table_of_contents') {
+        Alert.alert(t('目錄範本或議程範本有異動，需要重新設定各議案群組對應的目錄範本區塊及對應的議程範本區塊'))
+      }
     } catch (e) {
-      Alert.alert('編輯範本異常')
+      Alert.alert(t('編輯範本異常'))
       console.error(e.message, 'submitForEditTemplate')
       navigation.navigate('PDFToolAdminIndex', {})
     }
@@ -597,6 +645,16 @@ const RoutesAct = () => {
         />
 
         <StackSetting.Screen
+          name="PDFToolAdminBatchEditMeetingItemGroup"
+          component={scopeFilterScreen('guideline-admin-create', PDFToolAdminBatchEditMeetingItemGroup)}
+          options={{
+            title: t('批次編輯議案群組頁'),
+            headerShown: false,
+            ...$option.headerOption
+          }}
+        />
+
+        <StackSetting.Screen
           name="PDFToolAdminTemplateEdit"
           component={scopeFilterScreen('guideline-admin-create', WsStepRoutesUpdate)}
           options={{
@@ -628,4 +686,4 @@ const RoutesAct = () => {
   )
 }
 
-export default RoutesAct
+export default RoutesPDFTool

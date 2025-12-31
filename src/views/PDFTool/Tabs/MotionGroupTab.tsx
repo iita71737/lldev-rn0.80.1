@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { View, TouchableOpacity } from 'react-native'
-import DraggableFlatList from 'react-native-draggable-flatlist'
+import { View, TouchableOpacity, FlatList } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { WsFlex, WsTag, WsCard, WsText, WsIcon, LlPDFMotionGroupCard001, WsSkeleton } from '@/components'
+import { WsFlex, WsTag, WsCard, WsText, WsIcon, LlPDFMotionGroupCard001, WsSkeleton, WsModal } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
 import S_MeetingItem from '@/services/api/v1/meeting_item'
@@ -76,7 +75,6 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   const draggableListRef = useRef<PDFToolDraggableListRef | null>(null)
 
   const $_fetchMeetingItemGroups = async (meetingId: string, isMounted: () => boolean) => {
-    console.log(meetingId,'=meetingId=')
     setLoading(true)
     try {
       const res = await S_MeetingItemGroup.index({ params: { meetingId } })
@@ -204,6 +202,17 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
       .sort((a: any, b: any) => (a.sequence || '').localeCompare(b.sequence || ''))
   }
 
+  const handleConfirmSort = () => {
+    const payload = draggableListRef.current?.getPayload()
+    if (payload) {
+      const updated = applyPayloadToGroups(payload)
+      setMeetingItemGroups(updated as Group[])
+      onConfirmSort(payload)
+    } else {
+      onConfirmSort({ meeting_item_groups: [] })
+    }
+  }
+
   const renderListHeader = () => (
     <WsFlex
       style={{
@@ -215,7 +224,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
       <View />
 
       <WsFlex style={{ marginRight: 4 }}>
-        {mode === 'default' ? (
+        {mode === 'default' && (
           <>
             <TouchableOpacity
               style={{ alignItems: 'flex-end', marginRight: 8 }}
@@ -234,42 +243,41 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
               <WsTag>{t('新增')}</WsTag>
             </TouchableOpacity>
           </>
-        ) : (
-          <>
-            <TouchableOpacity
-              style={{ alignItems: 'flex-end', marginRight: 8 }}
-              onPress={() => {
-                const payload = draggableListRef.current?.getPayload()
-                if (payload) {
-                  const updated = applyPayloadToGroups(payload)
-                  setMeetingItemGroups(updated as Group[])
-                  onConfirmSort(payload)
-                } else {
-                  onConfirmSort({ meeting_item_groups: [] })
-                }
-              }}
-            >
-              <WsTag>{t('確定')}</WsTag>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ alignItems: 'flex-end', marginRight: 8 }}
-              onPress={() => {
-                onCancelSort()
-              }}
-            >
-              <WsTag>{t('取消')}</WsTag>
-            </TouchableOpacity>
-          </>
         )}
       </WsFlex>
     </WsFlex>
   )
 
-  if (mode === 'dragSort') {
-    const flatItems = toFlatItems()
-    return (
-      <View style={{ flex: 1 }}>
-        {renderListHeader()}
+  return (
+    <>
+      <FlatList
+        data={meetingItemGroups}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={renderListHeader}
+        ListFooterComponent={() => <View style={{ height: 50 }} />}
+        renderItem={({ item }) => (
+          <LlPDFMotionGroupCard001
+            key={item.id}
+            item={item}
+            meeting={meeting}
+            refreshKey={refreshKey}
+            onPressAddGroup={onOpenAddMotion}
+            onPressEditGroup={onOpenEditGroup}
+            onPressDeleteMeetingItem={onOpenDeleteMeetingItem}
+            onPressDeleteGroup={onOpenDeleteGroup}
+          />
+        )}
+      />
+
+      <WsModal
+        title={t('排序')}
+        visible={mode === 'dragSort'}
+        headerLeftOnPress={() => onCancelSort()}
+        onBackButtonPress={() => onCancelSort()}
+        headerRightText={t('確定')}
+        headerRightOnPress={handleConfirmSort}
+        childrenScroll={false}
+      >
         {loadingMeetingItems ? (
           <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
             <WsSkeleton />
@@ -277,60 +285,11 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
         ) : (
           <PDFToolDraggableList
             ref={draggableListRef}
-            items={flatItems}
+            items={toFlatItems()}
           />
         )}
-      </View>
-    )
-  }
-
-  return (
-    <DraggableFlatList
-      data={meetingItemGroups}
-      keyExtractor={(item) => item.id}
-      ListHeaderComponent={renderListHeader}
-      ListFooterComponent={() => <View style={{ height: 50 }} />}
-      renderItem={({ item, drag, getIndex }) => {
-        if (mode === 'default') {
-          return (
-            <LlPDFMotionGroupCard001
-              key={item.id}
-              item={item}
-              refreshKey={refreshKey}
-              onPressAddGroup={onOpenAddMotion}
-              onPressEditGroup={onOpenEditGroup}
-              onPressDeleteMeetingItem={onOpenDeleteMeetingItem}
-              onPressDeleteGroup={onOpenDeleteGroup}
-            />
-          )
-        }
-
-        const order = (getIndex?.() ?? 0) + 1
-        return (
-          <TouchableOpacity onPressIn={drag} onLongPress={drag}>
-            <WsCard
-              borderRadius={10}
-              style={{
-                backgroundColor: $color.primary10l,
-                marginTop: 8,
-                marginHorizontal: 16,
-              }}
-            >
-              <WsFlex justifyContent="space-between">
-                <WsText>{`${order}  ${item.name}`}</WsText>
-                <WsIcon name="ws-outline-drag-horizontal" size={24} style={{ marginRight: 8 }} />
-              </WsFlex>
-            </WsCard>
-          </TouchableOpacity>
-        )
-      }}
-      onDragEnd={({ data }) => {
-        if (mode === 'dragSort') {
-          setMeetingItemGroups(data as Group[])
-          onDragEnd(data as Group[])
-        }
-      }}
-    />
+      </WsModal>
+    </>
   )
 }
 

@@ -217,6 +217,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
   const isDragging = useSharedValue(false)
   const dragX = useSharedValue(0)
   const dragY = useSharedValue(0)
+  const dragAbsoluteY = useSharedValue(0)
   const animatedStyle = useAnimatedStyle(() => ({
     position: 'absolute',
     left: dragX.value,
@@ -235,7 +236,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
   })
 
   useAnimatedReaction(
-    () => dragY.value,
+    () => dragAbsoluteY.value,
     (currentDragY) => {
       const threshold = 80
       const headerHeight = 100
@@ -259,6 +260,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
       const selectedItem = modelsCopy.find(item => isSameId(item.id, activeId))
       const targetItem = modelsCopy.find(item => isSameId(item.id, targetId))
       if (!selectedItem || !targetItem) return prevItems
+      if (selectedItem.type === 'group') return prevItems
 
       const subtreeItems = selectedItem.type === 'group'
         ? modelsCopy.filter(item => item.sequence.startsWith(selectedItem.sequence))
@@ -268,12 +270,10 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
       )
 
       let nextParentId: string | null = null
-      if (selectedItem.type === 'group') {
-        nextParentId = null
+      if (targetItem.type === 'group') {
+        nextParentId = targetItem.id
       } else if (mode === 'child') {
-        nextParentId = targetItem.type === 'group'
-          ? targetItem.id
-          : targetItem.parentId
+        nextParentId = targetItem.parentId
       } else {
         nextParentId = targetItem.parentId
       }
@@ -325,6 +325,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
   const handleBegin: DndProviderProps['onBegin'] = (event, meta) => {
     'worklet'
     isDragging.value = true
+    dragAbsoluteY.value = event?.absoluteY ?? 0
     const pos = getDragPosition(event, meta)
     dragX.value = withSpring(pos.x)
     dragY.value = withSpring(pos.y)
@@ -344,6 +345,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
   const handleUpdate: DndProviderProps['onUpdate'] = (event, meta) => {
     'worklet'
     isDragging.value = true
+    dragAbsoluteY.value = event?.absoluteY ?? dragAbsoluteY.value
     const pos = getDragPosition(event, meta)
     dragX.value = withSpring(pos.x)
     dragY.value = withSpring(pos.y)
@@ -358,6 +360,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
     isDragging.value = false
     dragX.value = 0
     dragY.value = 0
+    dragAbsoluteY.value = 0
     runOnJS(setSelectedItems)([])
     runOnJS(setHoverItem)(null)
     if (state !== State.FAILED) {
@@ -370,6 +373,17 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
+      <WsFlex
+        style={{
+          backgroundColor: $color.danger11l,
+          paddingHorizontal: 12,
+          marginBottom: 8,
+        }}
+        justifyContent="space-around"
+      >
+        <WsText color={$color.danger}>{t('變更順序將觸發系統重新產生所有匯出檔案。由於資料量較大，處理過程預計需要較長時間，請耐心等候。')}</WsText>
+      </WsFlex>
+
       <WsFlex
         style={{
           backgroundColor: $color.white2d,
@@ -386,7 +400,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
               marginRight: 4
             }}>
           </View>
-          <WsText>{t('移至同層級')}</WsText>
+          <WsText>{t('移至上方')}</WsText>
         </WsFlex>
         <WsFlex>
           <View
@@ -398,7 +412,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
               marginRight: 4
             }}>
           </View>
-          <WsText>{t('移至子層級')}</WsText>
+          <WsText>{t('移至下方')}</WsText>
         </WsFlex>
       </WsFlex>
 
@@ -415,6 +429,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
             onUpdate={handleUpdate}
             onFinalize={handleFinalize}
             onDragEnd={handleDragEnd}
+            activationDelay={300}
           >
             {_items.map((item) => {
               const dragId = String(item.id)
@@ -429,7 +444,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
                       key={dragId}
                       id={dragId}
                       data={item}
-                      disabled={selectedItems.some(sel => sel.id === item.id)}
+                      disabled={item.type === 'group' || selectedItems.some(sel => sel.id === item.id)}
                     >
                       <WsCard
                         borderRadius={10}
@@ -468,10 +483,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
                           >
                             {item.type === 'group'
                               ? `${item.sequence}. ${item.name || t('議案群組')}`
-                              : `${item.sequence.split('-').slice(-1)[0]}. ${typeof item.item_label === 'string'
-                                ? item.item_label
-                                : item.item_label?.name ?? item.name ?? t('項目名稱')
-                              }`}
+                              : `${item.sequence.split('-').slice(-1)[0]}. ${item.name || t('項目名稱')}`}
                           </WsText>
                           <WsIcon
                             name="ws-outline-drag-horizontal"

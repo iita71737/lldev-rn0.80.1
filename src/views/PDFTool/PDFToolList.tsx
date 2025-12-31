@@ -56,8 +56,8 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
   const [filterFields] = React.useState({
     button: {
       type: 'date_range',
-      label: t('期限'),
-      time_field: 'expired_at',
+      label: t('更新日期'),
+      time_field: 'updated_at',
     },
     owner: {
       type: 'belongsto',

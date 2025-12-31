@@ -174,7 +174,7 @@ export default {
         }
         : null,
       // ===== 標記設定（核心）=====
-      meeting_templateＦ_items: Array.isArray(fileAttach?.meeting_template_items)
+      meeting_template_items: Array.isArray(fileAttach?.meeting_template_items)
         ? fileAttach.meeting_template_items.map(item => ({
           // ⚠️ edit 時「有 id 就帶，沒有就不帶」
           ...(item.id ? { id: item.id } : {}),
