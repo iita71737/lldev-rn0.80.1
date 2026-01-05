@@ -115,16 +115,16 @@ const PDFToolAdminIndex = (props) => {
         rightOnPress={async () => {
           if (tabIndex == 0) {
             const _defaultValue = {
-              "name": "踏平瑪雷",
+              "name": "App測試建立的議事",
               "remark": "remark",
               "chairperson": "艾主席",
-              "meeting_date": "2025-12-28 04:00",
+              // "meeting_date": "2025-12-28 04:00",
               "date_format": {
                 "id": "a3e32c77-ef14-475f-ba41-2bc2437d74b4",
                 "value": "roc_format",
                 "name": "一​一​四​年​十一月​二十四日​(​星期四​)​下午​2點15​分"
               },
-              "meeting_date_format": "一一四年十二月二十八日（週日）上午4時00分",
+              // "meeting_date_format": "一一四年十二月二十八日（週日）上午4時00分",
               "location": "瑪雷大陸",
               "owner": {
                 "id": "bff06c0a-81ff-11ee-89b0-42010a8c000b",

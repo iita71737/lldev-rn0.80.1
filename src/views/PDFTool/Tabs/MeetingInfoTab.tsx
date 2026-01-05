@@ -385,7 +385,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
                 }}
               >
                 <WsInfo
-                  label={t('議事範本')}
+                  label={t('議程範本')}
                   type="filesAndImages"
                   value={meetingTemplateFiles}
                 />
@@ -397,7 +397,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
 
               <WsPaddingContainer padding={0} style={{ paddingTop: 8, paddingHorizontal: 16 }}>
                 <WsText size={14} fontWeight={500}>
-                  {t('議事範本變數')}
+                  {t('議程範本變數')}
                 </WsText>
               </WsPaddingContainer>
             </>

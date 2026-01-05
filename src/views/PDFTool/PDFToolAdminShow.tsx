@@ -742,6 +742,9 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const $_buildMeetingItemLabel = (pattern?: string, index?: number) => {
     if (!index) return ''
     if (!pattern) return String(index)
+    if (pattern.includes('\\d')) {
+      return `第${index}案`
+    }
     if (pattern.includes('第') && pattern.includes('案')) {
       return `第${$_toChineseNumber(index)}案`
     }
@@ -784,6 +787,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
       const labelLines = safeFiles.map((file, idx) => {
         const displayIndex = (meetingItemListIndex ?? 1) + idx
+        console.log(meeting?.item_label_type?.value,'=meeting?.item_label_type?.value=')
         const label = $_buildMeetingItemLabel(meeting?.item_label_type?.value, displayIndex)
         return `${label} - ${file.name}`
       })

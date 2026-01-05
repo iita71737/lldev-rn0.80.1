@@ -76,6 +76,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
 
   const $_fetchMeetingItemGroups = async (meetingId: string, isMounted: () => boolean) => {
     setLoading(true)
+    console.log(meetingId,'meetingId')
     try {
       const res = await S_MeetingItemGroup.index({ params: { meetingId } })
       if (!isMounted()) return

@@ -291,7 +291,8 @@ const LlFileFolderCard = ({
             navigation.push('RoutesApp', {
               screen: 'FileStoreShow',
               params: {
-                id: item.id
+                id: item.id,
+                tab: tab
               }
             })
           }

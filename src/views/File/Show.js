@@ -55,7 +55,7 @@ const FileStoreShow = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
 
   // Params
-  const { id } = route.params
+  const { id, tab } = route.params
 
   // Redux
   const factory = useSelector(state => state.data.currentFactory)
@@ -278,15 +278,18 @@ const FileStoreShow = ({ navigation, route }) => {
   }
 
   const $_setBottomSheet = () => {
-    setBottomSheetItems([
-      {
+    const items = []
+    if (tab !== 'tab4') {
+      items.push({
         icon: 'ws-outline-edit-pencil',
         label: t('上傳新版本'),
         onPress: () => {
           setActionType('uploadNewVersion')
           setFileFolderCRUDModalVisible(true)
         },
-      },
+      })
+    }
+    items.push(
       {
         icon: 'md-update',
         label: t('移動'),
@@ -313,7 +316,8 @@ const FileStoreShow = ({ navigation, route }) => {
           setFileFolderCRUDModalVisible(true)
         },
       }
-    ])
+    )
+    setBottomSheetItems(items)
   }
 
   const $_onBottomSheetItemPress = item => {

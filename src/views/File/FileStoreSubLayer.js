@@ -73,8 +73,6 @@ const FileStoreSubLayer = ({ route }, props) => {
   const _canCreateFile = folderScope && Array.isArray(folderScope.scopes)
     ? hasPermission(folderScope.scopes, 'file-create')
     : false;
-
-  console.log('folderScope', folderScope);
   
   // Fields
   const fields = {

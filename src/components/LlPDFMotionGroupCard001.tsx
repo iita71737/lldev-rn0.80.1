@@ -68,8 +68,6 @@ type Props = {
 
 // -------------------- Component 本體 --------------------
 
-const initialMeetingItemContent = '<p>這是原始 HTML</p>';
-
 const LlPDFMotionGroupCard001: React.FC<Props> = ({
   style,
   item,
