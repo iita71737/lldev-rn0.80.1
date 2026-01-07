@@ -236,6 +236,10 @@ const WsStateFileItem = props => {
   }, [needUpload])
 
   const exportName = value?.export_attachment_name ?? $_getFileName()
+  const exportAttachmentValue =
+    typeof value?.export_attachment_name_enabled === 'boolean'
+      ? value?.export_attachment_name_enabled
+      : exportAttachmentName ?? false
 
   // Render
   return (
@@ -244,19 +248,35 @@ const WsStateFileItem = props => {
         modelName === 'meeting' &&
         orderMode !== 'sort' &&
         exportAttachmentName && (
-          <WsState
-            style={
-              [
-                { marginBottom: 8, marginTop: itemIndex === 0 ? 0 : 16 }
-              ]
-            }
-            type="text"
-            label={t('匯出​附件​名​稱')}
-            value={exportName}
-            onChange={(text) => {
-              onItemChange?.({ export_attachment_name: text })
-            }}
-          />
+          <>
+            <WsState
+              style={
+                [
+                  { marginBottom: 8, marginTop: itemIndex === 0 ? 0 : 16 }
+                ]
+              }
+              type="checkbox"
+              label={t('是否​匯出​附件​名​稱')}
+              value={exportAttachmentValue}
+              onChange={$event => {
+                onItemChange?.({ export_attachment_name_enabled: $event })
+              }}
+            />
+            <WsState
+              style={
+                [
+                  { marginBottom: 8 }
+                ]
+              }
+              type="text"
+              label={t('匯出​附件​名​稱')}
+              value={exportName}
+              editable={!!exportAttachmentValue}
+              onChange={(text) => {
+                onItemChange?.({ export_attachment_name: text })
+              }}
+            />
+          </>
         )}
       <WsFlex>
         {needUpload && (
@@ -291,7 +311,7 @@ const WsStateFileItem = props => {
           >
             <WsInfoFile
               testID={testID}
-              fileName={$_getFileName()}
+              fileName={exportName ? exportName : $_getFileName()}
               fileType={fileType ? fileType : fileExtension ? fileExtension : null}
               value={$_getSource()}
               disabled={

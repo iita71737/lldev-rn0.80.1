@@ -8,7 +8,7 @@ import {
   PermissionsAndroid,
   Alert,
 } from 'react-native'
-import { WsText, WsFlex, WsShadowCard, WsModalPreview, WsLoading } from '@/components'
+import { WsText, WsFlex, WsShadowCard, WsModalPreview, WsLoading, WsInfo } from '@/components'
 import S_url from '@/__reactnative_stone/services/app/url'
 import FastImage from 'react-native-fast-image'
 import RNFS from 'react-native-fs'
@@ -24,7 +24,15 @@ const WsInfoFile = props => {
   const { width } = Dimensions.get('window')
 
   // Props
-  const { fileName, fileType, value, fileVersion, disabled, testID } = props
+  const {
+    fileName,
+    fileType,
+    value,
+    fileVersion,
+    disabled,
+    testID,
+    exportAttachmentName
+  } = props
 
   // Redux
   const currentFactory = useSelector(state => state.data.currentFactory)
@@ -352,6 +360,35 @@ const WsInfoFile = props => {
                 >
                   <WsLoading />
                 </View>
+              )}
+
+              {exportAttachmentName && (
+                <>
+                  <WsInfo
+                    labelWidth={160}
+                    label={t('是否匯出附件名稱')}
+                    labelColor={$color.gray}
+                    value={
+                      exportAttachmentName ? t('是') : t('否')
+                    }
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                  />
+                  <WsInfo
+                    labelWidth={160}
+                    label={t('匯出​附件​名​稱')}
+                    labelColor={$color.gray}
+                    value={
+                      exportAttachmentName ? t('是XXXX') : t('否XXXXX')
+                    }
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                  />
+                </>
               )}
 
               <WsFlex>

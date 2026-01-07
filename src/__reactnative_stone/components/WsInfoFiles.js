@@ -16,6 +16,7 @@ const WsInfoFiles = props => {
       padding: 8
     },
     emptyText,
+    exportAttachmentName
   } = props
 
   // Computed
@@ -73,6 +74,7 @@ const WsInfoFiles = props => {
                     ? false
                     : !(value[itemIndex]?.file?.source_url || value[itemIndex]?.file_version?.source_url)
                 }
+                exportAttachmentName={exportAttachmentName}
               />
             </View>
           )}

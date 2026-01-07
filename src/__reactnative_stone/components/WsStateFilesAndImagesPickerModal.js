@@ -33,7 +33,52 @@ const WsStateFilesAndImagesPickerModal = props => {
     limitFileExtension,
   } = props
 
-  const allowedExtensions = limitFileExtension && limitFileExtension.split(", ").map(ext => ext.trim());
+  const normalizedExtensions = Array.isArray(limitFileExtension)
+    ? limitFileExtension
+    : typeof limitFileExtension === 'string'
+      ? limitFileExtension.split(',').map(ext => ext.trim())
+      : null
+  const allowedExtensions = normalizedExtensions?.map(ext =>
+    ext.replace('.', '').toLowerCase()
+  )
+  const allowAll = !Array.isArray(allowedExtensions) || allowedExtensions.length === 0
+  const imageExtensions = new Set([
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'bmp',
+    'webp',
+    'heic',
+    'heif',
+    'tiff'
+  ])
+  const videoExtensions = new Set([
+    'mp4',
+    'mov',
+    'wmv',
+    'avi',
+    'flv',
+    'mkv',
+    'webm',
+    'mpeg',
+    'mpg',
+    'm4v',
+    '3gp',
+    '3g2'
+  ])
+  const hasImage = Array.isArray(allowedExtensions)
+    ? allowedExtensions.some(ext => imageExtensions.has(ext))
+    : false
+  const hasVideo = Array.isArray(allowedExtensions)
+    ? allowedExtensions.some(ext => videoExtensions.has(ext))
+    : false
+  const hasOther = Array.isArray(allowedExtensions)
+    ? allowedExtensions.some(ext => !imageExtensions.has(ext) && !videoExtensions.has(ext))
+    : false
+  const showAlbumCamera = allowAll || hasImage
+  const showRecording = allowAll || hasVideo
+  const showFile = allowAll || hasOther
 
   return (
     <Modal
@@ -44,25 +89,29 @@ const WsStateFilesAndImagesPickerModal = props => {
     >
       {isVisible && !loadingProgress && (
         <SafeAreaView style={styles.buttons}>
-          <TouchableOpacity
-            testID={'相冊'}
-            style={styles.button}
-            onPress={onImageLibraryPress}
-          >
-            <Image style={styles.buttonIcon} source={images.image} />
-            <Text style={styles.buttonText}>{i18next.t('相冊')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            testID={'相機'}
-            style={styles.button}
-            onPress={onCameraPress}
-          >
-            <Image style={styles.buttonIcon} source={images.camera} />
-            <Text style={styles.buttonText}>{i18next.t('相機')}</Text>
-          </TouchableOpacity>
+          
+          {showAlbumCamera && (
+            <>
+              <TouchableOpacity
+                testID={'相冊'}
+                style={styles.button}
+                onPress={onImageLibraryPress}
+              >
+                <Image style={styles.buttonIcon} source={images.image} />
+                <Text style={styles.buttonText}>{i18next.t('相冊')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID={'相機'}
+                style={styles.button}
+                onPress={onCameraPress}
+              >
+                <Image style={styles.buttonIcon} source={images.camera} />
+                <Text style={styles.buttonText}>{i18next.t('相機')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
-          {(allowedExtensions &&
-            allowedExtensions.includes(".mp4, .mov, .wmv, .avi, .flv, .mkv, .webm, .mpeg, .mpg, .m4v, .3gp, .3g2") || allowedExtensions === undefined) && (
+          {showRecording && (
               <>
                 {recordingBtnVisible && (
                   <TouchableOpacity
@@ -74,27 +123,27 @@ const WsStateFilesAndImagesPickerModal = props => {
                     <Text style={styles.buttonText}>{i18next.t('錄影')}</Text>
                   </TouchableOpacity>
                 )}
-
-                {browseBtnVisible && (
-                  <TouchableOpacity
-                    testID={'檔案'}
-                    style={styles.button}
-                    onPress={onBrowsePress}
-                  >
-                    <WsIcon
-                      name={icon}
-                      size={30}
-                      style={{
-                        margin: 4
-                      }}
-                    />
-                    <WsText size={14} fontWeight={'600'} color={textColor}>
-                      {i18next.t('檔案')}
-                    </WsText>
-                  </TouchableOpacity>
-                )}
               </>
             )}
+
+          {showFile && browseBtnVisible && (
+            <TouchableOpacity
+              testID={'檔案'}
+              style={styles.button}
+              onPress={onBrowsePress}
+            >
+              <WsIcon
+                name={icon}
+                size={30}
+                style={{
+                  margin: 4
+                }}
+              />
+              <WsText size={14} fontWeight={'600'} color={textColor}>
+                {i18next.t('檔案')}
+              </WsText>
+            </TouchableOpacity>
+          )}
 
         </SafeAreaView>
       )}

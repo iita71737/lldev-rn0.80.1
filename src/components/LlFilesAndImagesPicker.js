@@ -651,7 +651,7 @@ const LlFilesAndImagesPicker = props => {
 
                 <WsText style={{ marginBottom: 8 }}>{t('名稱')}</WsText>
                 <TextInput
-                  value={setting.name ?? ''}
+                  value={setting.name || ''}
                   onChangeText={(text) => {
                     setWordFieldSettings(prev => ({
                       ...prev,
@@ -683,9 +683,9 @@ const LlFilesAndImagesPicker = props => {
                   serviceIndexKey="index"
                   hasMeta={false}
                   label={t('對應ESGoal欄位')}
-                  rules={'required'}
-                  errorMessage={!esgoalField && [t('此項目為必填')]}
-                  value={esgoalField ?? null}
+                  // rules={'required'}
+                  // errorMessage={!esgoalField && [t('此項目為必填')]}
+                  value={esgoalField}
                   onChange={(v) => {
                     setWordFieldSettings(prev => ({
                       ...prev,

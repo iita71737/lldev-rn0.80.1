@@ -139,6 +139,17 @@ export default {
   formattedMeetingForEdit(meeting) {
     const state = store.getState()
     const factoryId = state.data.currentFactory?.id
+    const normalizeFileAttach = (attach) => {
+      if (!attach) return null
+      const file = attach?.file ?? null
+      const fileVersion = attach?.file_version ?? null
+      if (!file && !fileVersion) return null
+      return attach
+    }
+    const normalizeFileAttachList = (input) => {
+      const list = Array.isArray(input) ? input : input ? [input] : []
+      return list.map(normalizeFileAttach).filter(Boolean)
+    }
     return {
       name: meeting.name ?? undefined,
       remark: meeting.remark ?? undefined,
@@ -155,8 +166,10 @@ export default {
       cover_template: meeting.cover_template ?? undefined,
       item_label_type: meeting.item_label_type ?? undefined,
       factory_tags: meeting?.factory_tags ?? [],
-      file_attaches: meeting.attaches ?? [],
-      sign_in_form: meeting.sign_in_form ? [meeting.sign_in_form] : undefined,
+      file_attaches: normalizeFileAttachList(meeting.attaches),
+      sign_in_form: normalizeFileAttachList(meeting.sign_in_form).length
+        ? normalizeFileAttachList(meeting.sign_in_form)
+        : undefined,
       // users: Array.isArray(meeting.users) ? meeting.users.map(pickUser) : [],
       // roles: Array.isArray(meeting.roles) ? meeting.roles : [],
     };

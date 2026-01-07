@@ -49,13 +49,7 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
   }, [currentRefreshCounter]);
 
   // States
-  const [isBottomSheetActive, setIsBottomSheetActive] = React.useState(false)
-  const [bottomSheetItems, setBottomSheetItems] = React.useState([])
-
   const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false)
-  const [snackBarText, setSnackBarText] = React.useState(
-    t('已儲存至「我的收藏」')
-  )
   const [filterFields] = React.useState({
     button: {
       type: 'date_range',
@@ -80,85 +74,8 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
     },
   })
 
-  // Option
-  const $_setNavigationOption = () => {
-    navigation.setOptions({
-      headerRight: true ? () => {
-        return (
-          <WsIconBtn
-            name="md-add"
-            color={$color.white}
-            size={24}
-            style={{
-              marginRight: 4
-            }}
-            onPress={() => {
-              setIsBottomSheetActive(true)
-            }}
-          />
-        )
-      } : undefined,
-      headerLeft: () => {
-        return (
-          <WsIconBtn
-            testID="backButton"
-            name="ws-outline-arrow-left"
-            color="white"
-            size={24}
-            style={{
-              marginRight: 4
-            }}
-            onPress={() => {
-              navigation.goBack()
-            }}
-          />
-        );
-      }
-    });
-  }
-
-  // Storage
-  const $_clearStorage = async () => {
-    await AsyncStorage.removeItem('PDFToolAdminCreateTemplate')
-  }
-
-  // Bottom Sheet
-  const $_setBottomSheet = () => {
-    setBottomSheetItems([
-      {
-        onPress: () => {
-          $_clearStorage()
-          navigation.push('RoutesPDFTool', {
-            screen: 'PDFToolAdminCreateTemplate',
-          })
-        },
-        icon: 'md-add',
-        label: t('新增範本')
-      }
-    ])
-  }
-  const $_onBottomSheetItemPress = item => {
-    if (item.to) {
-      navigation.navigate(item.to)
-    } else {
-      item.onPress()
-    }
-  }
-
-  React.useEffect(() => {
-    // $_setNavigationOption()
-    // $_setBottomSheet()
-  }, [])
-
   return (
     <>
-      <WsSnackBar
-        text={snackBarText}
-        setVisible={setIsSnackBarVisible}
-        visible={isSnackBarVisible}
-        quickHidden={true}
-      />
-
       <WsPageIndex
         modelName={'meeting_template'}
         serviceIndexKey={'index'}
@@ -204,16 +121,6 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
         }}
       >
       </WsPageIndex>
-
-      <WsBottomSheet
-        snapPoints={[168, 148]}
-        isActive={isBottomSheetActive}
-        onDismiss={() => {
-          setIsBottomSheetActive(false)
-        }}
-        items={bottomSheetItems}
-        onItemPress={$_onBottomSheetItemPress}
-      />
     </>
   )
 }

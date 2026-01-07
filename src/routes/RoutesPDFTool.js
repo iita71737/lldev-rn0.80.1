@@ -16,6 +16,10 @@ import {
   WsStepRoutesCreate,
   WsSubtaskCard,
   WsStepRoutesUpdate,
+  WsFlex,
+  WsDes,
+  WsText,
+  WsIcon
 } from '@/components'
 import ViewAct from '@/views/Act/Index'
 import ViewActShow from '@/views/Act/Show'
@@ -87,7 +91,7 @@ const RoutesPDFTool = () => {
       type: 'datetime',
       placeholder: t('YYYY-MM-DD HH:mm'),
       label: t('時間'),
-      rules: 'required',
+      // rules: 'required',
     },
     date_format: {
       type: 'belongsto',
@@ -96,7 +100,7 @@ const RoutesPDFTool = () => {
       nameKey: 'name',
       modelName: 'data_format',
       serviceIndexKey: 'index',
-      rules: 'required',
+      // rules: 'required',
       updateValueOnChange: (event, value, field, fields) => {
         console.log(event, 'event222')
         console.log(value, 'value222')
@@ -126,7 +130,7 @@ const RoutesPDFTool = () => {
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
       hasMeta: false,
-      rules: 'required',
+      // rules: 'required',
     },
     meeting_template: {
       type: 'belongsto',
@@ -136,7 +140,7 @@ const RoutesPDFTool = () => {
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
       hasMeta: false,
-      rules: 'required',
+      // rules: 'required',
     },
     contents_template: {
       type: 'belongsto',
@@ -146,7 +150,7 @@ const RoutesPDFTool = () => {
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
       hasMeta: false,
-      rules: 'required',
+      // rules: 'required',
     },
     cover_template: {
       type: 'belongsto',
@@ -156,7 +160,7 @@ const RoutesPDFTool = () => {
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
       hasMeta: false,
-      rules: 'required',
+      // rules: 'required',
     },
     item_label_type: {
       type: 'belongsto',
@@ -187,6 +191,9 @@ const RoutesPDFTool = () => {
       placeholder: t('YYYY-MM-DD'),
       label: t('期限'),
       rules: 'required',
+      getMinimumDate: () => {
+        return moment().format('YYYY-MM-DD')
+      },
     },
     users: {
       type: 'belongstomany',
@@ -196,7 +203,7 @@ const RoutesPDFTool = () => {
       modelName: 'user',
       serviceIndexKey: 'simplifyFactoryIndex',
       customizedNameKey: 'userAndEmail',
-      rules: 'required'
+      // rules: 'required'
     },
     roles: {
       type: 'multipleBelongstomany',
@@ -230,8 +237,6 @@ const RoutesPDFTool = () => {
       label: t('備註'),
       multiline: true,
       placeholder: t('輸入'),
-      rules: 'required',
-      testID: '事件說明'
     },
     file_attaches: {
       modelName: 'meeting',
@@ -253,9 +258,46 @@ const RoutesPDFTool = () => {
       type: 'Ll_filesAndImages',
       label: t('範本'),
       oneFile: true,
-      rules: 'allMarkSetting',
+      // rules: 'allMarkSetting',
+      limitFileExtension: ['docx', 'xlsx'],
       remind: t('注意，​重新​上​傳​範本，​會覆​蓋標記​設定​'),
       remindColor: $color.danger,
+      remind002: t('範本注意事項'),
+      remind002Color: $color.primary,
+      remindBtnDisabled002: false,
+      remindRenderItem002: () => {
+        return (
+          <>
+            <View style={{ marginHorizontal: 16, paddingBottom: 16 }}>
+              <WsText size={14} fontWeight="600" style={{ marginBottom: 8 }}>
+                {t('通用')}
+              </WsText>
+              <WsFlex flexWrap="wrap">
+                <WsDes size={14}>{`1. ${t('標記只能為英文大小寫及數字')}`}</WsDes>
+              </WsFlex>
+              <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                <WsDes size={14}>{`2. ${t('標記設定的名稱需要跟範本內的名稱相同')}`}</WsDes>
+              </WsFlex>
+
+              <WsText size={14} fontWeight="600" style={{ marginTop: 16, marginBottom: 8 }}>
+                {t('議程範本')}
+              </WsText>
+              <WsFlex flexWrap="wrap">
+                <WsDes size={14}>{`1. ${t('範本最上面加上標記${top}')}`}</WsDes>
+              </WsFlex>
+              <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                <WsDes size={14}>{`2. ${t('議案群組區塊：需要使用標記包起來，且標記要與標題不同行')}`}</WsDes>
+              </WsFlex>
+              <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                <WsDes size={14}>{`3. ${t('說明(內容)：標記要與標題不同行')}`}</WsDes>
+              </WsFlex>
+              <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                <WsDes size={14}>{`4. ${t('換行需要按enter')}`}</WsDes>
+              </WsFlex>
+            </View>
+          </>
+        )
+      },
     },
     name: {
       type: 'text',
@@ -453,7 +495,7 @@ const RoutesPDFTool = () => {
   ) => {
     // console.log(JSON.stringify(_formattedValue), '_formattedValue--');
     const _data = S_MeetingTemplate.formattedMeetingTemplateForEdit(_formattedValue, currentUserId)
-    console.log(modelId,'modelId')
+    console.log(modelId, 'modelId')
     console.log(JSON.stringify(_data), 'S_GuidelineVersionAdmin.update');
     try {
       const res = await S_MeetingTemplate.update({

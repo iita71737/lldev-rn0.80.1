@@ -373,7 +373,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <WsFlex
+      {/* <WsFlex
         style={{
           backgroundColor: $color.danger11l,
           paddingHorizontal: 12,
@@ -381,7 +381,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
         }}
         justifyContent="space-around"
       >
-        <WsText color={$color.danger}>{t('變更順序將觸發系統重新產生所有匯出檔案。由於資料量較大，處理過程預計需要較長時間，請耐心等候。')}</WsText>
+        <WsText color={$color.danger}>{t('變更順序將重新匯出檔案，預計需要較長時間，請耐心等候')}</WsText>
       </WsFlex>
 
       <WsFlex
@@ -414,7 +414,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
           </View>
           <WsText>{t('移至下方')}</WsText>
         </WsFlex>
-      </WsFlex>
+      </WsFlex> */}
 
       <Animated.ScrollView
         key={listKey}
@@ -470,7 +470,9 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
                                 : hoverPositionState === 'sibling'
                                   ? $color.yellow11l
                                   : 'transparent'
-                              : $color.primary10l,
+                              : item.type === 'group'
+                                ? $color.white5d
+                                : $color.primary10l,
                         }}
                       >
                         <WsFlex justifyContent="space-between">

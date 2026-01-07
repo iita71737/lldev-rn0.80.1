@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import {
   View,
   // SafeAreaView
+  StatusBar,
+  Platform
 } from 'react-native'
 import { WsHeader, WsHeaderSearch } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
@@ -21,7 +23,8 @@ const WsPage = props => {
     setSearchValue,
     borderRadius,
     hideLeftBtn,
-    showRightBtn
+    showRightBtn,
+    btnTextRight
   } = props
 
   // Render
@@ -30,10 +33,16 @@ const WsPage = props => {
       style={{
         flex: 1,
       }}>
+      <StatusBar
+        translucent={true}
+        backgroundColor="transparent"
+        barStyle="dark-content" // 或 'light-content' 視你的背景色而定
+      />
       <SafeAreaView
         edges={['top']}
         style={{
           backgroundColor: $color.primary,
+          paddingVertical: Platform.OS === 'android' ? 8 : 0
         }}
       />
       {!mode && (
@@ -44,6 +53,7 @@ const WsPage = props => {
           leftOnPress={leftOnPress}
           rightOnPress={rightOnPress}
           hideLeftBtn={hideLeftBtn}
+          btnTextRight={btnTextRight}
         />
       )}
       {mode == 'search' && (

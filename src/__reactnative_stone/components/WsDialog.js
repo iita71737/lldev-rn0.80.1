@@ -240,7 +240,7 @@ const WsDialog = props => {
               fontWeight: 'normal',
               fontSize: 18,
               alignSelf: 'flex-start',
-              marginBottom: 16,
+              marginBottom: title ? 16 : 0,
             }}
           >
             {title}

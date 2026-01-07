@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Platform, useWindowDimensions } from 'react-native'
+import { View, Platform, useWindowDimensions, TouchableOpacity } from 'react-native'
 import { WsFlex, WsText, WsIconBtn } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import layouts from '@/__reactnative_stone/global/layout'
@@ -17,6 +17,7 @@ const WsHeader = props => {
     iconLeft,
     leftOnPress,
     rightOnPress,
+    btnTextRight,
     hideLeftBtn = false
   } = props
 
@@ -73,17 +74,26 @@ const WsHeader = props => {
 
           <View
             style={{
-              width: 24
+              minWidth: 24,
+              alignItems: 'flex-end'
             }}>
-            {iconRight && (
-              <WsIconBtn
-                testID={iconRight}
-                name={iconRight}
-                color={$color.white}
-                onPress={rightOnPress}
-                padding={0}
-                size={24}
-              />
+            {btnTextRight ? (
+              <TouchableOpacity onPress={rightOnPress}>
+                <WsText color={$color.white} size={14} fontWeight="400">
+                  {btnTextRight}
+                </WsText>
+              </TouchableOpacity>
+            ) : (
+              iconRight && (
+                <WsIconBtn
+                  testID={iconRight}
+                  name={iconRight}
+                  color={$color.white}
+                  onPress={rightOnPress}
+                  padding={0}
+                  size={24}
+                />
+              )
             )}
           </View>
         </WsFlex>

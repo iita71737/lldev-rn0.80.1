@@ -259,6 +259,9 @@ const WsStateForm = props => {
                         customizedNameKey={field.customizedNameKey}
                         style={field.style}
                         canOrder={field.canOrder}
+                        exportAttachmentName={field.exportAttachmentName}
+                        remind002={field.remind002}
+                        remindRenderItem002={field.remindRenderItem002}
                       />
                     )}
                   </View>

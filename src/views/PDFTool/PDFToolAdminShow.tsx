@@ -120,7 +120,6 @@ import { Table, Row, Rows, TableWrapper } from 'react-native-table-component'
 import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions'
 import FileViewer from 'react-native-file-viewer'
 import _ from 'lodash'
-import DraggableFlatList from 'react-native-draggable-flatlist'
 import { useNavigation } from '@react-navigation/native'
 import Clipboard from '@react-native-clipboard/clipboard';
 import MeetingInfoTab, { EsGoalVariable } from './Tabs/MeetingInfoTab'
@@ -128,7 +127,8 @@ import MotionGroupTab, { Group } from './Tabs/MotionGroupTab'
 import ExportRecordTab from './Tabs/ExportRecordTab'
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
 import S_MeetingItem from '@/services/api/v1/meeting_item'
-import file from 'services/api/v1/file'
+import S_MeetingTemplateType from '@/services/api/v1/meeting_template_type'
+import DraggableFlatList from "react-native-draggable-flatlist";
 
 // -------------------- 型別 --------------------
 
@@ -324,6 +324,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   // 議案群組
   const [meetingItemGroupName, setMeetingItemGroupName] = useState('');
   const [scheduleTemplate, setSchduleTemplate] = useState<null>(null);
+  const [scheduleTemplateTypeId, setScheduleTemplateTypeId] = useState<string | null>(null);
   const [bindContentsTemplate, setBindContentsTemplate] = useState<null>(null);
   const [bindMeetingTemplate, setBindMeetingTemplate] = useState<null>(null);
   const [editingMeetingItemGroup, setEditingMeetingItemGroup] = useState<any>(null);
@@ -410,36 +411,13 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         label: t('匯出'),
         onPress: () => {
           setIsBottomSheetActive(false)
+          setExportChecked({})
           setExportModalVisible(true)
         },
       },
-      // ✅ 匯出封面
-      {
-        icon: 'md-file-download',
-        label: t('匯出封面'),
-        onPress: () => {
-          setIsBottomSheetActive(false)
-          // TODO: 你要串後端的話在這裡呼叫
-          // 先用現有的 modal 也可以：預設只勾封面
-          setExportChecked({ cover_a: true })
-          setExportModalVisible(true)
-        },
-      },
-
-      // ✅ 匯出目錄
-      {
-        icon: 'md-file-download',
-        label: t('匯出目錄'),
-        onPress: () => {
-          setIsBottomSheetActive(false)
-          setExportChecked({ toc_b: true })
-          setExportModalVisible(true)
-        },
-      },
-
       // ✅ 匯出時序表
       {
-        icon: 'md-file-download',
+        icon: 'ws-outline-logout',
         label: t('匯出時序表'),
         onPress: () => {
           setIsBottomSheetActive(false)
@@ -462,6 +440,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   // SERVICES
   const $_fetchMeeting = async () => {
+    console.log(id, '=id=')
     setLoading(true)
     const res = await S_Meeting.show({
       modelId: id,
@@ -471,9 +450,33 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   }
 
   useEffect(() => {
-     console.log(id, '=id=')
     $_fetchMeeting()
   }, [id])
+
+  useEffect(() => {
+    console.log('S_MeetingTemplateType')
+    let mounted = true
+    const isMounted = () => mounted
+    const fetchTemplateTypes = async () => {
+      try {
+        const res = await S_MeetingTemplateType.index({ params: {} })
+        if (!isMounted()) return
+        const list = res?.data ?? res ?? []
+        const scheduleType = Array.isArray(list)
+          ? list.find((item: any) => item?.value === 'schedule')
+          : null
+        setScheduleTemplateTypeId(scheduleType?.id ?? null)
+      } catch (err) {
+        if (!isMounted()) return
+        console.log('S_MeetingTemplateType.index error', err)
+        setScheduleTemplateTypeId(null)
+      }
+    }
+    fetchTemplateTypes()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   useEffect(() => {
     $_setNavigationOption()
@@ -751,16 +754,23 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     return String(index)
   }
 
-
+  const $_setFileLabelText = (files: any[]) => {
+    const baseIndex = meetingItemListIndex ?? 1
+    const labelLines = files.map((file, idx) => {
+      const fileName = file?.name ?? file?.file?.name ?? file?.file_version?.name ?? ''
+      const displayIndex = baseIndex + idx
+      const label = $_buildMeetingItemLabel(meeting?.item_label_type?.value, displayIndex)
+      return `${label} - ${fileName}`
+    })
+    setFileLabelText(labelLines.join('\n'))
+  }
 
   const pickWordFile = async () => {
     try {
       const res = await pick({
         mode: 'import',
         allowMultiSelection: true,
-        mimeTypes: [
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        ]
+        type: [types.doc, types.docx]
       })
 
       if (!res || res.length === 0) return
@@ -777,21 +787,17 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         }
       })
 
-      const hasNonDocx = safeFiles.some(file => !file.name.toLowerCase().endsWith('.docx'))
-      if (hasNonDocx) {
-        Alert.alert(t('請選擇 .docx 檔案'))
+      const hasNonWord = safeFiles.some(file => {
+        const lowerName = file.name.toLowerCase()
+        return !lowerName.endsWith('.doc') && !lowerName.endsWith('.docx')
+      })
+      if (hasNonWord) {
+        Alert.alert(t('請選擇 .doc 或 .docx 檔案'))
         return
       }
 
       setFileDataList(safeFiles)
-
-      const labelLines = safeFiles.map((file, idx) => {
-        const displayIndex = (meetingItemListIndex ?? 1) + idx
-        console.log(meeting?.item_label_type?.value,'=meeting?.item_label_type?.value=')
-        const label = $_buildMeetingItemLabel(meeting?.item_label_type?.value, displayIndex)
-        return `${label} - ${file.name}`
-      })
-      setFileLabelText(labelLines.join('\n'))
+      $_setFileLabelText(safeFiles)
 
       console.log('✅ 上傳檔名:', safeFiles.map(file => file.name).join(', '))
       Alert.alert(t('成功'), t('成功匯入'))
@@ -958,7 +964,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           {/* 標題輸入 */}
           <WsState
             type="text"
-            label={t('標題')}
+            label={t('標題/檔名')}
             style={{ marginTop: 16 }}
             value={exportTitle}
             onChange={val => setExportTitle(val)}
@@ -973,21 +979,24 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             onChange={val => setExportTitle(val)}
           />
 
-          {/* 匯出範圍標題 */}
-          <View style={{ marginTop: 12 }}>
-            <WsText size={16}>{t('匯出範圍')}</WsText>
-          </View>
+          {exportChecked?.agenda_c ? null : (
+            <>
+              {/* 匯出範圍標題 */}
+              <View style={{ marginTop: 12 }}>
+                <WsText size={16}>{t('匯出範圍')}</WsText>
+              </View>
 
-          {/* 匯出範圍樹狀 checkbox */}
-          <View style={{}}>
-            {EXPORT_ITEMS.map(item => renderExportItem(item, 0))}
-          </View>
+              {/* 匯出範圍樹狀 checkbox */}
+              <View style={{}}>
+                {EXPORT_ITEMS.map(item => renderExportItem(item, 0))}
+              </View>
+            </>
+          )}
         </ScrollView>
       </WsModal>
 
 
       {/* 4️⃣ 以下原本 Modal / Popup */}
-
       <WsPopup
         active={popupDelete}
         onClose={() => {
@@ -1067,7 +1076,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           setIsBottomSheetActive(false)
         }}
         items={bottomSheetItems}
-        snapPoints={[150, 368]}
+        snapPoints={[150, 268]}
         onItemPress={(item) => {
           if (item.to) {
             navigation.navigate(item.to)
@@ -1078,7 +1087,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       />
 
       <WsModal
-        title={t('批次新增')}
+        title={t('新增議案')}
         visible={addMotionModalVisible}
         headerLeftOnPress={() => {
           setAddMotionModalVisible(false)
@@ -1124,6 +1133,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             <WsLoading />
           </View>
         )}
+
         
         <View
           style={{
@@ -1132,14 +1142,45 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           }}
         >
           {fileDataList.length > 0 && (
-            <WsInfo
+            <WsText>{t('已選擇提案單')}</WsText>
+          )}
+          {fileDataList.length > 0 && (
+            <DraggableFlatList
               style={{
-                marginTop: 8,
+                marginVertical: 16
               }}
-              label={t('已選擇提案單')}
-              value={fileLabelText}
-            >
-            </WsInfo>
+              data={fileDataList}
+              keyExtractor={(item, idx) => `${item?.uri ?? item?.name ?? 'file'}-${idx}`}
+              onDragEnd={({ data }) => {
+                setFileDataList(data)
+                $_setFileLabelText(data)
+              }}
+              renderItem={({ item, drag, isActive, getIndex }) => {
+                const orderIndex = getIndex?.() ?? 0
+                const displayIndex = (meetingItemListIndex ?? 1) + orderIndex
+                const label = $_buildMeetingItemLabel(meeting?.item_label_type?.value, displayIndex)
+                return (
+                  <TouchableOpacity
+                    onLongPress={drag}
+                    onPressIn={drag}
+                    style={{
+                      marginTop: 8,
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: $color.gray,
+                      backgroundColor: isActive ? $color.primary10l : $color.white,
+                    }}
+                  >
+                    <WsFlex justifyContent="space-between" alignItems="center">
+                      <WsText>{`${label} - ${item.name}`}</WsText>
+                      <WsIcon name="ws-outline-drag-horizontal" size={20} />
+                    </WsFlex>
+                  </TouchableOpacity>
+                )
+              }}
+            />
           )}
           <WsUpdateBtn
             onPress={() => {
@@ -1149,6 +1190,26 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             {t('上傳')}
           </WsUpdateBtn>
         </View>
+       
+
+        {/* <WsState
+          style={{
+            marginVertical: 16,
+            paddingHorizontal: 16,
+          }}
+          type="Ll_filesAndImages"
+          label={t('已選擇提案單')}
+          modelName="meeting"
+          limitFileExtension={['docx', 'doc']}
+          uploadBtnText={t('上傳')}
+          value={fileDataList}
+          onChange={$event => {
+            const nextFiles = Array.isArray($event) ? $event : []
+            setFileDataList(nextFiles)
+            $_setFileLabelText(nextFiles)
+          }}
+        /> */}
+
       </WsModal>
 
       <WsModal
@@ -1181,9 +1242,10 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           }}
         >
           <WsState
-            style={{}}
-            label={t('名稱')}
+            label={t('標題')}
             placeholder={t('輸入')}
+            rules={'required'}
+            errorMessage={!meetingItemGroupName && [t('此項目為必填')]}
             value={meetingItemGroupName}
             onChange={setMeetingItemGroupName}
           />
@@ -1198,6 +1260,9 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             serviceIndexKey={'index'}
             nameKey={'name'}
             hasMeta={false}
+            params={{
+              meeting_template_type: scheduleTemplateTypeId,
+            }}
             value={scheduleTemplate}
             onChange={setSchduleTemplate}
           />

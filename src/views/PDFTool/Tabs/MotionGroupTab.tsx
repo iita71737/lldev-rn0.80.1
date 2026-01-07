@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { View, TouchableOpacity, FlatList } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { WsFlex, WsTag, WsCard, WsText, WsIcon, LlPDFMotionGroupCard001, WsSkeleton, WsModal } from '@/components'
+import { WsFlex, WsTag, WsCard, WsText, WsIcon, LlPDFMotionGroupCard001, WsSkeleton, WsModal,WsEmpty } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
 import S_MeetingItem from '@/services/api/v1/meeting_item'
 import PDFToolDraggableList, { PDFToolDraggableListRef } from '@/views/PDFTool/PDFToolDraggableList'
+import { useNavigation } from '@react-navigation/native'
 
 export type FileInfo = {
   id: string
@@ -68,6 +69,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   onOpenDeleteGroup,
 }) => {
   const { t } = useTranslation()
+  const navigation = useNavigation()
   const [loading, setLoading] = useState(true)
   const [meetingItemGroups, setMeetingItemGroups] = useState<Group[]>(data)
   const [meetingItemListByGroup, setMeetingItemListByGroup] = useState<Record<string, any[]>>({})
@@ -76,7 +78,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
 
   const $_fetchMeetingItemGroups = async (meetingId: string, isMounted: () => boolean) => {
     setLoading(true)
-    console.log(meetingId,'meetingId')
+    console.log(meetingId, 'meetingId')
     try {
       const res = await S_MeetingItemGroup.index({ params: { meetingId } })
       if (!isMounted()) return
@@ -222,19 +224,38 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
       }}
       justifyContent="space-between"
     >
-      <View />
+
+      {/* <View /> */}
+      {!!meetingItemGroups.length ? (
+        <TouchableOpacity
+          style={{ alignItems: 'flex-start', marginRight: 8 }}
+          onPress={() => {
+            if (!meeting?.id) return
+            navigation.navigate('RoutesPDFTool', {
+              screen: 'PDFToolAdminBatchEditMeetingItemGroup',
+              params: { id: meeting.id }
+            })
+          }}
+        >
+          <WsTag>{t('批次編輯議案群組')}</WsTag>
+        </TouchableOpacity>
+      ) : (
+        <View></View>
+      )}
 
       <WsFlex style={{ marginRight: 4 }}>
         {mode === 'default' && (
           <>
-            <TouchableOpacity
-              style={{ alignItems: 'flex-end', marginRight: 8 }}
-              onPress={() => {
-                onEnterSort()
-              }}
-            >
-              <WsTag>{t('排序')}</WsTag>
-            </TouchableOpacity>
+            {!!meetingItemGroups.length && (
+              <TouchableOpacity
+                style={{ alignItems: 'flex-end', marginRight: 8 }}
+                onPress={() => {
+                  onEnterSort()
+                }}
+              >
+                <WsTag>{t('排序')}</WsTag>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={{ alignItems: 'flex-end', marginRight: 8 }}
               onPress={() => {
@@ -256,6 +277,9 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderListHeader}
         ListFooterComponent={() => <View style={{ height: 50 }} />}
+        ListEmptyComponent={() => (
+          <WsEmpty></WsEmpty>
+        )}
         renderItem={({ item }) => (
           <LlPDFMotionGroupCard001
             key={item.id}

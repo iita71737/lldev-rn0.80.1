@@ -48,7 +48,6 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
     },
     onClose,
     onUploadFromFileStoreComplete,
-    files,
     oneFile,
     limitFileExtension
   } = props
@@ -57,8 +56,11 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
   const currentFactory = useSelector((state: any) => state.data.currentFactory)
 
   // STATES
+  const defaultRadio = React.useMemo(() => {
+    return limitFileExtension ? 'specific' : 'latest'
+  }, [limitFileExtension])
   const [selectedFiles, setSelectedFiles] = useState<any[]>([]);
-  const [selectedRadio, setSelectedRadio] = useState<string>('latest');
+  const [selectedRadio, setSelectedRadio] = useState<string>(defaultRadio);
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
   const [filterValue] = useState<Record<string, any>>({});
   const [filterFields] = React.useState<any>({
@@ -99,13 +101,13 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
     if (selectedRadio === 'specific') {
       return {
         ...params,
-        file_type: limitFileExtension ? limitFileExtension : undefined
+        file_type: limitFileExtension ? limitFileExtension.toString() : undefined
       }
     } else {
       return {
         ...params,
         factory: currentFactory.id,
-        file_type: limitFileExtension ? limitFileExtension : undefined
+        file_type: limitFileExtension ? limitFileExtension.toString() : undefined
       }
     }
   }, [selectedRadio]);
@@ -149,6 +151,11 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
   useEffect(() => {
     setIsButtonDisabled(!(selectedRadio && selectedFiles && selectedFiles.length > 0));
   }, [selectedRadio, selectedFiles]);
+
+  useEffect(() => {
+    setSelectedRadio(defaultRadio)
+    setSelectedFiles([])
+  }, [defaultRadio])
 
   return (
     <>
@@ -214,10 +221,14 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
                     }}
                     label={t('關聯版本設定')}
                     type="radio"
-                    items={[
-                      { label: t(`最新版本\n(將來此檔案有版本更新時，自動關聯至最新版本)`), value: 'latest' },
-                      { label: t('特定版本'), value: 'specific' }
-                    ]}
+                    items={
+                      limitFileExtension
+                        ? [{ label: t('特定版本'), value: 'specific' }]
+                        : [
+                            { label: t(`最新版本\n(將來此檔案有版本更新時，自動關聯至最新版本)`), value: 'latest' },
+                            { label: t('特定版本'), value: 'specific' }
+                          ]
+                    }
                     rules={'required'}
                     value={selectedRadio}
                     onChange={(e) => {

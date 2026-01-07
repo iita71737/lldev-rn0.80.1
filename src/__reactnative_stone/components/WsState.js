@@ -63,7 +63,7 @@ const WsState = React.forwardRef((props, ref) => {
     borderRadius,
     borderColor,
     remind = null,
-    remindBtnDisabled = false,
+    remindBtnDisabled = true,
     value,
     type = 'text',
     label,
@@ -111,6 +111,7 @@ const WsState = React.forwardRef((props, ref) => {
     fields,
     renderItem,
     remindRenderItem,
+    remindRenderItem002,
     renderCom,
     renderCustomizedCom,
     renderCom002,
@@ -189,7 +190,10 @@ const WsState = React.forwardRef((props, ref) => {
     step,
     desVisible,
     canOrder = false,
-    exportAttachmentName
+    exportAttachmentName,
+    remind002,
+    remindBtnDisabled002 = false,
+    remind002Color = $color.primary,
   } = props
 
   // i18n
@@ -200,6 +204,7 @@ const WsState = React.forwardRef((props, ref) => {
   // State
   const [isError, setIsError] = React.useState(false)
   const [visible, setVisible] = React.useState(false)
+  const [visible002, setVisible002] = React.useState(false)
   const [remindValue, setRemindValue] = React.useState()
   const [passwordVisible, setPasswordVisible] = React.useState(true)
 
@@ -263,6 +268,53 @@ const WsState = React.forwardRef((props, ref) => {
               <WsText size="14" fontWeight={'600'} style={{}}>
                 {label}
               </WsText>
+
+              {remind002 && (
+                <>
+                  <TouchableOpacity
+                    style={{ marginLeft: 4 }}
+                    disabled={remindBtnDisabled002}
+                    onPress={() => {
+                      if (!remindBtnDisabled002) {
+                        setVisible002(true)
+                      }
+                    }}>
+                    <WsFlex style={[autoFocus ? null : {}]}>
+                      <WsIcon
+                        name="md-info-outline"
+                        color={remind002Color}
+                        style={{
+                          marginRight: 4
+                        }}
+                        size={16}
+                      />
+                      <WsText
+                        style={{
+                          paddingRight: 16
+                        }}
+                        size={12}
+                        color={remind002Color}>
+                        {remind002}
+                      </WsText>
+                    </WsFlex>
+                  </TouchableOpacity>
+                  <WsDialog
+                    value={remindValue}
+                    onChange={setRemindValue}
+                    title={dialogTitle}
+                    dialogVisible={visible002}
+                    setDialogVisible={() => {
+                      setVisible002(false)
+                    }}
+                    contentHeight={contentHeight}
+                    contentWidth={width * 0.9}
+                    mode={3}
+                  >
+                    {remindRenderItem002 && <>{remindRenderItem002()}</>}
+                  </WsDialog>
+                </>
+              )}
+
             </WsFlex>
             {rules && rules.includes('required') && (
               <WsText size="14" color={requiredColor}>
@@ -311,7 +363,6 @@ const WsState = React.forwardRef((props, ref) => {
               )}
             </>
           )}
-
         </WsFlex>
       )}
       {type == 'text' && (
@@ -1078,6 +1129,7 @@ const WsState = React.forwardRef((props, ref) => {
       {remind && (
         <>
           <TouchableOpacity
+            disabled={remindBtnDisabled}
             onPress={() => {
               if (!remindBtnDisabled) {
                 setVisible(true)

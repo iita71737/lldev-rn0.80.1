@@ -47,4 +47,13 @@ export default {
       params: S_Processor.getFactoryParams()
     })
   },
+  async meetingIndexAll({ params }) {
+    return base.index({
+      modelName: `meeting/${params?.meetingId}/meeting_item/index/all`,
+      params: {
+        ...params,
+        ...S_Processor.getFactoryParams()
+      }
+    })
+  },
 }

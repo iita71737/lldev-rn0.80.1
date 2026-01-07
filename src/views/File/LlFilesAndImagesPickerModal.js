@@ -55,7 +55,7 @@ const LlFilesAndImagesPickerModal = props => {
   const [tabItems, setTabItems] = React.useState()
 
   const $_setTabItems = () => {
-    setTabItems([
+    const tabs = [
       {
         value: 'TabUploadFromLocalFile',
         label: i18next.t('自本地上傳檔案'),
@@ -79,8 +79,12 @@ const LlFilesAndImagesPickerModal = props => {
           oneFile: oneFile,
           limitFileExtension: limitFileExtension
         }
-      },
-      {
+      }
+    ]
+
+    const limitedModels = new Set(['meeting', 'meeting_template'])
+    if (!limitedModels.has(modelName)) {
+      tabs.push({
         value: 'LlUploadFromOtherUnit',
         label: i18next.t('選擇來自其他單位的檔案'),
         view: TabUploadFromOtherFileStore,
@@ -91,13 +95,14 @@ const LlFilesAndImagesPickerModal = props => {
           oneFile: oneFile,
           limitFileExtension: limitFileExtension
         }
-      }
-    ])
+      })
+    }
+    setTabItems(tabs)
   }
 
   React.useEffect(() => {
     $_setTabItems()
-  }, [value])
+  }, [value, modelName])
 
 
   return (

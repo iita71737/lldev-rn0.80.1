@@ -57,6 +57,82 @@ const WsStateFileOrImagePicker = props => {
     limitFileExtension
   } = props
 
+  const imageExtensions = new Set([
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'bmp',
+    'webp',
+    'heic',
+    'heif',
+    'tiff'
+  ])
+  const videoExtensions = new Set([
+    'mp4',
+    'mov',
+    'wmv',
+    'avi',
+    'flv',
+    'mkv',
+    'webm',
+    'mpeg',
+    'mpg',
+    'm4v',
+    '3gp',
+    '3g2'
+  ])
+  const mimeTypeMap = {
+    pdf: types.pdf,
+    doc: types.doc,
+    docx: types.docx,
+    xls: types.xls,
+    xlsx: types.xlsx,
+    ppt: types.ppt,
+    pptx: types.pptx,
+    csv: types.csv,
+    txt: types.plainText
+  }
+
+  const $_normalizeExtensions = (extensions) => {
+    if (Array.isArray(extensions)) {
+      return extensions
+        .map(ext => `${ext}`.replace('.', '').trim().toLowerCase())
+        .filter(Boolean)
+    }
+    if (typeof extensions === 'string') {
+      return extensions
+        .split(',')
+        .map(ext => ext.replace('.', '').trim().toLowerCase())
+        .filter(Boolean)
+    }
+    return []
+  }
+
+  const $_buildPickTypes = (extensions) => {
+    if (!extensions || extensions.length === 0) return undefined
+    const hasImage = extensions.some(ext => imageExtensions.has(ext))
+    const hasVideo = extensions.some(ext => videoExtensions.has(ext))
+    const onlyImage = extensions.every(ext => imageExtensions.has(ext))
+    const onlyVideo = extensions.every(ext => videoExtensions.has(ext))
+
+    if (onlyImage) return [types.images]
+    if (onlyVideo) return [types.video]
+    if (hasImage || hasVideo) {
+      return [
+        ...(hasImage ? [types.images] : []),
+        ...(hasVideo ? [types.video] : [])
+      ]
+    }
+
+    const mapped = extensions
+      .map(ext => mimeTypeMap[ext])
+      .filter(Boolean)
+    return mapped.length > 0 ? mapped : [types.allFiles]
+  }
+
+  console.log(limitFileExtension,'limitFileExtension')
+
   // States
   const [visible, setVisible] = useState(true)
   const [loadingProgress, setLoadingProgress] = useState(false)
@@ -352,7 +428,10 @@ const WsStateFileOrImagePicker = props => {
   // Browse Files
   const $_onBrowsePress = async () => {
     try {
-      const response = await pick({})
+      const normalizedExtensions = $_normalizeExtensions(limitFileExtension)
+      const pickTypes = $_buildPickTypes(normalizedExtensions)
+      console.log(pickTypes,'pickTypes--')
+      const response = await pick(pickTypes ? { type: pickTypes } : {})
       const file = response[0]
       const ext = file.name?.split('.').pop()?.toLowerCase()
       let uri = file.uri
