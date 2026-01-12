@@ -344,7 +344,9 @@ const WsInfoFile = props => {
                 }
                 $_onCardPress()
               }}
-              style={{ width: width * 0.675 }}
+              style={{
+                width: width * 0.675,
+              }}
             >
               {isProcessing && (
                 <View
@@ -381,22 +383,30 @@ const WsInfoFile = props => {
                     label={t('匯出​附件​名​稱')}
                     labelColor={$color.gray}
                     value={
-                      exportAttachmentName ? t('是XXXX') : t('否XXXXX')
+                      exportAttachmentName ? exportAttachmentName : t(' ')
                     }
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
+                      marginVertical: 8
                     }}
                   />
                 </>
               )}
 
-              <WsFlex>
+              <WsFlex
+                style={{
+                  // borderWidth:1
+                }}
+              >
                 <Image style={{ width: 32, height: 32 }} source={$_getFileTypeImage()} />
                 <WsText
                   testID={'WsInfoFile名稱'}
                   style={{ marginLeft: 8, marginRight: 20 }}
                   size={14}
+                  style={{
+                    flexShrink: 1
+                  }}
                 >
                   {fileName !== 'invalid scope' && fileVersion
                     ? `${fileName} ver.${fileVersion}`

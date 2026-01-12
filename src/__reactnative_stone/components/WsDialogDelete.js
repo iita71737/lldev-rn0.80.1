@@ -66,7 +66,20 @@ const WsDialogDelete = props => {
       }
       store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
     } catch (e) {
-      console.error(e);
+      console.error('WsDialogDelete error', e?.response?.status, e?.response?.data);
+
+      const status = e?.response?.status
+      const data = e?.response?.data
+
+      if (status === 400 && data?.message === 'has related data.') {
+        const detail = data?.data?.[0]
+        Alert.alert(
+          t('正在被使用中，無法刪除。'),
+        )
+        return
+      }
+
+      Alert.alert(t('刪除失敗'), data?.message || e.message || t('請稍後再試'))
     }
   }
 

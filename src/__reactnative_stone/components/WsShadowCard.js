@@ -33,7 +33,7 @@ const WsShadowCard = props => {
             borderRadius: 10,
             shadowRadius: 4,
             shadowOpacity: 0.25,
-            elevation: 2
+            elevation: 2,
           },
           style
         ]}>

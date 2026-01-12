@@ -633,6 +633,7 @@ const LlFilesAndImagesPicker = props => {
             const key = f.value
             const setting = wordFieldSettings[key] || {}
             const esgoalField = setting.esgoal_field
+            const isTopTag = key === '${top}'
 
             return (
               <View
@@ -649,50 +650,51 @@ const LlFilesAndImagesPicker = props => {
                   {t('標記')}　{key}
                 </WsText>
 
-                <WsText style={{ marginBottom: 8 }}>{t('名稱')}</WsText>
-                <TextInput
-                  value={setting.name || ''}
-                  onChangeText={(text) => {
-                    setWordFieldSettings(prev => ({
-                      ...prev,
-                      [key]: { ...(prev[key] || {}), name: text },
-                    }))
-                  }}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: $color.gray,
-                    borderRadius: 6,
-                    paddingHorizontal: 10,
-                    paddingVertical: 8,
-                    marginBottom: 12,
-                  }}
-                />
+                {!isTopTag && (
+                  <>
+                    <WsText style={{ marginBottom: 8 }}>{t('名稱')}</WsText>
+                    <TextInput
+                      editable={false}
+                      value={setting.name || ''}
+                      style={{
+                        borderWidth: 1,
+                        borderColor: $color.gray,
+                        backgroundColor: $color.white2d,
+                        color: $color.gray,
+                        borderRadius: 6,
+                        paddingHorizontal: 10,
+                        paddingVertical: 8,
+                        marginBottom: 12,
+                      }}
+                    />
 
-                <WsState
-                  stateStyle={[
-                    {
-                      borderWidth: 1,
-                      borderRadius: 10,
-                      borderColor: $color.danger,
-                      backgroundColor: $color.danger11l,
-                    },
-                  ]}
-                  type="belongsto"
-                  modelName="meeting_template_field"
-                  nameKey="name"
-                  serviceIndexKey="index"
-                  hasMeta={false}
-                  label={t('對應ESGoal欄位')}
-                  // rules={'required'}
-                  // errorMessage={!esgoalField && [t('此項目為必填')]}
-                  value={esgoalField}
-                  onChange={(v) => {
-                    setWordFieldSettings(prev => ({
-                      ...prev,
-                      [key]: { ...(prev[key] || {}), esgoal_field: v },
-                    }))
-                  }}
-                />
+                    <WsState
+                      stateStyle={[
+                        {
+                          borderWidth: 1,
+                          borderRadius: 10,
+                          borderColor: $color.danger,
+                          backgroundColor: $color.danger11l,
+                        },
+                      ]}
+                      type="belongsto"
+                      modelName="meeting_template_field"
+                      nameKey="name"
+                      serviceIndexKey="index"
+                      hasMeta={false}
+                      label={t('對應ESGoal欄位')}
+                      // rules={'required'}
+                      // errorMessage={!esgoalField && [t('此項目為必填')]}
+                      value={esgoalField}
+                      onChange={(v) => {
+                        setWordFieldSettings(prev => ({
+                          ...prev,
+                          [key]: { ...(prev[key] || {}), esgoal_field: v },
+                        }))
+                      }}
+                    />
+                  </>
+                )}
               </View>
             )
           })}

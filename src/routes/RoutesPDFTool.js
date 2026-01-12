@@ -75,6 +75,20 @@ const RoutesPDFTool = () => {
   const currentActStatus = useSelector(state => state.data.actStatus)
   const currentUser = useSelector(state => state.data.currentUser)
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
+  const currentMeetingTemplateType = useSelector(state => state.data.meetingTemplateTypes)
+
+  const meetingItemTemplateTypeId = Array.isArray(currentMeetingTemplateType)
+    ? currentMeetingTemplateType.find(item => item?.value === 'meeting_item')?.id
+    : null
+  const meetingTemplateTypeId = Array.isArray(currentMeetingTemplateType)
+    ? currentMeetingTemplateType.find(item => item?.value === 'meeting')?.id
+    : null
+  const contentsTemplateTypeId = Array.isArray(currentMeetingTemplateType)
+    ? currentMeetingTemplateType.find(item => item?.value === 'table_of_contents')?.id
+    : null
+  const coverTemplateTypeId = Array.isArray(currentMeetingTemplateType)
+    ? currentMeetingTemplateType.find(item => item?.value === 'cover')?.id
+    : null
 
   const fields = {
     name: {
@@ -130,17 +144,22 @@ const RoutesPDFTool = () => {
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
       hasMeta: false,
-      // rules: 'required',
+      params: {
+        meeting_template_type: meetingItemTemplateTypeId
+      }
     },
     meeting_template: {
       type: 'belongsto',
-      label: t('議程​範本​'),
+      label: t('議程範本'),
       placeholder: `${t('選擇')}`,
       nameKey: 'name',
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
       hasMeta: false,
-      // rules: 'required',
+      params: {
+        meeting_template_type: meetingTemplateTypeId
+      }
+
     },
     contents_template: {
       type: 'belongsto',
@@ -150,7 +169,9 @@ const RoutesPDFTool = () => {
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
       hasMeta: false,
-      // rules: 'required',
+      params: {
+        meeting_template_type: contentsTemplateTypeId
+      }
     },
     cover_template: {
       type: 'belongsto',
@@ -160,7 +181,9 @@ const RoutesPDFTool = () => {
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
       hasMeta: false,
-      // rules: 'required',
+      params: {
+        meeting_template_type: coverTemplateTypeId
+      }
     },
     item_label_type: {
       type: 'belongsto',
@@ -340,7 +363,7 @@ const RoutesPDFTool = () => {
   const submitForCreateMeeting = async (_postData, navigation) => {
     // console.log(JSON.stringify(_postData), '_postData submitForCreateMeeting');
     const _data = S_Meeting.formattedDataForCreate(_postData, currentUser)
-    // console.log(JSON.stringify(_data), '_data submitForCreateTemplate');
+    // console.log(JSON.stringify(_data), '_data submitForCreateMeeting');
     try {
       const res = await S_Meeting.create({
         data: _data
@@ -368,7 +391,7 @@ const RoutesPDFTool = () => {
       }
     } catch (e) {
       Alert.alert(t('議事建立異常'))
-      console.error(e.message, 'submitForCreateTemplate')
+      console.error(e.message, 'submitForCreateMeeting')
       navigation.navigate('RoutesPDFTool', {
         screen: 'PDFToolAdminIndex'
       })
@@ -449,9 +472,9 @@ const RoutesPDFTool = () => {
 
   // add template
   const submitForCreateTemplate = async (_postData, navigation) => {
-    console.log(JSON.stringify(_postData), '_postData submitForCreateTemplate');
+    // console.log(JSON.stringify(_postData), '_postData submitForCreateTemplate');
     const _data = S_MeetingTemplate.formattedDataForCreate(_postData, currentUser)
-    console.log(JSON.stringify(_data), '_data submitForCreateTemplate');
+    // console.log(JSON.stringify(_data), '_data submitForCreateTemplate');
     try {
       const res = await S_MeetingTemplate.create({
         data: _data
@@ -511,7 +534,11 @@ const RoutesPDFTool = () => {
         })
       }
       if (res?.meeting_template_type?.value === 'meeting' || res?.meeting_template_type?.value === 'table_of_contents') {
-        Alert.alert(t('目錄範本或議程範本有異動，需要重新設定各議案群組對應的目錄範本區塊及對應的議程範本區塊'))
+        Alert.alert(
+          t('目錄範本或議程範本有異動，需要重新設定各議案群組對應的目錄範本區塊及對應的議程範本區塊'),
+          undefined,
+          [{ text: t('知道了') }]
+        )
       }
     } catch (e) {
       Alert.alert(t('編輯範本異常'))

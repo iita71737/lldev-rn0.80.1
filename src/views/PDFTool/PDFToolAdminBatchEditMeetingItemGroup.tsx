@@ -82,7 +82,6 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
   const [loading, setLoading] = useState(!!meetingId)
   const [popupActive, setPopupActive] = useState(false)
 
-  console.log(groupDrafts,'groupDrafts--')
 
   useEffect(() => {
     if (!meetingId) {
@@ -152,7 +151,7 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
     meetingTemplateItems.map(getTemplateItemValue).filter(Boolean)
   )
 
-  const $_submitBatchEditItemGroup = async()=>{
+  const $_submitBatchEditItemGroup = async () => {
     if (!meetingId) {
       return
     }
@@ -166,7 +165,7 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
           contents_template_variable: $_getId(group?.contents_template_variable),
           meeting_template_variable: $_getId(group?.meeting_template_variable)
         }
-        console.log(_params,'_params==')
+        console.log(_params, '_params==')
         if (!group?.id) continue
         await S_MeetingItemGroup.update({
           data: _params,
@@ -262,6 +261,8 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
                     prev.map(item => (item.id === group.id ? { ...item, name: value } : item))
                   )
                 }}
+                rules={'required'}
+                errorMessage={!group.name && [t('此項目為必填')]}
               />
 
               <WsState
@@ -272,6 +273,7 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
                 serviceIndexKey={'index'}
                 nameKey={'name'}
                 hasMeta={false}
+                remind={t('若未選擇，則不會產生時序表')}
                 params={
                   {
                     meeting_template_type: 'typeScheduleId',
@@ -316,6 +318,8 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
                     )
                   )
                 }}
+                rules={'required'}
+                errorMessage={!group.contents_template_variable && [t('此項目為必填')]}
               />
 
               <WsState
@@ -347,6 +351,8 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
                     )
                   )
                 }}
+                rules={'required'}
+                errorMessage={!group.meeting_template_variable && [t('此項目為必填')]}
               />
             </View>
           ))}

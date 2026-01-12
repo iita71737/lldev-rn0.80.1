@@ -31,44 +31,28 @@ const ExportRecordTab: React.FC = () => {
 
   const filterFields = useMemo(
     () => ({
-      area_sections: {
-        type: 'checkbox',
-        label: t('子地區'),
-        storeKey: 'subAreas',
-        selectAllVisible: false,
-        cancelAllVisible: false,
+      owner1: {
+        type: 'belongsto',
+        label: t('狀態'),
+        nameKey: 'name',
+        modelName: 'user',
+        serviceIndexKey: 'simplifyFactoryIndex',
+        customizedNameKey: 'userAndEmail',
+        placeholder: t('選擇')
       },
-      act_type: {
-        type: 'checkbox',
-        label: t('法規類別'),
-        storeKey: 'actTypes',
-        selectAllVisible: false,
-        cancelAllVisible: false,
-      },
-      act_status: {
-        type: 'checkbox',
-        label: t('法規狀態'),
-        storeKey: 'actStatus',
-        selectAllVisible: false,
-        cancelAllVisible: false,
+      owner: {
+        type: 'belongsto',
+        label: t('匯出人'),
+        nameKey: 'name',
+        modelName: 'user',
+        serviceIndexKey: 'simplifyFactoryIndex',
+        customizedNameKey: 'userAndEmail',
+        placeholder: t('選擇')
       },
       button: {
         type: 'date_range',
-        label: t('異動日期'),
-        time_field: 'announce_at',
-      },
-      system_subclasses: {
-        type: 'system_subclass',
-        label: t('領域'),
-      },
-      factory_tags: {
-        type: 'checkbox',
-        label: t('標籤'),
-        storeKey: 'factoryTags',
-        searchVisible: true,
-        selectAllVisible: false,
-        cancelAllVisible: false,
-        defaultSelected: false,
+        label: t('匯出時間'),
+        time_field: 'created_at',
       },
     }),
     [t],
@@ -80,6 +64,7 @@ const ExportRecordTab: React.FC = () => {
   return (
     <View style={{ flex: 1 }}>
       <WsPageIndex
+        searchLabel={t('標題')}
         mode="pagination"
         hasMeta={true}
         modelName="internal_training"
@@ -187,7 +172,7 @@ const ExportRecordTab: React.FC = () => {
             {t('編輯匯出紀錄')}
           </WsText>
 
-          <WsState label={t('標題')} placeholder={t('輸入')} value={editingRecord?.name} onChange={() => {}} />
+          <WsState label={t('標題')} placeholder={t('輸入')} value={editingRecord?.name} onChange={() => { }} />
 
           <WsState
             multiline={true}
@@ -195,7 +180,7 @@ const ExportRecordTab: React.FC = () => {
             label={t('備註')}
             placeholder={t('輸入')}
             value={editingRecord?.remark}
-            onChange={() => {}}
+            onChange={() => { }}
           />
 
           <WsFlex justifyContent="flex-end" style={{ marginTop: 16 }}>

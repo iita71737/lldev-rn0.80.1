@@ -54,8 +54,8 @@ const WsInfoFiles = props => {
                 testID={`WsInfoFile-${itemIndex}`}
                 value={item}
                 fileName={
-                  value[itemIndex]?.file_version?.name ? value[itemIndex]?.file_version?.name :
-                    value[itemIndex]?.file?.name ? value[itemIndex]?.file?.name : item ? decodeURI(S_url.getFileName(item)) : undefined
+                    value[itemIndex]?.file_version?.name ? value[itemIndex]?.file_version?.name :
+                      value[itemIndex]?.file?.name ? value[itemIndex]?.file?.name : item ? decodeURI(S_url.getFileName(item)) : undefined
                 }
                 fileType={
                   value[itemIndex]?.file?.file_type ? value[itemIndex]?.file?.file_type :

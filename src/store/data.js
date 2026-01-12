@@ -7,6 +7,7 @@ const initialState = {
   effects: null,
   actTypes: null,
   actStatus: [],
+  meetingTemplateTypes: [],
   subAreas: [],
   licenseType: [],
   eventTypes: [],
@@ -65,6 +66,7 @@ const ActionTypes = {
   SET_EFFECT: 'SET_EFFECT',
   SET_ACT_TYPE: 'SET_ACT_TYPE',
   SET_ACT_STATUS: 'SET_ACT_STATUS',
+  SET_MEETING_TEMPLATE_TYPES: 'SET_MEETING_TEMPLATE_TYPES',
   SET_SUB_AREA: 'SET_SUB_AREA',
   SET_LICENSE_TYPE: 'SET_LICENSE_TYPE',
   SET_EVENT_TYPES: 'SET_EVENT_TYPES',
@@ -326,6 +328,13 @@ export const setActStatus = actStatus => {
   return {
     type: ActionTypes.SET_ACT_STATUS,
     actStatus
+  }
+}
+
+export const setMeetingTemplateTypes = meetingTemplateTypes => {
+  return {
+    type: ActionTypes.SET_MEETING_TEMPLATE_TYPES,
+    meetingTemplateTypes
   }
 }
 
@@ -725,6 +734,11 @@ const reducer = (state = initialState, action) => {
       return {
         ...state,
         actStatus: action.actStatus
+      }
+    case ActionTypes.SET_MEETING_TEMPLATE_TYPES:
+      return {
+        ...state,
+        meetingTemplateTypes: action.meetingTemplateTypes
       }
     case ActionTypes.SET_SUB_AREA:
       return {

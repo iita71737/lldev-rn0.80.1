@@ -759,12 +759,12 @@ const LlStateRelatedTags = props => {
                 <View
                   style={{
                     width: width * 0.9,
-                    height: 200,
                     backgroundColor: $color.white,
                     borderRadius: 10,
-                    flexDirection: 'row',
-                    justifyContent: 'center',
-                    alignItems: 'center'
+                    flexDirection: 'column',
+                    justifyContent: 'flex-start',
+                    alignItems: 'stretch',
+                    padding: 16
                   }}>
                   {loading ? (
                     <WsLoading></WsLoading>
@@ -774,18 +774,18 @@ const LlStateRelatedTags = props => {
                         size={18}
                         color={$color.black}
                         style={{
-                          position: 'absolute',
-                          left: 16,
-                          top: 16
+                          marginBottom: 8
                         }}
                       >{t('確定刪除嗎？')}
                       </WsText>
 
                       <WsFlex
                         style={{
-                          paddingHorizontal: 16
+                          marginBottom: 16
                         }}
+                        flexDirection={'column'}
                         flexWrap={'wrap'}
+                        alignItems={'flex-start'}
                       >
                         <WsText
                           size={14}
@@ -800,7 +800,7 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}部法規', { number: tagCount.acts_count })}
+                            {t('{number}部法規', { number: tagCount.acts_count })}{' '}
                           </WsText>
                         )}
                         {tagCount?.audits_count > 0 && (
@@ -809,7 +809,7 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}張稽核表', { number: tagCount.audits_count })}
+                            {t('{number}張稽核表', { number: tagCount.audits_count })}{' '}
                           </WsText>
                         )}
                         {tagCount?.changes_count > 0 && (
@@ -818,7 +818,7 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}個變動計畫', { number: tagCount.changes_count })}
+                            {t('{number}個變動計畫', { number: tagCount.changes_count })}{' '}
                           </WsText>
                         )}
                         {tagCount?.checklists_count > 0 && (
@@ -827,7 +827,7 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}張點檢表', { number: tagCount.checklists_count })}
+                            {t('{number}張點檢表', { number: tagCount.checklists_count })}{' '}
                           </WsText>
                         )}
                         {tagCount?.contractor_enter_records_count > 0 && (
@@ -836,7 +836,7 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}個承攬商進廠紀錄', { number: tagCount.contractor_enter_records_count })}
+                            {t('{number}個承攬商進廠紀錄', { number: tagCount.contractor_enter_records_count })}{' '}
                           </WsText>
                         )}
                         {tagCount?.contractor_licenses_count > 0 && (
@@ -845,7 +845,7 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}張承攬商資格證', { number: tagCount.contractor_licenses_count })}
+                            {t('{number}張承攬商資格證', { number: tagCount.contractor_licenses_count })}{' '}
                           </WsText>
                         )}
                         {tagCount?.contractors_count > 0 && (
@@ -854,7 +854,7 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}家承攬商', { number: tagCount.contractors_count })}
+                            {t('{number}家承攬商', { number: tagCount.contractors_count })}{' '}
                           </WsText>
                         )}
                         {tagCount?.contracts_count > 0 && (
@@ -863,7 +863,7 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}份承攬商契約', { number: tagCount.contracts_count })}
+                            {t('{number}份承攬商契約', { number: tagCount.contracts_count })}{' '}
                           </WsText>
                         )}
                         {tagCount?.events_count > 0 && (
@@ -872,7 +872,7 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}個風險事件', { number: tagCount.events_count })}
+                            {t('{number}個風險事件', { number: tagCount.events_count })}{' '}
                           </WsText>
                         )}
                         {tagCount?.internal_trainings_count > 0 && (
@@ -881,7 +881,7 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}個教育訓練', { number: tagCount.internal_trainings_count })}
+                            {t('{number}個教育訓練', { number: tagCount.internal_trainings_count })}{' '}
                           </WsText>
                         )}
                         {tagCount?.licenses_count > 0 && (
@@ -890,7 +890,7 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}張證照', { number: tagCount.licenses_count })}
+                            {t('{number}張證照', { number: tagCount.licenses_count })}{' '}
                           </WsText>
                         )}
                         {tagCount?.tasks_count > 0 && (
@@ -899,37 +899,54 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}個任務', { number: tagCount.tasks_count })}
+                            {t('{number}個任務', { number: tagCount.tasks_count })}{' '}
                           </WsText>
                         )}
-                        {tagCount?.qrcodes_count > 0 && (
+                        {tagCount?.guidelines_count > 0 && (
                           <WsText
                             size={14}
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}個QRcode', { number: tagCount.qrcodes_count })}
+                            {t('{number}個內規', { number: tagCount.guidelines_count })}{' '}
+                          </WsText>
+                        )}
+                        {tagCount?.meeting_templates_count > 0 && (
+                          <WsText
+                            size={14}
+                            color={$color.black}
+                            style={{}}
+                          >
+                            {t('{number}個議事範本', { number: tagCount.meeting_templates_count })}{' '}
+                          </WsText>
+                        )}
+                        {tagCount?.meetings_count > 0 && (
+                          <WsText
+                            size={14}
+                            color={$color.black}
+                            style={{}}
+                          >
+                            {t('{number}個議事', { number: tagCount.meetings_count })}{' '}
                           </WsText>
                         )}
                       </WsFlex>
 
                       <WsFlex
                         style={{
-                          position: 'absolute',
-                          right: 16,
-                          bottom: 16,
+                          justifyContent: 'flex-end'
                         }}
                       >
                         <TouchableOpacity
                           style={{
                             paddingHorizontal: 16,
-                            paddingVertical: 8,
                             borderWidth: 1,
                             borderColor: $color.gray,
                             borderRadius: 25,
                             width: 110,
                             height: 48,
-                            paddingVertical: 9,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginRight: 8
                           }}
                           onPress={() => {
                             setPopupActiveForDelete(false)

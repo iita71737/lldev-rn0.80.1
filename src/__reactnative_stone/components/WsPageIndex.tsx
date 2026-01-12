@@ -293,7 +293,7 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
           modelName={modelName}
           serviceIndexKey={serviceIndexKey}
           params={_params}
-          searchLabel={t('搜尋')}
+          searchLabel={searchLabel}
           filterFields={filterFields}
           searchVisible={searchVisible}
           emptyTitle={t('目前尚無資料')}

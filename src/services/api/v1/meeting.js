@@ -224,4 +224,38 @@ export default {
     })
     return res
   },
+  formattedMeetingForCopyCreate(meeting) {
+    const state = store.getState()
+    const factoryId = state.data.currentFactory?.id
+    const normalizeFileAttach = (attach) => {
+      if (!attach) return null
+      const file = attach?.file ?? null
+      const fileVersion = attach?.file_version ?? null
+      if (!file && !fileVersion) return null
+      return attach
+    }
+    const normalizeFileAttachList = (input) => {
+      const list = Array.isArray(input) ? input : input ? [input] : []
+      return list.map(normalizeFileAttach).filter(Boolean)
+    }
+    return {
+      name: meeting.name ?? undefined,
+      remark: meeting.remark ?? undefined,
+      chairperson: meeting.chairperson ?? undefined,
+      meeting_date: meeting.meeting_date ?? undefined,
+      date_format: meeting.date_format ?? undefined,
+      meeting_date_format: meeting.meeting_date_format ?? undefined,
+      location: meeting.location ?? undefined,
+      owner: meeting.owner ?? undefined,
+      expired_at: meeting.expired_at ?? undefined,
+      meeting_item_template: meeting.meeting_item_template ?? undefined,
+      meeting_template: meeting.meeting_template ?? undefined,
+      contents_template: meeting.contents_template ?? undefined,
+      cover_template: meeting.cover_template ?? undefined,
+      item_label_type: meeting.item_label_type ?? undefined,
+      factory_tags: meeting?.factory_tags ?? [],
+      file_attaches: [],
+      sign_in_form: []
+    };
+  },
 }

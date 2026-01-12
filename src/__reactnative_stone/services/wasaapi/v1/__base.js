@@ -122,52 +122,72 @@ export default {
         })
     })
   },
-  delete({
-    modelName,
-    modelId,
-    endpoint = axios.defaults.baseURL,
-    preUrl,
-    params
-  }) {
-    let url = ''
-    if (preUrl) {
-      url = `${endpoint}/${preUrl}/${modelName}/${modelId}`
-    } else if (modelName && modelId) {
-      url = `${endpoint}/${modelName}/${modelId}`
-    } else {
-      url = `${endpoint}/${modelName}`
+  // delete({
+  //   modelName,
+  //   modelId,
+  //   endpoint = axios.defaults.baseURL,
+  //   preUrl,
+  //   params
+  // }) {
+  //   let url = ''
+  //   if (preUrl) {
+  //     url = `${endpoint}/${preUrl}/${modelName}/${modelId}`
+  //   } else if (modelName && modelId) {
+  //     url = `${endpoint}/${modelName}/${modelId}`
+  //   } else {
+  //     url = `${endpoint}/${modelName}`
+  //   }
+  //   return new Promise((resolve, reject) => {
+  //     axios
+  //       .delete(url, { params })
+  //       .then(res => {
+  //         resolve(res.data?.message)
+  //       })
+  //       .catch(err => {
+  //         console.error(`${modelName} delete error`)
+  //         // 詳細錯誤處理
+  //         if (err.response) {
+  //           // 請求已發出，伺服器回應了狀態碼，但狀態碼不在 2xx 範圍內
+  //           console.error('Error Response Data:', err.response.data);
+  //           console.error('Error Response Status:', err.response.status);
+  //           console.error('Error Response Headers:', err.response.headers);
+  //           if (err.response.status == 403) {
+  //             resolve(err.response.data)
+  //           }
+  //         } else if (err.request) {
+  //           // 請求已發出，但未收到回應
+  //           console.error('No response received:', err.request);
+  //         } else {
+  //           // 發生錯誤時，設定請求時出現錯誤
+  //           console.error('Axios request error:', err.message);
+  //         }
+  //         console.error('Axios config:', err.config);
+  //         if (callback) {
+  //           console.log('callback promise')
+  //           apiCallBack.apiFail()
+  //         }
+  //         reject(err);
+  //       })
+  //   })
+  // },
+  async delete({ modelName, modelId, endpoint = axios.defaults.baseURL, preUrl, params }) {
+    let url = preUrl
+      ? `${endpoint}/${preUrl}/${modelName}/${modelId}`
+      : (modelName && modelId)
+        ? `${endpoint}/${modelName}/${modelId}`
+        : `${endpoint}/${modelName}`
+
+    try {
+      const res = await axios.delete(url, { params })
+      return res.data?.message
+    } catch (err) {
+      console.error(`${modelName} delete error`, err?.response?.status, err?.response?.data)
+
+      // 你若真的要把 403 當成「非例外」：
+      if (err.response?.status === 403) return err.response.data
+
+      throw err
     }
-    return new Promise((resolve, reject) => {
-      axios
-        .delete(url, { params })
-        .then(res => {
-          resolve(res.data?.message)
-        })
-        .catch(err => {
-          console.error(`${modelName} delete error`)
-          // 詳細錯誤處理
-          if (err.response) {
-            // 請求已發出，伺服器回應了狀態碼，但狀態碼不在 2xx 範圍內
-            console.error('Error Response Data:', err.response.data);
-            console.error('Error Response Status:', err.response.status);
-            console.error('Error Response Headers:', err.response.headers);
-            if (err.response.status == 403) {
-              resolve(err.response.data)
-            }
-          } else if (err.request) {
-            // 請求已發出，但未收到回應
-            console.error('No response received:', err.request);
-          } else {
-            // 發生錯誤時，設定請求時出現錯誤
-            console.error('Axios request error:', err.message);
-          }
-          console.error('Axios config:', err.config);
-          if (callback) {
-            apiCallBack.apiFail()
-          }
-          reject(err);
-        })
-    })
   },
   create({
     parentName = null,

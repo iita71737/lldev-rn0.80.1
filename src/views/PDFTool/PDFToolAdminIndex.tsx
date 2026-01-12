@@ -33,15 +33,13 @@ const PDFToolAdminIndex = (props) => {
   const { t } = useTranslation()
   const navigation = useNavigation()
 
-  const {
-    initTabIndex = 0
-  } = props
+  const initTabIndex = props?.route?.params?.initTabIndex ?? 0
 
   // States
   const [isBottomSheetActive, setIsBottomSheetActive] = React.useState(false)
   const [bottomSheetItems, setBottomSheetItems] = React.useState([])
   // Tabs
-  const [tabIndex, settabIndex] = React.useState(initTabIndex ? initTabIndex : 0)
+  const [tabIndex, settabIndex] = React.useState(initTabIndex)
   const [tabItems] = React.useState([
     {
       value: 'PDFToolList',
@@ -105,6 +103,10 @@ const PDFToolAdminIndex = (props) => {
     $_setBottomSheet()
   }, [tabIndex])
 
+  React.useEffect(() => {
+    settabIndex(initTabIndex)
+  }, [initTabIndex])
+
 
   return (
     <>
@@ -132,54 +134,6 @@ const PDFToolAdminIndex = (props) => {
                 "email": "aa@wasateam.com"
               },
               "expired_at": "2025-12-31",
-              "meeting_item_template": {
-                "id": "097a817f-71f3-4ddc-b84c-d57c4241649f",
-                "updated_at": "2025-12-24T01:57:32.000000Z",
-                "created_at": "2025-12-24T01:57:32.000000Z",
-                "name": "Test meeting  item",
-                "factory_tags": [
-                  {
-                    "id": "9dd4c577-86dd-44d3-965e-445b56d129d3",
-                    "name": "Qqqqq"
-                  }
-                ]
-              },
-              "meeting_template": {
-                "id": "3644c702-8d6c-4f6c-914f-b2450dc8baed",
-                "updated_at": "2025-12-24T01:55:50.000000Z",
-                "created_at": "2025-12-24T01:55:50.000000Z",
-                "name": "Meeting template",
-                "factory_tags": [
-                  {
-                    "id": "bfea5afa-81ff-11ee-89b0-42010a8c000b",
-                    "name": "公司治理"
-                  }
-                ]
-              },
-              "contents_template": {
-                "id": "3cbbb920-d9ea-415e-86d8-21ad787086f3",
-                "updated_at": "2025-12-24T01:49:13.000000Z",
-                "created_at": "2025-12-24T01:49:13.000000Z",
-                "name": "Catalog",
-                "factory_tags": [
-                  {
-                    "id": "bfea5ddb-81ff-11ee-89b0-42010a8c000b",
-                    "name": "環安衛管理"
-                  }
-                ]
-              },
-              "cover_template": {
-                "id": "94464a2d-473d-4562-ad8e-4f15fd0f9785",
-                "updated_at": "2025-12-24T02:09:28.000000Z",
-                "created_at": "2025-12-24T02:09:27.000000Z",
-                "name": "Cover template",
-                "factory_tags": [
-                  {
-                    "id": "9dd4c577-86dd-44d3-965e-445b56d129d3",
-                    "name": "Qqqqq"
-                  }
-                ]
-              },
               "item_label_type": {
                 "id": "7df5a394-4870-4019-a2ba-450b388e746b",
                 "value": "^第[一二三四五六七八九十百]+案\\s?",
@@ -197,118 +151,6 @@ const PDFToolAdminIndex = (props) => {
                   "name": "Beautiful",
                   "target": null,
                   "sequence": "0"
-                }
-              ],
-              "file_attaches": [
-                {
-                  "file": {
-                    "id": "d658fb83-45e9-43aa-b661-acb500afd67e",
-                    "updated_at": "2025-12-24T02:55:27.000000Z",
-                    "created_at": "2025-12-24T02:55:26.000000Z",
-                    "updated_user": {
-                      "id": "bff06c0a-81ff-11ee-89b0-42010a8c000b",
-                      "name": "蔡A辣",
-                      "avatar": "https://api.ll-esh-app.wasateam.com/api/user/avatar/1754365746fCn2w/5A0D3BA9-8F5E-47CE-B6D8-A869CCA6B93E.jpg?signature=98c856a75b992806a1ad706b1396db4339b07d04207ea1ea22ae77930f7d27b2"
-                    },
-                    "created_user": {
-                      "id": "bff06c0a-81ff-11ee-89b0-42010a8c000b",
-                      "name": "蔡A辣",
-                      "avatar": "https://api.ll-esh-app.wasateam.com/api/user/avatar/1754365746fCn2w/5A0D3BA9-8F5E-47CE-B6D8-A869CCA6B93E.jpg?signature=98c856a75b992806a1ad706b1396db4339b07d04207ea1ea22ae77930f7d27b2"
-                    },
-                    "name": "word_template_with_variables_example",
-                    "source_url": "https://api.ll-esh-app.wasateam.com/api/factory/23/meeting/attach/1766544926Cr2AZ/word_template_with_variables_example.docx.docx?au=1&expires=1766580927&signature=6e1fb3074322ecccd9f9cc229aa5f5642e13070ce58597bd5b0c4186ea354ab1",
-                    "public_url": null,
-                    "tags": null,
-                    "file_type": "docx",
-                    "des": null,
-                    "version_number": 1,
-                    "is_secret": 0,
-                    "is_public": 0,
-                    "is_system": 1,
-                    "is_invalid": 0,
-                    "file_path": "系統資料夾/meeting/word_template_with_variables_example",
-                    "file_uuid_path": "add3f15d-3c90-4231-b813-1f3ef1bbbb3c/8531e0e4-d6c9-4041-ba66-88af259ca884/d658fb83-45e9-43aa-b661-acb500afd67e",
-                    "remark": null,
-                    "remark_updated_at": "2025-12-24T02:55:26.000000Z",
-                    "remark_updated_user": {
-                      "id": "bff06c0a-81ff-11ee-89b0-42010a8c000b",
-                      "name": "蔡A辣",
-                      "avatar": "https://api.ll-esh-app.wasateam.com/api/user/avatar/1754365746fCn2w/5A0D3BA9-8F5E-47CE-B6D8-A869CCA6B93E.jpg?signature=98c856a75b992806a1ad706b1396db4339b07d04207ea1ea22ae77930f7d27b2"
-                    },
-                    "file_folder": {
-                      "id": "8531e0e4-d6c9-4041-ba66-88af259ca884",
-                      "name": "meeting",
-                      "module": "system_files_meeting",
-                      "is_secret": 0,
-                      "is_public": 0,
-                      "is_system": 1,
-                      "folder_path": "系統資料夾/meeting",
-                      "folder_uuid_path": "add3f15d-3c90-4231-b813-1f3ef1bbbb3c/8531e0e4-d6c9-4041-ba66-88af259ca884"
-                    },
-                    "share_factories": [],
-                    "last_version": {
-                      "id": "d642701a-af76-47e8-930b-dd325a46daab"
-                    },
-                    "article_versions": [],
-                    "act_version_alls": [],
-                    "factory_tags": []
-                  }
-                }
-              ],
-              "sign_in_form": [
-                {
-                  "file": {
-                    "id": "fea3cdb8-d2fa-4197-a423-c89fb5f77daa",
-                    "updated_at": "2025-12-24T02:55:37.000000Z",
-                    "created_at": "2025-12-24T02:55:37.000000Z",
-                    "updated_user": {
-                      "id": "bff06c0a-81ff-11ee-89b0-42010a8c000b",
-                      "name": "蔡A辣",
-                      "avatar": "https://api.ll-esh-app.wasateam.com/api/user/avatar/1754365746fCn2w/5A0D3BA9-8F5E-47CE-B6D8-A869CCA6B93E.jpg?signature=98c856a75b992806a1ad706b1396db4339b07d04207ea1ea22ae77930f7d27b2"
-                    },
-                    "created_user": {
-                      "id": "bff06c0a-81ff-11ee-89b0-42010a8c000b",
-                      "name": "蔡A辣",
-                      "avatar": "https://api.ll-esh-app.wasateam.com/api/user/avatar/1754365746fCn2w/5A0D3BA9-8F5E-47CE-B6D8-A869CCA6B93E.jpg?signature=98c856a75b992806a1ad706b1396db4339b07d04207ea1ea22ae77930f7d27b2"
-                    },
-                    "name": "example",
-                    "source_url": "https://api.ll-esh-app.wasateam.com/api/factory/23/meeting/attach/1766544937lrdkE/example.xlsx.xlsx?au=1&expires=1766580937&signature=399b615db71770072e707bcebc28c8af9587dd5819730eab2ef5d757a784170e",
-                    "public_url": null,
-                    "tags": null,
-                    "file_type": "xlsx",
-                    "des": null,
-                    "version_number": 1,
-                    "is_secret": 0,
-                    "is_public": 0,
-                    "is_system": 1,
-                    "is_invalid": 0,
-                    "file_path": "系統資料夾/meeting/example",
-                    "file_uuid_path": "add3f15d-3c90-4231-b813-1f3ef1bbbb3c/8531e0e4-d6c9-4041-ba66-88af259ca884/fea3cdb8-d2fa-4197-a423-c89fb5f77daa",
-                    "remark": null,
-                    "remark_updated_at": "2025-12-24T02:55:37.000000Z",
-                    "remark_updated_user": {
-                      "id": "bff06c0a-81ff-11ee-89b0-42010a8c000b",
-                      "name": "蔡A辣",
-                      "avatar": "https://api.ll-esh-app.wasateam.com/api/user/avatar/1754365746fCn2w/5A0D3BA9-8F5E-47CE-B6D8-A869CCA6B93E.jpg?signature=98c856a75b992806a1ad706b1396db4339b07d04207ea1ea22ae77930f7d27b2"
-                    },
-                    "file_folder": {
-                      "id": "8531e0e4-d6c9-4041-ba66-88af259ca884",
-                      "name": "meeting",
-                      "module": "system_files_meeting",
-                      "is_secret": 0,
-                      "is_public": 0,
-                      "is_system": 1,
-                      "folder_path": "系統資料夾/meeting",
-                      "folder_uuid_path": "add3f15d-3c90-4231-b813-1f3ef1bbbb3c/8531e0e4-d6c9-4041-ba66-88af259ca884"
-                    },
-                    "share_factories": [],
-                    "last_version": {
-                      "id": "2ce4fe92-842a-4dd4-9e27-46158544e4f6"
-                    },
-                    "article_versions": [],
-                    "act_version_alls": [],
-                    "factory_tags": []
-                  }
                 }
               ],
               "users": [

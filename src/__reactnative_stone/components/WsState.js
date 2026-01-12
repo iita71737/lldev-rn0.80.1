@@ -1148,7 +1148,7 @@ const WsState = React.forwardRef((props, ref) => {
                 style={{
                   paddingRight: 16
                 }}
-                size={12}
+                size={10}
                 color={remindColor}>
                 {remind}
               </WsText>

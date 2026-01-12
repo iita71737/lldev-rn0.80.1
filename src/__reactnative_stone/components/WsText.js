@@ -1,8 +1,8 @@
 import React from 'react'
-import { 
-  Text, 
-  StyleSheet, 
-  Platform 
+import {
+  Text,
+  StyleSheet,
+  Platform
 } from 'react-native'
 import $color from '@/__reactnative_stone/global/color'
 
@@ -93,6 +93,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     letterSpacing: 0.6
+  },
+  text10: {
+    fontSize: 10,
+    lineHeight: 16,
+    letterSpacing: 0.8,
   }
 })
 

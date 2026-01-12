@@ -131,8 +131,6 @@ const WsStateFileOrImagePicker = props => {
     return mapped.length > 0 ? mapped : [types.allFiles]
   }
 
-  console.log(limitFileExtension,'limitFileExtension')
-
   // States
   const [visible, setVisible] = useState(true)
   const [loadingProgress, setLoadingProgress] = useState(false)

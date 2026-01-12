@@ -3,6 +3,7 @@ import React, {
   useState,
   useEffect,
   useMemo,
+  useCallback,
 } from 'react'
 import {
   ScrollView,
@@ -337,6 +338,58 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   // 模式：預設 / 排序
   const [mode, setMode] = useState<'default' | 'dragSort'>('default')
 
+  const ensureMeetingItemsReadyForExport = useCallback(async () => {
+    console.log('ensureMeetingItemsReadyForExport')
+    if (!id) return true
+
+    const getStatusValue = (value: any) =>
+      String(value?.name ?? value ?? '').toUpperCase()
+
+    const isCompleteStatus = (status: string) =>
+      status === 'COMPLETE' || status === 'COMPLETED'
+
+    const collectMeetingItems = (data: any) => {
+      if (!data) return []
+      const list = Array.isArray(data) ? data : [data]
+      const items: any[] = []
+      list.forEach(entry => {
+        const groupItems =
+          entry?.meeting_items ?? entry?.meetingItems ?? entry?.articles
+        if (Array.isArray(groupItems)) {
+          items.push(...groupItems)
+        } else {
+          items.push(entry)
+        }
+      })
+      return items
+    }
+
+    try {
+      const res = await S_MeetingItem.meetingIndexAll({
+        params: {
+          meetingId: id,
+        },
+      })
+      const data = res?.data ?? res
+      const items = collectMeetingItems(data)
+
+      const hasIncomplete = items.some(item => {
+        const parseStatus = getStatusValue(item?.parse_status)
+        const convertStatus = getStatusValue(item?.convert_status)
+        return !(isCompleteStatus(parseStatus) && isCompleteStatus(convertStatus))
+      })
+
+      if (hasIncomplete) {
+        Alert.alert(t('尚有未解析完或是轉檔完的議案，請稍候再試'))
+        return false
+      }
+      return true
+    } catch (err) {
+      console.log('S_MeetingItem.meetingIndexAll error', err)
+      return true
+    }
+  }, [id, t])
+
   // 正式資料
   const [groups, setGroups] = useState<Group[]>([])
 
@@ -348,6 +401,10 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       const _defaultValue = S_Meeting.formattedMeetingForEdit(meeting)
       const payload = JSON.stringify(_defaultValue)
       await AsyncStorage.setItem('PDFToolAdminUpdate', payload)
+
+      const _defaultValue002 = S_Meeting.formattedMeetingForCopyCreate(meeting)
+      const payload002 = JSON.stringify(_defaultValue002)
+      await AsyncStorage.setItem('PDFToolAdminCreate', payload002);
     } catch (e) {
       console.log('Error setting PDFToolAdminUpdate:', e)
     }
@@ -405,12 +462,22 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         icon: 'ws-outline-edit-pencil',
         label: t('編輯議事'),
       },
+      {
+        to: {
+          name: 'PDFToolAdminCreate',
+          params: {},
+        },
+        icon: 'ws-outline-copy',
+        label: t('複製議事'),
+      },
       // ✅ 匯出：總匯出（打開你原本的 export modal）
       {
         icon: 'ws-outline-logout',
         label: t('匯出'),
-        onPress: () => {
+        onPress: async () => {
           setIsBottomSheetActive(false)
+          const canExport = await ensureMeetingItemsReadyForExport()
+          if (!canExport) return
           setExportChecked({})
           setExportModalVisible(true)
         },
@@ -419,8 +486,10 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       {
         icon: 'ws-outline-logout',
         label: t('匯出時序表'),
-        onPress: () => {
+        onPress: async () => {
           setIsBottomSheetActive(false)
+          const canExport = await ensureMeetingItemsReadyForExport()
+          if (!canExport) return
           setExportChecked({ agenda_c: true })
           setExportModalVisible(true)
         },
@@ -435,7 +504,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         }
       },
     ],
-    [id, t],
+    [ensureMeetingItemsReadyForExport, id, t],
   )
 
   // SERVICES
@@ -523,7 +592,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     setMode('default')
   }
 
-  // 匯出範圍勾選：遞迴切換（勾 parent 會連同 child）
   // 匯出範圍勾選：支援 parent <-> children 連動
   const toggleExportItem = (item: ExportItem) => {
     setExportChecked(prev => {
@@ -1076,7 +1144,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           setIsBottomSheetActive(false)
         }}
         items={bottomSheetItems}
-        snapPoints={[150, 268]}
+        snapPoints={[150, 308]}
         onItemPress={(item) => {
           if (item.to) {
             navigation.navigate(item.to)
@@ -1134,7 +1202,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           </View>
         )}
 
-        
+
         <View
           style={{
             marginVertical: 16,
@@ -1189,8 +1257,15 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           >
             {t('上傳')}
           </WsUpdateBtn>
+          <WsDes
+            color={$color.gray}
+            style={{
+              paddingTop: 8
+            }}>
+            {`${t('檔案大小限制')} ≤ 30MB`}
+          </WsDes>
         </View>
-       
+
 
         {/* <WsState
           style={{
@@ -1265,6 +1340,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             }}
             value={scheduleTemplate}
             onChange={setSchduleTemplate}
+            remind={t('若未選擇，則不會產生時序表')}
           />
 
           <WsState
@@ -1282,6 +1358,8 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             }}
             value={bindContentsTemplate}
             onChange={setBindContentsTemplate}
+            rules={'required'}
+            errorMessage={!meetingItemGroupName && [t('此項目為必填')]}
           />
 
           <WsState
@@ -1299,6 +1377,8 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             }}
             value={bindMeetingTemplate}
             onChange={setBindMeetingTemplate}
+            rules={'required'}
+            errorMessage={!meetingItemGroupName && [t('此項目為必填')]}
           />
         </View>
       </WsModal>

@@ -371,6 +371,23 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
     itemsSV.value = _items
   }, [_items])
 
+  const decodeFilename = (name: string) => {
+    if (!name) return name
+    // 先處理後端可能用 + 當空白
+    const normalized = name.replace(/\+/g, ' ')
+
+    try {
+      // 只要包含 %xx 就試著 decode
+      if (/%[0-9A-Fa-f]{2}/.test(normalized)) {
+        return decodeURIComponent(normalized)
+      }
+      return normalized
+    } catch {
+      // 避免重複 decode 或破損字串造成 crash
+      return normalized
+    }
+  }
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       {/* <WsFlex
@@ -485,7 +502,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
                           >
                             {item.type === 'group'
                               ? `${item.sequence}. ${item.name || t('議案群組')}`
-                              : `${item.sequence.split('-').slice(-1)[0]}. ${item.name || t('項目名稱')}`}
+                              : `${item.sequence.split('-').slice(-1)[0]}. ${decodeFilename(item.name) || t('項目名稱')}`}
                           </WsText>
                           <WsIcon
                             name="ws-outline-drag-horizontal"

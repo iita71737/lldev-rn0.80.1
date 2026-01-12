@@ -13,6 +13,7 @@ import {
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import S_Meeting from '@/services/api/v1/meeting'
+import { useNavigation } from '@react-navigation/native'
 
 export type EsGoalVariable = {
   id: string
@@ -78,6 +79,7 @@ const EsGoalVariableItem: React.FC<{ item: EsGoalVariable }> = ({ item }) => {
 }
 
 const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
+  const navigation = useNavigation()
   const { t } = useTranslation()
   const [meeting, setMeeting] = useState<any>(null)
   const [loading, setLoading] = useState(!!meetingId)
@@ -158,6 +160,9 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
     return []
   }
 
+  const getTemplateName = (template: any) => template?.name ?? ''
+  const getTemplateId = (template: any) => template?.id ?? ''
+
   const meetingTitle = meeting?.name ?? t('使用者​自訂​議事標題')
   const chairperson = meeting?.chairperson ?? '-'
   const meetingDate = meeting?.meeting_date_format ?? meeting?.meeting_date ?? '-'
@@ -176,6 +181,8 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
   const remark = meeting?.remark ?? '-'
   const attaches = normalizeFiles(meeting?.attaches ?? meeting?.file_attaches ?? [])
   const signInForm = normalizeFiles(meeting?.sign_in_form ?? [])
+  const meetingTemplateName = getTemplateName(meeting?.meeting_item_template)
+  const meetingTemplateId = getTemplateId(meeting?.meeting_item_template)
   const meetingItemTemplateFiles = getTemplateFiles(meeting?.meeting_item_template?.attach)
   const meetingTemplateFiles = getTemplateFiles(meeting?.meeting_template?.attach)
   const contentsTemplateFiles = getTemplateFiles(meeting?.contents_template?.attach)
@@ -282,8 +289,25 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
 
         <View style={{ marginTop: 8 }}>
           <WsInfo
+            type="link"
+            label={`${t('提案單範本')} - ${meetingTemplateName}`}
+            value={''}
+            style={{
+              flexDirection: 'row'
+            }}
+            onPress={() => {
+              console.log('3333')
+              navigation.push('RoutesPDFTool', {
+                screen: 'PDFToolAdminTemplateShow',
+                params: {
+                  id: meetingTemplateId,
+                }
+              })
+            }}
+          />
+          <WsInfo
             type="filesAndImages"
-            label={t('提案單範本​')}
+            // label={`${t('提案單範本')} - ${meetingTemplateName}`}
             value={meetingItemTemplateFiles}
           />
         </View>
@@ -422,7 +446,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
                 }}
               >
                 <WsInfo
-                  label={t('提案單範本')}
+                  label={`${t('提案單範本')}\n${meetingTemplateName}`}
                   type="filesAndImages"
                   value={meetingItemTemplateFiles}
                 />

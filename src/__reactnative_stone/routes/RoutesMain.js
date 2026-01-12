@@ -55,7 +55,8 @@ import {
   setCurrentLocales,
   setCurrentLatLng,
   setCurrentAreas,
-  setSubAreas
+  setSubAreas,
+  setMeetingTemplateTypes
 } from '@/store/data'
 import AsyncStorage from '@react-native-community/async-storage'
 import S_Init from '@/__reactnative_stone/services/app/Init'
@@ -94,6 +95,7 @@ import S_factoryHelper from '@/helpers/factory'
 import { CopilotProvider } from 'react-native-copilot';
 import S_Area from '@/services/api/v1/area'
 import S_AreaSection from '@/services/api/v1/area_section'
+import S_MeetingTemplateType from '@/services/api/v1/meeting_template_type'
 
 const RoutesMain = ({ navigation }) => {
   const { t, i18n } = useTranslation()
@@ -598,6 +600,14 @@ const RoutesMain = ({ navigation }) => {
       console.log(error, '$_subAreaSet')
     }
   }
+  const $_meetingTemplateTypeSet = async () => {
+    try {
+      const res = await S_MeetingTemplateType.index({})
+      store.dispatch(setMeetingTemplateTypes(res.data))
+    } catch (error) {
+      console.log(error, '$_meetingTemplateTypeSet')
+    }
+  }
 
   // APP BADGE
   const $_UnReadAllNotification = async () => {
@@ -645,6 +655,7 @@ const RoutesMain = ({ navigation }) => {
         $_subAreaSet()
         $_actTypeSet()
         $_actStatus()
+        $_meetingTemplateTypeSet()
 
         $_contractorTypeSet()
         $_effectSet()

@@ -151,7 +151,7 @@ const WsInfo = props => {
           style={{
             marginTop: infoMarginTop,
             marginBottom: infoMarginBottom,
-            marginLeft: style && style.flexDirection == 'row' ? 8 : 0,
+            marginLeft: style && style.flexDirection == 'row' ? 0 : 0, // fix: 260109
             maxWidth: labelWidth ? width * 0.55 : undefined
           }}>
           {icon && (
