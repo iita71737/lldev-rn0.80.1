@@ -534,7 +534,7 @@ export default {
       console.log(JSON.stringify(data),'data==')
       axios.post(url, data, {
         headers: {
-          // 'Content-Type': 'multipart/form-data',
+          'Content-Type': 'multipart/form-data', // 260115-formdata-upload-issue
         }
       })
         .then(res => {

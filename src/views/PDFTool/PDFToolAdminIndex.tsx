@@ -38,6 +38,10 @@ const PDFToolAdminIndex = (props) => {
   // States
   const [isBottomSheetActive, setIsBottomSheetActive] = React.useState(false)
   const [bottomSheetItems, setBottomSheetItems] = React.useState([])
+  const currentUserScope = useSelector(state => state.data.userScopes)
+  const canCreateMeetingTemplate =
+    Array.isArray(currentUserScope) &&
+    currentUserScope.includes('meeting-template-create')
   // Tabs
   const [tabIndex, settabIndex] = React.useState(initTabIndex)
   const [tabItems] = React.useState([
@@ -85,7 +89,7 @@ const PDFToolAdminIndex = (props) => {
       ])
     } else if (tabIndex == 1) {
       setBottomSheetItems([
-        {
+        canCreateMeetingTemplate && {
           onPress: () => {
             $_clearStorage()
             navigation.push('RoutesPDFTool', {
@@ -95,13 +99,13 @@ const PDFToolAdminIndex = (props) => {
           icon: 'md-add',
           label: t('新增範本')
         }
-      ])
+      ].filter(Boolean))
     }
   }
 
   React.useEffect(() => {
     $_setBottomSheet()
-  }, [tabIndex])
+  }, [tabIndex, canCreateMeetingTemplate])
 
   React.useEffect(() => {
     settabIndex(initTabIndex)

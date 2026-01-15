@@ -862,6 +862,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                   </WsFlex>
                   <View style={{ marginTop: 8 }}>
                     <WsInfo
+                      labelWidth={80}
                       label={t('項目符號')}
                       style={{ flexDirection: 'row', alignItem: 'center' }}
                       labelColor={$color.gray}
@@ -871,6 +872,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
 
                   <View style={{ marginTop: 8 }}>
                     <WsInfo
+                      labelWidth={80}
                       label={t('名稱')}
                       style={{ flexDirection: 'row', alignItem: 'center' }}
                       labelColor={$color.gray}
@@ -881,6 +883,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                   {hasPresenter && (
                     <View style={{ marginTop: 8 }}>
                       <WsInfo
+                        labelWidth={80}
                         label={t('報告人')}
                         style={{ flexDirection: 'row', alignItem: 'center', flexWrap: 'wrap' }}
                         labelColor={$color.gray}
@@ -892,6 +895,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                   {hasMeetingItemUnit && (
                     <View style={{ marginTop: 8 }}>
                       <WsInfo
+                        labelWidth={80}
                         label={t('提案單位')}
                         style={{
                           flexDirection: 'row',
@@ -907,6 +911,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                   {hasAttendeesPresent && (
                     <View style={{ marginTop: 8 }}>
                       <WsInfo
+                        labelWidth={80}
                         label={t('列席人員')}
                         style={{
                           flexDirection: 'row',
@@ -922,6 +927,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                   {hasAttendeesInvited && (
                     <View style={{ marginTop: 8 }}>
                       <WsInfo
+                        labelWidth={80}
                         style={{
                           flexDirection: 'row',
                           alignItem: 'center',
@@ -1156,6 +1162,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                 name={isGroupCollapsed ? 'md-unfold-more' : 'md-unfold-less'}
                 size={24}
                 color={$color.primary3l}
+                onPress={() => toggleGroup(group.id)}
               />
             </WsFlex>
 

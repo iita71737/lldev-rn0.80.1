@@ -654,7 +654,7 @@ const RoutesPDFTool = () => {
 
         <StackSetting.Screen
           name="PDFToolAdminIndex"
-          component={scopeFilterScreen('guideline-admin-read', PDFToolAdminIndex)}
+          component={scopeFilterScreen('meeting-read', PDFToolAdminIndex)}
           options={({ navigation }) => ({
             title: t('議事管理'),
             ...gOption.headerOption,
@@ -664,7 +664,7 @@ const RoutesPDFTool = () => {
 
         <StackSetting.Screen
           name="PDFToolAdminCreate"
-          component={scopeFilterScreen('guideline-admin-create', WsStepRoutesCreate)}
+          component={scopeFilterScreen('meeting-create', WsStepRoutesCreate)}
           options={{
             title: t('新增議事'),
             headerShown: false,
@@ -682,7 +682,7 @@ const RoutesPDFTool = () => {
 
         <StackSetting.Screen
           name="PDFToolAdminUpdate"
-          component={scopeFilterScreen('guideline-admin-create', WsStepRoutesUpdate)}
+          component={scopeFilterScreen(['meeting-update', 'meeting-update-owner'], WsStepRoutesUpdate)}
           options={{
             title: t('編輯議事'),
             headerShown: false,
@@ -700,7 +700,7 @@ const RoutesPDFTool = () => {
 
         <StackSetting.Screen
           name="PDFToolAdminCreateTemplate"
-          component={scopeFilterScreen('guideline-admin-create', WsStepRoutesCreate)}
+          component={scopeFilterScreen('meeting-template-create', WsStepRoutesCreate)}
           options={{
             title: t('新​增​範本​'),
             headerShown: false,
@@ -718,7 +718,7 @@ const RoutesPDFTool = () => {
 
         <StackSetting.Screen
           name="PDFToolAdminShow"
-          component={scopeFilterScreen('guideline-admin-create', PDFToolAdminShow)}
+          component={scopeFilterScreen('meeting-read', PDFToolAdminShow)}
           options={{
             title: t('議事內頁'),
             ...gOption.headerOption
@@ -727,7 +727,7 @@ const RoutesPDFTool = () => {
 
         <StackSetting.Screen
           name="PDFToolAdminTemplateShow"
-          component={scopeFilterScreen('guideline-admin-create', PDFToolAdminTemplateShow)}
+          component={scopeFilterScreen('meeting-template-read', PDFToolAdminTemplateShow)}
           options={{
             title: t('範本內頁'),
             ...gOption.headerOption
@@ -736,7 +736,7 @@ const RoutesPDFTool = () => {
 
         <StackSetting.Screen
           name="PDFToolAdminBatchEditMeetingItemGroup"
-          component={scopeFilterScreen('guideline-admin-create', PDFToolAdminBatchEditMeetingItemGroup)}
+          component={scopeFilterScreen(['meeting-update', 'meeting-update-owner'], PDFToolAdminBatchEditMeetingItemGroup)}
           options={{
             title: t('批次編輯議案群組頁'),
             headerShown: false,
@@ -746,7 +746,7 @@ const RoutesPDFTool = () => {
 
         <StackSetting.Screen
           name="PDFToolAdminTemplateEdit"
-          component={scopeFilterScreen('guideline-admin-create', WsStepRoutesUpdate)}
+          component={scopeFilterScreen('meeting-template-update', WsStepRoutesUpdate)}
           options={{
             title: t('編輯範本'),
             headerShown: false,
@@ -764,7 +764,7 @@ const RoutesPDFTool = () => {
 
         <StackSetting.Screen
           name="PDFToolAdminExportShow"
-          component={scopeFilterScreen('guideline-admin-create', PDFToolAdminExportShow)}
+          component={scopeFilterScreen('meeting-export-read', PDFToolAdminExportShow)}
           options={{
             title: t('匯出紀錄內頁'),
             ...gOption.headerOption

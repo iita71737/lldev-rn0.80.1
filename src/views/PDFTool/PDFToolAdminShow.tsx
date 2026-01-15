@@ -262,6 +262,8 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   // REDUX
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
   const currentFactory = useSelector(state => state.data.currentFactory)
+  const currentUserScope = useSelector(state => state.data.userScopes)
+  const currentUser = useSelector(state => state.data.currentUser)
 
   // Tabs
   const [index, setIndex] = useState(0)
@@ -508,9 +510,24 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   // bottom-sheet
   const [isBottomSheetActive, setIsBottomSheetActive] = useState(false)
+  const canDeleteMeeting = (() => {
+    if (!Array.isArray(currentUserScope)) return false
+    if (currentUserScope.includes('meeting-destroy')) return true
+    if (!currentUserScope.includes('meeting-destroy-owner')) return false
+    return !!meeting?.owner?.id && meeting?.owner?.id === currentUser?.id
+  })()
+  const canCreateMeetingExport =
+    Array.isArray(currentUserScope) &&
+    currentUserScope.includes('meeting-export-create')
+  const canUpdateMeeting = (() => {
+    if (!Array.isArray(currentUserScope)) return false
+    if (currentUserScope.includes('meeting-update')) return true
+    if (!currentUserScope.includes('meeting-update-owner')) return false
+    return !!meeting?.owner?.id && meeting?.owner?.id === currentUser?.id
+  })()
   const bottomSheetItems = useMemo(
     () => [
-      {
+      canUpdateMeeting && {
         to: {
           name: 'PDFToolAdminUpdate',
           params: {
@@ -520,7 +537,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         icon: 'ws-outline-edit-pencil',
         label: t('編輯議事'),
       },
-      {
+      canUpdateMeeting && {
         to: {
           name: 'PDFToolAdminCreate',
           params: {},
@@ -529,7 +546,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         label: t('複製議事'),
       },
       // ✅ 匯出：總匯出（打開你原本的 export modal）
-      {
+      canCreateMeetingExport && {
         icon: 'ws-outline-logout',
         label: t('匯出'),
         onPress: async () => {
@@ -542,7 +559,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         },
       },
       // ✅ 匯出時序表
-      {
+      canCreateMeetingExport && {
         icon: 'ws-outline-logout',
         label: t('匯出時序表'),
         onPress: async () => {
@@ -555,7 +572,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           setExportModalVisible(true)
         },
       },
-      {
+      canDeleteMeeting && {
         color: $color.danger,
         labelColor: $color.danger,
         icon: 'ws-outline-delete',
@@ -564,8 +581,16 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           setPopupDeleteMeetingVisible(true)
         }
       },
+    ].filter(Boolean),
+    [
+      canCreateMeetingExport,
+      canDeleteMeeting,
+      canUpdateMeeting,
+      ensureMeetingItemsReadyForExport,
+      id,
+      meeting,
+      t,
     ],
-    [ensureMeetingItemsReadyForExport, id, meeting, t],
   )
 
   // SERVICES

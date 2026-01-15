@@ -111,6 +111,7 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentFactoryTags = useSelector(state => state.data.factoryTags)
+  const currentUserScope = useSelector(state => state.data.userScopes)
 
   // STATES
   const [loading, setLoading] = useState(true)
@@ -231,9 +232,15 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
 
   const [dialogVisible, setDialogVisible] = React.useState(false)
   const [isBottomSheetActive, setIsBottomSheetActive] = useState(false)
+  const canUpdateTemplate =
+    Array.isArray(currentUserScope) &&
+    currentUserScope.includes('meeting-template-update')
+  const canDestroyTemplate =
+    Array.isArray(currentUserScope) &&
+    currentUserScope.includes('meeting-template-destroy')
   const bottomSheetItems = React.useMemo(
     () => [
-      {
+      canUpdateTemplate && {
         to: {
           name: 'PDFToolAdminTemplateEdit',
           params: {
@@ -243,7 +250,7 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
         icon: 'ws-outline-edit-pencil',
         label: t('編輯範本'),
       },
-      {
+      canDestroyTemplate && {
         onPress: () => {
           setDialogVisible(true)
         },
@@ -252,8 +259,8 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
         icon: 'ws-outline-delete',
         label: t('刪除範本'),
       },
-    ],
-    [id, t],
+    ].filter(Boolean),
+    [canDestroyTemplate, canUpdateTemplate, id, t],
   )
   const $_onBottomSheetItemPress = item => {
     if (item.to) {

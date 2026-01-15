@@ -379,15 +379,16 @@ const WsInfoFile = props => {
                     }}
                   />
                   <WsInfo
-                    labelWidth={160}
-                    label={t('匯出​附件​名​稱')}
+                    labelWidth={120}
+                    label={t('匯出附件名稱')}
                     labelColor={$color.gray}
                     value={
-                      exportAttachmentName ? exportAttachmentName : t(' ')
+                      exportAttachmentName ? `${exportAttachmentName}` : null
                     }
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
+                      flexWrap:'wrap',
                       marginVertical: 8
                     }}
                   />

@@ -152,6 +152,13 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentFactoryTags = useSelector(state => state.data.factoryTags)
   const currentUser = useSelector(state => state.data.currentUser)
+  const currentUserScope = useSelector(state => state.data.userScopes)
+  const canUpdateMeetingExport =
+    Array.isArray(currentUserScope) &&
+    currentUserScope.includes('meeting-export-update')
+  const canReadMeetingExport =
+    Array.isArray(currentUserScope) &&
+    currentUserScope.includes('meeting-export-read')
 
   // 匯出詳情收合用
   const [exportDetailOpen, setExportDetailOpen] = useState(false)
@@ -457,6 +464,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   const $_setNavigationOption = () => {
     navigation.setOptions({
       headerRight: () => {
+        if (!canUpdateMeetingExport && !canReadMeetingExport) return null
         return (
           <WsFlex>
             <WsIconBtn
@@ -516,22 +524,29 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
       statusValue !== 'PROCESSING' &&
       statusValue !== 'FAILED'
 
-    const items = [
-      {
+    const items = []
+    if (canUpdateMeetingExport) {
+      items.push({
         key: 'edit',
         icon: 'ws-outline-edit-pencil',
-        label: t('編輯'),
-      },
-    ]
-    if (canDownload) {
+        label: t('編輯匯出'),
+      })
+    }
+    if (canReadMeetingExport && canDownload) {
       items.push({
         key: 'download',
         icon: 'md-file-download',
-        label: t('下載'),
+        label: t('下載匯出'),
       })
     }
     return items
-  }, [meetingExport?.convert_status, meetingExport?.status, t])
+  }, [
+    canReadMeetingExport,
+    canUpdateMeetingExport,
+    meetingExport?.convert_status,
+    meetingExport?.status,
+    t
+  ])
 
   const handleBottomSheetItemPress = (item: any) => {
     if (item?.key === 'edit') {
