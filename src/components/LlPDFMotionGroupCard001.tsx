@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { View, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import moment from 'moment';
@@ -20,7 +20,6 @@ import {
 } from '@/components';
 import $color from '@/__reactnative_stone/global/color';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import JoditEditor from 'views/PDFTool/JoditEditor';
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group';
 import S_MeetingItem from '@/services/api/v1/meeting_item';
 import { pick, types } from '@react-native-documents/picker';
@@ -62,7 +61,6 @@ type Props = {
   // callback
   onPressAddGroup?: (group: Group) => void;
   onPressEditGroup?: (group: Group) => void;
-  onPressCreateVersion?: (motion: Motion) => void;
   onPressDeleteGroup?: (group: Group) => void;
   onPressDeleteMeetingItem?: (group: Group, meetingItem: Motion) => void;
   refreshKey?: number;
@@ -158,6 +156,8 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const [updateProposalModalVisible, setUpdateProposalModalVisible] = useState(false)
   const [updateProposalTargetMotion, setUpdateProposalTargetMotion] = useState<Motion | null>(null)
   const [updateFileData, setUpdateFileData] = useState();
+
+  const [updateFileOriginalName, setUpdateFileOriginalName] = useState('');
   const [updateMeetingItemId, setUpdateMeetingItemId] = useState<string | null>(null)
   const [updateProposalGroupId, setUpdateProposalGroupId] = useState<string | null>(null)
   const [editMeetingItemName, setEditMeetingItemName] = useState('')
@@ -170,12 +170,12 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const [editMeetingItemResolutionDetails, setEditMeetingItemResolutionDetails] = useState('')
   const [editMeetingItemGroupId, setEditMeetingItemGroupId] = useState<string | null>(null)
 
-
   const openUpdateProposalModal = (group: Group, motion: Motion) => {
     setUpdateProposalTargetMotion(motion)
     setUpdateMeetingItemId(motion?.id ?? null)
     setUpdateProposalGroupId(group?.id ?? null)
     setUpdateFileData(undefined)
+    setUpdateFileOriginalName('')
     setUpdateProposalModalVisible(true)
   }
 
@@ -185,6 +185,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     setUpdateMeetingItemId(null)
     setUpdateProposalGroupId(null)
     setUpdateFileData(undefined)
+    setUpdateFileOriginalName('')
   }
 
   const closeEditMeetingItemModal = () => {
@@ -202,48 +203,50 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     setMotionFiles([])
   }
 
-  const normalizeFileName = (name: string) => {
-    if (!name) return 'file';
-    return name
-      .trim()
-      .replace(/\s+/g, '_'); // ✅ 只處理空白 → _
-  };
 
   const pickWordFile = async () => {
     try {
       const res = await pick({
         mode: 'import',
-        type: [types.doc, types.docx]
+        type: [types.doc, types.docx],
       })
-      if (!res || res.length === 0) {
-        return
+      if (!res || res.length === 0) return
+
+      const rawUri = res[0].uri
+      const originalName = res[0].name || rawUri.split('/').pop() || 'file.docx'
+
+      const isWordFile = (name: string) => {
+        const lower = (name || '').toLowerCase()
+        return lower.endsWith('.doc') || lower.endsWith('.docx')
       }
-      const fileUri = res[0].uri
-      const originalName = res[0].name || ''
-      const safeFileName = normalizeFileName(originalName)
-      const lowerName = safeFileName.toLowerCase()
-      if (!lowerName.endsWith('.doc') && !lowerName.endsWith('.docx')) {
+      if (!isWordFile(originalName)) {
         Alert.alert(t('請選擇 .doc 或 .docx 檔案'))
         return
       }
+
       const fileType =
         res[0].type ||
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      setUpdateFileData({
-        uri: fileUri,
-        name: safeFileName,
+
+      const _pickFileData = {
+        uri: rawUri,
+        name: originalName,
+        displayName: originalName,
         type: fileType,
-      })
-    } catch (err) {
+      }
+      setUpdateFileData(_pickFileData)
+
+      // ✅ 留著給 UI 顯示 / 後端存原名用
+      setUpdateFileOriginalName(originalName)
+    } catch (err: any) {
       const isCancel =
         err?.code === 'DOCUMENT_PICKER_CANCELED' ||
         err?.message?.includes('user canceled') ||
         err?.message?.includes('The operation was cancelled')
-      if (!isCancel) {
-        console.error('❌ 發生其他錯誤:', err)
-      }
+      if (!isCancel) console.error('❌ 發生其他錯誤:', err)
     }
   }
+
 
   const submitUpdateProposal = async () => {
     if (!updateMeetingItemId) {
@@ -259,19 +262,33 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
         ? updateProposalTargetMotion?.item_label
         : updateProposalTargetMotion?.item_label?.name ?? ''
     const formData = new FormData();
-    formData.append('factory', currentFactory.id);
-    formData.append('item_label', readableItemLabel);
-    formData.append('file', updateFileData);
+    formData.append('factory', currentFactory.id)
+    formData.append('item_label', readableItemLabel)
+    const rawUri = updateFileData?.uri ?? ''
+    const normalizedUri =
+      Platform.OS === 'ios' && rawUri && !rawUri.startsWith('file://')
+        ? `file:/${rawUri}`
+        : rawUri
+    const uploadFileData = {
+      ...(updateFileData ?? {}),
+      uri: normalizedUri,
+    }
+    formData.append('file', uploadFileData as any)
+    if (updateFileOriginalName) {
+      formData.append('original_filename', updateFileOriginalName)
+    }
     const _params = {
       formData: formData,
-      meeting_item_it: updateMeetingItemId
+      meeting_item_id: updateMeetingItemId
     }
+    console.log(JSON.stringify(_params), '_params_params')
     try {
-      await S_MeetingItem.updateMeetingItemWord({ params: _params })
+      const _res = await S_MeetingItem.updateMeetingItemWord({ params: _params })
       closeUpdateProposalModal()
       if (updateProposalGroupId) {
         await fetchMeetingItemList(updateProposalGroupId)
       }
+      console.log(JSON.stringify(_res), 'S_MeetingItem update')
       Alert.alert(t('更新成功，伺服器正在處理中，請到匯出紀錄確認處理狀態'))
     } catch (e) {
       console.error(e);
@@ -570,7 +587,11 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     setGroupCollapsed(prev => ({ ...prev, [groupId]: !prev[groupId] }));
   };
 
-  const toggleMeetingItem = (meetingItemId: string) => {
+  const toggleMeetingItem = (groupId: string, meetingItemId: string) => {
+    const isCollapsed = motionCollapsed[meetingItemId] ?? true;
+    if (isCollapsed) {
+      refreshMeetingItem(groupId, meetingItemId);
+    }
     setMotionCollapsed(prev => ({
       ...prev,
       [meetingItemId]: !(prev[meetingItemId] ?? true),
@@ -757,7 +778,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
         >
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => toggleMeetingItem(meetingItem.id)}
+            onPress={() => toggleMeetingItem(group.id, meetingItem.id)}
           >
             <WsFlex
               style={{ paddingVertical: 12, paddingHorizontal: 12 }}
@@ -1006,27 +1027,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     </View>
                   )}
 
-                  {/* <View style={{ marginTop: 8 }}>
-                    <WsInfo
-                      label={t('解析狀態')}
-                      labelColor={$color.gray}
-                      value={parseStatus}
-                    />
-                  </View>
-                  {isParseProcessing && (
-                    <View style={{ marginTop: 8 }}>
-                      <LlPDFConvertingCard001 />
-                    </View>
-                  )}
-
-                  <View style={{ marginTop: 8 }}>
-                    <WsInfo
-                      label={t('轉檔狀態')}
-                      labelColor={$color.gray}
-                      value={convertStatusValue}
-                    />
-                  </View> */}
-
                   {isComplete && meetingItem?.convert_pdf_attach && (
                     <View style={{ marginTop: 8 }}>
                       <WsInfo
@@ -1064,9 +1064,11 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
       (group as any)?.meetingItems ??
       (group as any)?.articles ??
       [];
-    const statusItems = Array.isArray(groupMeetingItems)
-      ? groupMeetingItems
-      : [];
+    const statusItems = Array.isArray(meetingItemList) && meetingItemList.length > 0
+      ? meetingItemList
+      : Array.isArray(groupMeetingItems)
+        ? groupMeetingItems
+        : [];
 
     const getStatusValue = (value: any) =>
       String(value?.name ?? value ?? '').toUpperCase();
@@ -1455,8 +1457,8 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               style={{
                 marginTop: 8,
               }}
-              label={t('更新提案單')}
-              value={updateFileData.name}
+              label={t('已上傳提案單')}
+              value={updateFileOriginalName || decodeURI(updateFileData?.name)}
             >
             </WsInfo>
           )}
@@ -1495,11 +1497,10 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                 }}
                 size={12}
                 color={$color.danger}>
-                {t('注意，提案單需與提案單範本一致​')}
+                {t('注意，​重新​上傳​提案​單，​會覆​蓋​標題、​提案​單位、​報告人、​列席​人員、​內容​等​')}
               </WsText>
             </WsFlex>
           </TouchableOpacity>
-
           <TouchableOpacity
             disabled={true}
           >
@@ -1520,7 +1521,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                 }}
                 size={12}
                 color={$color.danger}>
-                {t('注意，​重新​上傳​提案​單，​會覆​蓋​標題、​提案​單位、​報告人、​列席​人員、​內容​等​')}
+                {t('注意，提案單需與提案單範本一致​')}
               </WsText>
             </WsFlex>
           </TouchableOpacity>

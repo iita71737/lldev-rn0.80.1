@@ -219,6 +219,7 @@ const WsInfo = props => {
               style={style}
               testID={testID}
               avatarVisible={avatarVisible}
+              fontsize={textSize}
             />
           )}
           {type == 'usersWithTag' && (

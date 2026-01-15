@@ -11,6 +11,7 @@ import {
   WsPopup,
   WsFlex,
   WsGradientButton,
+  WsLoading,
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import S_Meeting from '@/services/api/v1/meeting'
@@ -81,6 +82,7 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
   const [groupDrafts, setGroupDrafts] = useState<GroupDraft[]>([])
   const [loading, setLoading] = useState(!!meetingId)
   const [popupActive, setPopupActive] = useState(false)
+  const [submitLoading, setSubmitLoading] = useState(false)
 
 
   useEffect(() => {
@@ -155,6 +157,7 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
     if (!meetingId) {
       return
     }
+    setSubmitLoading(true)
     try {
       const $_getId = (value: any) => value?.id ?? value ?? null
       for (const group of groupDrafts) {
@@ -175,6 +178,8 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
       navigation.goBack()
     } catch (err) {
       console.error(err)
+    } finally {
+      setSubmitLoading(false)
     }
   }
 
@@ -188,7 +193,6 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
         btnTextRight={t('送出')}
         title={t('批次編輯議案群組頁')}
         rightOnPress={() => {
-          console.log('111')
           $_submitBatchEditItemGroup()
         }}
         leftOnPress={() => {
@@ -360,6 +364,22 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
           <View style={{ height: 32 }} />
         </ScrollView>
       </WsPage>
+      {submitLoading && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            zIndex: 999,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <WsLoading />
+        </View>
+      )}
 
       <WsPopup
         active={popupActive}

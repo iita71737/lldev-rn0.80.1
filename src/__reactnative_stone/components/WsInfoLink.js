@@ -1,10 +1,12 @@
 import React, { useCallback } from 'react'
 import { Pressable, TouchableOpacity, Linking, Button, Dimensions, Platform } from 'react-native'
 import { WsText, WsFlex, WsIcon } from '@/components'
+import { useTranslation } from 'react-i18next'
 import $color from '@/__reactnative_stone/global/color'
 
 const WsInfoLink = props => {
   const { width, height } = Dimensions.get('window')
+  const { t } = useTranslation()
 
   // Props
   const {
@@ -37,36 +39,43 @@ const WsInfoLink = props => {
   // Render
   return (
     <>
-      <TouchableOpacity
-        testID={testID}
-        style={[
-          {
-            // borderWidth:1,
-          },
-          {
-            style
+      {!value ? (
+        <WsText size={size} color={$color.gray}>
+          {t('無')}
+        </WsText>
+      ) : (
+        <TouchableOpacity
+          testID={testID}
+          style={[
+            {
+              // borderWidth:1,
+            },
+            {
+              style
+            }
+          ]
           }
-        ]
-        }
-        onPress={hasExternalLink ? handlePress : onPress}
-      >
-        <WsFlex
-          alignItems="center"
-          flexWrap={style?.flexWrap ? style.flexWrap : 'wrap'}
-          style={{
-          }}
+          onPress={hasExternalLink ? handlePress : onPress}
         >
-          <WsText size={size} color={color}>
-            {value}
+          <WsFlex
+            alignItems="center"
+            flexWrap={style?.flexWrap ? style.flexWrap : 'wrap'}
+            style={{
+            }}
+          >
+            <WsText size={size} color={color}>
+              {value}
+            </WsText>
             {iconVisible && (
               <WsIcon
                 size={iconSize}
                 name={icon}
+                style={{ marginLeft: 4 }}
               />
             )}
-          </WsText>
-        </WsFlex>
-      </TouchableOpacity>
+          </WsFlex>
+        </TouchableOpacity>
+      )}
     </>
   )
 }

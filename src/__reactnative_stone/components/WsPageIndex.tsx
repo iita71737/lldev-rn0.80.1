@@ -38,8 +38,7 @@ interface WsPageIndexProps {
   ListHeaderComponentVisible: boolean;
   filterVisible: boolean;
   mode: string;
-  data: any[];
-  // onScroll: ($event: any) => void;
+  data?: any[];
   ListFooterComponent: any;
   onRefresh: ($event: any) => void;
   searchLabel: string;
@@ -67,7 +66,7 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
     renderItem,
     filterVisible = true,
     mode = 'infiniteScroll',
-    data,
+    data = [],
     emptyTitle = t('目前尚無資料'),
     emptyText = '',
     ListHeaderComponent,
@@ -168,25 +167,26 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
 
   return (
     <>
-      {showFilterBtn && (
-        <WsIconBtn
-          testID={'WsFilter002'}
-          name="bih-filter"
-          underlayColor={$color.primary}
-          underlayColorPressIn={$color.primary2d}
-          color={$color.white}
-          size={24}
-          style={{
-            zIndex: 999,
-            position: 'absolute',
-            bottom: 16,
-            right: 16,
-          }}
-          onPress={() => {
-            setModalVisible(true)
-          }}
-        />
-      )}
+      {showFilterBtn &&
+        mode !== 'pagination' && (
+          <WsIconBtn
+            testID={'WsFilter002'}
+            name="bih-filter"
+            underlayColor={$color.primary}
+            underlayColorPressIn={$color.primary2d}
+            color={$color.white}
+            size={24}
+            style={{
+              zIndex: 999,
+              position: 'absolute',
+              bottom: 16,
+              right: 16,
+            }}
+            onPress={() => {
+              setModalVisible(true)
+            }}
+          />
+        )}
       <WsFilter002
         visible={modalVisible}
         setModalVisible={setModalVisible}

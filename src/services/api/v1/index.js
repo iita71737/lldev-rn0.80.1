@@ -79,6 +79,8 @@ import meeting from '@/services/api/v1/meeting'
 import data_format from '@/services/api/v1/data_format'
 import meeting_template_item from '@/services/api/v1/meeting_template_item'
 import meeting_item_group from '@/services/api/v1/meeting_item_group'
+import meeting_export from '@/services/api/v1/meeting_export'
+import meeting_export_record from '@/services/api/v1/meeting_export_record'
 
 export default {
   act,
@@ -161,5 +163,7 @@ export default {
   meeting,
   data_format,
   meeting_template_item,
-  meeting_item_group
+  meeting_item_group,
+  meeting_export,
+  meeting_export_record
 }

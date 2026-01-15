@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import {
   ScrollView,
   View,
@@ -31,7 +31,7 @@ import S_EventType from '@/services/api/v1/event_type'
 import { useTranslation } from 'react-i18next'
 import i18next from 'i18next'
 import { useSelector } from 'react-redux'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import S_SystemClass from '@/__reactnative_stone/services/api/v1/system_class'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
@@ -60,6 +60,8 @@ const FileStoreSubLayer = ({ route }, props) => {
     folderScope,
   } = route.params
 
+  console.log(folderScope, 'folderScope')
+
   // 權限判斷
   const hasPermission = (folderScope = [], permission) => {
     if (Array.isArray(folderScope)) {
@@ -73,7 +75,7 @@ const FileStoreSubLayer = ({ route }, props) => {
   const _canCreateFile = folderScope && Array.isArray(folderScope.scopes)
     ? hasPermission(folderScope.scopes, 'file-create')
     : false;
-  
+
   // Fields
   const fields = {
     name: {
@@ -397,7 +399,8 @@ const FileStoreSubLayer = ({ route }, props) => {
       folder_path: folder_path,
       folder_uuid_path: folder_uuid_path,
       breadcrumbs: updatedBreadcrumbs,
-      tab: tab
+      tab: tab,
+      folderScope: folderScope
     });
   };
 
@@ -735,6 +738,13 @@ const FileStoreSubLayer = ({ route }, props) => {
     $_setBottomSheet()
   }, [isBottomSheetActive, folderScope])
 
+  useFocusEffect(
+    useCallback(() => {
+      $_setNavigationOption()
+      $_setBottomSheet()
+    }, [_canCreateFolder, _canCreateFile, t]),
+  )
+
   React.useEffect(() => {
     $_setBottomSheetItems002()
     $_setBottomSheetItems003()
@@ -857,6 +867,8 @@ const FileStoreSubLayer = ({ route }, props) => {
           remind2={
             (actionType === 'edit' || actionType === 'create') ? t('請注意，當您將資料夾共享至其他單位，非本單位只能唯讀') : null
           }
+          tab={tab}
+          folderScope={folderScope}
         ></LlFileFolderCRUDModal >
       )}
 

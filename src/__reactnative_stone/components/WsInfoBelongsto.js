@@ -2,8 +2,11 @@ import React from 'react'
 import { Pressable, TouchableOpacity, View } from 'react-native'
 import { WsText, WsIcon } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
+import { useTranslation } from 'react-i18next'
 
 const WsInfoBelongsto = props => {
+  const { t } = useTranslation()
+
   // Props
   const {
     value,

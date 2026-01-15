@@ -26,10 +26,10 @@ const WsInfoFiles = props => {
       if (typeof item === 'string') {
         return item
       } else if (typeof item === 'object') {
-        if (item.file_version) {
-          return item.file_version?.source_url ? item.file_version?.source_url : item.file_version?.name
+        if (item?.file_version) {
+          return item?.file_version?.source_url ? item?.file_version?.source_url : item?.file_version?.name
         } else {
-          return item.file?.source_url ? item.file?.source_url : item.file?.name
+          return item?.file?.source_url ? item?.file?.source_url : item?.file?.name
         }
       }
     })

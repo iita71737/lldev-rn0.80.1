@@ -96,6 +96,9 @@ import S_GuidelineAdmin from '@/services/api/v1/guideline_admin'
 import S_GuidelineVersionAdmin from '@/services/api/v1/guideline_version_admin'
 import S_GuidelineArticleVersionAdmin from '@/services/api/v1/guideline_article_version_admin'
 import S_GuidelineArticleAdmin from '@/services/api/v1/guideline_article_admin'
+import S_MeetingExport from '@/services/api/v1/meeting_export'
+import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
+import S_MeetingItem from '@/services/api/v1/meeting_item'
 import { actions, RichEditor, RichToolbar } from 'react-native-pell-rich-editor'
 import IonIcon from 'react-native-vector-icons/Ionicons'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
@@ -120,6 +123,13 @@ export type PDFProposalItem = {
   type: 'title' | 'article'
 }
 
+type ExportDisplayItem = {
+  id: string
+  label: string
+  subLabel?: string
+  children?: ExportDisplayItem[]
+}
+
 // 下載紀錄型別（純 UI 用）
 type DownloadRecord = {
   id: string
@@ -128,93 +138,14 @@ type DownloadRecord = {
   downloader: string
 }
 
-// 匯出範圍用
-type ExportItem = {
-  id: string
-  label: string
-  subLabel?: string
-  children?: ExportItem[]
-}
-
-// 匯出範圍樹狀資料（純展示）
-const EXPORT_ITEMS: ExportItem[] = [
-  {
-    id: 'cover_a',
-    label: '封面範本',
-    subLabel: 'A 範本',
-  },
-  {
-    id: 'toc_b',
-    label: '目錄範本',
-    subLabel: 'B 範本',
-  },
-  {
-    id: 'agenda_c',
-    label: '議程範本',
-    subLabel: 'C 範本',
-  },
-  {
-    id: 'group_1',
-    label: '議案群組一',
-    children: [
-      {
-        id: 'group_1_motion_1',
-        label: '議案一',
-        children: [
-          {
-            id: 'group_1_motion_1_decision_summary',
-            label: '決議-簡述',
-          },
-          {
-            id: 'group_1_motion_1_decision_detail',
-            label: '決議-詳述',
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'group_2',
-    label: '議案群組二',
-    children: [
-      {
-        id: 'group_2_motion_1',
-        label: '議案一',
-        children: [
-          {
-            id: 'group_2_motion_1_decision_summary',
-            label: '決議-簡述',
-          },
-          {
-            id: 'group_2_motion_1_decision_detail',
-            label: '決議-詳述',
-          },
-        ],
-      },
-      {
-        id: 'group_2_motion_2',
-        label: '議案二',
-        children: [
-          {
-            id: 'group_2_motion_2_decision_summary',
-            label: '決議-簡述',
-          },
-          {
-            id: 'group_2_motion_2_decision_detail',
-            label: '決議-詳述',
-          },
-        ],
-      },
-    ],
-  },
-]
 
 const PDFToolAdminExportShow = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
   const { width, height } = Dimensions.get('window')
 
   // Params
-  const { id, refreshKey } = route.params
+  const { id, meeting } = route.params
+  console.log(id, '=meeting export record id=')
 
   // REDUX
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
@@ -225,12 +156,22 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   // 匯出詳情收合用
   const [exportDetailOpen, setExportDetailOpen] = useState(false)
 
+  const [meetingExport, setMeetingExport] = useState<any>(null)
+  const [meetingDetail, setMeetingDetail] = useState<any>(null)
+  const [meetingItemGroups, setMeetingItemGroups] = useState<any[]>([])
+  const [meetingItemsByGroup, setMeetingItemsByGroup] = useState<Record<string, any[]>>({})
+
   const [loading, setLoading] = React.useState(true)
+  const [isBottomSheetActive, setIsBottomSheetActive] = useState(false)
+  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
+  const [editRemark, setEditRemark] = useState('')
+  const [downloadRecordRefreshKey, setDownloadRecordRefreshKey] = useState(0)
   const [filterValue, setFilterValue] = useState<any>({})
   const [filterFields] = React.useState<any>({
-    created_user: {
+    download_user: {
       type: 'belongstomany',
-      label: t('上傳者'),
+      label: t('下載人'),
       nameKey: 'name',
       modelName: 'user',
       serviceIndexKey: 'simplifyFactoryIndex',
@@ -239,71 +180,218 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
     },
     button: {
       type: 'date_range',
-      label: t('上傳日期'),
-      time_field: 'created_at',
+      label: t('下載時間'),
+      time_field: 'download_at',
     },
   })
 
   const params = React.useMemo(() => {
     return {
-      order_by: 'occur_at',
+      meeting_export: id,
+      refresh_key: downloadRecordRefreshKey,
+      order_by: 'created_at',
       order_way: 'desc',
-      time_field: 'occur_at',
-      search: filterValue && filterValue.search ? filterValue.search : undefined,
-      event_type:
-        filterValue && filterValue.event_type ? filterValue.event_type.join(',') : undefined,
-      lang: currentUser?.locale?.code ? currentUser?.locale?.code : 'tw',
     }
-  }, [])
+  }, [id, downloadRecordRefreshKey])
 
-  // Header option
-  const $_setNavigationOption = () => {
-    navigation.setOptions({
-      headerRight: () => {
-        return (
-          <WsFlex>
-            <WsIconBtn
-              name="md-file-download"
-              size={24}
-              color={$color.white}
-              onPress={() => {
-                // TODO: 下載匯出檔
-              }}
-            />
-          </WsFlex>
-        )
-      },
-      headerLeft: () => {
-        return (
-          <WsIconBtn
-            testID="backButton"
-            name="ws-outline-arrow-left"
-            color="white"
-            size={24}
-            style={{
-              marginRight: 4,
-            }}
-            onPress={() => {
-              navigation.goBack()
-            }}
-          />
-        )
-      },
+  const normalizeMeetingItemsByGroup = (payload: any) => {
+    const groupsMap: Record<string, any[]> = {}
+    const data = payload?.data ?? payload
+    if (!Array.isArray(data)) return groupsMap
+
+    const looksLikeGroup = (item: any) =>
+      item?.meeting_items || item?.meetingItems || item?.articles
+
+    if (data.some(looksLikeGroup)) {
+      data.forEach((group: any) => {
+        const groupId = group?.id ?? group?.meeting_item_group_id ?? null
+        if (!groupId) return
+        const meetingItems =
+          group?.meeting_items ??
+          group?.meetingItems ??
+          group?.articles ??
+          []
+        groupsMap[groupId] = Array.isArray(meetingItems) ? meetingItems : []
+      })
+      return groupsMap
+    }
+
+    data.forEach((item: any) => {
+      const groupId =
+        item?.meeting_item_group?.id ??
+        item?.meeting_item_group_id ??
+        item?.meetingItemGroupId ??
+        null
+      if (!groupId) return
+      if (!groupsMap[groupId]) groupsMap[groupId] = []
+      groupsMap[groupId].push(item)
     })
-    setLoading(false)
+
+    return groupsMap
   }
 
-  // SERVICES (暫留)
-  const $_fetchGuideline = async e => {
-    console.log(id, 'guidelineId')
-    setLoading(true)
-    const res = await S_GuidelineAdmin.show({
-      modelId: id,
-    })
-    setLoading(false)
+  const getStatusTagProps = (status: any) => {
+    const rawStatus = status?.name ?? status
+    const value = String(rawStatus ?? '').toUpperCase()
+    if (value === 'COMPLETED' || value === 'COMPLETE') {
+      return {
+        label: t('已完成'),
+        backgroundColor: $color.primary11l,
+        textColor: $color.primary2l,
+      }
+    }
+    if (value === 'PROCESSING' || value === 'PENDING') {
+      return {
+        label: t('處理中'),
+        backgroundColor: $color.yellow11l,
+        textColor: $color.black,
+      }
+    }
+    if (value === 'FAILED') {
+      return {
+        label: t('處理失敗'),
+        backgroundColor: $color.danger,
+        textColor: $color.white,
+      }
+    }
+    return {
+      label: rawStatus ?? '',
+      backgroundColor: $color.gray,
+      textColor: $color.white,
+    }
   }
 
-  // CheckboxRow（展示用）
+  const exportDisplayItems = React.useMemo(() => {
+    const meetingData = meetingDetail ?? meetingExport?.meeting ?? null
+    if (!meetingData) return []
+
+    const items: ExportDisplayItem[] = []
+    const getTemplateId = (template: any) => template?.id ?? template
+
+    const coverTemplate = meetingData?.cover_template
+    const coverId = getTemplateId(coverTemplate)
+    if (coverId) {
+      items.push({
+        id: `cover_template:${coverId}`,
+        label: t('封面範本'),
+        subLabel: coverTemplate?.name,
+      })
+    }
+
+    const contentsTemplate = meetingData?.contents_template
+    const contentsId = getTemplateId(contentsTemplate)
+    if (contentsId) {
+      items.push({
+        id: `contents_template:${contentsId}`,
+        label: t('目錄範本'),
+        subLabel: contentsTemplate?.name,
+      })
+    }
+
+    const groupList = Array.isArray(meetingItemGroups) ? meetingItemGroups : []
+
+    groupList.forEach((group: any) => {
+      const groupId = group?.id ?? group?.meeting_item_group_id ?? null
+      if (!groupId) return
+      const groupItems =
+        meetingItemsByGroup[groupId] ??
+        group?.meeting_items ??
+        group?.meetingItems ??
+        group?.articles ??
+        []
+      const children = Array.isArray(groupItems)
+        ? groupItems.map((item: any, index: number) => ({
+          id: `meeting_item:${item?.id ?? `${groupId}:${index}`}`,
+          label:
+            item?.name ??
+            item?.item_label?.name ??
+            item?.item_label ??
+            t('議案'),
+        }))
+        : []
+      items.push({
+        id: `meeting_item_group:${groupId}`,
+        label: group?.name ?? t('議案群組'),
+        children: children.length ? children : undefined,
+      })
+    })
+
+    return items
+  }, [meetingDetail, meetingExport, meetingItemGroups, meetingItemsByGroup, t])
+
+
+  const checkedExportMeta = React.useMemo(() => {
+    const checked = new Set<string>()
+    let hasCover = false
+    let hasContents = false
+    const exportItems = meetingExport?.meeting_export_items ?? []
+    if (!Array.isArray(exportItems)) return checked
+
+    exportItems.forEach((item: any) => {
+      const module = String(item?.module ?? '').toLowerCase()
+      if (module === 'meeting_item') {
+        const id = item?.meeting_item?.id ?? item?.meeting_item
+        if (id) checked.add(`meeting_item:${id}`)
+        return
+      }
+      if (module === 'cover' || module === 'cover_template') {
+        const id = item?.cover_template?.id ?? item?.cover_template
+        if (id) checked.add(`cover_template:${id}`)
+        hasCover = true
+        return
+      }
+      if (module === 'contents' || module === 'contents_template') {
+        const id = item?.contents_template?.id ?? item?.contents_template
+        if (id) checked.add(`contents_template:${id}`)
+        hasContents = true
+      }
+    })
+
+    return { ids: checked, hasCover, hasContents }
+  }, [meetingExport])
+
+  useEffect(() => {
+    setMeetingDetail(meeting ?? null)
+  }, [meeting])
+
+  useEffect(() => {
+    const meetingId = meeting?.id ?? null
+    if (!meetingId) return
+    let mounted = true
+    const isMounted = () => mounted
+
+    const fetchMeetingData = async () => {
+      try {
+        const [groupsRes, itemsRes] = await Promise.all([
+          S_MeetingItemGroup.index({ params: { meetingId } }),
+          S_MeetingItem.meetingIndexAll({ params: { meetingId } }),
+        ])
+        if (!isMounted()) return
+        setMeetingItemGroups(groupsRes?.data ?? groupsRes ?? [])
+        setMeetingItemsByGroup(normalizeMeetingItemsByGroup(itemsRes))
+      } catch (err) {
+        if (!isMounted()) return
+        console.log('fetch meeting data error', err)
+        setMeetingItemGroups([])
+        setMeetingItemsByGroup({})
+      }
+    }
+
+    fetchMeetingData()
+    return () => {
+      mounted = false
+    }
+  }, [meeting?.id])
+
+  const getDownloadUrl = (payload: any) => {
+    const convert = payload?.convert_pdf_attach ?? payload
+    return (
+      convert?.file_version?.source_url ??
+      convert?.file?.source_url ??
+      ''
+    )
+  }
+
   type CheckboxRowProps = {
     label: string
     checked: boolean
@@ -329,21 +417,34 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
           value={checked}
           onChange={onChange}
           iconRightSize={22}
-          disabled={true} // 匯出詳情頁面只展示，不可編輯
+          disabled={true}
+          textColorUnchecked={$color.black}
         />
       </View>
     )
   }
 
-  // 匯出範圍樹狀展示
-  const renderExportItem = (item: ExportItem, level = 0) => {
-    const labelText = item.subLabel ? `${t(item.label)}  ${item.subLabel}` : t(item.label)
+  const isExportItemChecked = (item: ExportDisplayItem): boolean => {
+    if (item.children && item.children.length > 0) {
+      return item.children.every(child => isExportItemChecked(child))
+    }
+    if (item.id.startsWith('cover_template:') && checkedExportMeta.hasCover) {
+      return true
+    }
+    if (item.id.startsWith('contents_template:') && checkedExportMeta.hasContents) {
+      return true
+    }
+    return checkedExportMeta.ids.has(item.id)
+  }
 
+  const renderExportItem = (item: ExportDisplayItem, level = 0) => {
+    const labelText = item.subLabel ? `${item.label}  ${item.subLabel}` : item.label
+    const isChecked = isExportItemChecked(item)
     return (
       <React.Fragment key={item.id}>
         <CheckboxRow
           label={labelText}
-          checked={true} // 全部固定為勾選狀態（純展示）
+          checked={isChecked}
           onChange={() => { }}
           indent={level * 24}
         />
@@ -352,9 +453,147 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
     )
   }
 
+  // Header option
+  const $_setNavigationOption = () => {
+    navigation.setOptions({
+      headerRight: () => {
+        return (
+          <WsFlex>
+            <WsIconBtn
+              name="ws-outline-edit-pencil"
+              size={24}
+              color={$color.white}
+              onPress={() => {
+                setIsBottomSheetActive(true)
+              }}
+            />
+          </WsFlex>
+        )
+      },
+      headerLeft: () => {
+        return (
+          <WsIconBtn
+            testID="backButton"
+            name="ws-outline-arrow-left"
+            color="white"
+            size={24}
+            style={{
+              marginRight: 4,
+            }}
+            onPress={() => {
+              navigation.goBack()
+            }}
+          />
+        )
+      },
+    })
+    setLoading(false)
+  }
+
+  const $_fetchApi = async () => {
+    if (!id) return
+    setLoading(true)
+    try {
+      const res = await S_MeetingExport.show({ modelId: id })
+      setMeetingExport(res?.data ?? res)
+    } catch (err) {
+      console.log('S_MeetingExport.show error', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const bottomSheetItems = React.useMemo(() => {
+    const statusValue = String(
+      meetingExport?.convert_status?.name ??
+      meetingExport?.convert_status ??
+      meetingExport?.status?.name ??
+      meetingExport?.status ??
+      '',
+    ).toUpperCase()
+    const canDownload =
+      statusValue !== 'PENDING' &&
+      statusValue !== 'PROCESSING' &&
+      statusValue !== 'FAILED'
+
+    const items = [
+      {
+        key: 'edit',
+        icon: 'ws-outline-edit-pencil',
+        label: t('編輯'),
+      },
+    ]
+    if (canDownload) {
+      items.push({
+        key: 'download',
+        icon: 'md-file-download',
+        label: t('下載'),
+      })
+    }
+    return items
+  }, [meetingExport?.convert_status, meetingExport?.status, t])
+
+  const handleBottomSheetItemPress = (item: any) => {
+    if (item?.key === 'edit') {
+      setEditTitle(meetingExport?.name ?? '')
+      setEditRemark(meetingExport?.remark ?? '')
+      setEditModalVisible(true)
+      setIsBottomSheetActive(false)
+      return
+    }
+    if (item?.key === 'download') {
+      ; (async () => {
+        try {
+          const res = await S_MeetingExport.download({
+            params: {
+              meeting_export_id: meetingExport?.id,
+            },
+          })
+          const url = getDownloadUrl(res?.data ?? res)
+          if (!url) {
+            Alert.alert(t('暫無可下載檔案'))
+            return
+          }
+          Linking.openURL(url)
+          setDownloadRecordRefreshKey(prev => prev + 1)
+        } catch (err) {
+          console.log('S_MeetingExport.download error', err)
+          Alert.alert(t('下載失敗，請稍後再試'))
+        }
+      })()
+    }
+  }
+
+  const handleEditSubmit = async () => {
+    if (!meetingExport?.id) return
+    try {
+      await S_MeetingExport.update({
+        modelId: meetingExport.id,
+        data: {
+          name: editTitle,
+          remark: editRemark,
+        },
+      })
+      setMeetingExport((prev: any) =>
+        prev
+          ? {
+            ...prev,
+            name: editTitle,
+            remark: editRemark,
+          }
+          : prev
+      )
+      setEditModalVisible(false)
+    } catch (err) {
+      console.log('S_MeetingExport.update error', err)
+      Alert.alert(t('編輯失敗，請稍後再試'))
+    }
+  }
+
+
   useEffect(() => {
     $_setNavigationOption()
-    // $_fetchGuideline()
+    $_fetchApi()
   }, [id])
 
   return (
@@ -362,7 +601,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
       <WsPageIndex
         mode={'pagination'}
         hasMeta={true}
-        modelName={'event'}
+        modelName={'meeting_export_record'}
         serviceIndexKey={'index'}
         params={params}
         searchLabel={t('搜尋')}
@@ -391,7 +630,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                       flexDirection: 'row',
                       alignItems: 'center',
                     }}
-                    value={''}
+                    value={meetingExport?.name ?? ''}
                     label={t('標題')}
                   />
                 </View>
@@ -401,15 +640,33 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                     marginTop: 8,
                   }}
                 >
-                  <WsInfo
-                    labelWidth={100}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                    }}
-                    value={t('已完成')}
-                    label={t('狀態')}
-                  />
+                  {(() => {
+                    const statusTag = getStatusTagProps(
+                      meetingExport?.convert_status ?? meetingExport?.status
+                    )
+                    return (
+                      <WsFlex
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <WsText
+                          size={14}
+                          color={$color.black5l}
+                          style={{ width: 100, fontWeight: '600' }}
+                        >
+                          {t('狀態')}
+                        </WsText>
+                        <WsTag
+                          backgroundColor={statusTag.backgroundColor}
+                          textColor={statusTag.textColor}
+                        >
+                          {statusTag.label}
+                        </WsTag>
+                      </WsFlex>
+                    )
+                  })()}
                 </View>
 
                 <View
@@ -424,7 +681,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                       alignItems: 'center',
                     }}
                     label={t('備註')}
-                    value={t('ＸＸＸＸ')}
+                    value={meetingExport?.remark ?? ''}
                   />
                 </View>
 
@@ -439,7 +696,13 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                       flexDirection: 'row',
                       alignItems: 'center',
                     }}
-                    value={moment().format('YYYY-MM-DD HH:mm:ss')}
+                    value={
+                      meetingExport?.created_at
+                        ? moment(meetingExport.created_at).format('YYYY-MM-DD HH:mm:ss')
+                        : meetingExport?.updated_at
+                          ? moment(meetingExport.updated_at).format('YYYY-MM-DD HH:mm:ss')
+                          : ''
+                    }
                     label={t('匯出時間')}
                   />
                 </View>
@@ -456,8 +719,8 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                       flexDirection: 'row',
                       alignItems: 'center',
                     }}
-                    value={{}}
-                    label={t('匯出人')}
+                    value={meetingExport?.principal ?? meetingExport?.created_user ?? {}}
+                    label={t('匯出者')}
                   />
                 </View>
 
@@ -478,7 +741,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                       justifyContent: 'space-between',
                     }}
                   >
-                    <WsText size={14} fontWeight={500}>{t('匯出詳情')}</WsText>
+                    <WsText size={14} fontWeight={500}>{t('匯出範圍')}</WsText>
                     <WsIcon
                       name={
                         exportDetailOpen
@@ -492,47 +755,15 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
 
                   {exportDetailOpen && (
                     <>
-                      <View
-                        style={{
-                          marginTop: 8,
-                        }}
-                      >
-                        <WsInfo
-                          labelWidth={100}
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                          }}
-                          value={''}
-                          label={t('標題')}
-                        />
+                      <View style={{ marginTop: 8 }}>
+                        {exportDisplayItems.length > 0 ? (
+                          exportDisplayItems.map(item => renderExportItem(item, 0))
+                        ) : (
+                          <WsText size={14} color={$color.gray}>
+                            {t('目前尚無資料')}
+                          </WsText>
+                        )}
                       </View>
-
-                      <View
-                        style={{
-                          marginTop: 8,
-                        }}
-                      >
-                        <WsInfo
-                          labelWidth={100}
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                          }}
-                          value={t('ＸＸＸＸ')}
-                          label={t('備註')}
-                        />
-                      </View>
-
-                      <View
-                        style={{
-                          marginTop: 12,
-                        }}
-                      >
-                        <WsText size={16}>{t('匯出範圍')}</WsText>
-                      </View>
-
-                      <View>{EXPORT_ITEMS.map(item => renderExportItem(item, 0))}</View>
                     </>
                   )}
                 </View>
@@ -567,18 +798,18 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
               >
                 <WsFlex
                   style={{
-                    marginTop: 8,
                   }}
                 >
                   <WsDes
                     color={$color.black}
                     style={{
                       marginRight: 8,
+                      width: 80
                     }}
                   >
                     {t('下載時間')}
                   </WsDes>
-                  <WsDes>{moment(item?.updated_at).format('YYYY-MM-DD HH:mm:ss')}</WsDes>
+                  <WsDes>{moment(item?.download_at).format('YYYY-MM-DD HH:mm:ss')}</WsDes>
                 </WsFlex>
 
                 <WsFlex
@@ -590,16 +821,54 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                     color={$color.black}
                     style={{
                       marginRight: 8,
+                      width: 80
                     }}
                   >
                     {t('下載人')}
                   </WsDes>
-                  <WsDes>{item?.principal?.name}</WsDes>
+                  <WsDes>{item?.download_user?.name}</WsDes>
                 </WsFlex>
               </WsCard>
             </TouchableOpacity>
           )
         }}
+      />
+
+      <WsModal
+        title={t('編輯匯出紀錄')}
+        visible={editModalVisible}
+        headerLeftOnPress={() => setEditModalVisible(false)}
+        onBackButtonPress={() => setEditModalVisible(false)}
+        footerBtnLeftText={t('取消')}
+        footerBtnLeftOnPress={() => setEditModalVisible(false)}
+        footerBtnRightText={t('確定')}
+        footerBtnRightOnPress={handleEditSubmit}
+        childrenScroll={false}
+      >
+        <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+          <WsState
+            type="text"
+            label={t('標題')}
+            value={editTitle}
+            onChange={val => setEditTitle(val)}
+          />
+          <WsState
+            type="text"
+            multiline={true}
+            label={t('備註')}
+            style={{ marginTop: 16 }}
+            value={editRemark}
+            onChange={val => setEditRemark(val)}
+          />
+        </View>
+      </WsModal>
+
+      <WsBottomSheet
+        isActive={isBottomSheetActive}
+        onDismiss={() => setIsBottomSheetActive(false)}
+        onItemPress={handleBottomSheetItemPress}
+        items={bottomSheetItems}
+        snapPoints={React.useMemo(() => ['25%'], [])}
       />
     </>
   )

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { View, TouchableOpacity, Dimensions } from 'react-native'
+import { View, TouchableOpacity, Linking, Alert, Dimensions } from 'react-native'
 import moment from 'moment'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
@@ -8,41 +8,109 @@ import {
   WsCard,
   WsFlex,
   WsDes,
+  WsTag,
   WsIconBtn,
-  WsPopup,
-  WsText,
+  WsModal,
   WsState,
-  WsGradientButton,
+  WsInfo
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
+import S_MeetingExport from '@/services/api/v1/meeting_export'
 
-const ExportRecordTab: React.FC = () => {
+type ExportRecordTabProps = {
+  meeting?: any
+  refreshKey?: number
+}
+
+const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }) => {
+  const { width, height } = Dimensions.get('window')
   const { t } = useTranslation()
-  const { width } = Dimensions.get('window')
   const navigation = useNavigation<any>()
+
+  console.log(meeting?.id, 'meeting id')
+
+  const getStatusTagProps = (status: any) => {
+    const rawStatus = status?.name ?? status
+    const value = String(rawStatus ?? '').toUpperCase()
+    if (value === 'COMPLETED' || value === 'COMPLETE') {
+      return {
+        label: t('已完成'),
+        backgroundColor: $color.primary11l,
+        textColor: $color.primary2l,
+      }
+    }
+    if (value === 'PROCESSING' || value === 'PENDING') {
+      return {
+        label: t('處理中'),
+        backgroundColor: $color.yellow11l,
+        textColor: $color.gray,
+      }
+    }
+    if (value === 'FAILED') {
+      return {
+        label: t('處理失敗'),
+        backgroundColor: $color.danger11l,
+        textColor: $color.danger,
+      }
+    }
+    return {
+      label: rawStatus ?? '',
+      backgroundColor: $color.gray,
+      textColor: $color.white,
+    }
+  }
+
+  const getDownloadUrl = (payload: any) => {
+    const convert = payload?.convert_pdf_attach ?? payload
+    return (
+      convert?.file_version?.source_url ??
+      convert?.file?.source_url ??
+      ''
+    )
+  }
+
+  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [editingRecord, setEditingRecord] = useState<any>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editRemark, setEditRemark] = useState('')
+  const [internalRefreshKey, setInternalRefreshKey] = useState(0)
+  const refreshKeyCombined = `${refreshKey ?? 0}-${internalRefreshKey}`
 
   const __params = useMemo(() => {
     return {
+      meeting: meeting?.id,
       order_by: 'created_at',
       order_way: 'desc',
       time_field: 'created_at',
+      refresh_key: `${refreshKey ?? 0}-${internalRefreshKey}`,
     }
-  }, [])
+  }, [meeting?.id, refreshKey, internalRefreshKey])
 
   const filterFields = useMemo(
     () => ({
-      owner1: {
-        type: 'belongsto',
+      convert_status: {
+        type: 'picker',
         label: t('狀態'),
-        nameKey: 'name',
-        modelName: 'user',
-        serviceIndexKey: 'simplifyFactoryIndex',
-        customizedNameKey: 'userAndEmail',
-        placeholder: t('選擇')
+        placeholder: t('選擇'),
+        items:
+          [
+            {
+              label: t('已完成'),
+              value: 'COMPLETED'
+            },
+            {
+              label: t('處理中'),
+              value: 'PENDING,PROCESSING'
+            },
+            {
+              label: t('處理失敗'),
+              value: 'FAILED'
+            },
+          ]
       },
       owner: {
         type: 'belongsto',
-        label: t('匯出人'),
+        label: t('匯出者'),
         nameKey: 'name',
         modelName: 'user',
         serviceIndexKey: 'simplifyFactoryIndex',
@@ -58,16 +126,31 @@ const ExportRecordTab: React.FC = () => {
     [t],
   )
 
-  const [editPopupVisible, setEditPopupVisible] = useState(false)
-  const [editingRecord, setEditingRecord] = useState<any>(null)
+  const handleEditSubmit = async () => {
+    if (!editingRecord?.id) return
+    try {
+      await S_MeetingExport.update({
+        modelId: editingRecord.id,
+        data: {
+          name: editTitle,
+          remark: editRemark,
+        },
+      })
+      setEditModalVisible(false)
+      setEditingRecord(null)
+      setInternalRefreshKey(prev => prev + 1)
+    } catch (err) {
+      console.log('S_MeetingExport.update error', err)
+    }
+  }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1 }} key={refreshKeyCombined}>
       <WsPageIndex
         searchLabel={t('標題')}
         mode="pagination"
         hasMeta={true}
-        modelName="internal_training"
+        modelName="meeting_export"
         serviceIndexKey="index"
         params={__params}
         searchVisible={true}
@@ -79,7 +162,10 @@ const ExportRecordTab: React.FC = () => {
               onPress={() => {
                 navigation.push('RoutesPDFTool', {
                   screen: 'PDFToolAdminExportShow',
-                  params: { id: item?.id },
+                  params: {
+                    id: item?.id,
+                    meeting: meeting
+                  },
                 })
               }}
             >
@@ -91,9 +177,14 @@ const ExportRecordTab: React.FC = () => {
                   backgroundColor: $color.white,
                 }}
               >
-                <WsFlex style={{ marginTop: 8 }} justifyContent="space-between">
-                  <WsFlex>
-                    <WsDes color={$color.black} style={{ marginRight: 8 }}>
+                <WsFlex style={{}} justifyContent="space-between">
+                  <WsFlex
+                    flexWrap="wrap"
+                    style={{
+                      maxWidth: width * 0.7
+                    }}
+                  >
+                    <WsDes color={$color.black} style={{ marginRight: 8, width: 80 }}>
                       {t('標題')}
                     </WsDes>
                     <WsDes>{item?.name}</WsDes>
@@ -108,42 +199,95 @@ const ExportRecordTab: React.FC = () => {
                       style={{ top: -2 }}
                       onPress={() => {
                         setEditingRecord(item)
-                        setEditPopupVisible(true)
+                        setEditTitle(item?.name ?? '')
+                        setEditRemark(item?.remark ?? '')
+                        setEditModalVisible(true)
                       }}
                     />
-                    <WsIconBtn
-                      padding={0}
-                      name="md-file-download"
-                      size={24}
-                      color={$color.primary}
-                      style={{ marginLeft: 16 }}
-                      onPress={() => {
-                        // TODO: download
-                      }}
-                    />
+                    {(() => {
+                      const status = String(item?.convert_status ?? '').toUpperCase()
+                      const canDownload =
+                        status !== 'PENDING' &&
+                        status !== 'PROCESSING' &&
+                        status !== 'FAILED'
+                      if (!canDownload) return null
+                      return (
+                        <WsIconBtn
+                          padding={0}
+                          name="md-file-download"
+                          size={24}
+                          color={$color.primary}
+                          style={{ marginLeft: 16 }}
+                          onPress={() => {
+                            (async () => {
+                              try {
+                                const res = await S_MeetingExport.download({
+                                  params: {
+                                    meeting_export_id: item?.id,
+                                  },
+                                })
+                                const url = getDownloadUrl(res?.data ?? res)
+                                if (!url) {
+                                  Alert.alert(t('暫無可下載檔案'))
+                                  return
+                                }
+                                Linking.openURL(url)
+                              } catch (err) {
+                                console.log('S_MeetingExport.download error', err)
+                                Alert.alert(t('下載失敗，請稍後再試'))
+                              }
+                            })()
+                          }}
+                        />
+                      )
+                    })()}
                   </WsFlex>
                 </WsFlex>
 
                 <WsFlex style={{ marginTop: 8 }}>
-                  <WsDes color={$color.black} style={{ marginRight: 8 }}>
+                  <WsDes color={$color.black} style={{ marginRight: 8, width: 80 }}>
+                    {t('狀態')}
+                  </WsDes>
+                  {(() => {
+                    const statusTag = getStatusTagProps(item?.convert_status)
+                    return (
+                      <WsTag
+                        backgroundColor={statusTag.backgroundColor}
+                        textColor={statusTag.textColor}
+                      >
+                        {statusTag.label}
+                      </WsTag>
+                    )
+                  })()}
+                </WsFlex>
+
+                <View
+                  style={{
+                    marginTop: 8,
+                  }}
+                >
+                  <WsInfo
+                    labelSize={12}
+                    labelFontWeight={400}
+                    textSize={12}
+                    labelWidth={84}
+                    type={'user'}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                    value={item?.created_user ?? {}}
+                    label={t('匯出者')}
+                  />
+                </View>
+
+                <WsFlex style={{ marginTop: 8 }}>
+                  <WsDes color={$color.black} style={{ marginRight: 8, width: 80 }}>
                     {t('匯出時間')}
                   </WsDes>
                   <WsDes>{moment(item?.updated_at).format('YYYY-MM-DD HH:mm:ss')}</WsDes>
                 </WsFlex>
 
-                <WsFlex style={{ marginTop: 8 }}>
-                  <WsDes color={$color.black} style={{ marginRight: 8 }}>
-                    {t('匯出人')}
-                  </WsDes>
-                  <WsDes>{item?.principal?.name}</WsDes>
-                </WsFlex>
-
-                <WsFlex style={{ marginTop: 8 }}>
-                  <WsDes color={$color.black} style={{ marginRight: 8 }}>
-                    {t('處理中')}
-                  </WsDes>
-                  <WsDes>{moment(item?.updated_at).format('YYYY-MM-DD HH:mm:ss')}</WsDes>
-                </WsFlex>
               </WsCard>
             </TouchableOpacity>
           )
@@ -152,69 +296,44 @@ const ExportRecordTab: React.FC = () => {
 
       <View style={{ height: 16 }} />
 
-      <WsPopup
-        active={editPopupVisible}
-        onClose={() => {
-          setEditPopupVisible(false)
+      <WsModal
+        title={t('編輯匯出紀錄')}
+        visible={editModalVisible}
+        headerLeftOnPress={() => {
+          setEditModalVisible(false)
           setEditingRecord(null)
         }}
+        onBackButtonPress={() => {
+          setEditModalVisible(false)
+          setEditingRecord(null)
+        }}
+        footerBtnLeftText={t('取消')}
+        footerBtnLeftOnPress={() => {
+          setEditModalVisible(false)
+          setEditingRecord(null)
+        }}
+        footerBtnRightText={t('確定')}
+        footerBtnRightOnPress={handleEditSubmit}
+        childrenScroll={false}
       >
-        <View
-          style={{
-            width: width * 0.9,
-            backgroundColor: $color.white,
-            borderRadius: 10,
-            justifyContent: 'center',
-            padding: 16,
-          }}
-        >
-          <WsText size={18} color={$color.black}>
-            {t('編輯匯出紀錄')}
-          </WsText>
-
-          <WsState label={t('標題')} placeholder={t('輸入')} value={editingRecord?.name} onChange={() => { }} />
+        <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+          <WsState
+            label={t('標題')}
+            placeholder={t('輸入')}
+            value={editTitle}
+            onChange={val => setEditTitle(val)}
+          />
 
           <WsState
             multiline={true}
             style={{ marginTop: 8 }}
             label={t('備註')}
             placeholder={t('輸入')}
-            value={editingRecord?.remark}
-            onChange={() => { }}
+            value={editRemark}
+            onChange={val => setEditRemark(val)}
           />
-
-          <WsFlex justifyContent="flex-end" style={{ marginTop: 16 }}>
-            <TouchableOpacity
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderColor: $color.gray,
-                borderRadius: 25,
-                borderWidth: 1,
-                width: 110,
-                alignItems: 'center',
-              }}
-              onPress={() => {
-                setEditPopupVisible(false)
-                setEditingRecord(null)
-              }}
-            >
-              <WsText style={{ padding: 1 }} size={14} color={$color.gray}>
-                {t('取消')}
-              </WsText>
-            </TouchableOpacity>
-
-            <WsGradientButton
-              style={{ width: 110 }}
-              onPress={() => {
-                setEditPopupVisible(false)
-              }}
-            >
-              {t('確定')}
-            </WsGradientButton>
-          </WsFlex>
         </View>
-      </WsPopup>
+      </WsModal>
     </View>
   )
 }

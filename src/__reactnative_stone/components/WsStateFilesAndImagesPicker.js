@@ -358,6 +358,7 @@ const WsStateFilesAndImagesPicker = props => {
   const $_onBrowsePress = async () => {
     try {
       const response = await pick({})
+      console.log(response, 'response---')
       const _value = [...value]
       for (const item of response) {
         await processResponse(item, _value);
@@ -377,6 +378,7 @@ const WsStateFilesAndImagesPicker = props => {
   }
   // 壓縮流程
   const processResponse = async (responseItem, _value) => {
+    console.log('壓縮流程')
     try {
       let { uri, type, name } = responseItem;
       if (!Array.isArray(_value)) _value = [];
@@ -422,7 +424,7 @@ const WsStateFilesAndImagesPicker = props => {
           return;
         }
       }
-
+      console.log(uri, 'uriQAQ')
       // 加入清單
       _value.push({
         lazyUri: uri,

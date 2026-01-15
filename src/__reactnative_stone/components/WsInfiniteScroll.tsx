@@ -558,7 +558,7 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
       {models &&
         models.length > 0 &&
         bottomIconVisible &&
-        (currentPage != lastPage) &&
+        // (currentPage != lastPage) &&
         (
           <View
             style={{

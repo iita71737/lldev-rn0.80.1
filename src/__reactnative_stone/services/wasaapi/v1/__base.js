@@ -531,9 +531,10 @@ export default {
       url = `${endpoint}/${modelName}`
     }
     return new Promise(async (resolve, reject) => {
+      console.log(JSON.stringify(data),'data==')
       axios.post(url, data, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          // 'Content-Type': 'multipart/form-data',
         }
       })
         .then(res => {

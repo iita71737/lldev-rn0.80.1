@@ -45,10 +45,11 @@ const LlFileFolderCard = ({
   setParentFile,
   moreBtnVisible = true,
   tab,
+  folderScope,
   setFolderScope,
   testID,
   onPress,
-  style
+  style,
 }) => {
   const { t } = useTranslation()
   const navigation = useNavigation()
@@ -287,12 +288,20 @@ const LlFileFolderCard = ({
               }
             })
           } else {
-            console.log('33333');
+            console.log('33333')
+            console.log(fileFolder,'fileFolder')
+            const _folderScope = await $_checkFolderUserScope(fileFolderId)
+            if (!_folderScope.has_read) {
+              Alert.alert(t('您無此權限'))
+              return
+            }
+            console.log('33333QAQ')
             navigation.push('RoutesApp', {
               screen: 'FileStoreShow',
               params: {
                 id: item.id,
-                tab: tab
+                tab: tab,
+                folderScope: _folderScope ? _folderScope : undefined
               }
             })
           }

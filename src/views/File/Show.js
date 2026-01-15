@@ -55,7 +55,7 @@ const FileStoreShow = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
 
   // Params
-  const { id, tab } = route.params
+  const { id, tab, folderScope } = route.params
 
   // Redux
   const factory = useSelector(state => state.data.currentFactory)
@@ -400,6 +400,8 @@ const FileStoreShow = ({ navigation, route }) => {
           }
           setCheckDeleteModalVisible={setCheckDeleteModalVisible}
           setCheckDeleteModalContent={setCheckDeleteModalContent}
+          tab={tab}
+          folderScope={folderScope}
         ></LlFileFolderCRUDModal >
       )}
 

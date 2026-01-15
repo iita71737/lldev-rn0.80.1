@@ -42,8 +42,8 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
   const _params = React.useMemo(() => {
     const params = {
       lang: 'tw',
-      order_by: 'announce_at',
-      order_way: 'desc',
+      order_by: 'updated_at',
+      order_way: 'desc'
     }
     return params
   }, [currentRefreshCounter]);
@@ -102,7 +102,7 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
                 key={item.id}
                 ownerVisible={true}
                 item={item}
-
+                module={'meeting_template'}
                 onPress={() => {
                   navigation.push('RoutesPDFTool', {
                     screen: 'PDFToolAdminTemplateShow',

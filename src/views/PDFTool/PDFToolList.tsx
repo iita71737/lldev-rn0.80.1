@@ -42,7 +42,7 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
   const _params = React.useMemo(() => {
     const params = {
       lang: 'tw',
-      order_by: 'announce_at',
+      order_by: 'updated_at',
       order_way: 'desc',
     }
     return params
@@ -54,10 +54,13 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
     t('已儲存至「我的收藏」')
   )
   const [filterFields] = React.useState({
-    button: {
-      type: 'date_range',
-      label: t('更新日期'),
-      time_field: 'updated_at',
+    factory_tags: {
+      type: 'checkbox',
+      label: t('標籤'),
+      storeKey: "factoryTags",
+      searchVisible: true,
+      selectAllVisible: false,
+      defaultSelected: false
     },
     owner: {
       type: 'belongsto',
@@ -68,13 +71,10 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
       customizedNameKey: 'userAndEmail',
       placeholder: t('選擇')
     },
-    factory_tags: {
-      type: 'checkbox',
-      label: t('標籤'),
-      storeKey: "factoryTags",
-      searchVisible: true,
-      selectAllVisible: false,
-      defaultSelected: false
+    button: {
+      type: 'date_range',
+      label: t('編輯時間'),
+      time_field: 'updated_at',
     },
   })
 

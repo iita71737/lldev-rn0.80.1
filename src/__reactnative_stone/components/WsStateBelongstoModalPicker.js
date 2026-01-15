@@ -113,7 +113,8 @@ const WsStatebelongstoModalPicker = props => {
                   )}
                   <WsText
                     style={{
-                      marginTop: 0
+                      marginTop: 0,
+                      maxWidth: width * 0.8
                     }}
                     color={
                       value !== undefined && editable ? $color.black :
@@ -142,7 +143,7 @@ const WsStatebelongstoModalPicker = props => {
             <WsText
               size={14}
               style={{
-                margin: 8
+                margin: 8,
               }}>
               {label}
             </WsText>

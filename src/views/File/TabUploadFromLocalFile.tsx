@@ -106,8 +106,9 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
     });
     const _params = {
       formData: formData,
-      filename: `${fileTitle}.${fileType}`
+      filename: `${fileName}`
     }
+    console.log(JSON.stringify(_params),'_params_params_params')
     try {
       const _storeSystemFile = await S_File.storeSystemFile({ params: _params })
       // console.log(_storeSystemFile, '_storeSystemFile---');

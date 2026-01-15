@@ -1,5 +1,6 @@
 import React from 'react'
-import { WsFlex, WsInfoUser } from '@/components'
+import { WsFlex, WsInfoUser, WsText } from '@/components'
+import $color from '@/__reactnative_stone/global/color'
 import { View, Modal, TouchableOpacity, Dimensions } from 'react-native'
 
 const WsInfoUsers = props => {
@@ -11,17 +12,18 @@ const WsInfoUsers = props => {
     flexWrap = 'wrap',
     style,
     testID,
-    avatarVisible
+    avatarVisible,
+    fontsize
   } = props
 
   // Render
   return (
     <>
       <View>
-        {value &&
-          value.length > 0 &&
+        {Array.isArray(value) && value.length > 0 ? (
           value.map((item, itemIndex) => (
             <WsInfoUser
+              fontsize={fontsize}
               avatarVisible={avatarVisible}
               testID={`${testID}-${itemIndex}`}
               avatarSize={avatarSize}
@@ -42,7 +44,10 @@ const WsInfoUsers = props => {
                 // borderWidth:1,
               }}
             />
-          ))}
+          ))
+        ) : (
+          <WsText color={$color.gray}>無</WsText>
+        )}
       </View>
     </>
   )

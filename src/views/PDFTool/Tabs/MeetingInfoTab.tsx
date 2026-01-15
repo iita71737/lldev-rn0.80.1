@@ -181,12 +181,22 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
   const remark = meeting?.remark ?? '-'
   const attaches = normalizeFiles(meeting?.attaches ?? meeting?.file_attaches ?? [])
   const signInForm = normalizeFiles(meeting?.sign_in_form ?? [])
-  const meetingTemplateName = getTemplateName(meeting?.meeting_item_template)
-  const meetingTemplateId = getTemplateId(meeting?.meeting_item_template)
+  const meetingItemTemplateName = getTemplateName(meeting?.meeting_item_template)
+  const meetingItemTemplateId = getTemplateId(meeting?.meeting_item_template)
   const meetingItemTemplateFiles = getTemplateFiles(meeting?.meeting_item_template?.attach)
+
+  const meetingTemplateId = getTemplateId(meeting?.meeting_template)
+  const meetingTemplateName = getTemplateName(meeting?.meeting_template)
   const meetingTemplateFiles = getTemplateFiles(meeting?.meeting_template?.attach)
+
   const contentsTemplateFiles = getTemplateFiles(meeting?.contents_template?.attach)
+  const contentsTemplateName = getTemplateName(meeting?.contents_template)
+  const contentsTemplateTemplateId = getTemplateId(meeting?.contents_template)
+
   const coverTemplateFiles = getTemplateFiles(meeting?.cover_template?.attach)
+  const coverTemplateName = getTemplateName(meeting?.cover_template)
+  const coverTemplateId = getTemplateId(meeting?.cover_template)
+
   const toVariableItems = (items: any[]): EsGoalVariable[] =>
     (Array.isArray(items) ? items : [])
       .map((item: any) => {
@@ -288,40 +298,106 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
         </View>
 
         <View style={{ marginTop: 8 }}>
-          <WsInfo
-            type="link"
-            label={`${t('提案單範本')} - ${meetingTemplateName}`}
-            value={''}
-            style={{
-              flexDirection: 'row'
-            }}
-            onPress={() => {
-              console.log('3333')
-              navigation.push('RoutesPDFTool', {
-                screen: 'PDFToolAdminTemplateShow',
-                params: {
-                  id: meetingTemplateId,
-                }
-              })
-            }}
-          />
+          {meetingItemTemplateName && (
+            <WsInfo
+              type="link"
+              label={`${t('提案單範本')} `}
+              value={meetingItemTemplateName}
+              style={{
+                flexDirection: 'row'
+              }}
+              onPress={() => {
+                console.log('3333')
+                navigation.push('RoutesPDFTool', {
+                  screen: 'PDFToolAdminTemplateShow',
+                  params: {
+                    id: meetingItemTemplateId,
+                  }
+                })
+              }}
+            />
+          )}
           <WsInfo
             type="filesAndImages"
-            // label={`${t('提案單範本')} - ${meetingTemplateName}`}
             value={meetingItemTemplateFiles}
           />
         </View>
 
         <View style={{ marginTop: 8 }}>
-          <WsInfo type="filesAndImages" label={t('議程​範本​')} value={meetingTemplateFiles} />
+
+          <WsInfo
+            type="link"
+            label={`${t('封面範本')} `}
+            value={coverTemplateName}
+            style={{
+              flexDirection: 'row'
+            }}
+            onPress={() => {
+              if (coverTemplateName) {
+                console.log('3333')
+                navigation.push('RoutesPDFTool', {
+                  screen: 'PDFToolAdminTemplateShow',
+                  params: {
+                    id: coverTemplateId,
+                  }
+                })
+              }
+            }}
+          />
+          <WsInfo
+            type="filesAndImages"
+            value={coverTemplateFiles} />
         </View>
 
         <View style={{ marginTop: 8 }}>
-          <WsInfo type="filesAndImages" label={t('目錄​範本​')} value={contentsTemplateFiles} />
+          {meetingTemplateName && (
+            <WsInfo
+              type="link"
+              label={`${t('議程​範本​')} `}
+              value={meetingTemplateName}
+              style={{
+                flexDirection: 'row'
+              }}
+              onPress={() => {
+                console.log('3333')
+                navigation.push('RoutesPDFTool', {
+                  screen: 'PDFToolAdminTemplateShow',
+                  params: {
+                    id: meetingTemplateId,
+                  }
+                })
+              }}
+            />
+          )}
+          <WsInfo
+            type="filesAndImages"
+            value={meetingTemplateFiles} />
         </View>
 
+
         <View style={{ marginTop: 8 }}>
-          <WsInfo type="filesAndImages" label={t('封面​範本​')} value={coverTemplateFiles} />
+          {contentsTemplateName && (
+            <WsInfo
+              type="link"
+              label={`${t('目錄​範本​')} `}
+              value={contentsTemplateName}
+              style={{
+                flexDirection: 'row'
+              }}
+              onPress={() => {
+                console.log('3333')
+                navigation.push('RoutesPDFTool', {
+                  screen: 'PDFToolAdminTemplateShow',
+                  params: {
+                    id: contentsTemplateTemplateId,
+                  }
+                })
+              }}
+            />
+          )}
+          <WsInfo
+            type="filesAndImages"
+            value={contentsTemplateFiles} />
         </View>
 
         <View style={{ marginTop: 8 }}>
@@ -357,7 +433,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
           <WsInfo
             labelWidth={100}
             style={{ flexDirection: 'row', alignItems: 'center' }}
-            label={t('人員')}
+            label={t('限閱人員')}
             type="users"
             valueFontSize={14}
             value={users}
@@ -368,7 +444,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
           <WsInfo
             labelWidth={100}
             style={{ flexDirection: 'row', alignItems: 'center' }}
-            label={t('角色')}
+            label={t('限閱角色')}
             type="belongstomany"
             valueFontSize={14}
             value={roles}
@@ -392,7 +468,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
         </View>
       </WsPaddingContainer>
 
-      <WsPaddingContainer padding={0} style={{ marginTop: 8, paddingBottom: 8, backgroundColor: $color.primary11l }}>
+      {/* <WsPaddingContainer padding={0} style={{ marginTop: 8, paddingBottom: 8, backgroundColor: $color.primary11l }}>
         <FlatList
           data={meetingTemplateItems}
           keyExtractor={item => item.id}
@@ -427,7 +503,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
             </>
           )}
         />
-      </WsPaddingContainer>
+      </WsPaddingContainer> */}
 
       <WsPaddingContainer padding={0} style={{ marginTop: 8, paddingBottom: 8, backgroundColor: $color.primary11l }}>
         <FlatList
@@ -446,7 +522,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
                 }}
               >
                 <WsInfo
-                  label={`${t('提案單範本')}\n${meetingTemplateName}`}
+                  label={`${t('提案單標記')}`}
                   type="filesAndImages"
                   value={meetingItemTemplateFiles}
                 />

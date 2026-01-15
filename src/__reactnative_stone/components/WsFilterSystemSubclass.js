@@ -95,6 +95,7 @@ const WsFilterSystemSubclass = props => {
 
   React.useEffect(() => {
     if (!Array.isArray(systemClasses) || systemClasses.length === 0) return
+    if (Array.isArray(value) && value.length > 0) return
 
     // 取得「全選」 id 清單（扁平 + 去重）
     const allIds: number[] = []
@@ -104,12 +105,8 @@ const WsFilterSystemSubclass = props => {
       })
     })
 
-    // 只有在現在 value 和全選不同時才更新，避免迴圈
-    if (!arraysEqual(value, allIds)) {
-      onChange(allIds)
-    }
-    // 依賴只放 systemClasses 和 value，簡單不抖動
-  }, [systemClasses, value])
+    onChange(allIds)
+  }, [systemClasses, value, onChange])
 
   // Render
   return (

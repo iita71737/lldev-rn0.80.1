@@ -36,7 +36,7 @@ export default {
   },
   async updateMeetingItemWord({ params }) {
     return base.createWithFormData({
-      modelName: `meeting_item/${params?.meeting_item_it}/update/original_attach`,
+      modelName: `meeting_item/${params?.meeting_item_id}/update/original_attach`,
       data: params.formData
     })
   },

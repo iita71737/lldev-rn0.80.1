@@ -145,7 +145,7 @@ const EachFactoryIndexingData = ({ navigation, route }) => {
       }
       delete _params.get_all
       delete _params.search
-      console.log(_params,'_params--');
+      // console.log(_params,'_params--');
       const res = await factoryTotalAnalysis.indexV2({ params: _params })
       // console.log(JSON.stringify(res),'res--');
       setFactoryIndexingData(res.data)

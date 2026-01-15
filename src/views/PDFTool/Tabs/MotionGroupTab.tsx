@@ -113,6 +113,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   const [loadingMeetingItems, setLoadingMeetingItems] = useState(false)
   const draggableListRef = useRef<PDFToolDraggableListRef | null>(null)
   const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const didFinalRefreshRef = useRef(false)
 
   const meetingItemsSignature = useMemo(() => {
     const parts: string[] = []
@@ -238,6 +239,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
       const syncPolling = (shouldPoll: boolean) => {
         if (!active) return
         if (shouldPoll) {
+          didFinalRefreshRef.current = false
           if (!pollingTimerRef.current) {
             pollingTimerRef.current = setInterval(fetchMeetingItemsAll, 10000)
           }
@@ -245,6 +247,40 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
           clearInterval(pollingTimerRef.current)
           pollingTimerRef.current = null
         }
+      }
+
+      const refreshMeetingItemsOnce = async (baseMap: Record<string, any[]>) => {
+        if (!active) return
+        const nextMap: Record<string, any[]> = {}
+        Object.keys(baseMap).forEach(groupId => {
+          nextMap[groupId] = Array.isArray(baseMap[groupId]) ? [...baseMap[groupId]] : []
+        })
+        const tasks: Promise<void>[] = []
+        Object.entries(baseMap).forEach(([groupId, items]) => {
+          if (!Array.isArray(items)) return
+          items.forEach((item: any) => {
+            if (!item?.id) return
+            tasks.push(
+              S_MeetingItem.show({ modelId: item.id })
+                .then(res => {
+                  if (!active) return
+                  const detail = res?.data ?? res
+                  if (!detail) return
+                  const list = nextMap[groupId] ?? []
+                  const index = list.findIndex((entry: any) => entry?.id === item.id)
+                  if (index >= 0) {
+                    list[index] = { ...list[index], ...detail }
+                  }
+                })
+                .catch(err => {
+                  console.log('S_MeetingItem.show error', err)
+                })
+            )
+          })
+        })
+        await Promise.all(tasks)
+        if (!active) return
+        setMeetingItemStatusByGroup(nextMap)
       }
 
       const fetchMeetingItemsAll = async () => {
@@ -287,11 +323,19 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
             })
             setMeetingItemStatusByGroup(nextMap)
             syncPolling(shouldPoll)
+            if (!shouldPoll && !didFinalRefreshRef.current) {
+              didFinalRefreshRef.current = true
+              refreshMeetingItemsOnce(nextMap)
+            }
             return
           }
           const nextMap = normalizeMeetingItemsByGroup(data)
           setMeetingItemStatusByGroup(nextMap)
           syncPolling(shouldPoll)
+          if (!shouldPoll && !didFinalRefreshRef.current) {
+            didFinalRefreshRef.current = true
+            refreshMeetingItemsOnce(nextMap)
+          }
         } catch (err) {
           if (!active) return
           console.log('S_MeetingItem.meetingIndexAll error', err)

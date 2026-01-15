@@ -9,6 +9,12 @@ import timezone from 'dayjs/plugin/timezone';
 import store from '@/store'
 
 export default {
+  getMeetingTemplateFieldId(value) {
+    if (value && typeof value === 'object') {
+      return value?.id ?? null
+    }
+    return value ?? null
+  },
   async index({ params }) {
     const unit = params?.factory
     return base.index({
@@ -101,7 +107,7 @@ export default {
             name: item?.name,
             value: item?.value,
             sequence: item?.sequence,
-            meeting_template_field: item?.meeting_template_field,
+            meeting_template_field: this.getMeetingTemplateFieldId(item?.meeting_template_field),
             factory: item?.factory ?? _data.factory,
             has_line_break: item?.has_line_break ?? undefined
           }
@@ -119,7 +125,7 @@ export default {
           name: item?.name,
           value: item?.value,
           sequence: item?.sequence,
-          meeting_template_field: item?.meeting_template_field,
+          meeting_template_field: this.getMeetingTemplateFieldId(item?.meeting_template_field),
           factory: item?.factory ?? _data.factory
         }
       })
@@ -182,7 +188,7 @@ export default {
           name: item?.name ?? null,
           value: item?.value ?? null,
           sequence: item?.sequence ?? null,
-          meeting_template_field: item?.meeting_template_field ?? null,
+          meeting_template_field: this.getMeetingTemplateFieldId(item?.meeting_template_field),
           factory: item?.factory ?? factoryId ?? null,
         }))
         : [],

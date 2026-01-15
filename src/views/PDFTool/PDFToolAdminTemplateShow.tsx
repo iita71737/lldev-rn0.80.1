@@ -213,6 +213,7 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
       }
       setMeetingTemplate(_template)
       if (res) {
+        console.log(res?.attach?.file?.id,'res?.attach?.file?.id')
         const res2 = await S_File.getWordFields({
           params: {
             file_id: res?.attach?.file?.id

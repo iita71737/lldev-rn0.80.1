@@ -472,7 +472,7 @@ const Menu = ({ navigation }) => {
                         navigation.navigate('RoutesPDFTool', { screen: 'PDFToolAdminIndex' })
                       }
                     }}>
-                    {t('議事列表')}
+                    {t('議事')}
                   </LlNavButton001>
                 )}
 

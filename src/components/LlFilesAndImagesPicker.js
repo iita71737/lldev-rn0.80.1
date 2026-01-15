@@ -181,8 +181,13 @@ const LlFilesAndImagesPicker = props => {
   const fetchAndInitMeetingTemplateWordFields = useCallback(async (fileId) => {
     if (!fileId) return
     try {
+      console.log(fileId, '=fileId=')
       const res = await S_File.getWordFields({ params: { file_id: fileId } })
       const fields = normalizeWordFields(res?.data ?? res)
+      const prevFields = Array.isArray(wordFields) ? wordFields : []
+      const prevNameByValue = new Map(
+        prevFields.map(item => [item?.value, item?.name ?? ''])
+      )
 
       wordFieldsFileIdRef.current = fileId
       lastCommittedSigRef.current = {}
@@ -190,22 +195,34 @@ const LlFilesAndImagesPicker = props => {
 
       setWordFields(fields)
       setWordFieldSettings(prev => {
-        const next = { ...prev }
+        const next = {}
         fields.forEach(f => {
           const key = f.value
           const defaultName = f?.name ?? '' // ✅ 原封不動
-          if (!next[key]) {
+          if (!key) return
+          const prevName = prevNameByValue.get(key)
+          const nameChanged =
+            prevName !== undefined && String(prevName ?? '') !== String(defaultName ?? '')
+          const isNewField = prevName === undefined
+          if (isNewField || nameChanged) {
             next[key] = { name: defaultName, esgoal_field: null }
-          } else if (next[key].name === '' || next[key].name == null) {
-            next[key] = { ...(next[key] || {}), name: defaultName }
+            return
           }
+          if (prev?.[key]) {
+            next[key] = {
+              ...prev[key],
+              name: defaultName || prev[key]?.name || undefined,
+            }
+            return
+          }
+          next[key] = { name: defaultName, esgoal_field: null }
         })
         return next
       })
     } catch (err) {
       console.warn('[LlFilesAndImagesPicker] getWordFields failed:', err)
     }
-  }, [normalizeWordFields])
+  }, [normalizeWordFields, wordFields])
 
   // ✅ 把 wordFields + settings 組成 meeting_template_items，塞回 value
   const commitWordFieldSettingsToValue = useCallback((settings) => {
@@ -219,7 +236,7 @@ const LlFilesAndImagesPicker = props => {
         const esObj = s?.esgoal_field
         const esId = esObj?.id ?? null
         const esName = esObj?.name ?? null
-        const _has_line_break = wf?.has_line_break ?? false 
+        const _has_line_break = wf?.has_line_break ?? false
 
         if (!esId || !esName) return null
 
@@ -682,9 +699,11 @@ const LlFilesAndImagesPicker = props => {
                       nameKey="name"
                       serviceIndexKey="index"
                       hasMeta={false}
+                      params={{
+                        order_by: 'sequence',
+                        order_way: 'asc'
+                      }}
                       label={t('對應ESGoal欄位')}
-                      // rules={'required'}
-                      // errorMessage={!esgoalField && [t('此項目為必填')]}
                       value={esgoalField}
                       onChange={(v) => {
                         setWordFieldSettings(prev => ({

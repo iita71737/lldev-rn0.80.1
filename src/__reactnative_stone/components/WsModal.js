@@ -145,6 +145,7 @@ const WsModal = props => {
                       btnRightText={footerBtnRightText}
                       btnRightOnPress={footerBtnRightOnPress}
                       btnRightIcon={footerBtnRightIcon}
+                      btnRightColors={btnRightDisable ? [$color.gray, $color.white5d] : [$color.primary5l, $color.primary]}
                       btnRightDisable={btnRightDisable}
                       remind={remind}
                     />

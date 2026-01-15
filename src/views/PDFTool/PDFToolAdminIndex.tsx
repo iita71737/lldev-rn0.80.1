@@ -43,7 +43,7 @@ const PDFToolAdminIndex = (props) => {
   const [tabItems] = React.useState([
     {
       value: 'PDFToolList',
-      label: i18next.t('議事列表'),
+      label: i18next.t('議事'),
       view: PDFToolList,
       props: {
       },

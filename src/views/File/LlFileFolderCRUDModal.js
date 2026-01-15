@@ -57,6 +57,7 @@ const LlFileFolderCRUDModal = props => {
     setCheckDeleteModalContent,
     setCheckDeleteModalVisible,
     tab,
+    folderScope,
     title
   } = props
 
@@ -100,7 +101,9 @@ const LlFileFolderCRUDModal = props => {
             file_folder: res.file_folder?.id,
             name: res.file_folder?.name,
             folder_path: res.file_folder?.folder_path,
-            folder_uuid_path: res.file_folder?.folder_uuid_path
+            folder_uuid_path: res.file_folder?.folder_uuid_path,
+            tab: tab,
+            folderScope: folderScope
           })
         }
       } catch (e) {
@@ -120,7 +123,9 @@ const LlFileFolderCRUDModal = props => {
               file_folder: res.file_folder?.id,
               name: res.file_folder?.name,
               folder_path: res.file_folder?.folder_path,
-              folder_uuid_path: res.file_folder?.folder_uuid_path
+              folder_uuid_path: res.file_folder?.folder_uuid_path,
+              tab: tab,
+              folderScope: folderScope
             })
           } else if (tab === 'tab2') {
             navigation.replace('FileStore')
@@ -137,7 +142,6 @@ const LlFileFolderCRUDModal = props => {
           data: postData
         })
         if (res) {
-          // Alert.alert('上傳新版本完成')
           navigation.replace('FileStoreShow', {
             id: value.id,
           })
@@ -229,7 +233,9 @@ const LlFileFolderCRUDModal = props => {
           file_folder: currentFolder.id,
           name: currentFolder.name,
           folder_path: currentFolder.folder_path,
-          folder_uuid_path: currentFolder.folder_uuid_path
+          folder_uuid_path: currentFolder.folder_uuid_path,
+          tab: tab,
+          folderScope: folderScope
         })
         onClose()
       } catch (e) {

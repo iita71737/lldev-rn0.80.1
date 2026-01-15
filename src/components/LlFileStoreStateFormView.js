@@ -278,6 +278,7 @@ const LlFileStoreStateFormView = props => {
                 width: 110,
               }}
               onPress={() => {
+                // console.log(JSON.stringify(fieldsValue),'fieldsValue')
                 onChange(fieldsValue)
               }}>
               {actionType === 'create' ? t('儲存') : actionType === 'edit' ? t('儲存') : actionType === 'createFile' ? t('儲存') : t('儲存')}

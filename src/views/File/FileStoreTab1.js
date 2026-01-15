@@ -385,7 +385,9 @@ const FileStoreTab1 = () => {
               setIsBottomSheetActive002={setIsBottomSheetActive002}
               setFileFolderId={setFileFolderId}
               tab={'tab1'}
+              folderScope={_folderScope}
               setFolderScope={setFolderScope}
+              fileFolderId={fileFolderId}
             ></LlFileFolderCard>
           )
         }}
@@ -436,6 +438,8 @@ const FileStoreTab1 = () => {
           remind2={
             actionType === 'edit' ? t('請注意，當您將資料夾共享至其他單位，非本單位只能唯讀') : null
           }
+          tab={tab}
+          folderScope={_folderScope}
         ></LlFileFolderCRUDModal >
       )
       }

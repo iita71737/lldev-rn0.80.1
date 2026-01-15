@@ -66,6 +66,7 @@ import PDFToolAdminExportShow from '@/views/PDFTool/PDFToolAdminExportShow'
 import PDFToolAdminBatchEditMeetingItemGroup from '@/views/PDFTool/PDFToolAdminBatchEditMeetingItemGroup'
 const StackSetting = createStackNavigator()
 import S_Meeting from '@/services/api/v1/meeting'
+import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
 
 const RoutesPDFTool = () => {
   const { t, i18n } = useTranslation()
@@ -105,7 +106,6 @@ const RoutesPDFTool = () => {
       type: 'datetime',
       placeholder: t('YYYY-MM-DD HH:mm'),
       label: t('時間'),
-      // rules: 'required',
     },
     date_format: {
       type: 'belongsto',
@@ -114,17 +114,18 @@ const RoutesPDFTool = () => {
       nameKey: 'name',
       modelName: 'data_format',
       serviceIndexKey: 'index',
-      // rules: 'required',
       updateValueOnChange: (event, value, field, fields) => {
-        console.log(event, 'event222')
-        console.log(value, 'value222')
         if (event?.value === 'roc_format') {
-          value.meeting_date_format = H_time.getRocChineseDateTime(value.meeting_date, false, 'Asia/Taipei');
-          return value
-        } else if (event?.value === 'default') {
-          value.meeting_date_format = value.meeting_date
-          return value
+          return {
+            meeting_date_format: H_time.getRocChineseDateTime(value.meeting_date, false, 'Asia/Taipei')
+          }
         }
+        if (event?.value === 'default') {
+          return {
+            meeting_date_format: value.meeting_date
+          }
+        }
+        return {}
       },
     },
     meeting_date_format: {
@@ -321,6 +322,13 @@ const RoutesPDFTool = () => {
           </>
         )
       },
+      displayCheck(fieldsValue) {
+        if (fieldsValue?.is_used !== 1) {
+          return true
+        } else {
+          return false
+        }
+      }
     },
     name: {
       type: 'text',
@@ -335,7 +343,14 @@ const RoutesPDFTool = () => {
       modelName: 'meeting_template_type',
       serviceIndexKey: 'index',
       hasMeta: false,
-      rules: 'required'
+      rules: 'required',
+      displayCheck(fieldsValue) {
+        if (fieldsValue?.is_used !== 1) {
+          return true
+        } else {
+          return false
+        }
+      }
     },
     remark: {
       label: t('備註'),
@@ -361,9 +376,9 @@ const RoutesPDFTool = () => {
 
   // add meeting
   const submitForCreateMeeting = async (_postData, navigation) => {
-    // console.log(JSON.stringify(_postData), '_postData submitForCreateMeeting');
+    console.log(JSON.stringify(_postData), '_postData submitForCreateMeeting');
     const _data = S_Meeting.formattedDataForCreate(_postData, currentUser)
-    // console.log(JSON.stringify(_data), '_data submitForCreateMeeting');
+    console.log(JSON.stringify(_data), '_data submitForCreateMeeting');
     try {
       const res = await S_Meeting.create({
         data: _data
@@ -419,14 +434,27 @@ const RoutesPDFTool = () => {
       const isTemplateChanged =
         (prevContentsId && nextContentsId && prevContentsId !== nextContentsId) ||
         (prevMeetingId && nextMeetingId && prevMeetingId !== nextMeetingId)
-      // console.log(isTemplateChanged, 'isTemplateChangedisTemplateChanged')
       const res = await S_Meeting.update({
         modelId: modelId,
         data: _data
       })
       if (res) {
         const meetingId = res?.id ?? modelId
-        if (isTemplateChanged) {
+        let meetingItemGroupCount = Array.isArray(res?.meeting_item_groups)
+          ? res.meeting_item_groups.length
+          : null
+        if (meetingItemGroupCount == null) {
+          try {
+            const groupRes = await S_MeetingItemGroup.index({
+              params: { meetingId: meetingId }
+            })
+            const groupList = groupRes?.data ?? groupRes ?? []
+            meetingItemGroupCount = Array.isArray(groupList) ? groupList.length : 0
+          } catch (err) {
+            meetingItemGroupCount = 0
+          }
+        }
+        if (isTemplateChanged && meetingItemGroupCount > 0) {
           Alert.alert(
             t('目錄範本或議程範本有異動，要批次編輯議案群組的對應的目錄範本區塊及對應的議程範本區塊嗎？'),
             '',
@@ -518,8 +546,8 @@ const RoutesPDFTool = () => {
   ) => {
     // console.log(JSON.stringify(_formattedValue), '_formattedValue--');
     const _data = S_MeetingTemplate.formattedMeetingTemplateForEdit(_formattedValue, currentUserId)
-    console.log(modelId, 'modelId')
-    console.log(JSON.stringify(_data), 'S_GuidelineVersionAdmin.update');
+    // console.log(modelId, 'modelId')
+    // console.log(JSON.stringify(_data), 'S_GuidelineVersionAdmin.update');
     try {
       const res = await S_MeetingTemplate.update({
         modelId: modelId,
@@ -532,13 +560,6 @@ const RoutesPDFTool = () => {
             id: res.id
           }
         })
-      }
-      if (res?.meeting_template_type?.value === 'meeting' || res?.meeting_template_type?.value === 'table_of_contents') {
-        Alert.alert(
-          t('目錄範本或議程範本有異動，需要重新設定各議案群組對應的目錄範本區塊及對應的議程範本區塊'),
-          undefined,
-          [{ text: t('知道了') }]
-        )
       }
     } catch (e) {
       Alert.alert(t('編輯範本異常'))

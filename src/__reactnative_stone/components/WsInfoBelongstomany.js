@@ -22,12 +22,10 @@ const WsInfoBelongstomany = props => {
           {
             flexWrap: 'nowrap',
             maxWidth: valueMaxWidth,
-            // flexDirection: 'row'
           },
         ]}
     >
-      {value &&
-        value.length > 0 &&
+      {Array.isArray(value) && value.length > 0 ? (
         value.map((item, itemIndex) => (
           <WsInfoBelongsto
             key={itemIndex}
@@ -37,7 +35,12 @@ const WsInfoBelongstomany = props => {
             nameKey={nameKey}
             valueFontSize={valueFontSize}
           />
-        ))}
+        ))
+      ) : (
+        <WsText size={valueFontSize} color={$color.gray}>
+          無
+        </WsText>
+      )}
     </View>
   )
 }

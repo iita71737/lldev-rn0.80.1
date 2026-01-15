@@ -239,7 +239,7 @@ export default {
       return list.map(normalizeFileAttach).filter(Boolean)
     }
     return {
-      name: meeting.name ?? undefined,
+      name: meeting.name + `${'-複製'}` ?? undefined,
       remark: meeting.remark ?? undefined,
       chairperson: meeting.chairperson ?? undefined,
       meeting_date: meeting.meeting_date ?? undefined,

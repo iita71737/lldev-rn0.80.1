@@ -29,6 +29,10 @@ const WsStateCheckBox002 = props => {
     disabled,
     onChange,
     style,
+    iconRightName,
+    iconRightColorOverride,
+    textColorChecked,
+    textColorUnchecked,
   } = props
 
   // State
@@ -53,6 +57,8 @@ const WsStateCheckBox002 = props => {
     }
   }
 
+  // md-indeterminate-check-box
+
   useEffect(() => {
     $_setIcon()
   }, [value])
@@ -68,20 +74,22 @@ const WsStateCheckBox002 = props => {
       onPress={$_onPress}
     >
       <WsFlex>
-        {iconRight && iconRightVisible && (
+        {iconRightVisible && (iconRightName || iconRight) && (
           <WsIcon
             style={{
             }}
-            name={iconRight}
+            name={iconRightName || iconRight}
             size={iconRightSize}
-            color={disabled ? $color.white5d : iconRightColor}
+            color={disabled ? $color.white5d : (iconRightColorOverride || iconRightColor)}
           />
         )}
         <WsDes
           style={{
             marginLeft: 4,
             fontSize: 14,
-            color: value ? $color.black : $color.gray
+            color: value
+              ? (textColorChecked || $color.black)
+              : (textColorUnchecked || $color.gray)
           }}>
           {checkboxText}
         </WsDes>
