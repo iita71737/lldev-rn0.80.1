@@ -16,13 +16,15 @@ import {
   WsTag,
   WsUpdateBtn,
   WsIcon,
-  WsDes
+  WsDes,
+  WsDialog
 } from '@/components';
 import $color from '@/__reactnative_stone/global/color';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group';
 import S_MeetingItem from '@/services/api/v1/meeting_item';
 import { pick, types } from '@react-native-documents/picker';
+import { useNavigation } from '@react-navigation/native'
 
 // -------------------- 型別 --------------------
 
@@ -81,7 +83,13 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   refreshKey,
   meeting,
   meetingItemListByGroupExternal,
+  remind = '處理失敗建議',
+  remindBtnDisabled = false,
+  dialogButtonItems = [],
+  dialogTitle,
+  contentHeight
 }) => {
+   const navigation = useNavigation()
   const { t } = useTranslation();
   const scrollRef = useRef<KeyboardAwareScrollView | null>(null);
   const currentFactory = useSelector(state => state.data.currentFactory);
@@ -169,6 +177,9 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const [editMeetingItemResolutionSummary, setEditMeetingItemResolutionSummary] = useState('')
   const [editMeetingItemResolutionDetails, setEditMeetingItemResolutionDetails] = useState('')
   const [editMeetingItemGroupId, setEditMeetingItemGroupId] = useState<string | null>(null)
+
+  const [visible, setVisible] = React.useState(false)
+  const [remindValue, setRemindValue] = React.useState()
 
   const openUpdateProposalModal = (group: Group, motion: Motion) => {
     setUpdateProposalTargetMotion(motion)
@@ -1037,7 +1048,18 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     <View style={{ marginTop: 8 }}>
                       <WsInfo
                         type={'filesAndImages'}
-                        label={t('預覽')}
+                        label={t('議案(DOCX)')}
+                        labelColor={$color.gray}
+                        value={['test.docx']}
+                      />
+                    </View>
+                  )}
+
+                  {isComplete && meetingItem?.convert_pdf_attach && (
+                    <View style={{ marginTop: 8 }}>
+                      <WsInfo
+                        type={'filesAndImages'}
+                        label={t('議案(PDF)')}
                         labelColor={$color.gray}
                         value={[meetingItem?.convert_pdf_attach]}
                       />
@@ -1120,7 +1142,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
         <View
           style={{
             borderRadius: 10,
-            borderWidth: 0.5,
+            borderWidth: 0.6,
             borderColor: $color.black,
             backgroundColor: $color.white,
             overflow: 'hidden',
@@ -1156,6 +1178,60 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     </WsTag>
                   </View>
                 )}
+
+                {
+                  hasFailedStatus &&
+                  remind && (
+                    <>
+                      <TouchableOpacity
+                        disabled={remindBtnDisabled}
+                        onPress={() => {
+                          if (!remindBtnDisabled) {
+                            setVisible(true)
+                          }
+                        }}>
+                        <WsFlex style={[{ marginTop: 4 }]}>
+                          <WsIcon
+                            name="md-info-outline"
+                            color={$color.danger}
+                            style={{
+                              marginRight: 6
+                            }}
+                            size={16}
+                          />
+                          <WsText
+                            style={{
+                              paddingRight: 16
+                            }}
+                            size={10}
+                            color={$color.danger}>
+                            {remind}
+                          </WsText>
+                        </WsFlex>
+                      </TouchableOpacity>
+                      <WsDialog
+                        value={remindValue}
+                        onChange={setRemindValue}
+                        dialogButtonItems={dialogButtonItems}
+                        title={dialogTitle}
+                        dialogVisible={visible}
+                        setDialogVisible={() => {
+                          setVisible(false)
+                        }}
+                        contentHeight={contentHeight}
+                        mode={3}
+                      >
+                        <>
+                          <View style={{ marginHorizontal: 16, paddingBottom: 16 }}>
+                            <WsFlex flexWrap="wrap">
+                              <WsDes size={14}>{`1. ${t('檢查提案單跟提案單範本是否格式一致')}`}</WsDes>
+                            </WsFlex>
+                          </View>
+                        </>
+                      </WsDialog>
+                    </>
+                  )}
+
               </View>
               <WsIconBtn
                 padding={0}
@@ -1214,8 +1290,25 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               {item?.schedule_template?.attach && (
                 <View style={{ marginTop: 8 }}>
                   <WsInfo
+                    type="link"
+                    label={`${t('時序表範本')}  `}
+                    value={item?.schedule_template?.name}
+                    style={{
+                      flexDirection: 'row'
+                    }}
+                    onPress={() => {
+                      console.log('3333')
+                      navigation.push('RoutesPDFTool', {
+                        screen: 'PDFToolAdminTemplateShow',
+                        params: {
+                          id: item?.schedule_template?.id,
+                        }
+                      })
+                    }}
+                  />
+                  <WsInfo
                     type={'filesAndImages'}
-                    label={t('時序表範本')}
+                    // label={t('時序表範本')}
                     style={{
                     }}
                     labelColor={$color.gray}

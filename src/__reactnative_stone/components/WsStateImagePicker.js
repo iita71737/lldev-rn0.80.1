@@ -112,7 +112,6 @@ const WsStateImagePicker = ({ navigation }, props) => {
               })
           })
         } else {
-          console.log(_uploadUrl, '_uploadUrl---222');
           new Promise(async (resolve, reject) => {
             let uri =
               Platform.OS === 'android'

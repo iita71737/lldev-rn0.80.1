@@ -236,15 +236,19 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
   })
 
   useAnimatedReaction(
-    () => dragAbsoluteY.value,
-    (currentDragY) => {
+    () => ({ y: dragAbsoluteY.value, dragging: isDragging.value }),
+    (cur) => {
+      if (!cur.dragging) return
+
       const threshold = 80
       const headerHeight = 100
-      const scrollSpeed = 5
-      if (currentDragY - headerHeight < threshold) {
+      const scrollSpeed = 8 // 你要更順可調
+      const y = cur.y
+
+      if (y - headerHeight < threshold) {
         scrollOffset.value = Math.max(scrollOffset.value - scrollSpeed, 0)
         scrollTo(scrollViewRef, 0, scrollOffset.value, false)
-      } else if (currentDragY > screenHeight - threshold) {
+      } else if (y > screenHeight - threshold) {
         scrollOffset.value = scrollOffset.value + scrollSpeed
         scrollTo(scrollViewRef, 0, scrollOffset.value, false)
       }
@@ -292,7 +296,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
       }
 
       const nextItems = applySequences(remaining)
-      setListKey(Date.now())
+      // setListKey(Date.now())
       return nextItems
     })
   }
@@ -434,7 +438,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
       </WsFlex> */}
 
       <Animated.ScrollView
-        key={listKey}
+        // key={listKey}
         ref={scrollViewRef}
         onScroll={scrollHandler}
         scrollEventThrottle={16}

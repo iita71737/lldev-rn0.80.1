@@ -99,6 +99,8 @@ const WsStateImageItem = props => {
       }
       const queryString = new URLSearchParams(_params).toString();
       const _uploadUrl = `general_file/${encodeURI(fileName)}?${queryString}`
+      console.log(_uploadUrl,'_uploadUrl img')
+      
       RNBlobUtil.fetch(
         'PUT',
         `${endpoint}/${_uploadUrl}`,

@@ -15,7 +15,8 @@ const LlUpdateBtn = ({
   onPress,
   style,
   uploadProgress = 0,
-  testID
+  testID,
+  disabled
 }) => {
 
   // Render
@@ -24,17 +25,18 @@ const LlUpdateBtn = ({
       <TouchableOpacity
         testID={testID}
         onPress={onPress}
+        disabled={disabled}
       >
         <WsFlex
           justifyContent="center"
           style={[
             {
-              backgroundColor: backgroundColor,
+              backgroundColor: disabled ? $color.white2d : backgroundColor,
               padding: 16,
               minHeight: minHeight,
               borderRadius: borderRadius,
               borderWidth: 3,
-              borderColor: $color.primary8l,
+              borderColor: disabled ? $color.white2d : $color.primary8l,
               borderStyle: 'dashed'
             }, { style }
           ]}>
@@ -43,11 +45,12 @@ const LlUpdateBtn = ({
               <WsIcon
                 name={icon}
                 size={iconSize}
+                color={disabled ? $color.gray : $color.primary}
                 style={{
                   marginRight: 16
                 }}
               />
-              <WsText color={textColor}>
+              <WsText color={disabled ? $color.gray : textColor}>
                 {children}
               </WsText>
             </>

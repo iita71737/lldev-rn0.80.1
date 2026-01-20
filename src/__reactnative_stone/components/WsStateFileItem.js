@@ -42,16 +42,22 @@ const WsStateFileItem = props => {
     exportAttachmentName
   } = props
 
+
   // Redux
   const currentFactory = useSelector(state => state.data.currentFactory)
 
   // State
   const [uploadProgress, setUploadProgress] = React.useState(0)
+  const uploadFileName = typeof fileName === 'string'
+    ? fileName.replace(/#/g, '_')
+    : fileName
 
   // Function
   const $_getFileName = () => {
     if (typeof value === 'string') {
-      const _value = decodeURI(S_url.getFileName(value))
+      // const _value = decodeURI(S_url.getFileName(value))
+      const _value = S_url.getFileName(value)
+      // console.log(_value, '_value B')
       return _value
     } else if (typeof value === 'object') {
       if (Array.isArray(value)) {
@@ -75,6 +81,7 @@ const WsStateFileItem = props => {
       return lazyUri
     }
   }
+
   const getFileExtensionFromUrl = (url) => {
     const path = url.split('?')[0]; // 去除 URL 中的查詢參數
     const segments = path.split('/'); // 分割 URL
@@ -103,17 +110,30 @@ const WsStateFileItem = props => {
     }
   };
 
+  const replaceHashInFilename = (path: string) => {
+    if (!path) return path
+    const idx = path.lastIndexOf('/')
+    if (idx === -1) return path.replace(/#/g, '_') // fallback
+    const dir = path.slice(0, idx + 1)
+    const filename = path.slice(idx + 1)
+    return dir + filename.replace(/#/g, '_')
+  }
+
+
   const $_uploadStart = async () => {
     // 先取得實體路徑
     if (!uploadToFileStore) {
+      console.log('status A')
       let uri = Platform.OS === 'android'
         ? lazyUri
         : decodeURIComponent(lazyUri.replace('file://', '').replace('file://', ''));
 
       const token = await S_Keychain.getToken();
       const _uploadUrl = uploadUrl && uploadSuffix
-        ? `${uploadUrl}/${encodeURI(fileName)}?${uploadSuffix}`
-        : `${uploadUrl}/${encodeURI(fileName)}`;
+        ? `${uploadUrl}/${encodeURI(uploadFileName)}?${uploadSuffix}`
+        : `general_file/${encodeURI(uploadFileName)}`;
+
+      console.log(_uploadUrl, '_uploadUrl status A')
 
       try {
         const res = await RNBlobUtil.fetch(
@@ -126,20 +146,25 @@ const WsStateFileItem = props => {
         );
         let status = res.info().status;
         if (status === 200) {
+          console.log('state A1')
           let json = res.json();
           onUploadComplete(json.signed_url);
         } else if (status === 201) {
+          console.log('state A2')
           // 230816 新上传方式
           let json = res.json();
           onUploadComplete(json.data.source_url, json.data.last_version.id);
         } else {
+          console.log(uri, 'state A3')
           throw new Error(`Upload failed with status: ${status}`);
+          // onUploadComplete(uri);
         }
       } catch (err) {
-        console.log(err.message, 'error');
+        console.log(err.message, 'state A4 error');
         onUploadComplete(uri);
       }
     } else {
+      console.log('status B')
       let uri = Platform.OS === 'android'
         ? lazyUri
         : decodeURIComponent(lazyUri.replace('file://', '').replace('file://', ''));
@@ -149,7 +174,10 @@ const WsStateFileItem = props => {
         factory: currentFactory.id
       }
       const queryString = new URLSearchParams(_params).toString();
-      const _uploadUrl = `general_file/${encodeURI(fileName)}?${queryString}`
+      const _uploadUrl = `general_file/${encodeURI(uploadFileName)}?${queryString}`
+
+      console.log(_uploadUrl, '_uploadUrl status B')
+
       try {
         const res = await RNBlobUtil.fetch(
           'PUT',
@@ -160,10 +188,12 @@ const WsStateFileItem = props => {
           RNBlobUtil.wrap(uri)
         );
         let status = res.info().status;
+        console.log(status, 'RNBlobUtil status')
         if (status === 200 && modelName) {
+          console.log('status B1')
           let json = res.json();
           const _params = {
-            name: fileName,
+            name: uploadFileName,
             file_type: getFileExtensionFromUrl(json.signed_url),
             source_url: json.signed_url,
             factory: currentFactory.id,
@@ -188,10 +218,11 @@ const WsStateFileItem = props => {
             console.error(e);
           }
         } else if (status === 201 && modelName) {
+          console.log('status B2')
           // 230816 新上传方式
           let json = res.json();
           const _params = {
-            name: fileName,
+            name: uploadFileName,
             file_type: getFileExtensionFromUrl(json.signed_url),
             source_url: json.signed_url,
             factory: currentFactory.id,
@@ -216,9 +247,11 @@ const WsStateFileItem = props => {
             console.error(e);
           }
         } else if (status === 200 && !modelName) {
+          console.log('status B3')
           let json = res.json();
           onUploadComplete(json.signed_url)
         } else {
+          console.log('status B4')
           throw new Error(`Upload failed with status: ${status}`);
         }
       } catch (err) {

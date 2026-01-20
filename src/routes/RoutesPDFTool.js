@@ -277,6 +277,57 @@ const RoutesPDFTool = () => {
   }
 
   const fieldsForTemplate = {
+    name: {
+      type: 'text',
+      label: t('標題'),
+      placeholder: `${t('輸入')}`,
+      rules: 'required',
+    },
+    meeting_template_type: {
+      type: 'belongsto',
+      label: t('範本類型'),
+      nameKey: 'name',
+      modelName: 'meeting_template_type',
+      serviceIndexKey: 'index',
+      hasMeta: false,
+      rules: 'required',
+      displayCheck(fieldsValue) {
+        if (fieldsValue?.is_used !== 1) {
+          return true
+        } else {
+          return false
+        }
+      },
+      updateValueOnChange: (event, value, field, fields) => {
+        if (event?.value != undefined && event?.value === 'schedule') {
+          fields.file_attaches.disabled = false
+          fields.file_attaches.limitFileExtension = ['xlsx']
+        } else if (event?.value != undefined && event?.value !== 'schedule') {
+          fields.file_attaches.disabled = false
+          fields.file_attaches.limitFileExtension = ['docx', 'doc']
+        }
+      },
+    },
+    remark: {
+      label: t('備註'),
+      multiline: true,
+      placeholder: t('輸入'),
+    },
+    factory_tags: {
+      type: 'Ll_relatedTags',
+      label: t('標籤'),
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'factory_tag',
+      serviceIndexKey: 'indexV2',
+      hasMeta: false,
+      params: {
+        lang: 'tw',
+        order_by: 'sequence',
+        order_way: 'asc',
+        get_all: 1
+      }
+    },
     file_attaches: {
       modelName: 'meeting_template',
       type: 'Ll_filesAndImages',
@@ -293,14 +344,25 @@ const RoutesPDFTool = () => {
         return (
           <>
             <View style={{ marginHorizontal: 16, paddingBottom: 16 }}>
-              <WsText size={14} fontWeight="600" style={{ marginBottom: 8 }}>
+              <WsText size={14} fontWeight="600" style={{  }}>
                 {t('通用')}
               </WsText>
               <WsFlex flexWrap="wrap">
                 <WsDes size={14}>{`1. ${t('標記只能為英文大小寫及數字')}`}</WsDes>
               </WsFlex>
-              <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
-                <WsDes size={14}>{`2. ${t('標記設定的名稱需要跟範本內的名稱相同')}`}</WsDes>
+
+              <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>
+                {t('封面範本：')}
+              </WsText>
+              <WsFlex flexWrap="wrap">
+                <WsDes size={14}>{`1. ${t('只能放 “議事名稱”、”時間“、”地點“的標記')}`}</WsDes>
+              </WsFlex>
+
+              <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>
+                {t('目錄範本：')}
+              </WsText>
+              <WsFlex flexWrap="wrap">
+                <WsDes size={14}>{`1. ${t('建議不要放議案內容標記')}`}</WsDes>
               </WsFlex>
 
               <WsText size={14} fontWeight="600" style={{ marginTop: 16, marginBottom: 8 }}>
@@ -328,57 +390,16 @@ const RoutesPDFTool = () => {
         } else {
           return false
         }
-      }
-    },
-    name: {
-      type: 'text',
-      label: t('標題'),
-      placeholder: `${t('輸入')}`,
-      rules: 'required',
-    },
-    meeting_template_type: {
-      type: 'belongsto',
-      label: t('範本類型'),
-      nameKey: 'name',
-      modelName: 'meeting_template_type',
-      serviceIndexKey: 'index',
-      hasMeta: false,
-      rules: 'required',
-      displayCheck(fieldsValue) {
-        if (fieldsValue?.is_used !== 1) {
-          return true
-        } else {
-          return false
-        }
-      }
-    },
-    remark: {
-      label: t('備註'),
-      multiline: true,
-      placeholder: t('輸入'),
-    },
-    factory_tags: {
-      type: 'Ll_relatedTags',
-      label: t('標籤'),
-      placeholder: `${t('選擇')}`,
-      nameKey: 'name',
-      modelName: 'factory_tag',
-      serviceIndexKey: 'indexV2',
-      hasMeta: false,
-      params: {
-        lang: 'tw',
-        order_by: 'sequence',
-        order_way: 'asc',
-        get_all: 1
-      }
+      },
+      disabled: true,
     },
   }
 
-  // add meeting
+  // 新增議事
   const submitForCreateMeeting = async (_postData, navigation) => {
-    console.log(JSON.stringify(_postData), '_postData submitForCreateMeeting');
+    // console.log(JSON.stringify(_postData), '_postData submitForCreateMeeting');
     const _data = S_Meeting.formattedDataForCreate(_postData, currentUser)
-    console.log(JSON.stringify(_data), '_data submitForCreateMeeting');
+    // console.log(JSON.stringify(_data), '_data submitForCreateMeeting');
     try {
       const res = await S_Meeting.create({
         data: _data
@@ -423,7 +444,7 @@ const RoutesPDFTool = () => {
   ) => {
     // console.log(JSON.stringify(_formattedValue), '_formattedValue--');
     const _data = S_Meeting.formattedDataForEdit(_formattedValue)
-    // console.log(JSON.stringify(_data), 'submitForEditMeeting');
+    console.log(JSON.stringify(_data), 'submitForEditMeeting');
     try {
       const stored = await AsyncStorage.getItem('PDFToolAdminUpdate')
       const prev = stored ? JSON.parse(stored) : null
@@ -498,7 +519,7 @@ const RoutesPDFTool = () => {
     }
   }
 
-  // add template
+  // 新增範本
   const submitForCreateTemplate = async (_postData, navigation) => {
     // console.log(JSON.stringify(_postData), '_postData submitForCreateTemplate');
     const _data = S_MeetingTemplate.formattedDataForCreate(_postData, currentUser)
@@ -536,7 +557,7 @@ const RoutesPDFTool = () => {
     }
   }
 
-  // 編輯內規版本
+  // 編輯範本
   const submitForEditTemplate = async (
     _formattedValue,
     modelId,
@@ -565,41 +586,6 @@ const RoutesPDFTool = () => {
       Alert.alert(t('編輯範本異常'))
       console.error(e.message, 'submitForEditTemplate')
       navigation.navigate('PDFToolAdminIndex', {})
-    }
-  }
-
-  // 建立內規版本(更版)
-  const submitForCreateVersion = async (
-    _formattedValue,
-    modelId,
-    versionId,
-    navigation,
-    currentUserId
-  ) => {
-    // console.log(modelId, '=modelId=');
-    // console.log(JSON.stringify(_formattedValue), '_formattedValue--');
-    const _data = S_GuidelineVersionAdmin.formattedDataForCreateVersion(_formattedValue, currentUserId)
-    // console.log(JSON.stringify(_data), 'formattedDataForCreateVersion');
-    try {
-      const res = await S_GuidelineVersionAdmin.create({
-        data: {
-          ..._data,
-          guideline: modelId
-        }
-      })
-      if (res) {
-        // console.log(res,'res---');
-        navigation.replace('RoutesAct', {
-          screen: 'GuidelineAdminShow',
-          params: {
-            id: modelId
-          }
-        })
-      }
-    } catch (e) {
-      Alert.alert(t('內規更版異常'))
-      console.error(e.message, 'submitForCreateVersion')
-      navigation.navigate('GuidelineAdminIndex', {})
     }
   }
 
@@ -654,7 +640,7 @@ const RoutesPDFTool = () => {
 
         <StackSetting.Screen
           name="PDFToolAdminIndex"
-          component={scopeFilterScreen('meeting-read', PDFToolAdminIndex)}
+          component={scopeFilterScreen(['meeting-read', 'meeting-template-read'], PDFToolAdminIndex)}
           options={({ navigation }) => ({
             title: t('議事管理'),
             ...gOption.headerOption,

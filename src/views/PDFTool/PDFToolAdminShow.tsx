@@ -285,6 +285,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   const [addMotionModalVisible, setAddMotionModalVisible] = useState(false)
   const [popupDeleteMeetingVisible, setPopupDeleteMeetingVisible] = useState(false)
+  const [popupScheduleExportVisible, setPopupScheduleExportVisible] = useState(false)
 
   // 議事
   const [meeting, setMeeting] = useState<any>(null);
@@ -303,13 +304,53 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const [exportTitle, setExportTitle] = useState('')
   const [exportRemark, setExportRemark] = useState('')
   const [exportChecked, setExportChecked] = useState<{ [key: string]: boolean }>({})
+  const [exportShowPageNumber, setExportShowPageNumber] = useState(true)
+  const [exportShowWatermark, setExportShowWatermark] = useState(true)
   const [exportItems, setExportItems] = useState<ExportItem[]>([])
   const [isAgendaExportMode, setIsAgendaExportMode] = useState(false)
   const [exportRecordRefreshKey, setExportRecordRefreshKey] = useState(0)
+  const [scheduleExportLoading, setScheduleExportLoading] = useState(false)
 
   const resetExportForm = () => {
     setExportTitle('')
     setExportRemark('')
+    setExportShowPageNumber(true)
+    setExportShowWatermark(true)
+  }
+
+  const openScheduleExportModal = () => {
+    const agendaId = getTemplateExportId('agenda', meeting?.meeting_template)
+    setIsAgendaExportMode(true)
+    setExportChecked(agendaId ? { [agendaId]: true } : {})
+    setExportModalVisible(true)
+  }
+
+  const handleScheduleExportPress = async () => {
+    setIsBottomSheetActive(false)
+    setScheduleExportLoading(true)
+    const canExport = await ensureMeetingItemsReadyForExport()
+    if (!canExport) {
+      setScheduleExportLoading(false)
+      return
+    }
+    try {
+      const res = await S_MeetingExport.getLastSchedule({
+        params: { meetingId: meeting?.id },
+      })
+      console.log(res,'res--')
+      const list = res?.data ?? res ?? []
+      const hasExported = Array.isArray(list) && list.length > 0
+      if (hasExported) {
+        setPopupScheduleExportVisible(true)
+        return
+      }
+      openScheduleExportModal()
+    } catch (err) {
+      console.log('S_MeetingExport.getLastSchedule error', err)
+      openScheduleExportModal()
+    } finally {
+      setScheduleExportLoading(false)
+    }
   }
 
   // 模式：預設 / 排序
@@ -370,7 +411,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   )
 
   const ensureMeetingItemsReadyForExport = useCallback(async () => {
-    console.log('ensureMeetingItemsReadyForExport')
     if (!id) return true
 
     const getStatusValue = (value: any) =>
@@ -399,6 +439,8 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       const res = await S_MeetingItem.meetingIndexAll({
         params: {
           meetingId: id,
+          order_way: 'asc',
+          order_by: 'sequence',
         },
       })
       const data = res?.data ?? res
@@ -429,7 +471,9 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       try {
         const [groupRes, meetingItemsRes] = await Promise.all([
           S_MeetingItemGroup.index({ params: { meetingId: id } }),
-          S_MeetingItem.meetingIndexAll({ params: { meetingId: id } }),
+          S_MeetingItem.meetingIndexAll({
+            params: { meetingId: id, order_way: 'asc', order_by: 'sequence' }
+          }),
         ])
         if (!isMounted()) return
         const groupList = groupRes?.data ?? groupRes ?? []
@@ -460,7 +504,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         _defaultValue.meeting_date = moment.utc(_defaultValue.meeting_date).format('YYYY-MM-DD HH:mm')
       }
       const payload = JSON.stringify(_defaultValue)
-      console.log(payload, 'payload---')
       await AsyncStorage.setItem('PDFToolAdminUpdate', payload)
 
       const _defaultValue002 = S_Meeting.formattedMeetingForCopyCreate(meeting)
@@ -475,6 +518,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const $_setNavigationOption = () => {
     navigation.setOptions({
       headerRight: () => {
+        if (!canManageMeetingMenu) return null
         return (
           <WsFlex>
             <WsIconBtn
@@ -519,12 +563,17 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const canCreateMeetingExport =
     Array.isArray(currentUserScope) &&
     currentUserScope.includes('meeting-export-create')
+  const canReadMeetingExport =
+    Array.isArray(currentUserScope) &&
+    currentUserScope.includes('meeting-export-read')
   const canUpdateMeeting = (() => {
     if (!Array.isArray(currentUserScope)) return false
     if (currentUserScope.includes('meeting-update')) return true
     if (!currentUserScope.includes('meeting-update-owner')) return false
     return !!meeting?.owner?.id && meeting?.owner?.id === currentUser?.id
   })()
+  const canManageMeetingMenu =
+    canUpdateMeeting || canDeleteMeeting || canCreateMeetingExport
   const bottomSheetItems = useMemo(
     () => [
       canUpdateMeeting && {
@@ -562,15 +611,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       canCreateMeetingExport && {
         icon: 'ws-outline-logout',
         label: t('匯出時序表'),
-        onPress: async () => {
-          setIsBottomSheetActive(false)
-          const canExport = await ensureMeetingItemsReadyForExport()
-          if (!canExport) return
-          const agendaId = getTemplateExportId('agenda', meeting?.meeting_template)
-          setIsAgendaExportMode(true)
-          setExportChecked(agendaId ? { [agendaId]: true } : {})
-          setExportModalVisible(true)
-        },
+        onPress: handleScheduleExportPress,
       },
       canDeleteMeeting && {
         color: $color.danger,
@@ -587,6 +628,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       canDeleteMeeting,
       canUpdateMeeting,
       ensureMeetingItemsReadyForExport,
+      handleScheduleExportPress,
       id,
       meeting,
       t,
@@ -607,7 +649,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   }, [id])
 
   useEffect(() => {
-    console.log('S_MeetingTemplateType')
     let mounted = true
     const isMounted = () => mounted
     const fetchTemplateTypes = async () => {
@@ -656,12 +697,23 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const confirmDragSort = async (payload?: { meeting_item_groups: any[] }) => {
     if (payload && id) {
       console.log(id, 'id===')
-      console.log(JSON.stringify(payload), 'payloadpayload')
+      const pattern = meeting?.item_label_type?.value
+      const nextPayload = {
+        ...payload,
+        meeting_item_groups: (payload.meeting_item_groups ?? []).map(group => ({
+          ...group,
+          meeting_items: (group.meeting_items ?? []).map((item: any, index: number) => ({
+            ...item,
+            item_label: $_buildMeetingItemLabel(pattern, index + 1),
+          })),
+        })),
+      }
+      console.log(JSON.stringify(nextPayload), 'payloadpayload')
       try {
         await S_Meeting.updateSequence({
           modelId: id,
           data: {
-            meeting_item_groups: payload.meeting_item_groups ?? [],
+            meeting_item_groups: nextPayload.meeting_item_groups ?? [],
           },
         })
         setMeetingItemGroupRefreshKey(prev => prev + 1)
@@ -804,12 +856,13 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           modelId: editingMeetingItemGroup.id
         })
         : await S_MeetingItemGroup.create({ data: _params });
+        console.log(JSON.stringify(res),'$_submitMeetingItemGroup')
       setAddMotionGroupModalVisible(false)
       setEditingMeetingItemGroup(null)
       $_resetMeetingItemGroupForm()
       setMeetingItemGroupRefreshKey(prev => prev + 1)
     } catch (e) {
-
+      console.error(e,'error')
     }
   }
 
@@ -852,7 +905,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     () => [
       {
         value: 'meeting_info',
-        label: t('議事內容'),
+        label: t('資訊'),
         view: MeetingInfoTab,
         props: {
           meetingId: id,
@@ -878,7 +931,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           onOpenDeleteGroup: $_openDeleteMeetingItemGroup,
         },
       },
-      {
+      canReadMeetingExport && {
         value: 'export_record',
         label: t('匯出紀錄'),
         view: ExportRecordTab,
@@ -887,8 +940,9 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           refreshKey: exportRecordRefreshKey,
         },
       },
-    ],
+    ].filter(Boolean),
     [
+      canReadMeetingExport,
       t,
       mode,
       meeting,
@@ -1239,6 +1293,22 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   return (
     <>
+      {scheduleExportLoading && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            zIndex: 999,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <WsLoading />
+        </View>
+      )}
 
       {/* 2️⃣ TabView：位置就在地點資訊後 */}
       <WsTabView
@@ -1349,13 +1419,22 @@ const PDFToolAdminShow = ({ navigation, route }) => {
                     />
                   )
                 })()}
+                <CheckboxRow
+                  label={t('顯示頁碼')}
+                  checked={exportShowPageNumber}
+                  onChange={setExportShowPageNumber}
+                />
+                <CheckboxRow
+                  label={t('顯示浮水印')}
+                  checked={exportShowWatermark}
+                  onChange={setExportShowWatermark}
+                />
                 {exportItems.map(item => renderExportItem(item, 0))}
               </View>
             </>
           )}
         </ScrollView>
       </WsModal>
-
 
       {/* 4️⃣ 以下原本 Modal / Popup */}
       <WsPopup
@@ -1485,7 +1564,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
               zIndex: 999,
               justifyContent: 'center',
               alignItems: 'center',
-              // backgroundColor: 'rgba(0,0,0,0.2)',
             }}
           >
             <WsLoading />
@@ -1897,6 +1975,75 @@ const PDFToolAdminShow = ({ navigation, route }) => {
               onPress={() => {
                 $_deteleMeeting()
                 setPopupDeleteMeetingVisible(false)
+              }}
+            >
+              {t('確定')}
+            </WsGradientButton>
+          </WsFlex>
+        </View>
+      </WsPopup>
+
+      <WsPopup
+        active={popupScheduleExportVisible}
+        onClose={() => {
+          setPopupScheduleExportVisible(false)
+        }}
+      >
+        <View
+          style={{
+            width: width * 0.9,
+            minHeight: height * 0.22,
+            backgroundColor: $color.white,
+            borderRadius: 10,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <WsText
+            size={18}
+            color={$color.black}
+            style={{
+              position: 'absolute',
+              left: 16,
+              top: 16,
+            }}
+          >
+            {t('時序表已匯出過，要重新匯出嗎？')}
+          </WsText>
+          <WsFlex
+            style={{
+              position: 'absolute',
+              right: 16,
+              bottom: 16,
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 9,
+                borderWidth: 1,
+                borderColor: $color.gray,
+                borderRadius: 25,
+                alignItems: 'center',
+                width: 110,
+                height: 48,
+              }}
+              onPress={() => {
+                setPopupScheduleExportVisible(false)
+              }}
+            >
+              <WsText size={14} color={$color.gray}>
+                {t('取消')}
+              </WsText>
+            </TouchableOpacity>
+            <WsGradientButton
+              style={{
+                width: 110,
+              }}
+              onPress={() => {
+                setPopupScheduleExportVisible(false)
+                openScheduleExportModal()
               }}
             >
               {t('確定')}

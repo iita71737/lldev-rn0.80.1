@@ -269,6 +269,12 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   }
 
   const exportDisplayItems = React.useMemo(() => {
+    if (meetingExport?.type === 'schedule') {
+      return [{
+        id: 'schedule',
+        label: t('時序表'),
+      }]
+    }
     const meetingData = meetingDetail ?? meetingExport?.meeting ?? null
     if (!meetingData) return []
 
@@ -371,7 +377,9 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
       try {
         const [groupsRes, itemsRes] = await Promise.all([
           S_MeetingItemGroup.index({ params: { meetingId } }),
-          S_MeetingItem.meetingIndexAll({ params: { meetingId } }),
+          S_MeetingItem.meetingIndexAll({
+            params: { meetingId, order_way: 'asc', order_by: 'sequence' }
+          }),
         ])
         if (!isMounted()) return
         setMeetingItemGroups(groupsRes?.data ?? groupsRes ?? [])
@@ -432,6 +440,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   }
 
   const isExportItemChecked = (item: ExportDisplayItem): boolean => {
+    if (item.id === 'schedule') return true
     if (item.children && item.children.length > 0) {
       return item.children.every(child => isExportItemChecked(child))
     }

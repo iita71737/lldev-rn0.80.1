@@ -129,16 +129,15 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
       Alert.alert(t('資料載入中，請稍後再試'))
       return
     }
-    // 2) word fields 保底
+    // 2) word fields 由 meeting_template_items 整理取得
     let wf = wordFieldsRef.current || []
-    if (!wf.length && mt?.attach?.file?.id) {
-      const res2 = await S_File.getWordFields({
-        params: { file_id: mt.attach.file.id }
-      })
-      wf = normalizeWordFields(res2?.data ?? res2)
+    if (!wf.length) {
+      wf = normalizeWordFields(mt?.meeting_template_items ?? [])
       setWordFields(wf)
       wordFieldsRef.current = wf
     }
+    console.log(meetingTemplate,'meetingTemplatemeetingTemplatemeetingTemplate')
+    console.log(wf,'wfwfwf')
     // 3) attach / items 用 null 保底（避免 undefined 被 stringify 吃掉）
     const _file_attaches = {
       file: mt?.attach?.file ?? null,
@@ -170,6 +169,7 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
         )
       },
       headerRight: () => {
+        if (!canManageTemplateMenu) return null
         return (
           <>
             <WsIconBtn
@@ -214,13 +214,7 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
       }
       setMeetingTemplate(_template)
       if (res) {
-        console.log(res?.attach?.file?.id,'res?.attach?.file?.id')
-        const res2 = await S_File.getWordFields({
-          params: {
-            file_id: res?.attach?.file?.id
-          }
-        })
-        const fields = normalizeWordFields(res2?.data ?? res2)
+        const fields = normalizeWordFields(res?.meeting_template_items ?? [])
         setWordFields(fields)
       }
     } catch (e) {
@@ -238,6 +232,11 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
   const canDestroyTemplate =
     Array.isArray(currentUserScope) &&
     currentUserScope.includes('meeting-template-destroy')
+  const canCreateTemplate =
+    Array.isArray(currentUserScope) &&
+    currentUserScope.includes('meeting-template-create')
+  const canManageTemplateMenu =
+    canCreateTemplate || canUpdateTemplate || canDestroyTemplate
   const bottomSheetItems = React.useMemo(
     () => [
       canUpdateTemplate && {
@@ -498,6 +497,7 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
       <WsDialogDelete
         id={id}
         to="PDFToolAdminIndex"
+        toTabIndex={1}
         modelName="meeting_template"
         visible={dialogVisible}
         text={t('確定刪除嗎？')}

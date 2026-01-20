@@ -55,6 +55,16 @@ export default {
       }
     })
   },
+  async getLastSchedule({ params }) {
+    const meetingId = params?.meetingId ?? params?.meeting?.id ?? params?.meeting
+    return base.index({
+      modelName: `meeting/${meetingId}/meeting_export/last/schedule`,
+      params: {
+        ...params,
+        ...S_Processor.getFactoryParams()
+      }
+    })
+  },
   async createSchedule({ data }) {
     const meetingId = data?.meetingId ?? data?.meeting?.id ?? data?.meeting
     return base.create({

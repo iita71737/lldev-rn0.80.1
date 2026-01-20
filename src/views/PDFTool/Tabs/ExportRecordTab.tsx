@@ -3,6 +3,7 @@ import { View, TouchableOpacity, Linking, Alert, Dimensions } from 'react-native
 import moment from 'moment'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
+import { useSelector } from 'react-redux'
 import {
   WsPageIndex,
   WsCard,
@@ -26,6 +27,10 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
   const { width, height } = Dimensions.get('window')
   const { t } = useTranslation()
   const navigation = useNavigation<any>()
+  const currentUserScope = useSelector(state => state.data.userScopes)
+  const canUpdateMeetingExport =
+    Array.isArray(currentUserScope) &&
+    currentUserScope.includes('meeting-export-update')
 
   console.log(meeting?.id, 'meeting id')
 
@@ -191,19 +196,21 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
                   </WsFlex>
 
                   <WsFlex>
-                    <WsIconBtn
-                      padding={0}
-                      name="md-edit"
-                      size={24}
-                      color={$color.primary}
-                      style={{ top: -2 }}
-                      onPress={() => {
-                        setEditingRecord(item)
-                        setEditTitle(item?.name ?? '')
-                        setEditRemark(item?.remark ?? '')
-                        setEditModalVisible(true)
-                      }}
-                    />
+                    {canUpdateMeetingExport && (
+                      <WsIconBtn
+                        padding={0}
+                        name="md-edit"
+                        size={24}
+                        color={$color.primary}
+                        style={{ top: -2 }}
+                        onPress={() => {
+                          setEditingRecord(item)
+                          setEditTitle(item?.name ?? '')
+                          setEditRemark(item?.remark ?? '')
+                          setEditModalVisible(true)
+                        }}
+                      />
+                    )}
                     {(() => {
                       const status = String(item?.convert_status ?? '').toUpperCase()
                       const canDownload =

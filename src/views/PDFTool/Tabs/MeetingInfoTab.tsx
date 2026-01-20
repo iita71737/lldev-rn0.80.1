@@ -300,6 +300,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
         <View style={{ marginTop: 8 }}>
           {meetingItemTemplateName && (
             <WsInfo
+              labelWidth={100}
               type="link"
               label={`${t('提案單範本')} `}
               value={meetingItemTemplateName}
@@ -317,15 +318,16 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
               }}
             />
           )}
-          <WsInfo
+          {/* <WsInfo
             type="filesAndImages"
             value={meetingItemTemplateFiles}
-          />
+          /> */}
         </View>
 
         <View style={{ marginTop: 8 }}>
 
           <WsInfo
+            labelWidth={100}
             type="link"
             label={`${t('封面範本')} `}
             value={coverTemplateName}
@@ -344,14 +346,15 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
               }
             }}
           />
-          <WsInfo
+          {/* <WsInfo
             type="filesAndImages"
-            value={coverTemplateFiles} />
+            value={coverTemplateFiles} /> */}
         </View>
 
         <View style={{ marginTop: 8 }}>
           {meetingTemplateName && (
             <WsInfo
+              labelWidth={100}
               type="link"
               label={`${t('議程​範本​')} `}
               value={meetingTemplateName}
@@ -369,15 +372,16 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
               }}
             />
           )}
-          <WsInfo
+          {/* <WsInfo
             type="filesAndImages"
-            value={meetingTemplateFiles} />
+            value={meetingTemplateFiles} /> */}
         </View>
 
 
         <View style={{ marginTop: 8 }}>
           {contentsTemplateName && (
             <WsInfo
+              labelWidth={100}
               type="link"
               label={`${t('目錄​範本​')} `}
               value={contentsTemplateName}
@@ -395,9 +399,9 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
               }}
             />
           )}
-          <WsInfo
+          {/* <WsInfo
             type="filesAndImages"
-            value={contentsTemplateFiles} />
+            value={contentsTemplateFiles} /> */}
         </View>
 
         <View style={{ marginTop: 8 }}>
@@ -451,9 +455,12 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
           />
         </View>
 
-        <View style={{ marginTop: 8 }}>
-          <WsInfo type="tags" value={tags} />
-        </View>
+        {tags &&
+          tags.length > 0 && (
+            <View style={{ marginTop: 8 }}>
+              <WsInfo type="tags" value={tags} />
+            </View>
+          )}
 
         <View style={{ marginTop: 8 }}>
           <WsInfo labelWidth={100} value={remark} label={t('備註')} style={{ flexDirection: 'row' }} />

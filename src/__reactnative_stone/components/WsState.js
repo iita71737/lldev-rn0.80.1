@@ -864,6 +864,7 @@ const WsState = React.forwardRef((props, ref) => {
           orderCancelToken={orderCancelToken}
           desVisible={desVisible}
           exportAttachmentName={exportAttachmentName}
+          disabled={disabled}
         />
       )}
       {type == 'Ll_relatedAct' && (

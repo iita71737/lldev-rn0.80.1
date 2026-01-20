@@ -531,7 +531,8 @@ export default {
       url = `${endpoint}/${modelName}`
     }
     return new Promise(async (resolve, reject) => {
-      console.log(JSON.stringify(data),'data==')
+      console.log(url,'formData_url')
+      console.log(JSON.stringify(data),'formData_params')
       axios.post(url, data, {
         headers: {
           'Content-Type': 'multipart/form-data', // 260115-formdata-upload-issue

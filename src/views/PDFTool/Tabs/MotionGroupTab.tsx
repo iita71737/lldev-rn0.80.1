@@ -58,6 +58,11 @@ const normalizeMeetingItemsByGroup = (payload: any) => {
   const data = payload?.data ?? payload
   if (!Array.isArray(data)) return groupsMap
 
+  const sortBySequence = (items: any[]) =>
+    [...items].sort((a, b) =>
+      String(a?.sequence ?? '').localeCompare(String(b?.sequence ?? ''))
+    )
+
   const looksLikeGroup = (item: any) =>
     item?.meeting_items || item?.meetingItems || item?.articles
 
@@ -70,7 +75,8 @@ const normalizeMeetingItemsByGroup = (payload: any) => {
         group?.meetingItems ??
         group?.articles ??
         []
-      groupsMap[groupId] = Array.isArray(meetingItems) ? meetingItems : []
+      const list = Array.isArray(meetingItems) ? meetingItems : []
+      groupsMap[groupId] = sortBySequence(list)
     })
     return groupsMap
   }
@@ -84,6 +90,10 @@ const normalizeMeetingItemsByGroup = (payload: any) => {
     if (!groupId) return
     if (!groupsMap[groupId]) groupsMap[groupId] = []
     groupsMap[groupId].push(item)
+  })
+
+  Object.keys(groupsMap).forEach(groupId => {
+    groupsMap[groupId] = sortBySequence(groupsMap[groupId])
   })
 
   return groupsMap
@@ -152,6 +162,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
     }
   }
 
+
   useEffect(() => {
     if (!meeting?.id) {
       setLoading(false)
@@ -172,11 +183,17 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
     const fetchAllMeetingItems = async () => {
       setLoadingMeetingItems(true)
       try {
-        const results = await Promise.all(
-          meetingItemGroups.map(group =>
-            S_MeetingItem.index({ params: { meeting_item_group_id: group.id } })
+          const results = await Promise.all(
+            meetingItemGroups.map(group =>
+              S_MeetingItem.index({
+                params: {
+                  meeting_item_group_id: group.id,
+                  order_way: 'asc',
+                  order_by: 'sequence',
+                }
+              })
+            )
           )
-        )
         if (!mounted) return
         const nextMap: Record<string, any[]> = {}
         meetingItemGroups.forEach((group, index) => {
@@ -290,6 +307,8 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
           const res = await S_MeetingItem.meetingIndexAll({
             params: {
               meetingId: meeting.id,
+              order_way: 'asc',
+              order_by: 'sequence',
             }
           })
           if (!active) return
@@ -363,8 +382,12 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   }
 
   const toFlatItems = () => {
-    return meetingItemGroups.flatMap(group => {
-      const meetingItems =
+    // console.log(JSON.stringify(meetingItemGroups),'meetingItemGroups')
+    const orderedGroups = [...meetingItemGroups].sort((a: any, b: any) =>
+      String(a?.sequence ?? '').localeCompare(String(b?.sequence ?? ''))
+    )
+    return orderedGroups.flatMap(group => {
+      const meetingItemsRaw =
         meetingItemListByGroup[group.id] ??
         (Array.isArray((group as any).meeting_items)
           ? (group as any).meeting_items
@@ -372,7 +395,11 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
             ? (group as any).meetingItems
             : Array.isArray((group as any).articles)
               ? (group as any).articles
-              : [])
+              : []) ??
+        []
+      const meetingItems = [...meetingItemsRaw].sort((a: any, b: any) =>
+        String(a?.sequence ?? '').localeCompare(String(b?.sequence ?? ''))
+      )
       const groupItem = {
         id: group.id,
         name: group.name,
@@ -386,6 +413,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
       return [groupItem, ...itemEntries]
     })
   }
+  // console.log(toFlatItems(),'toFlatItemstoFlatItemstoFlatItems')
 
   const applyPayloadToGroups = (payload: { meeting_item_groups: any[] }) => {
     const payloadGroups = payload.meeting_item_groups || []

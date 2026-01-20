@@ -77,6 +77,19 @@ const WsDetectIdle002 = (props) => {
 
   // REDUX
   const currentIdleCounter = useSelector(state => state.data.idleCounter)
+  const currentViewMode = useSelector(state => state.data.currentViewMode)
+
+  const navigateToHome = useCallback(() => {
+    const target = currentViewMode === 'organization' ? 'RoutesOrganization' : 'RoutesFactory'
+    if (navigation?.reset) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: target }]
+      })
+      return
+    }
+    navigation.navigate(target)
+  }, [currentViewMode, navigation])
 
   // 閒置倒數器相關
   const initCount = 300 //初始秒數
@@ -284,6 +297,7 @@ const WsDetectIdle002 = (props) => {
           clearInterval(countdownInterval.current);
           countdownInterval.current = null;
           if (!countdownEnded && !alreadyLockedRef.current) {
+            navigateToHome()
             alreadyLockedRef.current = true;
             setCountdownEnded(true);
             setIdleAlertVisible(false);
@@ -345,6 +359,7 @@ const WsDetectIdle002 = (props) => {
           const updated = Math.max(prev - diffInSeconds, 0);
           // 如果倒數完了，跳轉至鎖定畫面
           if (updated === 0 && !countdownEnded && !alreadyLockedRef.current) {
+            navigateToHome()
             alreadyLockedRef.current = true;
             setCountdownEnded(true);
             setIdleAlertVisible(false);
@@ -527,4 +542,3 @@ const WsDetectIdle002 = (props) => {
 }
 
 export default WsDetectIdle002
-

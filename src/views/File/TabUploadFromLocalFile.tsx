@@ -92,26 +92,38 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
   // FUNC
   const $_submit = async () => {
     setOnSubmitLoading(true)
-    const fileName = S_Wasa.getFileNameFromUrl(selectedFile)
-    const fileType = getFileExtension(selectedFile)
+    const rawUri =
+      typeof selectedFile === 'string'
+        ? selectedFile
+        : selectedFile?.uri
+    if (!rawUri) {
+      setOnSubmitLoading(false)
+      return
+    }
+    const safeUri = rawUri.replace(/#/g, '%23')
+    const rawFileName = S_Wasa.getFileNameFromUrl(rawUri) || fileTitle || 'file'
+    const safeFileName = rawFileName.replace(/#/g, '_')
+    const fileType = getFileExtension(rawFileName)
     const mimeType = getMimeTypeFromExtension(fileType);
-    // console.log(mimeType,'mimeType---');
     const formData = new FormData();
+    console.log(rawUri,'rawUri')
     formData.append('factory', currentFactory.id);
     formData.append('module', modelName);
     formData.append('file', {
-      uri: selectedFile,
+      uri: rawUri, // 改用rawUri 因為這樣才讀得到原始Blob位置
       type: mimeType,
-      name: fileTitle,
+      name: safeFileName,
     });
     const _params = {
       formData: formData,
-      filename: `${fileName}`
+      filename: `${safeFileName}`
     }
-    console.log(JSON.stringify(_params),'_params_params_params')
+    // 已確認API會以檔名判斷File_Type類型
+    // console.log(safeFileName,'safeFileName') 
+    console.log(JSON.stringify(_params), '_params_params_params')
     try {
       const _storeSystemFile = await S_File.storeSystemFile({ params: _params })
-      // console.log(_storeSystemFile, '_storeSystemFile---');
+      // console.log(_storeSystemFile?.id, '_storeSystemFile id')
       const _formattedFile = {
         file: {
           ..._storeSystemFile
@@ -206,7 +218,7 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
                 placeholderTextColor={$color.gray}
                 value={fileTitle}
                 onChange={setFileTitle}
-                onSubmitEditing={() => Keyboard.dismiss()} 
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
 
               <WsState
@@ -215,6 +227,7 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
                 value={selectedFile}
                 onChange={setSelectedFile}
                 limitFileExtension={limitFileExtension}
+              // modelName={modelName} // 260120-issue-DO NOT USE IT
               />
 
               <WsFlex
@@ -232,7 +245,7 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
                     borderRadius: 25,
                     borderWidth: 1,
                     width: 110,
-                    height:48,
+                    height: 48,
                     justifyContent: 'center',
                     alignItems: 'center',
                     backgroundColor: $color.white

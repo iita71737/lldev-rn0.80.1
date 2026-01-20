@@ -39,4 +39,22 @@ export default {
       }
     })
   },
+  async getWordFields({ params }) {
+    return base.index({
+      modelName: `file_version/word_fields/${params?.file_version_id}`,
+      params: {
+        ...params,
+        ...S_Processor.getFactoryParams()
+      }
+    })
+  },
+  async getExcelFields({ params }) {
+    return base.index({
+      modelName: `file_version/xlsx_fields/${params?.file_version_id}`,
+      params: {
+        ...params,
+        ...S_Processor.getFactoryParams()
+      }
+    })
+  },
 }

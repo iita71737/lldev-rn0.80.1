@@ -161,7 +161,7 @@ const Menu = ({ navigation }) => {
         key: 'file',
         title: t('文件檔案庫'),
         bg: require('@/assets/img/file-store-management.jpg'),
-        perm: true,
+        perm: 'system-file-read',
         nav: () => navigation.navigate('RoutesApp', { screen: 'FileStore' }),
       },
       {
@@ -446,15 +446,15 @@ const Menu = ({ navigation }) => {
                   </>
                 )}
 
-              {scopePermission('guideline-admin-read', currentUserScope) &&
-                scopeSubscriptions(currentFactory, 'guideline') && (
+              {scopePermission('meeting-read', currentUserScope) &&
+                scopeSubscriptions(currentFactory, 'meeting') && (
                   <LlNavButton001
                     style={{
                       backgroundColor: $color.white
                     }}
                     iconLeft="ll-esh-file"
                     onPress={(e) => {
-                      if (!scopePermission('guideline-admin-read', currentUserScope)) {
+                      if (!scopePermission('meeting-read', currentUserScope)) {
                         Alert.alert(
                           t('您無此單位內相關權限，請聯絡系統管理員'),
                           "",
@@ -468,7 +468,7 @@ const Menu = ({ navigation }) => {
                           ]
                         )
                         e.preventDefault();
-                      } else if (scopePermission('guideline-admin-read', currentUserScope)) {
+                      } else if (scopePermission('meeting-read', currentUserScope)) {
                         navigation.navigate('RoutesPDFTool', { screen: 'PDFToolAdminIndex' })
                       }
                     }}>

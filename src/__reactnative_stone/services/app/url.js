@@ -11,7 +11,8 @@ export default {
       const hasExtension = fileNameWithoutParams.lastIndexOf('.') > 0;
       // 如果有副檔名，去掉副檔名，否則返回完整名稱
       if (hasExtension) {
-        return fileNameWithoutParams.substring(0, fileNameWithoutParams.lastIndexOf('.'));
+        // return fileNameWithoutParams.substring(0, fileNameWithoutParams.lastIndexOf('.'));
+        return fileNameWithoutParams; // 沒有副檔名，返回完整名稱
       } else {
         return fileNameWithoutParams; // 沒有副檔名，返回完整名稱
       }

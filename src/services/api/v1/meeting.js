@@ -49,15 +49,21 @@ export default {
     return _user_factory_role_templates
   },
   formattedForFileStore(attaches) {
-    return attaches.map(item => {
-      const newItem = {
-        file: item.file.id
-      };
-      if (item.file_version) {
-        newItem.file_version = item.file_version.id;
-      }
-      return newItem;
-    });
+    if (!Array.isArray(attaches)) return [];
+    return attaches
+      .map(item => {
+        const fileId = item?.file?.id ?? item?.file ?? null;
+        if (!fileId) return null;
+        const fileVersionId =
+          item?.file?.last_version?.id ??
+          item?.file_version?.id ??
+          item?.file_version ??
+          null;
+        const payload = { file: fileId };
+        if (fileVersionId) payload.file_version = fileVersionId;
+        return payload;
+      })
+      .filter(Boolean);
   },
   formattedForSignInForm(input) {
     if (!input) return null;

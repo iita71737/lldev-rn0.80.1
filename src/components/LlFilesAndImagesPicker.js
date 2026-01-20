@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import LlFilesAndImagesPickerModal from '@/views/File/LlFilesAndImagesPickerModal'
 import S_File from '@/services/api/v1/file'
+import S_FileVersion from '@/services/api/v1/file_version'
 import DraggableFlatList from 'react-native-draggable-flatlist'
 import { useSelector } from 'react-redux'
 
@@ -49,7 +50,8 @@ const LlFilesAndImagesPicker = props => {
     orderMode = 'default',
     orderConfirmToken,
     orderCancelToken,
-    exportAttachmentName
+    exportAttachmentName,
+    disabled
   } = props
 
   // redux
@@ -178,18 +180,29 @@ const LlFilesAndImagesPicker = props => {
   }, [value, modelName, normalizeWordFields])
 
   // ✅ 抽共用：抓 word fields + 初始化 UI（local/fileStore/other 都用）
-  const fetchAndInitMeetingTemplateWordFields = useCallback(async (fileId) => {
-    if (!fileId) return
+  const fetchAndInitMeetingTemplateWordFields = useCallback(async (fileVersionId, fileType, fileId) => {
+    if (!fileVersionId) return
     try {
       console.log(fileId, '=fileId=')
-      const res = await S_File.getWordFields({ params: { file_id: fileId } })
+      console.log(fileVersionId, '=fileVersionId=')
+      const normalizedType = String(fileType || '').toLowerCase()
+      console.log(normalizedType, '=normalizedType=')
+      let res = null
+      if (normalizedType === 'xlsx') {
+        res = await S_FileVersion.getExcelFields({ params: { file_version_id: fileVersionId } })
+      } else if (normalizedType === 'doc' || normalizedType === 'docx' || !normalizedType) {
+        res = await S_FileVersion.getWordFields({ params: { file_version_id: fileVersionId } })
+      } else {
+        return
+      }
+      // console.log(res, 'res--')
       const fields = normalizeWordFields(res?.data ?? res)
       const prevFields = Array.isArray(wordFields) ? wordFields : []
       const prevNameByValue = new Map(
         prevFields.map(item => [item?.value, item?.name ?? ''])
       )
 
-      wordFieldsFileIdRef.current = fileId
+      wordFieldsFileIdRef.current = fileId ?? fileVersionId
       lastCommittedSigRef.current = {}
       didInitFromValueRef.current = true // 進入上傳後就不再用 value 初始化蓋掉使用者編輯
 
@@ -375,7 +388,9 @@ const LlFilesAndImagesPicker = props => {
   const onUploadFromLocalComplete = async (file) => {
     if (modelName === 'meeting_template') {
       const fileId = file?.id || file?.file?.id
-      await fetchAndInitMeetingTemplateWordFields(fileId)
+      const fileVersionId = file?.file?.last_version?.id
+      const fileType = file?.file_type || file?.file?.file_type
+      await fetchAndInitMeetingTemplateWordFields(fileVersionId, fileType, fileId)
     }
 
     if (!oneFile) {
@@ -400,6 +415,7 @@ const LlFilesAndImagesPicker = props => {
     }).filter(Boolean)
 
     let pickedFileId = null
+    let pickedFileType = null
 
     if (!oneFile) {
       const _value = value ? [...value] : []
@@ -410,13 +426,21 @@ const LlFilesAndImagesPicker = props => {
       onChange(updated)
 
       pickedFileId = newFiles?.[0]?.file?.id ?? null
+      pickedFileType =
+        newFiles?.[0]?.file_version?.file_type ??
+        newFiles?.[0]?.file?.file_type ??
+        null
     } else {
       onChange(toUrls)
       pickedFileId = toUrls?.[0]?.file?.id ?? null
+      pickedFileType =
+        toUrls?.[0]?.file_version?.file_type ??
+        toUrls?.[0]?.file?.file_type ??
+        null
     }
 
     if (modelName === 'meeting_template' && pickedFileId) {
-      await fetchAndInitMeetingTemplateWordFields(pickedFileId)
+      await fetchAndInitMeetingTemplateWordFields(pickedFileId, pickedFileType, pickedFileId)
     }
   }
 
@@ -433,6 +457,7 @@ const LlFilesAndImagesPicker = props => {
     }).filter(Boolean)
 
     let pickedFileId = null
+    let pickedFileType = null
 
     if (!oneFile) {
       const _value = value ? [...value] : []
@@ -443,13 +468,21 @@ const LlFilesAndImagesPicker = props => {
       onChange(updated)
 
       pickedFileId = newFiles?.[0]?.file?.id ?? null
+      pickedFileType =
+        newFiles?.[0]?.file_version?.file_type ??
+        newFiles?.[0]?.file?.file_type ??
+        null
     } else {
       onChange(toUrls)
       pickedFileId = toUrls?.[0]?.file?.id ?? null
+      pickedFileType =
+        toUrls?.[0]?.file_version?.file_type ??
+        toUrls?.[0]?.file?.file_type ??
+        null
     }
 
     if (modelName === 'meeting_template' && pickedFileId) {
-      await fetchAndInitMeetingTemplateWordFields(pickedFileId)
+      await fetchAndInitMeetingTemplateWordFields(pickedFileId, pickedFileType, pickedFileId)
     }
   }
 
@@ -635,6 +668,7 @@ const LlFilesAndImagesPicker = props => {
             testID={testID}
             onPress={() => setVisible(true)}
             icon={uploadBtnIcon}
+            disabled={disabled}
           >
             {uploadBtnText ? uploadBtnText : t('上傳')}
           </WsUpdateBtn>
