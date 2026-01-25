@@ -306,6 +306,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const [exportChecked, setExportChecked] = useState<{ [key: string]: boolean }>({})
   const [exportShowPageNumber, setExportShowPageNumber] = useState(true)
   const [exportShowWatermark, setExportShowWatermark] = useState(true)
+  const [exportAttachmentPosition, setExportAttachmentPosition] = useState('item-attach-together')
   const [exportItems, setExportItems] = useState<ExportItem[]>([])
   const [isAgendaExportMode, setIsAgendaExportMode] = useState(false)
   const [exportRecordRefreshKey, setExportRecordRefreshKey] = useState(0)
@@ -316,6 +317,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     setExportRemark('')
     setExportShowPageNumber(true)
     setExportShowWatermark(true)
+    setExportAttachmentPosition('followingMeetingItem')
   }
 
   const openScheduleExportModal = () => {
@@ -337,7 +339,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       const res = await S_MeetingExport.getLastSchedule({
         params: { meetingId: meeting?.id },
       })
-      console.log(res,'res--')
+      console.log(res, 'res--')
       const list = res?.data ?? res ?? []
       const hasExported = Array.isArray(list) && list.length > 0
       if (hasExported) {
@@ -356,7 +358,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   // 模式：預設 / 排序
   const [mode, setMode] = useState<'default' | 'dragSort'>('default')
 
-  const getTemplateExportId = (type: 'cover' | 'contents' | 'agenda', template: any) => {
+  const getTemplateExportId = (type: 'cover' | 'contents' | 'agenda' | 'attach_cover', template: any) => {
     const id = template?.id ?? template
     if (!id) return null
     return `${type}_template:${id}`
@@ -365,6 +367,20 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const buildExportItems = useCallback(
     (meetingData: any, groupList: any[], itemsByGroup: Record<string, any[]>) => {
       const items: ExportItem[] = []
+
+      const attachCoverId = getTemplateExportId('attach_cover', meetingData?.attach_cover_template)
+      if (attachCoverId) {
+        const attachCoverSubLabel =
+          meetingData?.attach_cover_template?.name ??
+          meetingData?.attach_cover_template?.attach?.file?.name ??
+          meetingData?.attach_cover_template?.attach?.file_version?.name ??
+          ''
+        items.push({
+          id: attachCoverId,
+          label: t('附件封面範本'),
+          subLabel: attachCoverSubLabel || undefined,
+        })
+      }
 
       const coverId = getTemplateExportId('cover', meetingData?.cover_template)
       if (coverId) {
@@ -856,13 +872,13 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           modelId: editingMeetingItemGroup.id
         })
         : await S_MeetingItemGroup.create({ data: _params });
-        console.log(JSON.stringify(res),'$_submitMeetingItemGroup')
+      console.log(JSON.stringify(res), '$_submitMeetingItemGroup')
       setAddMotionGroupModalVisible(false)
       setEditingMeetingItemGroup(null)
       $_resetMeetingItemGroupForm()
       setMeetingItemGroupRefreshKey(prev => prev + 1)
     } catch (e) {
-      console.error(e,'error')
+      console.error(e, 'error')
     }
   }
 
@@ -1266,6 +1282,15 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           })
         }
       }
+      if (exportId.startsWith('attach_cover_template:')) {
+        const itemName = nameById.get(exportId)
+        acc.push({
+          module: 'attach_cover_template',
+          factory: currentFactory?.id,
+          attach_cover_template: exportAttachmentPosition,
+          name: itemName,
+        })
+      }
       return acc
     }, [])
 
@@ -1274,6 +1299,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       type: 'meeting',
       name: exportTitle,
       remark: exportRemark,
+      attach_location_type: exportAttachmentPosition,
       meeting_export_items: meetingExportItems,
     }
   }
@@ -1284,7 +1310,8 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     return (
       key.startsWith('meeting_item:') ||
       key.startsWith('cover_template:') ||
-      key.startsWith('contents_template:')
+      key.startsWith('contents_template:') ||
+      key.startsWith('attach_cover_template:')
     )
   })
   const canSubmitExport = isAgendaExportMode
@@ -1351,6 +1378,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
                   meeting_id: meeting?.id,
                   name: exportTitle,
                   remark: exportRemark,
+                  attach_location_type: exportAttachmentPosition,
                 },
               })
             } else {
@@ -1399,11 +1427,25 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             onChange={val => setExportRemark(val)}
           />
 
+          <WsState
+            type={"radio"}
+            label={t('附件位置')}
+            items={[
+              { label: t('隨附於各議案後'), value: 'item-attach-together' },
+              { label: t('集中於議程末尾'), value: 'item-attach-seperate' },
+            ]}
+            value={exportAttachmentPosition}
+            onChange={val => setExportAttachmentPosition(val)}
+            style={{
+              marginTop: 16,
+            }}
+          ></WsState>
+
           {isAgendaExportMode ? null : (
             <>
               {/* 匯出範圍標題 */}
               <View style={{ marginTop: 12 }}>
-                <WsText size={16}>{t('匯出範圍')}</WsText>
+                <WsText size={14} fontWeight='600'>{t('匯出範圍')}</WsText>
               </View>
 
               {/* 匯出範圍樹狀 checkbox */}
@@ -1419,16 +1461,16 @@ const PDFToolAdminShow = ({ navigation, route }) => {
                     />
                   )
                 })()}
-                <CheckboxRow
+                {/* <CheckboxRow
                   label={t('顯示頁碼')}
                   checked={exportShowPageNumber}
                   onChange={setExportShowPageNumber}
-                />
-                <CheckboxRow
+                /> */}
+                {/* <CheckboxRow
                   label={t('顯示浮水印')}
                   checked={exportShowWatermark}
                   onChange={setExportShowWatermark}
-                />
+                /> */}
                 {exportItems.map(item => renderExportItem(item, 0))}
               </View>
             </>

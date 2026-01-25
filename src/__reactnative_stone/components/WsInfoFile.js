@@ -101,7 +101,6 @@ const WsInfoFile = props => {
     if (obj?.file?.file_type) return String(obj.file.file_type).toLowerCase()
     const t1 = obj?.file_version?.file_type || obj?.file_type
     const t2 = getNameExtension(obj?.file_version?.name) || getNameExtension(obj?.file?.name)
-    console.log((t1 || t2 || getUrlExtension(value) || '').toLowerCase(), 'QQQ')
     return (t1 || t2 || getUrlExtension(value) || '').toLowerCase()
   }
 

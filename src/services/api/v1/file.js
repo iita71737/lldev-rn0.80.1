@@ -22,9 +22,9 @@ export default {
     })
   },
   async storeSystemFile({ params }) {
-    const _filename = params.filename
+    // const _filename = encodeURIComponent(params.filename)
     return base.createWithFormData({
-      modelName: `file/store_system_file/${_filename}`,
+      modelName: `file/store_system_file/${params.filename}`,
       data: params.formData
     })
   },
@@ -84,6 +84,7 @@ export default {
     return _fieldsValue
   },
   async create({ params }) {
+    console.log('File store')
     return base.create({
       modelName: `file`,
       data: {

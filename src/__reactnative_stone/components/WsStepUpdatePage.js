@@ -145,7 +145,6 @@ const WsStepUpdatePage = ({ navigation, route }) => {
       })
     } else {
       const _formattedValue = S_Wasa.getPostData(fields, value)
-      console.log(_formattedValue,'_formattedValue---')
       if (submitFunction) {
         setLoading(true)
         submitFunction(

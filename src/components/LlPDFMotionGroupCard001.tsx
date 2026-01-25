@@ -65,6 +65,7 @@ type Props = {
   onPressEditGroup?: (group: Group) => void;
   onPressDeleteGroup?: (group: Group) => void;
   onPressDeleteMeetingItem?: (group: Group, meetingItem: Motion) => void;
+  onRequestMeetingItemsAll?: () => void;
   refreshKey?: number;
   meeting?: any;
   meetingItemListByGroupExternal?: Record<string, Motion[]>;
@@ -80,6 +81,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   onPressEditGroup,
   onPressDeleteGroup,
   onPressDeleteMeetingItem,
+  onRequestMeetingItemsAll,
   refreshKey,
   meeting,
   meetingItemListByGroupExternal,
@@ -299,6 +301,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
       if (updateProposalGroupId) {
         await fetchMeetingItemList(updateProposalGroupId)
       }
+      onRequestMeetingItemsAll?.()
       console.log(JSON.stringify(_res), 'S_MeetingItem update')
       Alert.alert(t('更新成功，伺服器正在處理中，請到匯出紀錄確認處理狀態'))
     } catch (e) {
@@ -1044,13 +1047,13 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     </View>
                   )}
 
-                  {isComplete && meetingItem?.convert_pdf_attach && (
+                  {isComplete && meetingItem?.convert_attach && (
                     <View style={{ marginTop: 8 }}>
                       <WsInfo
                         type={'filesAndImages'}
                         label={t('議案(DOCX)')}
                         labelColor={$color.gray}
-                        value={['test.docx']}
+                        value={[meetingItem?.convert_attach]}
                       />
                     </View>
                   )}

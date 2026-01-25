@@ -430,6 +430,7 @@ const WsStateFileOrImagePicker = props => {
       const pickTypes = $_buildPickTypes(normalizedExtensions)
       const response = await pick(pickTypes ? { type: pickTypes } : {})
       const file = response[0]
+      console.log(file,'original picker file')
       const ext = file.name?.split('.').pop()?.toLowerCase()
       let uri = file.uri
       let fileName = file.name

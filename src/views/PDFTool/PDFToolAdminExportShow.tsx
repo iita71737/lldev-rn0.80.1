@@ -257,8 +257,8 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
     if (value === 'FAILED') {
       return {
         label: t('處理失敗'),
-        backgroundColor: $color.danger,
-        textColor: $color.white,
+        backgroundColor: $color.danger11l,
+        textColor: $color.danger,
       }
     }
     return {

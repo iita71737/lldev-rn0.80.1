@@ -66,7 +66,6 @@ export default {
     })
   },
   async update({ modelId, data }) {
-    console.log(data, 'data--');
     return base.update({
       modelName: 'event',
       modelId: modelId,

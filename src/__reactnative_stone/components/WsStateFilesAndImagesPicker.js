@@ -345,6 +345,30 @@ const WsStateFilesAndImagesPicker = props => {
     return `${baseName}.${forceExt}`;
   };
 
+  const sanitizeFileName = (fileName) => {
+    if (!fileName || typeof fileName !== 'string') return fileName
+    return fileName.replace(/[#?%&/\\=$]/g, '')
+  }
+
+  const toFileUri = (uri) => {
+    if (!uri) return uri
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(uri)) return uri // file://, content://, http(s)://
+    if (uri.startsWith('/')) return `file://${uri}`
+    return uri
+  }
+
+  const copyToSafeTemp = async (rawUri, safeFileName) => {
+    const fileUri = toFileUri(rawUri)
+    if (Platform.OS !== 'ios') return fileUri
+    if (!fileUri?.startsWith('file://')) return fileUri
+
+    const rawPath = fileUri.replace('file://', '')
+    const srcPath = decodeURIComponent(rawPath)
+    const dstPath = `${RNFS.TemporaryDirectoryPath}/${Date.now()}_${safeFileName}`
+    await RNFS.copyFile(srcPath, dstPath)
+    return `file://${dstPath}`
+  }
+
   const $_onCameraPress = () => {
     if (Platform.OS === 'android') {
       $_onCameraPressForAndroid()
@@ -358,9 +382,19 @@ const WsStateFilesAndImagesPicker = props => {
   const $_onBrowsePress = async () => {
     try {
       const response = await pick({})
-      console.log(response, 'response---')
-      const _value = [...value]
+      console.log(response,'QAQ response')
+      const nextResponse = []
       for (const item of response) {
+        const safeName = sanitizeFileName(item?.name)
+        if (safeName && safeName !== item?.name) {
+          const safeUri = await copyToSafeTemp(item?.uri, safeName)
+          nextResponse.push({ ...item, name: safeName, uri: safeUri })
+        } else {
+          nextResponse.push(item)
+        }
+      }
+      const _value = Array.isArray(value) ? [...value] : []
+      for (const item of nextResponse) {
         await processResponse(item, _value);
       }
     } catch (err) {
@@ -424,7 +458,6 @@ const WsStateFilesAndImagesPicker = props => {
           return;
         }
       }
-      console.log(uri, 'uriQAQ')
       // 加入清單
       _value.push({
         lazyUri: uri,
@@ -679,6 +712,3 @@ const WsStateFilesAndImagesPicker = props => {
   )
 }
 export default WsStateFilesAndImagesPicker
-
-
-

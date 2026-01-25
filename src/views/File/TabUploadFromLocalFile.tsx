@@ -4,7 +4,8 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Modal,
-  Keyboard
+  Keyboard,
+  Platform
 } from 'react-native'
 import {
   WsText,
@@ -19,6 +20,7 @@ import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
 import S_Wasa from '@/__reactnative_stone/services/wasa'
 import S_File from '@/services/api/v1/file'
+import RNFS from 'react-native-fs'
 
 interface TabUploadFromFileStoreProps {
   remind?: string;
@@ -89,52 +91,81 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
     return mimeTypes[extension.toLowerCase()] || 'application/octet-stream'; // 找不到時給通用型
   };
 
+  // 上傳含有特殊字元的處理
+  const toFileUri = (uri) => {
+    if (!uri) return uri
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(uri)) return uri // file://, content://, http(s)://
+    if (uri.startsWith('/')) return `file://${uri}`
+    return uri
+  }
+
+  // 上傳含有特殊字元的處理002
+  const copyToSafeTemp = async (rawUri, safeFileName) => {
+    const fileUri = toFileUri(rawUri)
+    if (Platform.OS !== 'ios') return fileUri
+    if (!fileUri?.startsWith('file://')) return fileUri
+
+    const srcPath = fileUri.replace('file://', '')
+    const dstPath = `${RNFS.TemporaryDirectoryPath}/${Date.now()}_${safeFileName}`
+    await RNFS.copyFile(srcPath, dstPath)
+    return `file://${dstPath}`
+  }
+
   // FUNC
   const $_submit = async () => {
-    setOnSubmitLoading(true)
+    setOnSubmitLoading(true) // 測試API問題時可以先關閉
     const rawUri =
       typeof selectedFile === 'string'
         ? selectedFile
         : selectedFile?.uri
-    if (!rawUri) {
-      setOnSubmitLoading(false)
-      return
-    }
-    const safeUri = rawUri.replace(/#/g, '%23')
-    const rawFileName = S_Wasa.getFileNameFromUrl(rawUri) || fileTitle || 'file'
-    const safeFileName = rawFileName.replace(/#/g, '_')
-    const fileType = getFileExtension(rawFileName)
-    const mimeType = getMimeTypeFromExtension(fileType);
-    const formData = new FormData();
-    console.log(rawUri,'rawUri')
-    formData.append('factory', currentFactory.id);
-    formData.append('module', modelName);
+
+    if (!rawUri) return
+
+    // ✅ filename 優先用 picker 回來的 name（避免 rawUri 內 #/% 影響解析）
+    const originalName =
+      (typeof selectedFile === 'object' && selectedFile?.name)
+        ? selectedFile.name
+        : (S_Wasa.getFileNameFromUrl(rawUri) || fileTitle || 'file')
+
+    const safeFileName = String(originalName ?? '')
+      .trim()
+      .replace(/[^\p{L}\p{N}._-]+/gu, '') // 260123-issue-特殊字元拔掉
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '')
+
+    const fileType = getFileExtension(originalName)
+    const mimeType = getMimeTypeFromExtension(fileType)
+
+    // ✅ 先 copy 成安全檔名，再用新 uri 上傳
+    const uploadUri = await copyToSafeTemp(rawUri, safeFileName)
+
+    const formData = new FormData()
+    formData.append('factory', currentFactory.id)
+    formData.append('module', modelName)
     formData.append('file', {
-      uri: rawUri, // 改用rawUri 因為這樣才讀得到原始Blob位置
+      uri: uploadUri,
+      // uri: rawUri, // 260123-issue-特殊字元-upload-改用 safe uri
       type: mimeType,
-      name: safeFileName,
-    });
+      // name: safeFileName,
+      name: originalName
+    })
+
     const _params = {
-      formData: formData,
-      filename: `${safeFileName}`
+      formData,
+      filename: safeFileName
     }
-    // 已確認API會以檔名判斷File_Type類型
-    // console.log(safeFileName,'safeFileName') 
-    console.log(JSON.stringify(_params), '_params_params_params')
+
+    console.log(JSON.stringify(_params), 'storeSystemFile_params')
+
     try {
       const _storeSystemFile = await S_File.storeSystemFile({ params: _params })
-      // console.log(_storeSystemFile?.id, '_storeSystemFile id')
-      const _formattedFile = {
-        file: {
-          ..._storeSystemFile
-        }
-      }
-      onUploadComplete(_formattedFile)
+      onUploadComplete({ file: { ..._storeSystemFile } })
       onClose()
     } catch (e) {
-      console.error(e);
+      console.error(e)
+    } finally {
+      setOnSubmitLoading(false)
     }
-    setOnSubmitLoading(false)
   }
 
   useEffect(() => {

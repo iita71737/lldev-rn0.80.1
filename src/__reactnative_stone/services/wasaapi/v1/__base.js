@@ -531,8 +531,8 @@ export default {
       url = `${endpoint}/${modelName}`
     }
     return new Promise(async (resolve, reject) => {
-      console.log(url,'formData_url')
-      console.log(JSON.stringify(data),'formData_params')
+      // console.log(url,'formData_url')
+      // console.log(JSON.stringify(data),'formData_params')
       axios.post(url, data, {
         headers: {
           'Content-Type': 'multipart/form-data', // 260115-formdata-upload-issue
@@ -542,6 +542,7 @@ export default {
           resolve(res.data.data);
         })
         .catch(err => {
+          console.error(err)
           reject(err);
         });
     });

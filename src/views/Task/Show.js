@@ -1585,15 +1585,12 @@ const TaskShow = ({ navigation, route }) => {
                                   }
                                 }
                                 else {
-                                  console.log('2222QAQ');
                                   if (item.from_module) {
-                                    console.log('33333QAQ');
                                     $_getRedirectFactory(item?.factoryId, item)
                                   } else {
                                     openURL(item?.url)
                                   }
                                 }
-                                console.log('111111');
                                 setPopupActive003(false)
                               } catch (e) {
                                 console.error(e, 'e');

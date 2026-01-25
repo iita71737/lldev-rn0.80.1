@@ -5,9 +5,11 @@ import { useTranslation } from 'react-i18next'
 import ViewDashboardLicenseExpiredList from '@/views/DashboardFactory/LicenseExpiredList'
 import ViewDashboardAlertList from '@/views/DashboardFactory/AlertList'
 import ViewDashboardTaskList from '@/views/DashboardFactory/TaskList'
+import { useNavigation } from '@react-navigation/native'
 
-const DashboardTaskListTab = (props, { navigation, route }) => {
+const DashboardTaskListTab = (props) => {
   const { t, i18n } = useTranslation()
+  const navigation = useNavigation()
 
   // PROPS
   const { systemClass, type } = props.route.params

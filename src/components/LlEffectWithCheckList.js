@@ -20,7 +20,6 @@ const LlEffectWithCheckListRisk = props => {
 
   // State
   const [data, setDate] = React.useState()
-  // console.log(JSON.stringify(data),'data---');
 
   // Function
   const $_setItem = itemIndex => {

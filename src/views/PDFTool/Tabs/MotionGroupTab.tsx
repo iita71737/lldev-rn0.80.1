@@ -121,9 +121,14 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   const [meetingItemListByGroup, setMeetingItemListByGroup] = useState<Record<string, any[]>>({})
   const [meetingItemStatusByGroup, setMeetingItemStatusByGroup] = useState<Record<string, any[]>>({})
   const [loadingMeetingItems, setLoadingMeetingItems] = useState(false)
+  const [meetingItemsAllRefreshKey, setMeetingItemsAllRefreshKey] = useState(0)
   const draggableListRef = useRef<PDFToolDraggableListRef | null>(null)
   const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const didFinalRefreshRef = useRef(false)
+
+  const requestMeetingItemsAllRefresh = useCallback(() => {
+    setMeetingItemsAllRefreshKey(prev => prev + 1)
+  }, [])
 
   const meetingItemsSignature = useMemo(() => {
     const parts: string[] = []
@@ -370,7 +375,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
           pollingTimerRef.current = null
         }
       }
-    }, [meeting?.id, meetingItemGroups.length, meetingItemsSignature, mode])
+    }, [meeting?.id, meetingItemGroups.length, meetingItemsSignature, mode, meetingItemsAllRefreshKey])
   )
 
   if (loading) {
@@ -524,6 +529,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
             meeting={meeting}
             refreshKey={refreshKey}
             meetingItemListByGroupExternal={meetingItemStatusByGroup}
+            onRequestMeetingItemsAll={requestMeetingItemsAllRefresh}
             onPressAddGroup={onOpenAddMotion}
             onPressEditGroup={onOpenEditGroup}
             onPressDeleteMeetingItem={onOpenDeleteMeetingItem}

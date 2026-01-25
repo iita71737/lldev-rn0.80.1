@@ -48,9 +48,6 @@ const WsStateFileItem = props => {
 
   // State
   const [uploadProgress, setUploadProgress] = React.useState(0)
-  const uploadFileName = typeof fileName === 'string'
-    ? fileName.replace(/#/g, '_')
-    : fileName
 
   // Function
   const $_getFileName = () => {
@@ -90,50 +87,21 @@ const WsStateFileItem = props => {
     return extension;
   };
 
-  // helper
-  const getUploadablePath = async (lazyUri) => {
-    if (!lazyUri) return null;
-    try {
-      if (Platform.OS === 'android' && lazyUri.startsWith('content://')) {
-        const stat = await RNBlobUtil.fs.stat(lazyUri);
-        return stat.path; // ✅ 真實路徑
-      } else if (Platform.OS === 'android' && lazyUri.startsWith('file://')) {
-        return lazyUri.replace('file://', '');
-      } else if (Platform.OS === 'ios') {
-        return decodeURIComponent(lazyUri.replace('file://', ''));
-      } else {
-        return lazyUri;
-      }
-    } catch (e) {
-      console.error('getUploadablePath failed:', e);
-      return null;
-    }
-  };
-
-  const replaceHashInFilename = (path: string) => {
-    if (!path) return path
-    const idx = path.lastIndexOf('/')
-    if (idx === -1) return path.replace(/#/g, '_') // fallback
-    const dir = path.slice(0, idx + 1)
-    const filename = path.slice(idx + 1)
-    return dir + filename.replace(/#/g, '_')
-  }
-
 
   const $_uploadStart = async () => {
     // 先取得實體路徑
     if (!uploadToFileStore) {
-      console.log('status A')
       let uri = Platform.OS === 'android'
         ? lazyUri
         : decodeURIComponent(lazyUri.replace('file://', '').replace('file://', ''));
 
       const token = await S_Keychain.getToken();
       const _uploadUrl = uploadUrl && uploadSuffix
-        ? `${uploadUrl}/${encodeURI(uploadFileName)}?${uploadSuffix}`
-        : `general_file/${encodeURI(uploadFileName)}`;
 
-      console.log(_uploadUrl, '_uploadUrl status A')
+        ? `${uploadUrl}/${encodeURIComponent(fileName)}?${uploadSuffix}`
+        : `${uploadUrl}/${encodeURIComponent(fileName)}`;
+
+      console.log(`${endpoint}/${_uploadUrl}`, '_uploadUrl status A')
 
       try {
         const res = await RNBlobUtil.fetch(
@@ -157,7 +125,6 @@ const WsStateFileItem = props => {
         } else {
           console.log(uri, 'state A3')
           throw new Error(`Upload failed with status: ${status}`);
-          // onUploadComplete(uri);
         }
       } catch (err) {
         console.log(err.message, 'state A4 error');
@@ -174,7 +141,8 @@ const WsStateFileItem = props => {
         factory: currentFactory.id
       }
       const queryString = new URLSearchParams(_params).toString();
-      const _uploadUrl = `general_file/${encodeURI(uploadFileName)}?${queryString}`
+      console.log(fileName,'fileName AAA')
+      const _uploadUrl = `general_file/${encodeURIComponent(fileName)}?${queryString}` // 260123-filepath-issue
 
       console.log(_uploadUrl, '_uploadUrl status B')
 
@@ -187,20 +155,23 @@ const WsStateFileItem = props => {
           },
           RNBlobUtil.wrap(uri)
         );
+        console.log(res.json(), 'res.json()---')
+        
         let status = res.info().status;
-        console.log(status, 'RNBlobUtil status')
         if (status === 200 && modelName) {
           console.log('status B1')
           let json = res.json();
           const _params = {
-            name: uploadFileName,
+            name: fileName,
             file_type: getFileExtensionFromUrl(json.signed_url),
             source_url: json.signed_url,
             factory: currentFactory.id,
             module: modelName
           }
+          console.log(_params, 'storeSystem_params')
           try {
             const _storeSystem = await S_File.storeSystem({ params: _params })
+            console.log(_storeSystem?.source_url, '_storeSystem.source_url')
             const _formattedPostData = {
               file: {
                 id: _storeSystem.id,
@@ -222,7 +193,7 @@ const WsStateFileItem = props => {
           // 230816 新上传方式
           let json = res.json();
           const _params = {
-            name: uploadFileName,
+            name: fileName,
             file_type: getFileExtensionFromUrl(json.signed_url),
             source_url: json.signed_url,
             factory: currentFactory.id,
@@ -256,6 +227,7 @@ const WsStateFileItem = props => {
         }
       } catch (err) {
         console.log(err.message, 'error');
+        console.log(uri, 'onUploadComplete(uri)')
         onUploadComplete(uri);
       }
     }

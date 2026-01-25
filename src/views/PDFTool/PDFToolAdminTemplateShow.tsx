@@ -133,17 +133,23 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
     let wf = wordFieldsRef.current || []
     if (!wf.length) {
       wf = normalizeWordFields(mt?.meeting_template_items ?? [])
+      console.log(wf,'wf--')
       setWordFields(wf)
       wordFieldsRef.current = wf
     }
-    console.log(meetingTemplate,'meetingTemplatemeetingTemplatemeetingTemplate')
-    console.log(wf,'wfwfwf')
+    // console.log(meetingTemplate,'meetingTemplatemeetingTemplatemeetingTemplate')
     // 3) attach / items 用 null 保底（避免 undefined 被 stringify 吃掉）
+    const meetingTemplateItems = (mt?.meeting_template_items ?? []).map((item, index) => {
+      if (!item || typeof item !== 'object') return item
+      const sequence = String(index + 1).padStart(4, '0')
+      return { ...item, sequence }
+    })
+    console.log(JSON.stringify(meetingTemplateItems),'meetingTemplateItems')
     const _file_attaches = {
       file: mt?.attach?.file ?? null,
       file_version: mt?.attach?.file_version ?? null,
       word_fields: wf ?? [],
-      meeting_template_items: mt?.meeting_template_items ?? [],
+      meeting_template_items: meetingTemplateItems,
     }
     const _meetingTemplate = {
       ...mt,

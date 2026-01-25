@@ -164,13 +164,13 @@ const Menu = ({ navigation }) => {
         perm: 'system-file-read',
         nav: () => navigation.navigate('RoutesApp', { screen: 'FileStore' }),
       },
-      {
-        key: 'factory-statistic',
-        title: t('數量統計管理'),
-        bg: require('@/assets/img/audit-management.jpg'),
-        perm: true,
-        nav: () => navigation.push('RoutesStatistics', { screen: 'StatisticsIndex' }),
-      },
+      // {
+      //   key: 'factory-statistic',
+      //   title: t('數量統計管理'),
+      //   bg: require('@/assets/img/audit-management.jpg'),
+      //   perm: true,
+      //   nav: () => navigation.push('RoutesStatistics', { screen: 'StatisticsIndex' }),
+      // },
     ]
 
     const list = FEATURE_CONFIG

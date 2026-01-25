@@ -181,13 +181,14 @@ export default {
         : null,
       // ===== 標記設定（核心）=====
       meeting_template_items: Array.isArray(fileAttach?.meeting_template_items)
-        ? fileAttach.meeting_template_items.map(item => ({
+        ? fileAttach.meeting_template_items.map((item, index) => ({
           // ⚠️ edit 時「有 id 就帶，沒有就不帶」
           ...(item.id ? { id: item.id } : {}),
 
           name: item?.name ?? null,
           value: item?.value ?? null,
-          sequence: item?.sequence ?? null,
+          // sequence: item?.sequence ?? String(index).padStart(4, '0'),
+          sequence: item?.sequence ?? undefined,
           meeting_template_field: this.getMeetingTemplateFieldId(item?.meeting_template_field),
           factory: item?.factory ?? factoryId ?? null,
         }))

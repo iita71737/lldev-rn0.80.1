@@ -60,7 +60,7 @@ const WsStateRadio = props => {
             flexWrap: 'wrap',
             // borderWidth:1,
           },
-          style,
+          // style, // 260123-issue-外層style不套用
           isError
             ? {
               borderRadius: 5,

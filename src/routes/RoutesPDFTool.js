@@ -90,6 +90,9 @@ const RoutesPDFTool = () => {
   const coverTemplateTypeId = Array.isArray(currentMeetingTemplateType)
     ? currentMeetingTemplateType.find(item => item?.value === 'cover')?.id
     : null
+  const attachCoverTypeId = Array.isArray(currentMeetingTemplateType)
+    ? currentMeetingTemplateType.find(item => item?.value === 'attach_cover')?.id
+    : null
 
   const fields = {
     name: {
@@ -101,6 +104,7 @@ const RoutesPDFTool = () => {
     chairperson: {
       label: t('主席'),
       placeholder: t('輸入'),
+      multiline: true,
     },
     meeting_date: {
       type: 'datetime',
@@ -184,6 +188,18 @@ const RoutesPDFTool = () => {
       hasMeta: false,
       params: {
         meeting_template_type: coverTemplateTypeId
+      }
+    },
+    attach_cover_template: {
+      type: 'belongsto',
+      label: t('附件封面範本'),
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'meeting_template',
+      serviceIndexKey: 'index',
+      hasMeta: false,
+      params: {
+        meeting_template_type: attachCoverTypeId
       }
     },
     item_label_type: {
@@ -344,7 +360,7 @@ const RoutesPDFTool = () => {
         return (
           <>
             <View style={{ marginHorizontal: 16, paddingBottom: 16 }}>
-              <WsText size={14} fontWeight="600" style={{  }}>
+              <WsText size={14} fontWeight="600" style={{}}>
                 {t('通用')}
               </WsText>
               <WsFlex flexWrap="wrap">
@@ -389,6 +405,11 @@ const RoutesPDFTool = () => {
           return true
         } else {
           return false
+        }
+      },
+      updateValueOnChange: (event, value, field, fields) => {
+        if (value?.file_attaches && value.file_attaches.length > 0) {
+          fields.file_attaches.disabled = false
         }
       },
       disabled: true,
@@ -512,7 +533,7 @@ const RoutesPDFTool = () => {
       }
     } catch (e) {
       Alert.alert(t('編輯議事異常'))
-      console.error(e.message, 'submitForEditNoVersion')
+      console.error(e.message, 'submitForEditMeeting')
       navigation.navigate('RoutesPDFTool', {
         screen: 'PDFToolAdminIndex'
       })
@@ -565,10 +586,10 @@ const RoutesPDFTool = () => {
     navigation,
     currentUserId
   ) => {
-    // console.log(JSON.stringify(_formattedValue), '_formattedValue--');
+    console.log(JSON.stringify(_formattedValue), '_formattedValue--');
     const _data = S_MeetingTemplate.formattedMeetingTemplateForEdit(_formattedValue, currentUserId)
-    // console.log(modelId, 'modelId')
-    // console.log(JSON.stringify(_data), 'S_GuidelineVersionAdmin.update');
+    console.log(modelId, 'modelId')
+    console.log(JSON.stringify(_data), 'S_GuidelineVersionAdmin.update');
     try {
       const res = await S_MeetingTemplate.update({
         modelId: modelId,
@@ -620,6 +641,7 @@ const RoutesPDFTool = () => {
             'meeting_template',
             'contents_template',
             'cover_template',
+            'attach_cover_template',
             'item_label_type',
             'factory_tags',
             'meeting_template_type',

@@ -3,9 +3,11 @@ import { WsTabView } from '@/components'
 import i18next from 'i18next'
 import { useTranslation } from 'react-i18next'
 import ViewDashboardChangeList from '@/views/DashboardFactory/ChangeList'
+import { useNavigation } from '@react-navigation/native'
 
-const DashboardChangeListTab = (props, { navigation, route }) => {
+const DashboardChangeListTab = (props) => {
   const { t, i18n } = useTranslation()
+  const navigation = useNavigation()
 
   // PROPS
   const { systemClass, type } = props.route.params

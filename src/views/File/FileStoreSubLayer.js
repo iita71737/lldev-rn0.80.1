@@ -60,8 +60,6 @@ const FileStoreSubLayer = ({ route }, props) => {
     folderScope,
   } = route.params
 
-  console.log(folderScope, 'folderScope')
-
   // 權限判斷
   const hasPermission = (folderScope = [], permission) => {
     if (Array.isArray(folderScope)) {

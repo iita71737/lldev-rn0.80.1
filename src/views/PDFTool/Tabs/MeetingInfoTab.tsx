@@ -197,6 +197,10 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
   const coverTemplateName = getTemplateName(meeting?.cover_template)
   const coverTemplateId = getTemplateId(meeting?.cover_template)
 
+  const attachCoverTemplateFiles = getTemplateFiles(meeting?.attach_cover_template?.attach)
+  const attachCoverTemplateName = getTemplateName(meeting?.attach_cover_template)
+  const attachCoverTemplateId = getTemplateId(meeting?.attach_cover_template)
+
   const toVariableItems = (items: any[]): EsGoalVariable[] =>
     (Array.isArray(items) ? items : [])
       .map((item: any) => {
@@ -272,7 +276,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
       >
         <View style={{ marginTop: 8 }}>
           <WsInfo
-            labelWidth={100}
+            labelWidth={120}
             style={{ flexDirection: 'row', alignItems: 'center' }}
             label={t('主席')}
             value={chairperson}
@@ -281,7 +285,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
 
         <View style={{ marginTop: 8 }}>
           <WsInfo
-            labelWidth={100}
+            labelWidth={120}
             style={{ flexDirection: 'row', alignItems: 'center' }}
             label={t('時間')}
             value={meetingDate}
@@ -290,7 +294,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
 
         <View style={{ marginTop: 8 }}>
           <WsInfo
-            labelWidth={100}
+            labelWidth={120}
             style={{ flexDirection: 'row', alignItems: 'center' }}
             label={t('地點')}
             value={location}
@@ -300,7 +304,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
         <View style={{ marginTop: 8 }}>
           {meetingItemTemplateName && (
             <WsInfo
-              labelWidth={100}
+              labelWidth={120}
               type="link"
               label={`${t('提案單範本')} `}
               value={meetingItemTemplateName}
@@ -327,7 +331,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
         <View style={{ marginTop: 8 }}>
 
           <WsInfo
-            labelWidth={100}
+            labelWidth={120}
             type="link"
             label={`${t('封面範本')} `}
             value={coverTemplateName}
@@ -352,9 +356,36 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
         </View>
 
         <View style={{ marginTop: 8 }}>
+          {attachCoverTemplateName && (
+            <WsInfo
+              labelWidth={120}
+              type="link"
+              label={`${t('附件封面範本')} `}
+              value={attachCoverTemplateName}
+              style={{
+                flexDirection: 'row'
+              }}
+              onPress={() => {
+                if (attachCoverTemplateName) {
+                  navigation.push('RoutesPDFTool', {
+                    screen: 'PDFToolAdminTemplateShow',
+                    params: {
+                      id: attachCoverTemplateId,
+                    }
+                  })
+                }
+              }}
+            />
+          )}
+          {/* <WsInfo
+            type="filesAndImages"
+            value={attachCoverTemplateFiles} /> */}
+        </View>
+
+        <View style={{ marginTop: 8 }}>
           {meetingTemplateName && (
             <WsInfo
-              labelWidth={100}
+              labelWidth={120}
               type="link"
               label={`${t('議程​範本​')} `}
               value={meetingTemplateName}
@@ -381,7 +412,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
         <View style={{ marginTop: 8 }}>
           {contentsTemplateName && (
             <WsInfo
-              labelWidth={100}
+              labelWidth={120}
               type="link"
               label={`${t('目錄​範本​')} `}
               value={contentsTemplateName}
@@ -406,7 +437,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
 
         <View style={{ marginTop: 8 }}>
           <WsInfo
-            labelWidth={100}
+            labelWidth={120}
             style={{ flexDirection: 'row', alignItems: 'center' }}
             label={t('項目符號')}
             value={itemLabelType}
@@ -415,7 +446,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
 
         <View style={{ marginTop: 16, borderTopWidth: 1, paddingTop: 16 }}>
           <WsInfo
-            labelWidth={100}
+            labelWidth={120}
             style={{ flexDirection: 'row', alignItems: 'center' }}
             label={t('負責人')}
             type="user"
@@ -425,7 +456,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
 
         <View style={{ marginTop: 8 }}>
           <WsInfo
-            labelWidth={100}
+            labelWidth={120}
             style={{ flexDirection: 'row', alignItems: 'center' }}
             label={t('期限')}
             type="date"
@@ -435,7 +466,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
 
         <View style={{ marginTop: 8 }}>
           <WsInfo
-            labelWidth={100}
+            labelWidth={120}
             style={{ flexDirection: 'row', alignItems: 'center' }}
             label={t('限閱人員')}
             type="users"
@@ -446,7 +477,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
 
         <View style={{ marginTop: 8 }}>
           <WsInfo
-            labelWidth={100}
+            labelWidth={120}
             style={{ flexDirection: 'row', alignItems: 'center' }}
             label={t('限閱角色')}
             type="belongstomany"
@@ -463,7 +494,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
           )}
 
         <View style={{ marginTop: 8 }}>
-          <WsInfo labelWidth={100} value={remark} label={t('備註')} style={{ flexDirection: 'row' }} />
+          <WsInfo labelWidth={120} value={remark} label={t('備註')} style={{ flexDirection: 'row' }} />
         </View>
 
         <View style={{ marginTop: 8 }}>

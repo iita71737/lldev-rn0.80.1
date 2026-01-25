@@ -93,8 +93,9 @@ const LlFileFolderCRUDModal = props => {
       }
     } else if (actionType === 'createFile') {
       try {
+        // console.log(JSON.stringify(fieldsValue),'fieldsValue--')
         const postData = S_File.getFormattedCreateData(fieldsValue)
-        console.log(postData, 'postData---');
+        // console.log(postData, 'postData---');
         const res = await S_File.create({ params: postData })
         if (res) {
           navigation.replace('FileStoreSubLayer', {
