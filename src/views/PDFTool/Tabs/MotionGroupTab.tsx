@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { View, TouchableOpacity, FlatList } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { WsFlex, WsTag, WsCard, WsText, WsIcon, LlPDFMotionGroupCard001, WsSkeleton, WsModal, WsEmpty } from '@/components'
+import {
+  WsFlex,
+  WsTag, WsCard, WsText, WsIcon, LlPDFMotionGroupCard001, WsSkeleton, WsModal, WsEmpty, WsDialog, WsDes
+} from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
 import S_MeetingItem from '@/services/api/v1/meeting_item'
@@ -116,6 +119,15 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
 }) => {
   const { t } = useTranslation()
   const navigation = useNavigation()
+  const remind = '處理失敗建議'
+  const [visible, setVisible] = useState(false)
+  const [remindValue, setRemindValue] = useState<any>()
+  const remindBtnDisabled = false
+  const remindColor = $color.danger
+  const dialogButtonItems: any[] = []
+  const dialogTitle = undefined
+  const contentHeight = undefined
+  const autoFocus = false
   const [loading, setLoading] = useState(true)
   const [meetingItemGroups, setMeetingItemGroups] = useState<Group[]>(data)
   const [meetingItemListByGroup, setMeetingItemListByGroup] = useState<Record<string, any[]>>({})
@@ -188,17 +200,17 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
     const fetchAllMeetingItems = async () => {
       setLoadingMeetingItems(true)
       try {
-          const results = await Promise.all(
-            meetingItemGroups.map(group =>
-              S_MeetingItem.index({
-                params: {
-                  meeting_item_group_id: group.id,
-                  order_way: 'asc',
-                  order_by: 'sequence',
-                }
-              })
-            )
+        const results = await Promise.all(
+          meetingItemGroups.map(group =>
+            S_MeetingItem.index({
+              params: {
+                meeting_item_group_id: group.id,
+                order_way: 'asc',
+                order_by: 'sequence',
+              }
+            })
           )
+        )
         if (!mounted) return
         const nextMap: Record<string, any[]> = {}
         meetingItemGroups.forEach((group, index) => {
@@ -459,57 +471,108 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   }
 
   const renderListHeader = () => (
-    <WsFlex
-      style={{
-        marginVertical: 16,
-        paddingHorizontal: 8,
-      }}
-      justifyContent="space-between"
-    >
+    <>
+      {/* {remind && (
+        <>
+          <TouchableOpacity
+            style={{ paddingHorizontal: 16, paddingTop: 16}}
+            onPress={() => {
+              setVisible(true)
+            }}>
+            <WsFlex style={[autoFocus ? null : {}]}>
+              <WsIcon
+                name="md-info-outline"
+                color={$color.primary2l}
+                style={{
+                  marginRight: 6
+                }}
+                size={20}
+              />
+              <WsText
+                style={{
+                  paddingRight: 16
+                }}
+                size={12}
+                color={$color.primary2l}>
+                {remind}
+              </WsText>
+            </WsFlex>
+          </TouchableOpacity>
+          <WsDialog
+            value={remindValue}
+            onChange={setRemindValue}
+            dialogButtonItems={dialogButtonItems}
+            title={remind}
+            dialogVisible={visible}
+            setDialogVisible={() => {
+              setVisible(false)
+            }}
+            contentHeight={contentHeight}
+            mode={3}
+          >
+            <View style={{ marginHorizontal: 16, paddingBottom: 16 }}>
+              <WsText size={14} fontWeight="600" style={{}}>
+                {t('解析失敗')}
+              </WsText>
+              <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                <WsDes size={14}>{`1. ${t('檢查提案單跟提案單範本是否格式一致')}`}</WsDes>
+              </WsFlex>
+            </View>
+          </WsDialog>
+        </>
+      )} */}
+      <WsFlex
+        style={{
+          marginVertical: 12,
+          paddingHorizontal: 8,
+        }}
+        justifyContent="space-between"
+      >
 
-      {/* <View /> */}
-      {!!meetingItemGroups.length ? (
-        <TouchableOpacity
-          style={{ alignItems: 'flex-start', marginRight: 8 }}
-          onPress={() => {
-            if (!meeting?.id) return
-            navigation.navigate('RoutesPDFTool', {
-              screen: 'PDFToolAdminBatchEditMeetingItemGroup',
-              params: { id: meeting.id }
-            })
-          }}
-        >
-          <WsTag>{t('批次編輯議案群組')}</WsTag>
-        </TouchableOpacity>
-      ) : (
-        <View></View>
-      )}
+        {/* <View /> */}
+        {!!meetingItemGroups.length ? (
+          <TouchableOpacity
+            style={{ alignItems: 'flex-start', marginRight: 8 }}
+            onPress={() => {
+              if (!meeting?.id) return
+              navigation.navigate('RoutesPDFTool', {
+                screen: 'PDFToolAdminBatchEditMeetingItemGroup',
+                params: { id: meeting.id }
+              })
+            }}
+          >
+            <WsTag>{t('批次編輯議案群組')}</WsTag>
+          </TouchableOpacity>
+        ) : (
+          <View></View>
+        )}
 
-      <WsFlex style={{ marginRight: 4 }}>
-        {mode === 'default' && (
-          <>
-            {!!meetingItemGroups.length && (
+        <WsFlex style={{ marginRight: 4 }}>
+          {mode === 'default' && (
+            <>
+              {!!meetingItemGroups.length && (
+                <TouchableOpacity
+                  style={{ alignItems: 'flex-end', marginRight: 8 }}
+                  onPress={() => {
+                    onEnterSort()
+                  }}
+                >
+                  <WsTag>{t('排序')}</WsTag>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={{ alignItems: 'flex-end', marginRight: 8 }}
                 onPress={() => {
-                  onEnterSort()
+                  onOpenAddGroup()
                 }}
               >
-                <WsTag>{t('排序')}</WsTag>
+                <WsTag>{t('新增')}</WsTag>
               </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={{ alignItems: 'flex-end', marginRight: 8 }}
-              onPress={() => {
-                onOpenAddGroup()
-              }}
-            >
-              <WsTag>{t('新增')}</WsTag>
-            </TouchableOpacity>
-          </>
-        )}
+            </>
+          )}
+        </WsFlex>
       </WsFlex>
-    </WsFlex>
+    </>
   )
 
   return (

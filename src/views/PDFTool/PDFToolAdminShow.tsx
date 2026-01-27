@@ -311,6 +311,8 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const [isAgendaExportMode, setIsAgendaExportMode] = useState(false)
   const [exportRecordRefreshKey, setExportRecordRefreshKey] = useState(0)
   const [scheduleExportLoading, setScheduleExportLoading] = useState(false)
+  const [exportRangeLoading, setExportRangeLoading] = useState(false)
+  const exportRangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const resetExportForm = () => {
     setExportTitle('')
@@ -368,20 +370,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     (meetingData: any, groupList: any[], itemsByGroup: Record<string, any[]>) => {
       const items: ExportItem[] = []
 
-      const attachCoverId = getTemplateExportId('attach_cover', meetingData?.attach_cover_template)
-      if (attachCoverId) {
-        const attachCoverSubLabel =
-          meetingData?.attach_cover_template?.name ??
-          meetingData?.attach_cover_template?.attach?.file?.name ??
-          meetingData?.attach_cover_template?.attach?.file_version?.name ??
-          ''
-        items.push({
-          id: attachCoverId,
-          label: t('附件封面範本'),
-          subLabel: attachCoverSubLabel || undefined,
-        })
-      }
-
       const coverId = getTemplateExportId('cover', meetingData?.cover_template)
       if (coverId) {
         items.push({
@@ -397,6 +385,20 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           id: contentsId,
           label: t('目錄範本'),
           subLabel: meetingData?.contents_template?.name,
+        })
+      }
+
+      const attachCoverId = getTemplateExportId('attach_cover', meetingData?.attach_cover_template)
+      if (attachCoverId && exportAttachmentPosition === 'item-attach-seperate') {
+        const attachCoverSubLabel =
+          meetingData?.attach_cover_template?.name ??
+          meetingData?.attach_cover_template?.attach?.file?.name ??
+          meetingData?.attach_cover_template?.attach?.file_version?.name ??
+          ''
+        items.push({
+          id: attachCoverId,
+          label: t('附件封面範本'),
+          subLabel: attachCoverSubLabel || undefined,
         })
       }
 
@@ -423,7 +425,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
       return items
     },
-    [t],
+    [exportAttachmentPosition, t],
   )
 
   const ensureMeetingItemsReadyForExport = useCallback(async () => {
@@ -506,6 +508,23 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       mounted = false
     }
   }, [buildExportItems, exportModalVisible, id, meeting, meetingItemGroupRefreshKey])
+
+  useEffect(() => {
+    if (!exportModalVisible || isAgendaExportMode) return
+    if (exportRangeTimerRef.current) {
+      clearTimeout(exportRangeTimerRef.current)
+    }
+    setExportRangeLoading(true)
+    exportRangeTimerRef.current = setTimeout(() => {
+      setExportRangeLoading(false)
+    }, 150)
+    return () => {
+      if (exportRangeTimerRef.current) {
+        clearTimeout(exportRangeTimerRef.current)
+        exportRangeTimerRef.current = null
+      }
+    }
+  }, [exportAttachmentPosition, exportModalVisible, isAgendaExportMode])
 
   // 正式資料
   const [groups, setGroups] = useState<Group[]>([])
@@ -1282,10 +1301,13 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           })
         }
       }
-      if (exportId.startsWith('attach_cover_template:')) {
+      if (
+        exportAttachmentPosition === 'item-attach-seperate' &&
+        exportId.startsWith('attach_cover_template:')
+      ) {
         const itemName = nameById.get(exportId)
         acc.push({
-          module: 'attach_cover_template',
+          module: 'attach_cover',
           factory: currentFactory?.id,
           attach_cover_template: exportAttachmentPosition,
           name: itemName,
@@ -1427,52 +1449,75 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             onChange={val => setExportRemark(val)}
           />
 
-          <WsState
-            type={"radio"}
-            label={t('附件位置')}
-            items={[
-              { label: t('隨附於各議案後'), value: 'item-attach-together' },
-              { label: t('集中於議程末尾'), value: 'item-attach-seperate' },
-            ]}
-            value={exportAttachmentPosition}
-            onChange={val => setExportAttachmentPosition(val)}
-            style={{
-              marginTop: 16,
-            }}
-          ></WsState>
+          {isAgendaExportMode ? null : (
+            <WsState
+              type={"radio"}
+              label={t('附件位置')}
+              items={[
+                { label: t('隨附於各議案後'), value: 'item-attach-together' },
+                { label: t('集中於議程末尾'), value: 'item-attach-seperate' },
+              ]}
+              value={exportAttachmentPosition}
+              onChange={val => {
+                setExportAttachmentPosition(val)
+                if (val !== 'item-attach-seperate') {
+                  setExportChecked(prev => {
+                    const next = { ...prev }
+                    Object.keys(next).forEach(key => {
+                      if (key.startsWith('attach_cover_template:')) {
+                        delete next[key]
+                      }
+                    })
+                    return next
+                  })
+                }
+              }}
+              style={{
+                marginTop: 16,
+              }}
+            />
+          )}
 
           {isAgendaExportMode ? null : (
             <>
-              {/* 匯出範圍標題 */}
-              <View style={{ marginTop: 12 }}>
-                <WsText size={14} fontWeight='600'>{t('匯出範圍')}</WsText>
-              </View>
+              {exportRangeLoading ? (
+                <View style={{ marginTop: 12 }}>
+                  <WsLoading />
+                </View>
+              ) : (
+                <>
+                  {/* 匯出範圍標題 */}
+                  <View style={{ marginTop: 12 }}>
+                    <WsText size={14} fontWeight='600'>{t('匯出範圍')}</WsText>
+                  </View>
 
-              {/* 匯出範圍樹狀 checkbox */}
-              <View style={{}}>
-                {(() => {
-                  const { any, all } = getExportSelectAllState()
-                  return (
-                    <CheckboxRow
-                      label={t('全選')}
-                      checked={all}
-                      onChange={() => toggleAllExportItems(!all)}
-                      indeterminate={any && !all}
-                    />
-                  )
-                })()}
-                {/* <CheckboxRow
-                  label={t('顯示頁碼')}
-                  checked={exportShowPageNumber}
-                  onChange={setExportShowPageNumber}
-                /> */}
-                {/* <CheckboxRow
-                  label={t('顯示浮水印')}
-                  checked={exportShowWatermark}
-                  onChange={setExportShowWatermark}
-                /> */}
-                {exportItems.map(item => renderExportItem(item, 0))}
-              </View>
+                  {/* 匯出範圍樹狀 checkbox */}
+                  <View style={{}}>
+                    {(() => {
+                      const { any, all } = getExportSelectAllState()
+                      return (
+                        <CheckboxRow
+                          label={t('全選')}
+                          checked={all}
+                          onChange={() => toggleAllExportItems(!all)}
+                          indeterminate={any && !all}
+                        />
+                      )
+                    })()}
+                    {/* <CheckboxRow
+                      label={t('顯示頁碼')}
+                      checked={exportShowPageNumber}
+                      onChange={setExportShowPageNumber}
+                    /> */}
+                    {/* <CheckboxRow
+                      label={t('顯示浮水印')}
+                      checked={exportShowWatermark}
+                      onChange={setExportShowWatermark}
+                    /> */}
+                    {exportItems.map(item => renderExportItem(item, 0))}
+                  </View>
+                </>
+              )}
             </>
           )}
         </ScrollView>

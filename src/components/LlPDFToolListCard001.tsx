@@ -61,7 +61,7 @@ const LlPDFToolListCard001: React.FC<Props> = React.memo(props => {
             alignItems: 'flex-start',
           }}
         >
-          <WsText style={{ maxWidth: width * 0.86 }} numberOfLines={titleNumberOfLines}>
+          <WsText style={{ maxWidth: width * 0.86 }} size={16} fontWeight={600} numberOfLines={titleNumberOfLines}>
             {item?.name ?? ''}
           </WsText>
         </View>

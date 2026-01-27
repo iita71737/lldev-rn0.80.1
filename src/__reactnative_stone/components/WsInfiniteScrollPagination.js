@@ -55,7 +55,8 @@ const WsInfiniteScrollPagination = props => {
     emptyTitle,
     emptyText,
     ListFooterComponent,
-    ListHeaderComponent
+    ListHeaderComponent,
+    TARGET_INDEX_HIDE = 5,
   } = props
 
   // States
@@ -224,14 +225,19 @@ const WsInfiniteScrollPagination = props => {
   // 定義 viewability callback 的回呼函式
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
     const TARGET_LAST_INDEX = 15
+    // console.log(viewableItems?.length,'viewableItems.length--')
+    // console.log(TARGET_INDEX_HIDE,'TARGET_INDEX_HIDE')
     if (!viewableItems || viewableItems.length === 0) return
     const isLastItemVisible = viewableItems.some(item => item.index === TARGET_LAST_INDEX - 1)
     if (isLastItemVisible) {
       setShowBouncingArrow(false) // 最後一筆出現在畫面 → 隱藏箭頭
+    } else if (viewableItems.length < TARGET_INDEX_HIDE) {
+      setShowBouncingArrow(false) // 畫面上已經有足夠多的筆數 → 隱藏箭頭
     } else {
       setShowBouncingArrow(true) // 最後一筆不在畫面 → 顯示箭頭
     }
   }).current;
+
   // 設定 viewabilityConfig，例如要求 50% 以上的項目可見
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50,  // 例如，超過50%視為可見

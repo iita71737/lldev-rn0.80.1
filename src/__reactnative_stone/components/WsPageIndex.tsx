@@ -75,7 +75,8 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
     searchLabel,
     ListFooterComponent,
     scrollToTargetIndex,
-    onRefresh
+    onRefresh,
+    TARGET_INDEX_HIDE
   } = props
 
   // States
@@ -309,6 +310,7 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
           }}
           ListFooterComponent={ListFooterComponent}
           ListHeaderComponent={ListHeaderComponent}
+          TARGET_INDEX_HIDE={TARGET_INDEX_HIDE}
         ></WsInfiniteScrollPagination>
       )}
     </>

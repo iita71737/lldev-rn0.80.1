@@ -171,6 +171,7 @@ export default {
       meeting_template: meeting.meeting_template ?? undefined,
       contents_template: meeting.contents_template ?? undefined,
       cover_template: meeting.cover_template ?? undefined,
+      attach_cover_template: meeting.attach_cover_template ?? undefined,
       item_label_type: meeting.item_label_type ?? undefined,
       factory_tags: meeting?.factory_tags ?? [],
       file_attaches: normalizeFileAttachList(meeting.attaches),

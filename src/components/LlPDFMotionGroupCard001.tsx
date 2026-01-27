@@ -88,10 +88,10 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   remind = '處理失敗建議',
   remindBtnDisabled = false,
   dialogButtonItems = [],
-  dialogTitle,
+  dialogTitle = '處理失敗建議',
   contentHeight
 }) => {
-   const navigation = useNavigation()
+  const navigation = useNavigation()
   const { t } = useTranslation();
   const scrollRef = useRef<KeyboardAwareScrollView | null>(null);
   const currentFactory = useSelector(state => state.data.currentFactory);
@@ -172,6 +172,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const [updateProposalGroupId, setUpdateProposalGroupId] = useState<string | null>(null)
   const [editMeetingItemName, setEditMeetingItemName] = useState('')
   const [editMeetingItemSequence, setEditMeetingItemSequence] = useState('')
+
   const [editMeetingItemLabel, setEditMeetingItemLabel] = useState<any>(null)
   const [editMeetingItemPresenter, setEditMeetingItemPresenter] = useState('')
   const [editMeetingItemUnit, setEditMeetingItemUnit] = useState<any>(null)
@@ -347,11 +348,12 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
         })
         .filter(Boolean)
     }
+    console.log(editMeetingItemSequence, 'editMeetingItemSequence--')
     const payload = {
       name: editMeetingItemName,
-      sequence: undefined,
+      sequence: editMeetingItemSequence ? editMeetingItemSequence : undefined,
       factory: currentFactory?.id ?? null,
-      item_label: editMeetingItemLabel?.name,
+      item_label: editMeetingItemLabel,
       presenter: editMeetingItemPresenter,
       meeting_item_unit: editMeetingItemUnit,
       attendees_present: editMeetingItemAttendeesPresent,
@@ -620,7 +622,11 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     return value;
   };
 
-  const openEditMeetingItemModal = (group: Group, meetingItem: Motion) => {
+  const openEditMeetingItemModal = (
+    group: Group,
+    meetingItem: Motion,
+    meetingItemIndex: number,
+  ) => {
     const toText = (value: any) => {
       if (!value) return '';
       if (Array.isArray(value)) {
@@ -633,8 +639,10 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     };
     setEditingMotion(meetingItem);
     setEditMeetingItemName(meetingItem?.name ?? '')
-    setEditMeetingItemSequence(meetingItem?.sequence ? String(meetingItem.sequence) : '')
-    setEditMeetingItemLabel(normalizeItemLabel(meetingItem?.item_label))
+    const sequenceText = String(meetingItemIndex + 1).padStart(4, '0')
+    setEditMeetingItemSequence(sequenceText)
+
+    setEditMeetingItemLabel(meetingItem?.item_label)
     setEditMeetingItemPresenter(meetingItem?.presenter ?? '')
     setEditMeetingItemUnit(meetingItem?.meeting_item_unit ?? '')
     setEditMeetingItemAttendeesPresent(toText(meetingItem?.attendees_present))
@@ -674,7 +682,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     }
   }
 
-  const renderListItem = (group: Group, meetingItem: Motion) => {
+  const renderListItem = (group: Group, meetingItem: Motion, meetingItemIndex: number) => {
     const isMeetingItemCollapsed = motionCollapsed[meetingItem.id] ?? true;
     const isMeetingItemRefreshing = meetingItemRefreshingIds[meetingItem.id] ?? false;
     const meetingItemAttaches =
@@ -863,7 +871,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                       size={24}
                       color={$color.primary}
                       style={{ marginLeft: 8 }}
-                      onPress={() => openEditMeetingItemModal(group, meetingItem)}
+                      onPress={() => openEditMeetingItemModal(group, meetingItem, meetingItemIndex)}
                     />
                     <WsIconBtn
                       padding={0}
@@ -884,15 +892,17 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     />
                   </View>
 
-                  <View style={{ marginTop: 8 }}>
-                    <WsInfo
-                      labelWidth={80}
-                      label={t('名稱')}
-                      style={{ flexDirection: 'row', alignItem: 'center' }}
-                      labelColor={$color.gray}
-                      value={meetingItemName}
-                    />
-                  </View>
+                  {meetingItemName && (
+                    <View style={{ marginTop: 8 }}>
+                      <WsInfo
+                        labelWidth={80}
+                        label={t('名稱')}
+                        style={{ flexDirection: 'row', alignItem: 'center' }}
+                        labelColor={$color.gray}
+                        value={meetingItemName}
+                      />
+                    </View>
+                  )}
 
                   {hasPresenter && (
                     <View style={{ marginTop: 8 }}>
@@ -991,13 +1001,13 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     </View>
                   )}
 
-                  <View
+                  {/* <View
                     style={{
                       height: 1,
                       backgroundColor: $color.white2d,
                       marginTop: 16,
                     }}
-                  />
+                  /> */}
 
                   {hasResolutionSummary && (
                     <View style={{ marginTop: 8 }}>
@@ -1029,13 +1039,13 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     </View>
                   )}
 
-                  <View
+                  {/* <View
                     style={{
                       height: 1,
                       backgroundColor: $color.white2d,
                       marginTop: 16,
                     }}
-                  />
+                  /> */}
 
                   {hasConvert && (
                     <View style={{ marginTop: 8 }}>
@@ -1072,7 +1082,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                   {isFailed && (
                     <View style={{ marginTop: 8 }}>
                       <WsText color={$color.danger}>
-                        {t('重新上傳提案單解析')}
+                        {t('請確認範本後，重新上傳提案單解析')}
                       </WsText>
                     </View>
                   )}
@@ -1196,18 +1206,18 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                         <WsFlex style={[{ marginTop: 4 }]}>
                           <WsIcon
                             name="md-info-outline"
-                            color={$color.danger}
+                            color={$color.primary2l}
                             style={{
                               marginRight: 6
                             }}
-                            size={16}
+                            size={18}
                           />
                           <WsText
                             style={{
                               paddingRight: 16
                             }}
-                            size={10}
-                            color={$color.danger}>
+                            size={12}
+                            color={$color.primary2l}>
                             {remind}
                           </WsText>
                         </WsFlex>
@@ -1226,7 +1236,10 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                       >
                         <>
                           <View style={{ marginHorizontal: 16, paddingBottom: 16 }}>
-                            <WsFlex flexWrap="wrap">
+                            <WsText size={14} fontWeight="600" style={{}}>
+                              {t('解析失敗')}
+                            </WsText>
+                            <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
                               <WsDes size={14}>{`1. ${t('檢查提案單跟提案單範本是否格式一致')}`}</WsDes>
                             </WsFlex>
                           </View>
@@ -1309,14 +1322,14 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                       })
                     }}
                   />
-                  <WsInfo
+                  {/* <WsInfo
                     type={'filesAndImages'}
                     // label={t('時序表範本')}
                     style={{
                     }}
                     labelColor={$color.gray}
                     value={[item?.schedule_template?.attach]}
-                  />
+                  /> */}
                 </View>
               )}
 
@@ -1390,7 +1403,9 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                   <WsSkeleton />
                 </View>
               ) : (
-                meetingItemList && meetingItemList.map(meetingItem => renderListItem(group, meetingItem))
+                meetingItemList && meetingItemList.map((meetingItem, index) => (
+                  renderListItem(group, meetingItem, index)
+                ))
               )}
             </View>
           )}
@@ -1443,11 +1458,11 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               marginTop: 16,
             }}
             label={t('項目符號')}
-            type="belongsto"
-            modelName={'item_label_type'}
-            serviceIndexKey={'index'}
-            nameKey={'name'}
-            hasMeta={false}
+            // type="belongsto"
+            // modelName={'item_label_type'}
+            // serviceIndexKey={'index'}
+            // nameKey={'name'}
+            // hasMeta={false}
             value={editMeetingItemLabel}
             params={{
             }}

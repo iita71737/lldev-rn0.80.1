@@ -51,11 +51,6 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
   // States
   const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false)
   const [filterFields] = React.useState({
-    button: {
-      type: 'date_range',
-      label: t('編輯時間'),
-      time_field: 'updated_at'
-    },
     meeting_template_type: {
       type: 'belongsto',
       label: t('類型'),
@@ -71,6 +66,11 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
       searchVisible: true,
       selectAllVisible: false,
       defaultSelected: false
+    },
+    button: {
+      type: 'date_range',
+      label: t('編輯時間'),
+      time_field: 'updated_at'
     },
   })
 

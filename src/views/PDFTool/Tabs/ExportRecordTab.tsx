@@ -13,10 +13,12 @@ import {
   WsIconBtn,
   WsModal,
   WsState,
-  WsInfo
+  WsInfo,
+  WsText
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import S_MeetingExport from '@/services/api/v1/meeting_export'
+import { FontWeight } from '@shopify/react-native-skia'
 
 type ExportRecordTabProps = {
   meeting?: any
@@ -161,6 +163,7 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
         searchVisible={true}
         filterVisible={false}
         filterFields={filterFields}
+        TARGET_INDEX_HIDE={3}
         renderItem={({ item }) => {
           return (
             <TouchableOpacity
@@ -183,19 +186,28 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
                 }}
               >
                 <WsFlex style={{}} justifyContent="space-between">
-                  <WsFlex
-                    flexWrap="wrap"
+
+                  <View
                     style={{
-                      maxWidth: width * 0.7
                     }}
                   >
-                    <WsDes color={$color.black} style={{ marginRight: 8, width: 80 }}>
-                      {t('標題')}
-                    </WsDes>
-                    <WsDes>{item?.name}</WsDes>
-                  </WsFlex>
+                    <WsInfo
+                      labelWidth={100}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        maxWidth: width * 0.7,
+                      }}
+                      value={item?.name}
+                      label={t('標題')}
+                    />
+                  </View>
 
-                  <WsFlex>
+                  <WsFlex
+                    style={{
+                    }}
+                  >
                     {canUpdateMeetingExport && (
                       <WsIconBtn
                         padding={0}
@@ -251,22 +263,37 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
                   </WsFlex>
                 </WsFlex>
 
-                <WsFlex style={{ marginTop: 8 }}>
-                  <WsDes color={$color.black} style={{ marginRight: 8, width: 80 }}>
-                    {t('狀態')}
-                  </WsDes>
+                <View
+                  style={{
+                    marginTop: 8,
+                  }}
+                >
                   {(() => {
                     const statusTag = getStatusTagProps(item?.convert_status)
                     return (
-                      <WsTag
-                        backgroundColor={statusTag.backgroundColor}
-                        textColor={statusTag.textColor}
+                      <WsFlex
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                        }}
                       >
-                        {statusTag.label}
-                      </WsTag>
+                        <WsText
+                          size={14}
+                          color={$color.black5l}
+                          style={{ width: 100, fontWeight: '600' }}
+                        >
+                          {t('狀態')}
+                        </WsText>
+                        <WsTag
+                          backgroundColor={statusTag.backgroundColor}
+                          textColor={statusTag.textColor}
+                        >
+                          {statusTag.label}
+                        </WsTag>
+                      </WsFlex>
                     )
                   })()}
-                </WsFlex>
+                </View>
 
                 <View
                   style={{
@@ -274,10 +301,7 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
                   }}
                 >
                   <WsInfo
-                    labelSize={12}
-                    labelFontWeight={400}
-                    textSize={12}
-                    labelWidth={84}
+                    labelWidth={100}
                     type={'user'}
                     style={{
                       flexDirection: 'row',
@@ -288,12 +312,27 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
                   />
                 </View>
 
-                <WsFlex style={{ marginTop: 8 }}>
-                  <WsDes color={$color.black} style={{ marginRight: 8, width: 80 }}>
-                    {t('匯出時間')}
-                  </WsDes>
-                  <WsDes>{moment(item?.updated_at).format('YYYY-MM-DD HH:mm:ss')}</WsDes>
-                </WsFlex>
+                <View
+                  style={{
+                    marginTop: 8,
+                  }}
+                >
+                  <WsInfo
+                    labelWidth={100}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                    value={
+                      item?.updated_at
+                        ? moment(item?.updated_at).format('YYYY-MM-DD HH:mm:ss')
+                        : item?.updated_at
+                          ? moment(item?.updated_at).format('YYYY-MM-DD HH:mm:ss')
+                          : ''
+                    }
+                    label={t('匯出時間')}
+                  />
+                </View>
 
               </WsCard>
             </TouchableOpacity>

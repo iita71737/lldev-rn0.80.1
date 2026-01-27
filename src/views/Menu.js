@@ -164,6 +164,13 @@ const Menu = ({ navigation }) => {
         perm: 'system-file-read',
         nav: () => navigation.navigate('RoutesApp', { screen: 'FileStore' }),
       },
+      {
+        key: 'meeting',
+        title: t('議事'),
+        bg: require('@/assets/img/file-store-management.jpg'),
+        perm: 'meeting-read',
+        nav: () => navigation.navigate('RoutesPDFTool', { screen: 'PDFToolAdminIndex' }),
+      },
       // {
       //   key: 'factory-statistic',
       //   title: t('數量統計管理'),

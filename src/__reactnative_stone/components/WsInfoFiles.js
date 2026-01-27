@@ -74,7 +74,11 @@ const WsInfoFiles = props => {
                     ? false
                     : !(value[itemIndex]?.file?.source_url || value[itemIndex]?.file_version?.source_url)
                 }
-                exportAttachmentName={exportAttachmentName}
+                exportAttachmentName={
+                  Array.isArray(exportAttachmentName)
+                    ? exportAttachmentName[itemIndex]
+                    : exportAttachmentName
+                }
               />
             </View>
           )}

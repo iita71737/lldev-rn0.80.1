@@ -1,7 +1,10 @@
 import axios from 'axios'
 import apiCallBack from '@/__reactnative_stone/global/apiCallBack'
 import Config from "react-native-config";
+import { Alert } from 'react-native';
 axios.defaults.baseURL = Config.API_URL
+import i18next from 'i18next'
+import { i } from 'mathjs';
 
 export default {
   init() {
@@ -63,6 +66,7 @@ export default {
             console.error('Error Response Data:', err.response.data);
             console.error('Error Response Status:', err.response.status);
             console.error('Error Response Headers:', err.response.headers);
+            Alert.alert(i18next.t('請求次數過多，請稍候再試'));
           }
           reject(err)
         })

@@ -47,14 +47,11 @@ const EsGoalVariableItem: React.FC<{ item: EsGoalVariable }> = ({ item }) => {
           borderColor: $color.gray,
         }}
       >
-        <WsFlex alignItems="center" justifyContent="space-between">
-          <WsText size={14}>{item.customName || t('使用者自定名稱')}</WsText>
-        </WsFlex>
 
-        <View style={{ marginTop: 8 }}>
-          <WsFlex style={{ marginBottom: 8 }} alignItems="center">
-            <WsText size={14} style={{ width: 60 }}>
-              {t('變數')}
+        <View style={{}}>
+          <WsFlex style={{}} alignItems="center">
+            <WsText size={14} style={{ width: 60 }} color={$color.gray}>
+              {t('標記')}
             </WsText>
 
             <WsText size={14}>{`\${${item.variableName}}`}</WsText>
@@ -64,8 +61,15 @@ const EsGoalVariableItem: React.FC<{ item: EsGoalVariable }> = ({ item }) => {
             </TouchableOpacity>
           </WsFlex>
 
+          <WsFlex alignItems="center" justifyContent="">
+            <WsText size={14} style={{ width: 60 }} color={$color.gray}>
+              {t('名稱')}
+            </WsText>
+            <WsText size={14}>{item.customName || t('使用者自定名稱')}</WsText>
+          </WsFlex>
+
           <WsFlex alignItems="center">
-            <WsText size={14} style={{ width: 160 }}>
+            <WsText size={14} style={{ width: 160 }} color={$color.gray}>
               {t('對應ESGoal欄位')}
             </WsText>
             <WsText size={14} numberOfLines={1}>
@@ -164,9 +168,9 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
   const getTemplateId = (template: any) => template?.id ?? ''
 
   const meetingTitle = meeting?.name ?? t('使用者​自訂​議事標題')
-  const chairperson = meeting?.chairperson ?? '-'
-  const meetingDate = meeting?.meeting_date_format ?? meeting?.meeting_date ?? '-'
-  const location = meeting?.location ?? '-'
+  const chairperson = meeting?.chairperson ?? null
+  const meetingDate = meeting?.meeting_date_format ?? meeting?.meeting_date ?? null
+  const location = meeting?.location ?? null
   const itemLabelType =
     meeting?.item_label_type?.name ??
     meeting?.item_label_type?.value ??
@@ -178,7 +182,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
     meeting?.roles ?? meeting?.user_factory_roles ?? meeting?.user_factory_role_templates ?? []
   )
   const tags = Array.isArray(meeting?.factory_tags) ? meeting.factory_tags : []
-  const remark = meeting?.remark ?? '-'
+  const remark = meeting?.remark ?? null
   const attaches = normalizeFiles(meeting?.attaches ?? meeting?.file_attaches ?? [])
   const signInForm = normalizeFiles(meeting?.sign_in_form ?? [])
   const meetingItemTemplateName = getTemplateName(meeting?.meeting_item_template)
@@ -497,13 +501,18 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
           <WsInfo labelWidth={120} value={remark} label={t('備註')} style={{ flexDirection: 'row' }} />
         </View>
 
-        <View style={{ marginTop: 8 }}>
-          <WsInfo type="filesAndImages" label={t('附件')} value={attaches} />
-        </View>
+        {Array.isArray(attaches) && attaches.length > 0 && (
+          <View style={{ marginTop: 8 }}>
+            <WsInfo type="filesAndImages" label={t('附件')} value={attaches} />
+          </View>
+        )}
 
-        <View style={{ marginTop: 8 }}>
-          <WsInfo type="filesAndImages" label={t('簽到表')} value={signInForm} />
-        </View>
+        {Array.isArray(signInForm) && signInForm.length > 0 && (
+          <View style={{ marginTop: 8 }}>
+            <WsInfo type="filesAndImages" label={t('簽到表')} value={signInForm} />
+          </View>
+        )}
+
       </WsPaddingContainer>
 
       {/* <WsPaddingContainer padding={0} style={{ marginTop: 8, paddingBottom: 8, backgroundColor: $color.primary11l }}>
@@ -554,13 +563,12 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
                 padding={0}
                 style={{
                   paddingTop: 16,
-                  paddingBottom: 16,
                   paddingHorizontal: 16,
                   backgroundColor: $color.primary11l,
                 }}
               >
                 <WsInfo
-                  label={`${t('提案單標記')}`}
+                  label={`${t('提案單範本')}`}
                   type="filesAndImages"
                   value={meetingItemTemplateFiles}
                 />
@@ -572,7 +580,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
 
               <WsPaddingContainer padding={0} style={{ paddingTop: 8, paddingHorizontal: 16 }}>
                 <WsText size={14} fontWeight={500}>
-                  {t('提案單變數')}
+                  {t('提案單標記')}
                 </WsText>
               </WsPaddingContainer>
             </>

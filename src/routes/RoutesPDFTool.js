@@ -368,14 +368,21 @@ const RoutesPDFTool = () => {
               </WsFlex>
 
               <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>
-                {t('封面範本：')}
+                {t('提案單範本')}
+              </WsText>
+              <WsFlex flexWrap="wrap">
+                <WsDes size={14}>{`1. ${t('標記不能放在同一行')}`}</WsDes>
+              </WsFlex>
+
+              <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>
+                {t('封面範本')}
               </WsText>
               <WsFlex flexWrap="wrap">
                 <WsDes size={14}>{`1. ${t('只能放 “議事名稱”、”時間“、”地點“的標記')}`}</WsDes>
               </WsFlex>
 
               <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>
-                {t('目錄範本：')}
+                {t('目錄範本')}
               </WsText>
               <WsFlex flexWrap="wrap">
                 <WsDes size={14}>{`1. ${t('建議不要放議案內容標記')}`}</WsDes>

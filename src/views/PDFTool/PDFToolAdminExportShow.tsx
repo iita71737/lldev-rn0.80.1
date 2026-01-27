@@ -716,6 +716,23 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                 >
                   <WsInfo
                     labelWidth={100}
+                    type={'user'}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                    value={meetingExport?.principal ?? meetingExport?.created_user ?? {}}
+                    label={t('匯出者')}
+                  />
+                </View>
+
+                <View
+                  style={{
+                    marginTop: 8,
+                  }}
+                >
+                  <WsInfo
+                    labelWidth={100}
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
@@ -728,23 +745,6 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                           : ''
                     }
                     label={t('匯出時間')}
-                  />
-                </View>
-
-                <View
-                  style={{
-                    marginTop: 8,
-                  }}
-                >
-                  <WsInfo
-                    labelWidth={100}
-                    type={'user'}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                    }}
-                    value={meetingExport?.principal ?? meetingExport?.created_user ?? {}}
-                    label={t('匯出者')}
                   />
                 </View>
 
