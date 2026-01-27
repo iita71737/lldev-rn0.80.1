@@ -316,6 +316,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
       return
     }
     const normalizeAttaches = (items: any[] = []) => {
+      console.log(item,'item--')
       return items
         .map((item, index) => {
           const fileId =
@@ -343,12 +344,11 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               item?.original_attach?.file?.name ??
               item?.file?.name ??
               '',
-            has_frame: item?.has_frame ?? false,
+            has_frame: item?.export_attachment_name_enabled ?? true,
           }
         })
         .filter(Boolean)
     }
-    console.log(editMeetingItemSequence, 'editMeetingItemSequence--')
     const payload = {
       name: editMeetingItemName,
       sequence: editMeetingItemSequence ? editMeetingItemSequence : undefined,
@@ -1458,11 +1458,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               marginTop: 16,
             }}
             label={t('項目符號')}
-            // type="belongsto"
-            // modelName={'item_label_type'}
-            // serviceIndexKey={'index'}
-            // nameKey={'name'}
-            // hasMeta={false}
             value={editMeetingItemLabel}
             params={{
             }}

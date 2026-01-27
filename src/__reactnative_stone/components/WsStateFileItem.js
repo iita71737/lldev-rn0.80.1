@@ -261,7 +261,7 @@ const WsStateFileItem = props => {
                 ]
               }
               type="checkbox"
-              label={t('是否​匯出​附件​名​稱')}
+              label={t('是否匯出附件名稱')}
               value={exportAttachmentValue}
               onChange={$event => {
                 onItemChange?.({ export_attachment_name_enabled: $event })
