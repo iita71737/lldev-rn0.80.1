@@ -443,7 +443,7 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
 
   const memoizedHeader = useMemo(() => {
     return <HeaderWrapper models={models} />
-  }, [models]);
+  }, [models, ListHeaderComponent]);
 
   // Render
   return (

@@ -418,7 +418,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
             <WsInfo
               labelWidth={120}
               type="link"
-              label={`${t('目錄​範本​')} `}
+              label={`${t('目錄範本')} `}
               value={contentsTemplateName}
               style={{
                 flexDirection: 'row'
@@ -559,7 +559,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
           renderItem={({ item }) => <EsGoalVariableItem item={item} />}
           ListHeaderComponent={() => (
             <>
-              <WsPaddingContainer
+              {/* <WsPaddingContainer
                 padding={0}
                 style={{
                   paddingTop: 16,
@@ -576,7 +576,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
                 <View style={{ marginTop: 0 }}>
                   <WsInfo type="tags" value={tags} />
                 </View>
-              </WsPaddingContainer>
+              </WsPaddingContainer> */}
 
               <WsPaddingContainer padding={0} style={{ paddingTop: 8, paddingHorizontal: 16 }}>
                 <WsText size={14} fontWeight={500}>

@@ -290,6 +290,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   // 議事
   const [meeting, setMeeting] = useState<any>(null);
   const [meetingItemGroupRefreshKey, setMeetingItemGroupRefreshKey] = useState(0)
+  const [meetingItemsAllRefreshKey, setMeetingItemsAllRefreshKey] = useState(0)
 
   // 議案群組
   const [meetingItemGroupName, setMeetingItemGroupName] = useState('');
@@ -301,6 +302,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
   // 匯出 Modal
   const [exportModalVisible, setExportModalVisible] = useState(false)
+  const [exportSubmitting, setExportSubmitting] = useState(false)
   const [exportTitle, setExportTitle] = useState('')
   const [exportRemark, setExportRemark] = useState('')
   const [exportChecked, setExportChecked] = useState<{ [key: string]: boolean }>({})
@@ -953,6 +955,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         props: {
           meeting: meeting,
           refreshKey: meetingItemGroupRefreshKey,
+          meetingItemsAllRefreshKey: meetingItemsAllRefreshKey,
           mode,
           data: [],
           onEnterSort: enterDragSortMode,
@@ -983,6 +986,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       meeting,
       id,
       meetingItemGroupRefreshKey,
+      meetingItemsAllRefreshKey,
       $_openAddMotionModal,
       $_openAddMeetingItemGroupModal,
       $_openEditMeetingItemGroupModal,
@@ -1177,6 +1181,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       setPopupDeleteMeetingItemVisible(false)
       setDeleteMeetingItemTarget(null)
       setMeetingItemGroupRefreshKey(prev => prev + 1)
+      setMeetingItemsAllRefreshKey(prev => prev + 1)
     } catch (e) {
       console.error(e)
     }
@@ -1340,6 +1345,41 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     ? hasExportTitle
     : hasExportTitle && hasSelectedExportItems
 
+  console.log(meeting?.contents_template?.id, ` meeting?.contents_template?.id`)
+
+  const handleExportSubmit = async () => {
+    if (exportSubmitting || !canSubmitExport) return
+    try {
+      setExportSubmitting(true)
+      if (isAgendaExportMode) {
+        await S_MeetingExport.createSchedule({
+          data: {
+            meetingId: meeting?.id,
+            meeting_id: meeting?.id,
+            name: exportTitle,
+            remark: exportRemark,
+            attach_location_type: exportAttachmentPosition,
+          },
+        })
+      } else {
+        const params = buildExportParams()
+        console.log(params, 'params--')
+        await S_MeetingExport.create({ data: params })
+      }
+      setExportModalVisible(false)
+      setIsAgendaExportMode(false)
+      resetExportForm()
+      setExportRecordRefreshKey(prev => prev + 1)
+      setIndex(2)
+      Alert.alert(t('建立​成功，​伺服器​正在​處理​中，​請到​匯出紀​錄確認​處理​狀態'))
+    } catch (err) {
+      console.log('S_MeetingExport.create error', err)
+      Alert.alert(t('匯出失敗，請稍後再試'))
+    } finally {
+      setExportSubmitting(false)
+    }
+  }
+
   return (
     <>
       {scheduleExportLoading && (
@@ -1390,37 +1430,26 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           resetExportForm()
         }}
         footerBtnRightText={t('確定')}
-        btnRightDisable={!canSubmitExport}
-        footerBtnRightOnPress={async () => {
-          try {
-            if (isAgendaExportMode) {
-              await S_MeetingExport.createSchedule({
-                data: {
-                  meetingId: meeting?.id,
-                  meeting_id: meeting?.id,
-                  name: exportTitle,
-                  remark: exportRemark,
-                  attach_location_type: exportAttachmentPosition,
-                },
-              })
-            } else {
-              const params = buildExportParams()
-              console.log(params, 'params--')
-              await S_MeetingExport.create({ data: params })
-            }
-            setExportModalVisible(false)
-            setIsAgendaExportMode(false)
-            resetExportForm()
-            setExportRecordRefreshKey(prev => prev + 1)
-            setIndex(2)
-            Alert.alert(t('建立​成功，​伺服器​正在​處理​中，​請到​匯出紀​錄確認​處理​狀態'))
-          } catch (err) {
-            console.log('S_MeetingExport.create error', err)
-            Alert.alert(t('匯出失敗，請稍後再試'))
-          }
-        }}
+        btnRightDisable={!canSubmitExport || exportSubmitting}
+        footerBtnRightOnPress={handleExportSubmit}
         childrenScroll={false}
       >
+        {exportSubmitting && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              zIndex: 10,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <WsLoading />
+          </View>
+        )}
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
@@ -1798,7 +1827,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             modelName={'meeting_template'}
             serviceIndexKey={'index'}
             nameKey={'name'}
-            hasMeta={false}
+            hasMeta={true}
             params={{
               meeting_template_type: scheduleTemplateTypeId,
             }}

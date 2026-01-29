@@ -31,9 +31,13 @@ const WsInfoFile = props => {
     fileVersion,
     disabled,
     testID,
+    lazyUri,
     exportAttachmentName,
-    lazyUri
+    hasFrame,
+    onPressFile,
+    fileItem
   } = props
+
 
   // Redux
   const currentFactory = useSelector(state => state.data.currentFactory)
@@ -295,6 +299,14 @@ const WsInfoFile = props => {
     }
   }
 
+  const handlePress = async () => {
+    if (onPressFile) {
+      onPressFile(fileItem ?? value)
+      // return
+    }
+    await $_onCardPress()
+  }
+
   /** =========================
    *  Render
    *  ========================= */
@@ -310,7 +322,7 @@ const WsInfoFile = props => {
               testID={testID}
               onPress={() => {
                 if (fileName === 'unknown') return
-                $_onCardPress()
+                handlePress()
               }}
               style={{ justifyContent: 'center' }}
             >
@@ -366,7 +378,7 @@ const WsInfoFile = props => {
                   Alert.alert(t('您沒有此檔案所屬資料夾的權限'))
                   return
                 }
-                $_onCardPress()
+                handlePress()
               }}
               style={{
                 width: width * 0.675,
@@ -395,7 +407,7 @@ const WsInfoFile = props => {
                     label={t('是否匯出附件名稱')}
                     labelColor={$color.gray}
                     value={
-                      exportAttachmentName ? t('是') : t('否')
+                      hasFrame ? t('是') : t('否')
                     }
                     style={{
                       flexDirection: 'row',

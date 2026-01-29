@@ -79,7 +79,9 @@ const WsInfo = props => {
     values,
     avatarVisible,
     textSize = 14,
-    exportAttachmentName
+    exportAttachmentName,
+    hasFrame,
+    onPressFile
   } = props
 
   // Render
@@ -194,8 +196,17 @@ const WsInfo = props => {
           {type == 'file' && (
             <WsInfoFile fileName={text} fileType={fileType} value={value} />
           )}
-          {type == 'files' && <WsInfoFiles value={value} />}
-          {type == 'filesAndImages' && <WsInfoFiles value={value} label={label} emptyText={emptyText} exportAttachmentName={exportAttachmentName} />}
+          {type == 'files' && <WsInfoFiles value={value} onPressFile={onPressFile} />}
+          {type == 'filesAndImages' && (
+            <WsInfoFiles
+              value={value}
+              label={label}
+              emptyText={emptyText}
+              exportAttachmentName={exportAttachmentName}
+              hasFrame={hasFrame}
+              onPressFile={onPressFile}
+            />
+          )}
           {type == 'image' && (
             <WsInfoImage fileName={text} fileType={fileType} value={value} />
           )}

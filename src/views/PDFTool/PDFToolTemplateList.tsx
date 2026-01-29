@@ -49,10 +49,9 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
   }, [currentRefreshCounter]);
 
   // States
-  const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false)
   const [filterFields] = React.useState({
     meeting_template_type: {
-      type: 'belongsto',
+      type: 'belongstomany',
       label: t('類型'),
       nameKey: 'name',
       modelName: 'meeting_template_type',
@@ -82,7 +81,6 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
         params={_params}
         searchLabel={'名稱'}
         filterFields={filterFields}
-        hasMeta={false}
         ListFooterComponent={() => {
           return (
             <>

@@ -72,6 +72,7 @@ import {
   LlGuidelineRelatedGuidelines001,
   LlPDFMotionGroupCard001,
   WsCard,
+  WsAvatar
 } from '@/components'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
@@ -105,7 +106,7 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
   // Params
   const { id } = route.params
 
-  console.log(id,'=id=')
+  console.log(id, '=id=')
 
   // REDUX
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
@@ -133,7 +134,7 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
     let wf = wordFieldsRef.current || []
     if (!wf.length) {
       wf = normalizeWordFields(mt?.meeting_template_items ?? [])
-      console.log(wf,'wf--')
+      console.log(wf, 'wf--')
       setWordFields(wf)
       wordFieldsRef.current = wf
     }
@@ -144,7 +145,7 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
       const sequence = String(index + 1).padStart(4, '0')
       return { ...item, sequence }
     })
-    console.log(JSON.stringify(meetingTemplateItems),'meetingTemplateItems')
+    console.log(JSON.stringify(meetingTemplateItems), 'meetingTemplateItems')
     const _file_attaches = {
       file: mt?.attach?.file ?? null,
       file_version: mt?.attach?.file_version ?? null,
@@ -336,15 +337,19 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
             </WsText>
           </WsFlex>
 
-          {/* 第 3 行：對應欄位 */}
-          <WsFlex alignItems="center">
-            <WsText size={14} style={{ width: 108 }}>
-              {t('對應欄位')}
-            </WsText>
-            <WsText size={14} numberOfLines={1}>
-              {fieldName}
-            </WsText>
-          </WsFlex>
+          <View
+            style={{
+              marginTop: 8
+            }}
+          >
+            <WsInfo
+              value={fieldName}
+              label={t('對應ESGoal欄位')}
+              style={{
+              }}
+            />
+          </View>
+
         </WsCard>
       </View>
     )
@@ -367,6 +372,24 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
                 <WsText size={24}>
                   {meetingTemplate?.name ?? t('使用者​自訂格式​範本​名​稱')}
                 </WsText>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'flex-start',
+                    alignItems: 'center',
+                    marginVertical: 8
+                  }}>
+                  <WsAvatar size={36} source={meetingTemplate?.updated_user?.avatar} />
+                  <View
+                    style={{
+                      marginLeft: 8
+                    }}>
+                    <WsText color={$color.gray} size={12}>{t(meetingTemplate?.updated_user?.name)}</WsText>
+                    <WsText color={$color.gray} size={12}>
+                      {t('編輯時間')} {moment(meetingTemplate?.updated_at).format('YYYY-MM-DD HH:mm:ss')}
+                    </WsText>
+                  </View>
+                </View>
               </WsPaddingContainer>
 
               <WsPaddingContainer
@@ -379,8 +402,22 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
                   zIndex: 1
                 }}
               >
+                <View style={{}}>
+                  <WsInfo
+                    labelWidth={100}
+                    label={t('類型')}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                    value={meetingTemplate?.meeting_template_type?.name}
+                  />
+                </View>
+
                 {/* 範本檔案 */}
-                <WsInfo label={t('範本')} type="filesAndImages" value={meetingTemplate?.file_attachs} />
+                <View style={{ marginTop: 8 }}>
+                  <WsInfo label={t('範本')} type="filesAndImages" value={meetingTemplate?.file_attachs} />
+                </View>
 
                 {/* 標籤 */}
                 <View style={{ marginTop: 8 }}>

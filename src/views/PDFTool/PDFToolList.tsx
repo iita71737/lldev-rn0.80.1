@@ -109,6 +109,7 @@ const PDFToolList: React.FC<ActListingProps> = ({ route }) => {
           return (
             <>
               <LlPDFToolListCard001
+                module={'meeting'}
                 key={item.id}
                 ownerVisible={true}
                 item={item}

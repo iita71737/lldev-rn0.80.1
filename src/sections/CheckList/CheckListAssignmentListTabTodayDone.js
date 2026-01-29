@@ -78,11 +78,6 @@ const CheckListAssignmentListTabTodayDone = props => {
                 }
                 disabled={item.record_at && moment().isSameOrAfter(moment(item.record_at), 'day') ? false : true}
                 onPress={async () => {
-                  // navigation.push('CheckListAssignmentIntroduction', {
-                  //   id: item.id,
-                  //   todayDone: true
-                  // })
-                  // console.log(JSON.stringify(item), 'item--');
                   try {
                     const _params = {
                       id: item.id,

@@ -73,6 +73,9 @@ const getTemplateFiles = (template: any) => {
   return []
 }
 
+const getTemplateName = (template: any) => template?.name ?? ''
+const getTemplateId = (template: any) => template?.id ?? ''
+
 const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
   const navigation = useNavigation()
   const { t } = useTranslation()
@@ -138,6 +141,10 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
   const owner = meeting?.owner ?? null
   const meetingTemplateFiles = getTemplateFiles(meeting?.meeting_template?.attach)
   const contentsTemplateFiles = getTemplateFiles(meeting?.contents_template?.attach)
+  const meetingTemplateId = getTemplateId(meeting?.meeting_template)
+  const meetingTemplateName = getTemplateName(meeting?.meeting_template)
+  const contentsTemplateTemplateId = getTemplateId(meeting?.contents_template)
+  const contentsTemplateName = getTemplateName(meeting?.contents_template)
   const contentsTemplateItems = getTemplateItems(meeting?.contents_template)
   const meetingTemplateItems = getTemplateItems(meeting?.meeting_template)
   const contentsTemplateIdSet = new Set(
@@ -191,7 +198,7 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
     <>
       <WsPage
         btnTextRight={t('送出')}
-        title={t('批次編輯議案群組頁')}
+        title={t('批次編輯議案群組')}
         rightOnPress={() => {
           $_submitBatchEditItemGroup()
         }}
@@ -232,16 +239,55 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
             </View>
 
             <View style={{ marginTop: 8 }}>
-              <WsInfo type="filesAndImages" label={t('目錄​範本​')} value={contentsTemplateFiles} />
+              {contentsTemplateName && (
+                <WsInfo
+                  labelWidth={120}
+                  type="link"
+                  label={`${t('目錄範本')} `}
+                  value={contentsTemplateName}
+                  style={{
+                    flexDirection: 'row'
+                  }}
+                  onPress={() => {
+                    if (contentsTemplateName) {
+                      navigation.push('RoutesPDFTool', {
+                        screen: 'PDFToolAdminTemplateShow',
+                        params: {
+                          id: contentsTemplateTemplateId,
+                        }
+                      })
+                    }
+                  }}
+                />
+              )}
             </View>
-
             <View style={{ marginTop: 8 }}>
-              <WsInfo type="filesAndImages" label={t('議程​範本​')} value={meetingTemplateFiles} />
+              {meetingTemplateName && (
+                <WsInfo
+                  labelWidth={120}
+                  type="link"
+                  label={`${t('議程​範本​')} `}
+                  value={meetingTemplateName}
+                  style={{
+                    flexDirection: 'row'
+                  }}
+                  onPress={() => {
+                    if (meetingTemplateName) {
+                      navigation.push('RoutesPDFTool', {
+                        screen: 'PDFToolAdminTemplateShow',
+                        params: {
+                          id: meetingTemplateId,
+                        }
+                      })
+                    }
+                  }}
+                />
+              )}
             </View>
           </WsPaddingContainer>
 
           <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
-            <WsText>{t('議案群組')}</WsText>
+            <WsText fontWeight={600}>{t('議案群組')}</WsText>
           </View>
 
           {groupDrafts.map(group => (
@@ -257,7 +303,7 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
               }}
             >
               <WsState
-                label={t('名稱')}
+                label={t('標題')}
                 placeholder={t('輸入')}
                 value={group.name}
                 onChange={value => {
@@ -276,7 +322,7 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
                 modelName={'meeting_template'}
                 serviceIndexKey={'index'}
                 nameKey={'name'}
-                hasMeta={false}
+                hasMeta={true}
                 remind={t('若未選擇，則不會產生時序表')}
                 params={
                   {

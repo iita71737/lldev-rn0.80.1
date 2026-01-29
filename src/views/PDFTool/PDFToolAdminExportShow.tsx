@@ -176,6 +176,11 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   const [downloadRecordRefreshKey, setDownloadRecordRefreshKey] = useState(0)
   const [filterValue, setFilterValue] = useState<any>({})
   const [filterFields] = React.useState<any>({
+    button: {
+      type: 'date_range',
+      label: t('下載時間'),
+      time_field: 'download_at',
+    },
     download_user: {
       type: 'belongstomany',
       label: t('下載人'),
@@ -184,11 +189,6 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
       serviceIndexKey: 'simplifyFactoryIndex',
       customizedNameKey: 'userAndEmail',
       rules: 'required',
-    },
-    button: {
-      type: 'date_range',
-      label: t('下載時間'),
-      time_field: 'download_at',
     },
   })
 
@@ -275,6 +275,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
         label: t('時序表'),
       }]
     }
+
     const meetingData = meetingDetail ?? meetingExport?.meeting ?? null
     if (!meetingData) return []
 
@@ -298,6 +299,21 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
         id: `contents_template:${contentsId}`,
         label: t('目錄範本'),
         subLabel: contentsTemplate?.name,
+      })
+    }
+
+    const attachCoverTemplate = meetingData?.attach_cover_template
+    const attachCoverId = getTemplateId(attachCoverTemplate)
+    if (attachCoverId) {
+      const attachCoverSubLabel =
+        attachCoverTemplate?.name ??
+        attachCoverTemplate?.attach?.file?.name ??
+        attachCoverTemplate?.attach?.file_version?.name ??
+        undefined
+      items.push({
+        id: `attach_cover_template:${attachCoverId}`,
+        label: t('附件封面範本'),
+        subLabel: attachCoverSubLabel,
       })
     }
 
@@ -337,6 +353,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
     const checked = new Set<string>()
     let hasCover = false
     let hasContents = false
+    let hasAttachCover = false
     const exportItems = meetingExport?.meeting_export_items ?? []
     if (!Array.isArray(exportItems)) return checked
 
@@ -357,10 +374,21 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
         const id = item?.contents_template?.id ?? item?.contents_template
         if (id) checked.add(`contents_template:${id}`)
         hasContents = true
+        return
+      }
+      if (module === 'attach_cover' || module === 'attach_cover_template') {
+        const id =
+          item?.attach_cover_template?.id ??
+          item?.attach_cover_template ??
+          item?.attach_cover ??
+          item?.attach_cover_template_id ??
+          null
+        if (id) checked.add(`attach_cover_template:${id}`)
+        hasAttachCover = true
       }
     })
 
-    return { ids: checked, hasCover, hasContents }
+    return { ids: checked, hasCover, hasContents, hasAttachCover }
   }, [meetingExport])
 
   useEffect(() => {
@@ -368,7 +396,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   }, [meeting])
 
   useEffect(() => {
-    const meetingId = meeting?.id ?? null
+    const meetingId = meeting?.id ?? meetingExport?.meeting?.id ?? null
     if (!meetingId) return
     let mounted = true
     const isMounted = () => mounted
@@ -396,7 +424,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
     return () => {
       mounted = false
     }
-  }, [meeting?.id])
+  }, [meeting?.id, meetingExport?.meeting?.id])
 
   const getDownloadUrl = (payload: any) => {
     const convert = payload?.convert_pdf_attach ?? payload
@@ -448,6 +476,9 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
       return true
     }
     if (item.id.startsWith('contents_template:') && checkedExportMeta.hasContents) {
+      return true
+    }
+    if (item.id.startsWith('attach_cover_template:') && checkedExportMeta.hasAttachCover) {
       return true
     }
     return checkedExportMeta.ids.has(item.id)
@@ -538,16 +569,16 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
       items.push({
         key: 'edit',
         icon: 'ws-outline-edit-pencil',
-        label: t('編輯匯出'),
+        label: t('編輯'),
       })
     }
-    if (canReadMeetingExport && canDownload) {
-      items.push({
-        key: 'download',
-        icon: 'md-file-download',
-        label: t('下載匯出'),
-      })
-    }
+    // if (canReadMeetingExport && canDownload) {
+    //   items.push({
+    //     key: 'download',
+    //     icon: 'md-file-download',
+    //     label: t('下載匯出'),
+    //   })
+    // }
     return items
   }, [
     canReadMeetingExport,
@@ -556,6 +587,27 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
     meetingExport?.status,
     t
   ])
+
+  const handleDownloadExport = async () => {
+    if (!meetingExport?.id) return
+    try {
+      const res = await S_MeetingExport.download({
+        params: {
+          meeting_export_id: meetingExport?.id,
+        },
+      })
+      const url = getDownloadUrl(res?.data ?? res)
+      if (!url) {
+        Alert.alert(t('暫無可下載檔案'))
+        return
+      }
+      // Linking.openURL(url)
+      // setDownloadRecordRefreshKey(prev => prev + 1)
+    } catch (err) {
+      console.log('S_MeetingExport.download error', err)
+      Alert.alert(t('下載失敗，請稍後再試'))
+    }
+  }
 
   const handleBottomSheetItemPress = (item: any) => {
     if (item?.key === 'edit') {
@@ -566,25 +618,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
       return
     }
     if (item?.key === 'download') {
-      ; (async () => {
-        try {
-          const res = await S_MeetingExport.download({
-            params: {
-              meeting_export_id: meetingExport?.id,
-            },
-          })
-          const url = getDownloadUrl(res?.data ?? res)
-          if (!url) {
-            Alert.alert(t('暫無可下載檔案'))
-            return
-          }
-          Linking.openURL(url)
-          setDownloadRecordRefreshKey(prev => prev + 1)
-        } catch (err) {
-          console.log('S_MeetingExport.download error', err)
-          Alert.alert(t('下載失敗，請稍後再試'))
-        }
-      })()
+      handleDownloadExport()
     }
   }
 
@@ -614,21 +648,32 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
     }
   }
 
+  const onPressFile = async () => {
+    handleDownloadExport()
+  }
+
+  const bottomSheetSnapPoints = React.useMemo(() => ['25%'], [])
+
 
   useEffect(() => {
     $_setNavigationOption()
     $_fetchApi()
   }, [id])
 
+  if (loading && !meetingExport) {
+    return <WsSkeleton />
+  }
+
   return (
     <>
       <WsPageIndex
-        mode={'pagination'}
+        // mode={'pagination'} // 260128-rm
         hasMeta={true}
         modelName={'meeting_export_record'}
         serviceIndexKey={'index'}
         params={params}
-        searchLabel={t('搜尋')}
+        // searchLabel={t('搜尋')} // 260128-rm
+        searchVisible={false}
         filterFields={filterFields}
         defaultFilterValue={filterValue}
         ListHeaderComponent={() => {
@@ -643,6 +688,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                   marginBottom: 8,
                 }}
               >
+
                 <View
                   style={{
                     marginTop: 8,
@@ -655,7 +701,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                       alignItems: 'center',
                     }}
                     value={meetingExport?.name ?? ''}
-                    label={t('標題')}
+                    label={t('標題/檔名')}
                   />
                 </View>
 
@@ -677,7 +723,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                       >
                         <WsText
                           size={14}
-                          color={$color.black5l}
+                          color={$color.black}
                           style={{ width: 100, fontWeight: '600' }}
                         >
                           {t('狀態')}
@@ -704,8 +750,14 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                       flexDirection: 'row',
                       alignItems: 'center',
                     }}
-                    label={t('備註')}
-                    value={meetingExport?.remark ?? ''}
+                    value={
+                      meetingExport?.created_at
+                        ? moment(meetingExport.created_at).format('YYYY-MM-DD HH:mm:ss')
+                        : meetingExport?.updated_at
+                          ? moment(meetingExport.updated_at).format('YYYY-MM-DD HH:mm:ss')
+                          : ''
+                    }
+                    label={t('匯出時間')}
                   />
                 </View>
 
@@ -726,9 +778,62 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                   />
                 </View>
 
+                {meetingExport?.convert_word_attach && (
+                  <View
+                    style={{
+                      marginTop: 8
+                    }}
+                  >
+                    <WsInfo
+                      type="filesAndImages"
+                      label={t('議案彙整 (DOCX)')}
+                      value={[
+                        meetingExport?.convert_word_attach
+                      ].filter(Boolean)}
+                    />
+                  </View>
+                )}
                 <View
                   style={{
-                    marginTop: 8,
+                    marginTop: 8
+                  }}
+                >
+                  <WsInfo
+                    type="filesAndImages"
+                    label={meetingExport?.type === 'schedule' ? t('時序表') : t('附件彙整 (PDF)')}
+                    value={[
+                      meetingExport?.convert_pdf_attach
+                    ]}
+                    onPressFile={onPressFile}
+                  />
+                </View>
+
+                {meetingExport?.attach_location_type === 'item-attach-seperate' && (
+                  <>
+                    {meetingExport?.convert_attach && (
+                      <View
+                        style={{
+                          marginTop: 8
+                        }}
+                      >
+                        <WsInfo
+                          type="filesAndImages"
+                          label={t('完整匯出檔案')}
+                          value={[
+                            meetingExport?.convert_attach
+                          ].filter(Boolean)}
+                        />
+                      </View>
+                    )}
+                  </>
+                )}
+
+                <View
+                  style={{
+                    marginTop: 16,
+                    borderTopWidth: 1,
+                    paddingTop: 12,
+                    borderColor: $color.gray,
                   }}
                 >
                   <WsInfo
@@ -737,60 +842,58 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                       flexDirection: 'row',
                       alignItems: 'center',
                     }}
-                    value={
-                      meetingExport?.created_at
-                        ? moment(meetingExport.created_at).format('YYYY-MM-DD HH:mm:ss')
-                        : meetingExport?.updated_at
-                          ? moment(meetingExport.updated_at).format('YYYY-MM-DD HH:mm:ss')
-                          : ''
-                    }
-                    label={t('匯出時間')}
+                    label={t('備註')}
+                    value={meetingExport?.remark ?? ''}
                   />
                 </View>
 
-                {/* 匯出詳情（可收合） */}
-                <View
-                  style={{
-                    marginTop: 16,
-                    borderTopWidth: 1,
-                    borderColor: $color.gray,
-                    paddingTop: 12,
-                  }}
-                >
-                  <TouchableOpacity
-                    onPress={() => setExportDetailOpen(prev => !prev)}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <WsText size={14} fontWeight={500}>{t('匯出範圍')}</WsText>
-                    <WsIcon
-                      name={
-                        exportDetailOpen
-                          ? 'md-unfold-less'
-                          : 'md-unfold-more'
-                      }
-                      size={20}
-                      color={$color.black5l}
-                    />
-                  </TouchableOpacity>
+                {meetingExport?.type !== 'schedule' && (
+                  <>
+                    {/* 匯出詳情（可收合） */}
+                    <View
+                      style={{
+                        marginTop: 16,
+                        borderTopWidth: 1,
+                        borderColor: $color.gray,
+                        paddingTop: 12,
+                      }}
+                    >
+                      <TouchableOpacity
+                        onPress={() => setExportDetailOpen(prev => !prev)}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <WsText size={14} fontWeight={500}>{t('匯出範圍')}</WsText>
+                        <WsIcon
+                          name={
+                            exportDetailOpen
+                              ? 'md-unfold-less'
+                              : 'md-unfold-more'
+                          }
+                          size={20}
+                          color={$color.black5l}
+                        />
+                      </TouchableOpacity>
 
-                  {exportDetailOpen && (
-                    <>
-                      <View style={{ marginTop: 8 }}>
-                        {exportDisplayItems.length > 0 ? (
-                          exportDisplayItems.map(item => renderExportItem(item, 0))
-                        ) : (
-                          <WsText size={14} color={$color.gray}>
-                            {t('目前尚無資料')}
-                          </WsText>
-                        )}
-                      </View>
-                    </>
-                  )}
-                </View>
+                      {exportDetailOpen && (
+                        <>
+                          <View style={{ marginTop: 8 }}>
+                            {exportDisplayItems.length > 0 ? (
+                              exportDisplayItems.map(item => renderExportItem(item, 0))
+                            ) : (
+                              <WsText size={14} color={$color.gray}>
+                                {t('目前尚無資料')}
+                              </WsText>
+                            )}
+                          </View>
+                        </>
+                      )}
+                    </View>
+                  </>
+                )}
               </WsPaddingContainer>
 
               <WsPaddingContainer
@@ -800,7 +903,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                   paddingHorizontal: 16,
                 }}
               >
-                <WsText fontWeight={500}>{t('下載紀錄')}</WsText>
+                <WsText fontWeight={600}>{t('下載紀錄')}</WsText>
               </WsPaddingContainer>
             </>
           )
@@ -892,7 +995,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
         onDismiss={() => setIsBottomSheetActive(false)}
         onItemPress={handleBottomSheetItemPress}
         items={bottomSheetItems}
-        snapPoints={React.useMemo(() => ['25%'], [])}
+        snapPoints={bottomSheetSnapPoints}
       />
     </>
   )

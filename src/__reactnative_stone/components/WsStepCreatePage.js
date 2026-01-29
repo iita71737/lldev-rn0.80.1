@@ -229,12 +229,16 @@ const WsStepCreatePage = ({ navigation, route }, props) => {
             backgroundColor: $color.white,
             borderRadius: 10,
             flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center'
           }}>
           <WsText
             size={18}
             color={$color.black}
             style={{
-              padding: 16,
+              position: 'absolute',
+              left: 16,
+              top: 16
             }}
           >{t('確定捨棄嗎？')}
           </WsText>

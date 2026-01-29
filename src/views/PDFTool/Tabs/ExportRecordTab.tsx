@@ -155,13 +155,12 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
     <View style={{ flex: 1 }} key={refreshKeyCombined}>
       <WsPageIndex
         searchLabel={t('標題')}
-        mode="pagination"
+        // mode="pagination"
         hasMeta={true}
         modelName="meeting_export"
         serviceIndexKey="index"
         params={__params}
         searchVisible={true}
-        filterVisible={false}
         filterFields={filterFields}
         TARGET_INDEX_HIDE={3}
         renderItem={({ item }) => {

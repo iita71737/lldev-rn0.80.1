@@ -191,6 +191,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
   const [_items, setItems] = useState<SortItem[]>(() => applySequences(buildSortItems(items)))
   const [selectedItems, setSelectedItems] = useState<SortItem[]>([])
   const [hoverItem, setHoverItem] = useState<string | null>(null)
+  const [scrollEnabled, setScrollEnabled] = useState(true)
 
   const itemsSV = useSharedValue<SortItem[]>(_items)
   const [listKey, setListKey] = useState(Date.now())
@@ -328,6 +329,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
 
   const handleBegin: DndProviderProps['onBegin'] = (event, meta) => {
     'worklet'
+    runOnJS(setScrollEnabled)(false)
     isDragging.value = true
     dragAbsoluteY.value = event?.absoluteY ?? 0
     const pos = getDragPosition(event, meta)
@@ -367,6 +369,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
     dragAbsoluteY.value = 0
     runOnJS(setSelectedItems)([])
     runOnJS(setHoverItem)(null)
+    runOnJS(setScrollEnabled)(true)
     if (state !== State.FAILED) {
     }
   }
@@ -442,6 +445,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
         ref={scrollViewRef}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
+        scrollEnabled={scrollEnabled}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
       >
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -451,6 +455,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
             onFinalize={handleFinalize}
             onDragEnd={handleDragEnd}
             activationDelay={300}
+            minDistance={10}
           >
             {_items.map((item) => {
               const dragId = String(item.id)

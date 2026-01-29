@@ -40,15 +40,10 @@ const LlPDFToolListCard001: React.FC<Props> = React.memo(props => {
     onPress,
     item,
     module,
-    showCreatedAt = true,
     titleNumberOfLines = 1,
   } = props
 
   const tags = item?.factory_tags ?? []
-  const createdAtText =
-    item?.created_at && moment(item.created_at).isValid()
-      ? moment(item.created_at).format('YYYY-MM-DD HH:mm:ss')
-      : null
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
@@ -66,7 +61,21 @@ const LlPDFToolListCard001: React.FC<Props> = React.memo(props => {
           </WsText>
         </View>
 
-        {module !== 'meeting_template' ? (
+        {module === 'meeting_template' ? (
+          <View style={{ marginTop: 8 }}>
+            <WsInfo
+              labelWidth={100}
+              label={t('類型')}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+              value={item?.meeting_template_type?.name}
+            />
+          </View>
+        ) : null}
+
+        {module === 'meeting_template' ? (
           <>
             <View>
               <WsInfo
@@ -84,25 +93,6 @@ const LlPDFToolListCard001: React.FC<Props> = React.memo(props => {
                 value={item.owner}
               />
             </View>
-
-            {/* <View
-              style={{
-                marginTop: 8
-              }}
-            >
-              <WsInfo
-                labelSize={14}
-                labelColor={$color.black5l}
-                labelWidth={100}
-                labelFontWeight={500}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                }}
-                label={t('議事日期')}
-                value={moment(item.meeting_date).format('YYYY-MM-DD HH:mm:ss')}
-              />
-            </View> */}
           </>
         ) : null}
 
@@ -125,38 +115,20 @@ const LlPDFToolListCard001: React.FC<Props> = React.memo(props => {
           />
         </View>
 
-        {module !== 'meeting_template' ? (
-          <>
-            {/* Tags */}
-            {tags.length > 0 ? (
-              <WsFlex style={{ marginTop: 8 }} flexWrap="wrap">
-                {tags.map(tag => (
-                  <View key={tag.id} style={{ marginRight: 8, marginTop: 6 }}>
-                    <WsTag size={12} backgroundColor={'#f5f5f5'} textColor={'#373737'}>
-                      {`#${tag.name}`}
-                    </WsTag>
-                  </View>
-                ))}
-              </WsFlex>
-            ) : null}
-
-            {/* Created At */}
-            {showCreatedAt && createdAtText ? (
-              <View style={{ marginTop: 10 }}>
-                <WsInfo
-                  labelWidth={100}
-                  labelFontWeight={400}
-                  labelSize={12}
-                  labelColor={$color.gray}
-                  textSize={12}
-                  label={t('建立時間')}
-                  value={createdAtText}
-                  style={{ flexDirection: 'row', alignItems: 'center' }}
-                />
-              </View>
-            ) : null}
-          </>
-        ) : null}
+        <>
+          {/* Tags */}
+          {tags.length > 0 ? (
+            <WsFlex style={{ marginTop: 8 }} flexWrap="wrap">
+              {tags.map(tag => (
+                <View key={tag.id} style={{ marginRight: 8, marginTop: 6 }}>
+                  <WsTag size={12} backgroundColor={'#f5f5f5'} textColor={'#373737'}>
+                    {`#${tag.name}`}
+                  </WsTag>
+                </View>
+              ))}
+            </WsFlex>
+          ) : null}
+        </>
       </WsCard>
     </TouchableOpacity>
   )

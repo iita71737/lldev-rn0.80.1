@@ -16,7 +16,9 @@ const WsInfoFiles = props => {
       padding: 8
     },
     emptyText,
-    exportAttachmentName
+    exportAttachmentName,
+    hasFrame,
+    onPressFile
   } = props
 
   // Computed
@@ -53,6 +55,7 @@ const WsInfoFiles = props => {
               <WsInfoFile
                 testID={`WsInfoFile-${itemIndex}`}
                 value={item}
+                fileItem={value[itemIndex]}
                 fileName={
                     value[itemIndex]?.file_version?.name ? value[itemIndex]?.file_version?.name :
                       value[itemIndex]?.file?.name ? value[itemIndex]?.file?.name : item ? decodeURI(S_url.getFileName(item)) : undefined
@@ -79,6 +82,12 @@ const WsInfoFiles = props => {
                     ? exportAttachmentName[itemIndex]
                     : exportAttachmentName
                 }
+                hasFrame={
+                  Array.isArray(hasFrame)
+                    ? hasFrame[itemIndex]
+                    : hasFrame
+                }
+                onPressFile={onPressFile}
               />
             </View>
           )}

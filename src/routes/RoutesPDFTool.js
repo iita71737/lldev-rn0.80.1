@@ -143,7 +143,7 @@ const RoutesPDFTool = () => {
     },
     meeting_item_template: {
       type: 'belongsto',
-      label: t('提案​單範本​'),
+      label: t('提案單範本'),
       placeholder: `${t('選擇')}`,
       nameKey: 'name',
       modelName: 'meeting_template',
@@ -151,7 +151,8 @@ const RoutesPDFTool = () => {
       hasMeta: false,
       params: {
         meeting_template_type: meetingItemTemplateTypeId
-      }
+      },
+      rules: 'required',
     },
     meeting_template: {
       type: 'belongsto',
@@ -163,8 +164,8 @@ const RoutesPDFTool = () => {
       hasMeta: false,
       params: {
         meeting_template_type: meetingTemplateTypeId
-      }
-
+      },
+      rules: 'required',
     },
     contents_template: {
       type: 'belongsto',
@@ -356,6 +357,7 @@ const RoutesPDFTool = () => {
       remind002: t('範本注意事項'),
       remind002Color: $color.primary,
       remindBtnDisabled002: false,
+      dialogTitle: t('範本注意事項'),
       remindRenderItem002: () => {
         return (
           <>
@@ -363,8 +365,11 @@ const RoutesPDFTool = () => {
               <WsText size={14} fontWeight="600" style={{}}>
                 {t('通用')}
               </WsText>
+                 <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                <WsDes size={14}>{`1. ${t('標記需要使用 ${} 包起來')}`}</WsDes>
+              </WsFlex>
               <WsFlex flexWrap="wrap">
-                <WsDes size={14}>{`1. ${t('標記只能為英文大小寫及數字')}`}</WsDes>
+                <WsDes size={14}>{`2. ${t('標記只能為英文大小寫及數字')}`}</WsDes>
               </WsFlex>
 
               <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>
@@ -753,7 +758,7 @@ const RoutesPDFTool = () => {
           name="PDFToolAdminBatchEditMeetingItemGroup"
           component={scopeFilterScreen(['meeting-update', 'meeting-update-owner'], PDFToolAdminBatchEditMeetingItemGroup)}
           options={{
-            title: t('批次編輯議案群組頁'),
+            title: t('批次編輯議案群組'),
             headerShown: false,
             ...$option.headerOption
           }}

@@ -10,6 +10,7 @@ import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
 import S_MeetingItem from '@/services/api/v1/meeting_item'
 import PDFToolDraggableList, { PDFToolDraggableListRef } from '@/views/PDFTool/PDFToolDraggableList'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
+import { useSelector } from 'react-redux'
 
 export type FileInfo = {
   id: string
@@ -43,6 +44,7 @@ export type Group = {
 export type MotionGroupTabProps = {
   meeting: any
   refreshKey?: number
+  meetingItemsAllRefreshKey?: number
   mode: 'default' | 'dragSort'
   data: Group[]
   onEnterSort: () => void
@@ -105,6 +107,7 @@ const normalizeMeetingItemsByGroup = (payload: any) => {
 const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   meeting,
   refreshKey,
+  meetingItemsAllRefreshKey,
   mode,
   data,
   onEnterSort,
@@ -119,28 +122,37 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
 }) => {
   const { t } = useTranslation()
   const navigation = useNavigation()
+  const currentUser = useSelector(state => state.data.currentUser)
+  const isMeetingOwner =
+    !!meeting?.owner?.id && meeting?.owner?.id === currentUser?.id
   const remind = '處理失敗建議'
-  const [visible, setVisible] = useState(false)
-  const [remindValue, setRemindValue] = useState<any>()
   const remindBtnDisabled = false
   const remindColor = $color.danger
   const dialogButtonItems: any[] = []
   const dialogTitle = undefined
   const contentHeight = undefined
   const autoFocus = false
+  const [visible, setVisible] = useState(false)
+  const [remindValue, setRemindValue] = useState<any>()
   const [loading, setLoading] = useState(true)
   const [meetingItemGroups, setMeetingItemGroups] = useState<Group[]>(data)
   const [meetingItemListByGroup, setMeetingItemListByGroup] = useState<Record<string, any[]>>({})
   const [meetingItemStatusByGroup, setMeetingItemStatusByGroup] = useState<Record<string, any[]>>({})
   const [loadingMeetingItems, setLoadingMeetingItems] = useState(false)
-  const [meetingItemsAllRefreshKey, setMeetingItemsAllRefreshKey] = useState(0)
+  const [meetingItemsAllRefreshKeyState, setMeetingItemsAllRefreshKeyState] = useState(0)
   const draggableListRef = useRef<PDFToolDraggableListRef | null>(null)
   const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const didFinalRefreshRef = useRef(false)
 
   const requestMeetingItemsAllRefresh = useCallback(() => {
-    setMeetingItemsAllRefreshKey(prev => prev + 1)
-  }, [])
+    console.log(meetingItemsAllRefreshKeyState,'meetingItemsAllRefreshKey')
+    setMeetingItemsAllRefreshKeyState(prev => prev + 1)
+  }, [meetingItemsAllRefreshKeyState])
+
+  useEffect(() => {
+    if (meetingItemsAllRefreshKey === undefined) return
+    setMeetingItemsAllRefreshKeyState(prev => prev + 1)
+  }, [meetingItemsAllRefreshKey])
 
   const meetingItemsSignature = useMemo(() => {
     const parts: string[] = []
@@ -387,7 +399,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
           pollingTimerRef.current = null
         }
       }
-    }, [meeting?.id, meetingItemGroups.length, meetingItemsSignature, mode, meetingItemsAllRefreshKey])
+    }, [meeting?.id, meetingItemGroups.length, meetingItemsSignature, mode, meetingItemsAllRefreshKeyState])
   )
 
   if (loading) {
@@ -472,10 +484,10 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
 
   const renderListHeader = () => (
     <>
-      {/* {remind && (
+      {remind && (
         <>
           <TouchableOpacity
-            style={{ paddingHorizontal: 16, paddingTop: 16}}
+            style={{ paddingHorizontal: 16, paddingTop: 16 }}
             onPress={() => {
               setVisible(true)
             }}>
@@ -520,7 +532,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
             </View>
           </WsDialog>
         </>
-      )} */}
+      )}
       <WsFlex
         style={{
           marginVertical: 12,
@@ -530,7 +542,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
       >
 
         {/* <View /> */}
-        {!!meetingItemGroups.length ? (
+        {!!meetingItemGroups.length && isMeetingOwner ? (
           <TouchableOpacity
             style={{ alignItems: 'flex-start', marginRight: 8 }}
             onPress={() => {
@@ -548,7 +560,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
         )}
 
         <WsFlex style={{ marginRight: 4 }}>
-          {mode === 'default' && (
+          {mode === 'default' && isMeetingOwner && (
             <>
               {!!meetingItemGroups.length && (
                 <TouchableOpacity
