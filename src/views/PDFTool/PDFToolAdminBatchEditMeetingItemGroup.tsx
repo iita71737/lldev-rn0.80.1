@@ -182,7 +182,12 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
           modelId: group.id
         })
       }
-      navigation.goBack()
+      navigation.navigate('RoutesPDFTool', {
+        screen: 'PDFToolAdminShow',
+        params: {
+          id: meetingId,
+        }
+      })
     } catch (err) {
       console.error(err)
     } finally {

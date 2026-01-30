@@ -8,7 +8,7 @@ import {
   PermissionsAndroid,
   Alert,
 } from 'react-native'
-import { WsText, WsFlex, WsShadowCard, WsModalPreview, WsLoading, WsInfo } from '@/components'
+import { WsText, WsFlex, WsShadowCard, WsModalPreview, WsLoading, WsInfo, WsTag } from '@/components'
 import S_url from '@/__reactnative_stone/services/app/url'
 import FastImage from 'react-native-fast-image'
 import RNFS from 'react-native-fs'
@@ -18,6 +18,7 @@ import { request, PERMISSIONS } from 'react-native-permissions'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
 import $color from '@/__reactnative_stone/global/color'
+import { max } from 'moment'
 
 const WsInfoFile = props => {
   const { t } = useTranslation()
@@ -34,8 +35,9 @@ const WsInfoFile = props => {
     lazyUri,
     exportAttachmentName,
     hasFrame,
+    is_compress,
     onPressFile,
-    fileItem
+    fileItem,
   } = props
 
 
@@ -381,7 +383,9 @@ const WsInfoFile = props => {
                 handlePress()
               }}
               style={{
-                width: width * 0.675,
+                alignSelf: 'stretch',
+                maxWidth: '100%',
+                width: '99%',
               }}
             >
               {isProcessing && (
@@ -402,6 +406,30 @@ const WsInfoFile = props => {
 
               {exportAttachmentName && (
                 <>
+                  {is_compress && (
+                    <WsFlex>
+                      <WsTag
+                        textColor={
+                          is_compress === t('轉檔完成') ? $color.priamry :
+                            is_compress === t('轉檔中') ? $color.gray :
+                              $color.primary
+                        }
+                        backgroundColor={
+                          is_compress === t('轉檔完成') ? $color.priamry11l :
+                            is_compress === t('轉檔中') ? $color.yellow11l :
+                              $color.primary
+                        }
+                        style={{
+                          borderRadius: 10,
+                          justifyContent: 'center',
+                          marginBottom: 8,
+                        }}
+                      >
+                        {is_compress}
+                      </WsTag>
+                    </WsFlex>
+                  )}
+
                   <WsInfo
                     labelWidth={160}
                     label={t('是否匯出附件名稱')}
@@ -433,17 +461,18 @@ const WsInfoFile = props => {
 
               <WsFlex
                 style={{
-                  // borderWidth:1
+                  // borderWidth:1,
+                  maxWidth: '80%',
                 }}
               >
                 <Image style={{ width: 32, height: 32 }} source={$_getFileTypeImage()} />
                 <WsText
                   testID={'WsInfoFile名稱'}
-                  style={{ marginLeft: 8, marginRight: 20 }}
-                  size={14}
                   style={{
-                    flexShrink: 1
+                    marginLeft: 8,
                   }}
+                  numberOfLines={1}
+                  size={14}
                 >
                   {fileName !== 'invalid scope' && fileVersion
                     ? `${fileName} ver.${fileVersion}`

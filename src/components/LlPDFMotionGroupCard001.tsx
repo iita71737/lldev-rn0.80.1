@@ -765,11 +765,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
       typeof resolutionSummary === 'string' ? resolutionSummary.trim() !== '' : !!resolutionSummary;
     const hasResolutionDetails =
       typeof resolutionDetails === 'string' ? resolutionDetails.trim() !== '' : !!resolutionDetails;
-    const updatedAtValue = meetingItem?.updated_at ?? meetingItem?.updatedAt ?? null;
-    const apiUpdatedAtText = updatedAtValue
-      ? moment(updatedAtValue).format('YYYY-MM-DD HH:mm:ss')
-      : '-';
-    const updatedAtText = meetingItemRefreshTimes[meetingItem.id] ?? apiUpdatedAtText;
     const hasConvert =
       meetingItem?.is_convert === true || meetingItem?.is_convert === false;
     const isConvert =
@@ -786,7 +781,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
       meetingItem?.convert_status?.name ??
       meetingItem?.convert_status ??
       null;
-    const parseStatus = rawParseStatus ?? '-';
     const parseStatusValue = String(rawParseStatus).toUpperCase();
     const convertStatusValue = String(rawConvertStatus).toUpperCase();
     const isParseProcessing =
@@ -806,11 +800,11 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
           : isConvertProcessing
             ? t('轉檔中')
             : null;
+    const meetingItemExportAttachStatusTagText = statusTagText;
     const statusTagColors =
       isParseFailed || isConvertFailed
         ? { backgroundColor: $color.danger11l, textColor: $color.danger }
         : { backgroundColor: $color.yellow11l, textColor: $color.gray };
-
 
     return (
       <View key={meetingItem.id} style={{ marginTop: 16 }}>

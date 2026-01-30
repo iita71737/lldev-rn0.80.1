@@ -44,21 +44,22 @@ const WsInfoFiles = props => {
       {value && value.length >= 0 ? (
         <WsGrid
           style={{
-            width: width
+            width: '100%',
           }}
           numColumns={1}
           renderItem={({ item, itemIndex }) => (
             <View
               style={{
                 paddingTop: 8,
+                maxWidth: '100%',
               }}>
               <WsInfoFile
                 testID={`WsInfoFile-${itemIndex}`}
                 value={item}
                 fileItem={value[itemIndex]}
                 fileName={
-                    value[itemIndex]?.file_version?.name ? value[itemIndex]?.file_version?.name :
-                      value[itemIndex]?.file?.name ? value[itemIndex]?.file?.name : item ? decodeURI(S_url.getFileName(item)) : undefined
+                  value[itemIndex]?.file_version?.name ? value[itemIndex]?.file_version?.name :
+                    value[itemIndex]?.file?.name ? value[itemIndex]?.file?.name : item ? decodeURI(S_url.getFileName(item)) : undefined
                 }
                 fileType={
                   value[itemIndex]?.file?.file_type ? value[itemIndex]?.file?.file_type :
@@ -86,6 +87,11 @@ const WsInfoFiles = props => {
                   Array.isArray(hasFrame)
                     ? hasFrame[itemIndex]
                     : hasFrame
+                }
+                is_compress={
+                  value[itemIndex]?.file_version?.is_compressed == 0 ? t('轉檔中') :
+                    value[itemIndex]?.file_version?.is_compressed == 1 ? t('轉檔完成') :
+                      undefined
                 }
                 onPressFile={onPressFile}
               />

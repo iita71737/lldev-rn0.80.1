@@ -191,6 +191,7 @@ export default {
           sequence: item?.sequence ?? undefined,
           meeting_template_field: this.getMeetingTemplateFieldId(item?.meeting_template_field),
           factory: item?.factory ?? factoryId ?? null,
+          has_line_break: item?.has_line_break ? true : false,
         }))
         : [],
     }

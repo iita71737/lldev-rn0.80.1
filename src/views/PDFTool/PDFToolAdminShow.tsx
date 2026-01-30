@@ -286,6 +286,9 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const [addMotionModalVisible, setAddMotionModalVisible] = useState(false)
   const [popupDeleteMeetingVisible, setPopupDeleteMeetingVisible] = useState(false)
   const [popupScheduleExportVisible, setPopupScheduleExportVisible] = useState(false)
+  const [popupExportWarningVisible, setPopupExportWarningVisible] = useState(false)
+  const [popupExportWarningMessage, setPopupExportWarningMessage] = useState('')
+  const [popupExportWarningItems, setPopupExportWarningItems] = useState<any[]>([])
 
   // 議事
   const [meeting, setMeeting] = useState<any>(null);
@@ -306,8 +309,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const [exportTitle, setExportTitle] = useState('')
   const [exportRemark, setExportRemark] = useState('')
   const [exportChecked, setExportChecked] = useState<{ [key: string]: boolean }>({})
-  const [exportShowPageNumber, setExportShowPageNumber] = useState(true)
-  const [exportShowWatermark, setExportShowWatermark] = useState(true)
   const [exportAttachmentPosition, setExportAttachmentPosition] = useState('item-attach-together')
   const [exportItems, setExportItems] = useState<ExportItem[]>([])
   const [isAgendaExportMode, setIsAgendaExportMode] = useState(false)
@@ -319,8 +320,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const resetExportForm = () => {
     setExportTitle('')
     setExportRemark('')
-    setExportShowPageNumber(true)
-    setExportShowWatermark(true)
     setExportAttachmentPosition('followingMeetingItem')
   }
 
@@ -473,12 +472,43 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       })
 
       if (hasIncomplete) {
-        Alert.alert(t('尚有未解析完或是轉檔完的議案，請稍候再試'))
+        setPopupExportWarningMessage(t('尚有未解析完或是轉檔完的議案，請稍候再試'))
+        setPopupExportWarningItems([])
+        setPopupExportWarningVisible(true)
         return false
       }
+
+      const uncompressRes = await S_MeetingItem.getUncompress({
+        params: {
+          meeting_id: id,
+        },
+      })
+      const uncompressData = uncompressRes?.data ?? uncompressRes
+      const uncompressList = Array.isArray(uncompressData) ? uncompressData : []
+
+      if (uncompressList.length > 0) {
+        setPopupExportWarningMessage(t('以下議案的附件尚在處理中，請稍候再試'))
+        // setPopupExportWarningItems(uncompressList)
+        setPopupExportWarningItems([
+          {
+            "id": "d1ec4e5b-30fd-4df7-979b-bd81cc2f2ae4",
+            "name": "一一三年度審計暨風險管理委員會審查會計表冊報告案。",
+            "sequence": "0002",
+            "item_label": "第二案",
+            "parse_status": "COMPLETE",
+            "convert_status": "PROCESSING",
+            "meeting_item_group": {
+              "id": "80015dab-1959-4257-b4a9-3b173ce59e4f"
+            }
+          }
+        ])
+        setPopupExportWarningVisible(true)
+        return false
+      }
+
       return true
     } catch (err) {
-      console.log('S_MeetingItem.meetingIndexAll error', err)
+      console.log('ensureMeetingItemsReadyForExport error', err)
       return true
     }
   }, [id, t])
@@ -631,7 +661,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         icon: 'ws-outline-copy',
         label: t('複製議事'),
       },
-      // ✅ 匯出：總匯出（打開你原本的 export modal）
       canCreateMeetingExport && {
         icon: 'ws-outline-logout',
         label: t('匯出'),
@@ -644,7 +673,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           setExportModalVisible(true)
         },
       },
-      // ✅ 匯出時序表
       canCreateMeetingExport && {
         icon: 'ws-outline-logout',
         label: t('匯出時序表'),
@@ -1161,7 +1189,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       setAddMotionModalVisible(false)
       setMeetingItemGroupIdForUpload(null)
       setFileDataList([])
-      Alert.alert(t('建立​成功，​伺服器​正在​處理​中，​請到​匯出紀​錄確認​處理​狀態'))
+      Alert.alert(t('建立成功，系統處理中，請到匯出紀錄確認進度。完成後將發送Email通知'))
       setMeetingItemGroupRefreshKey(prev => prev + 1)
     } catch (e) {
       console.error(e);
@@ -1371,7 +1399,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       resetExportForm()
       setExportRecordRefreshKey(prev => prev + 1)
       setIndex(2)
-      Alert.alert(t('建立​成功，​伺服器​正在​處理​中，​請到​匯出紀​錄確認​處理​狀態'))
+      Alert.alert(t('建立成功，系統處理中，請到匯出紀錄確認進度。完成後將發送Email通知'))
     } catch (err) {
       console.log('S_MeetingExport.create error', err)
       Alert.alert(t('匯出失敗，請稍後再試'))
@@ -1623,6 +1651,91 @@ const PDFToolAdminShow = ({ navigation, route }) => {
               {t('確定')}
             </WsGradientButton>
           </WsFlex>
+        </View>
+      </WsPopup>
+
+      <WsPopup
+        active={popupExportWarningVisible}
+        onClose={() => {
+          setPopupExportWarningVisible(false)
+        }}
+      >
+        <View
+          style={{
+            width: width * 0.9,
+            minHeight: height * 0.2,
+            backgroundColor: $color.white,
+            borderRadius: 10,
+            paddingHorizontal: 16,
+            paddingTop: 16,
+            paddingBottom: 12,
+          }}
+        >
+          <WsText size={16} color={$color.black} fontWeight="600">
+            {popupExportWarningMessage}
+          </WsText>
+
+          {popupExportWarningItems.length > 0 && (
+            <View style={{ marginTop: 12 }}>
+              {(() => {
+                const groupNameMap = new Map(
+                  (groups ?? []).map(group => [
+                    String(group?.id ?? ''),
+                    group?.name ?? t('議案群組'),
+                  ])
+                )
+                const grouped: Record<string, any[]> = {}
+                popupExportWarningItems.forEach(item => {
+                  const groupId =
+                    item?.meeting_item_group?.id ??
+                    item?.meeting_item_group_id ??
+                    'unknown'
+                  if (!grouped[groupId]) grouped[groupId] = []
+                  grouped[groupId].push(item)
+                })
+                return Object.entries(grouped).map(([groupId, items]) => {
+                  const sortedItems = [...items].sort((a: any, b: any) =>
+                    String(a?.sequence ?? '').localeCompare(String(b?.sequence ?? ''))
+                  )
+                  const groupLabel = groupNameMap.get(String(groupId)) ?? t('議案群組')
+                  return (
+                    <View key={groupId} style={{ marginBottom: 8 }}>
+                      <WsText size={14} fontWeight="600" style={{ marginBottom: 4 }}>
+                        {groupLabel}
+                      </WsText>
+                      {sortedItems.map((item: any) => {
+                        const label = item?.item_label ?? ''
+                        const name = item?.name ?? ''
+                        const text = `${label} ${name}`.trim() || t('議案')
+                        return (
+                          <WsText
+                            key={item?.id ?? `${groupId}-${item?.sequence}`}
+                            size={14}
+                            color={$color.gray}
+                          >
+                            {text}
+                          </WsText>
+                        )
+                      })}
+                    </View>
+                  )
+                })
+              })()}
+            </View>
+          )}
+
+            <WsGradientButton
+              style={{
+                width: 110,
+                alignSelf: 'flex-end',
+                marginTop: 8,
+              }}
+              onPress={() => {
+                setPopupExportWarningVisible(false)
+              }}
+            >
+              {t('確定')}
+            </WsGradientButton>
         </View>
       </WsPopup>
 

@@ -39,7 +39,7 @@ const WsStateFileItem = props => {
     onDragPressIn,
     itemIndex,
     onItemChange,
-    exportAttachmentName
+    exportAttachmentName,
   } = props
 
 
@@ -141,7 +141,7 @@ const WsStateFileItem = props => {
         factory: currentFactory.id
       }
       const queryString = new URLSearchParams(_params).toString();
-      console.log(fileName,'fileName AAA')
+      console.log(fileName, 'fileName AAA')
       const _uploadUrl = `general_file/${encodeURIComponent(fileName)}?${queryString}` // 260123-filepath-issue
 
       console.log(_uploadUrl, '_uploadUrl status B')
@@ -156,7 +156,7 @@ const WsStateFileItem = props => {
           RNBlobUtil.wrap(uri)
         );
         console.log(res.json(), 'res.json()---')
-        
+
         let status = res.info().status;
         if (status === 200 && modelName) {
           console.log('status B1')

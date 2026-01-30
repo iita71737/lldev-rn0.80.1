@@ -148,7 +148,7 @@ const RoutesPDFTool = () => {
       nameKey: 'name',
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
-      hasMeta: false,
+      hasMeta: true,
       params: {
         meeting_template_type: meetingItemTemplateTypeId
       },
@@ -161,7 +161,7 @@ const RoutesPDFTool = () => {
       nameKey: 'name',
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
-      hasMeta: false,
+      hasMeta: true,
       params: {
         meeting_template_type: meetingTemplateTypeId
       },
@@ -174,7 +174,7 @@ const RoutesPDFTool = () => {
       nameKey: 'name',
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
-      hasMeta: false,
+      hasMeta: true,
       params: {
         meeting_template_type: contentsTemplateTypeId
       }
@@ -186,7 +186,7 @@ const RoutesPDFTool = () => {
       nameKey: 'name',
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
-      hasMeta: false,
+      hasMeta: true,
       params: {
         meeting_template_type: coverTemplateTypeId
       }
@@ -198,7 +198,7 @@ const RoutesPDFTool = () => {
       nameKey: 'name',
       modelName: 'meeting_template',
       serviceIndexKey: 'index',
-      hasMeta: false,
+      hasMeta: true,
       params: {
         meeting_template_type: attachCoverTypeId
       }
@@ -556,7 +556,7 @@ const RoutesPDFTool = () => {
   const submitForCreateTemplate = async (_postData, navigation) => {
     // console.log(JSON.stringify(_postData), '_postData submitForCreateTemplate');
     const _data = S_MeetingTemplate.formattedDataForCreate(_postData, currentUser)
-    // console.log(JSON.stringify(_data), '_data submitForCreateTemplate');
+    console.log(JSON.stringify(_data), '_data submitForCreateTemplate');
     try {
       const res = await S_MeetingTemplate.create({
         data: _data
@@ -598,7 +598,7 @@ const RoutesPDFTool = () => {
     navigation,
     currentUserId
   ) => {
-    console.log(JSON.stringify(_formattedValue), '_formattedValue--');
+    // console.log(JSON.stringify(_formattedValue), '_formattedValue--');
     const _data = S_MeetingTemplate.formattedMeetingTemplateForEdit(_formattedValue, currentUserId)
     console.log(modelId, 'modelId')
     console.log(JSON.stringify(_data), 'S_GuidelineVersionAdmin.update');

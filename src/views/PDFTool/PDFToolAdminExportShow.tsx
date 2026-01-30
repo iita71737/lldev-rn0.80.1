@@ -793,20 +793,24 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                     />
                   </View>
                 )}
-                <View
-                  style={{
-                    marginTop: 8
-                  }}
-                >
-                  <WsInfo
-                    type="filesAndImages"
-                    label={meetingExport?.type === 'schedule' ? t('時序表') : t('附件彙整 (PDF)')}
-                    value={[
-                      meetingExport?.convert_pdf_attach
-                    ]}
-                    onPressFile={onPressFile}
-                  />
-                </View>
+
+                {meetingExport?.convert_pdf_attach && (
+                  <View
+                    style={{
+                      marginTop: 8
+                    }}
+                  >
+                    <WsInfo
+                      type="filesAndImages"
+                      label={meetingExport?.type === 'schedule' ? t('時序表') : t('附件彙整 (PDF)')}
+                      value={[
+                        meetingExport?.convert_pdf_attach
+                      ]}
+                      onPressFile={onPressFile}
+                    />
+                  </View>
+                )}
+
 
                 {meetingExport?.attach_location_type === 'item-attach-seperate' && (
                   <>

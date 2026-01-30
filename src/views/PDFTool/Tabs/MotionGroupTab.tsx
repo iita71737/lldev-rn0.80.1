@@ -145,7 +145,6 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   const didFinalRefreshRef = useRef(false)
 
   const requestMeetingItemsAllRefresh = useCallback(() => {
-    console.log(meetingItemsAllRefreshKeyState,'meetingItemsAllRefreshKey')
     setMeetingItemsAllRefreshKeyState(prev => prev + 1)
   }, [meetingItemsAllRefreshKeyState])
 

@@ -56,4 +56,13 @@ export default {
       }
     })
   },
+  async getUncompress({ params }) {
+    return base.index({
+      modelName: `meeting/${params?.meeting_id}/meeting_item/index/uncompress`,
+      params: {
+        ...params,
+        ...S_Processor.getFactoryParams()
+      }
+    })
+  }
 }
