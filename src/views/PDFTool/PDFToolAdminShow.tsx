@@ -8,129 +8,45 @@ import React, {
 import {
   ScrollView,
   View,
-  Text,
-  Linking,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
-  Keyboard,
   Platform,
-  Touchable,
   Dimensions,
   Alert,
   TouchableOpacity,
-  SafeAreaView,
-  StyleSheet,
-  Button,
-  Modal,
-  TextInput,
-  PanResponder,
-  findNodeHandle,
-  FlatList
 } from 'react-native'
 import {
   WsFlex,
-  WsTag,
-  WsCardPassage,
   WsText,
   WsDes,
   WsIconBtn,
-  WsPaddingContainer,
-  WsInfo,
-  LlArticleCard001,
-  WsInfiniteScroll,
-  WsPageIndex,
-  WsSnackBar,
   WsGradientButton,
   WsIcon,
   WsState,
   WsModal,
   WsPopup,
-  WsDialog,
-  WsBtnLeftIconCircle,
-  LlBtnAct001,
-  WsCollapsible,
   WsBottomSheet,
-  LlRelatedLicenseTemplateCard001,
-  LlRelatedChecklistTemplateCard001,
-  LlRelatedAuditTemplateCard001,
-  LlRelatedContractorLicenseTemplateCard001,
-  LlRelatedTrainingTemplateCard001,
-  LlRelatedAuditDocs001,
-  LlRelatedTrainingDocs001,
-  LlRelatedLicenseDocs001,
-  LlRelatedContractorLicenseDocs001,
-  LlRelatedChecklistDocs001,
-  WsSkeleton,
   WsLoading,
-  LlRelatedFileStoreFiles001,
-  LlNavButton002,
-  LlTaskCard002,
-  LlGuidelineArticleCard001,
-  LlInfoContainer001,
-  LlGuidelineArticleEditCard001,
-  WsDialogDelete,
-  LlRelatedGuidelineItem001,
-  WsErrorMessage,
-  LlRelatedTaskCard001,
-  LlGuidelineRelatedDocs001,
-  LlGuidelineRelatedTask001,
-  LlGuidelineRelatedActs001,
-  LlGuidelineRelatedGuidelines001,
-  LlPDFMotionGroupCard001,
-  WsCard,
   WsTabView,
   WsStateCheckBox002,
-  WsUpdateBtn
+  WsUpdateBtn,
 } from '@/components'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
-import S_Act from '@/services/api/v1/act'
-import S_ArticleVersion from '@/services/api/v1/article_version'
 import { useSelector } from 'react-redux'
 import store from '@/store'
-import {
-  setFactoryTags,
-  setRefreshCounter,
-} from '@/store/data'
-import { addToCollectIds, deleteCollectId } from '@/store/data'
+import { setRefreshCounter } from '@/store/data'
 import { useTranslation } from 'react-i18next'
-import { setCurrentAct } from '@/store/data'
-import S_FactoryTag from '@/services/api/v1/factory_tag'
 import AsyncStorage from '@react-native-community/async-storage'
-import S_ActVersion from '@/services/api/v1/act_version'
-import S_Guideline from '@/services/api/v1/guideline'
-import S_GuidelineVersion from '@/services/api/v1/guideline_version'
-import S_GuidelineArticleVersion from '@/services/api/v1/guideline_article_version'
-import S_GuidelineAdmin from '@/services/api/v1/guideline_admin'
-import S_GuidelineVersionAdmin from '@/services/api/v1/guideline_version_admin'
-import S_GuidelineArticleVersionAdmin from '@/services/api/v1/guideline_article_version_admin'
-import S_GuidelineArticleAdmin from '@/services/api/v1/guideline_article_admin'
 import S_Meeting from '@/services/api/v1/meeting'
-import { actions, RichEditor, RichToolbar } from 'react-native-pell-rich-editor'
-import IonIcon from 'react-native-vector-icons/Ionicons'
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
-import effects from '@/services/api/v1/effects'
-import ViewArticleShowForModal from '@/views/Act/ArticleShowForModal'
-import { decode } from 'html-entities'
-import guideline_status from '@/services/api/v1/guideline_status'
-import RNFS from 'react-native-fs'
-import Share from 'react-native-share'
 import { pick, types } from '@react-native-documents/picker'
-import * as XLSX from 'xlsx'
-import { Table, Row, Rows, TableWrapper } from 'react-native-table-component'
-import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions'
-import FileViewer from 'react-native-file-viewer'
-import _ from 'lodash'
-import { useNavigation } from '@react-navigation/native'
-import Clipboard from '@react-native-clipboard/clipboard';
-import MeetingInfoTab, { EsGoalVariable } from './Tabs/MeetingInfoTab'
-import MotionGroupTab, { Group } from './Tabs/MotionGroupTab'
+import MeetingInfoTab from './Tabs/MeetingInfoTab'
+import MotionGroupTab from './Tabs/MotionGroupTab'
 import ExportRecordTab from './Tabs/ExportRecordTab'
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
 import S_MeetingItem from '@/services/api/v1/meeting_item'
 import S_MeetingTemplateType from '@/services/api/v1/meeting_template_type'
 import S_MeetingExport from '@/services/api/v1/meeting_export'
 import DraggableFlatList from "react-native-draggable-flatlist";
+import WsSkeleton from '__reactnative_stone/components/WsSkeleton'
 
 // -------------------- 型別 --------------------
 
@@ -269,8 +185,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const [index, setIndex] = useState(0)
 
   // STATES
-  const [popupDelete, setPopupDelete] = useState(false)
-
   // meeting_item_upload
   const [submitMeetingItemLoading, setSubmitMeetingItemLoading] = useState(false)
   const [fileDataList, setFileDataList] = useState<any[]>([]);
@@ -488,20 +402,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
       if (uncompressList.length > 0) {
         setPopupExportWarningMessage(t('以下議案的附件尚在處理中，請稍候再試'))
-        // setPopupExportWarningItems(uncompressList)
-        setPopupExportWarningItems([
-          {
-            "id": "d1ec4e5b-30fd-4df7-979b-bd81cc2f2ae4",
-            "name": "一一三年度審計暨風險管理委員會審查會計表冊報告案。",
-            "sequence": "0002",
-            "item_label": "第二案",
-            "parse_status": "COMPLETE",
-            "convert_status": "PROCESSING",
-            "meeting_item_group": {
-              "id": "80015dab-1959-4257-b4a9-3b173ce59e4f"
-            }
-          }
-        ])
+        setPopupExportWarningItems(uncompressList)
         setPopupExportWarningVisible(true)
         return false
       }
@@ -1023,13 +924,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     ],
   )
 
-  const normalizeFileName = (name: string) => {
-    if (!name) return 'file';
-    const trimmed = name.trim()
-    const base = trimmed.replace(/\.[^./\\]+$/, '')
-    return base.replace(/\s+/g, '_') || 'file' // ✅ 去副檔名 + 空白 → _
-  };
-
   const $_toChineseNumber = (value: number) => {
     const digits = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九']
     if (value <= 0) return ''
@@ -1182,7 +1076,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           formData: formData,
           meeting_item_group_id: meetingItemGroupIdForUpload
         }
-        // console.log(JSON.stringify(_params), '_params--')
         const _meetingItem = await S_MeetingItem.importMeetingItemWord({ params: _params })
         console.log(JSON.stringify(_meetingItem), '_meetingItem')
       }
@@ -1427,15 +1320,18 @@ const PDFToolAdminShow = ({ navigation, route }) => {
         </View>
       )}
 
-      {/* 2️⃣ TabView：位置就在地點資訊後 */}
-      <WsTabView
-        scrollEnabled={true}
-        items={tabItems}
-        index={index}
-        isAutoWidth={true}
-        setIndex={setIndex}
-        fixedContainerHeight={height - 220} // 可依實際 header 高度微調
-      />
+      {meeting ? (
+        <WsTabView
+          scrollEnabled={true}
+          items={tabItems}
+          index={index}
+          isAutoWidth={true}
+          setIndex={setIndex}
+          fixedContainerHeight={height - 220}
+        />
+      ):(
+        <WsSkeleton></WsSkeleton>
+      )}
 
       {/* 3️⃣ 匯出 Modal（勾選多層 Checkbox） */}
       <WsModal
@@ -1561,16 +1457,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
                         />
                       )
                     })()}
-                    {/* <CheckboxRow
-                      label={t('顯示頁碼')}
-                      checked={exportShowPageNumber}
-                      onChange={setExportShowPageNumber}
-                    /> */}
-                    {/* <CheckboxRow
-                      label={t('顯示浮水印')}
-                      checked={exportShowWatermark}
-                      onChange={setExportShowWatermark}
-                    /> */}
                     {exportItems.map(item => renderExportItem(item, 0))}
                   </View>
                 </>
@@ -1581,79 +1467,6 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       </WsModal>
 
       {/* 4️⃣ 以下原本 Modal / Popup */}
-      <WsPopup
-        active={popupDelete}
-        onClose={() => {
-          setPopupDelete(false)
-        }}
-      >
-        <View
-          style={{
-            width: width * 0.9,
-            height: height * 0.2,
-            backgroundColor: $color.white,
-            borderRadius: 10,
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <WsText
-            size={18}
-            color={$color.black}
-            style={{
-              position: 'absolute',
-              left: 16,
-              top: 16,
-            }}
-          >
-            {t('確定要刪除嗎？')}
-          </WsText>
-          <WsFlex
-            style={{
-              position: 'absolute',
-              right: 16,
-              bottom: 16,
-            }}
-          >
-            <TouchableOpacity
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderColor: $color.gray,
-                borderRadius: 25,
-                borderWidth: 1,
-                width: 110,
-                alignItems: 'center',
-              }}
-              onPress={() => {
-                setPopupDelete(false)
-              }}
-            >
-              <WsText
-                style={{
-                  padding: 1,
-                }}
-                size={14}
-                color={$color.gray}
-              >
-                {t('取消')}
-              </WsText>
-            </TouchableOpacity>
-            <WsGradientButton
-              style={{
-                width: 110,
-              }}
-              onPress={() => {
-                setPopupDelete(false)
-              }}
-            >
-              {t('確定')}
-            </WsGradientButton>
-          </WsFlex>
-        </View>
-      </WsPopup>
-
       <WsPopup
         active={popupExportWarningVisible}
         onClose={() => {

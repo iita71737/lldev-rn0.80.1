@@ -17,7 +17,6 @@ import S_Contractor from '@/services/api/v1/contractor'
 import { useTranslation } from 'react-i18next'
 import S_Factory from '@/services/api/v1/factory'
 import H_factory from "@/helpers/factory"
-import { useNavigationState } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 
 interface Item {

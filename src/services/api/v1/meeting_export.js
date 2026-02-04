@@ -74,5 +74,11 @@ export default {
         ...S_Processor.getFactoryData()
       }
     })
+  },
+  async updateConvertWord({ params }) {
+    return base.createWithFormData({
+      modelName: `meeting_export/${params?.meeting_export_id}/update/convert_word_attach`,
+      data: params.formData
+    })
   }
 }

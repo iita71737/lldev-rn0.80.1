@@ -38,6 +38,7 @@ const WsInfoFile = props => {
     is_compress,
     onPressFile,
     fileItem,
+    useWebView = false
   } = props
 
 
@@ -165,9 +166,8 @@ const WsInfoFile = props => {
     return `file://${encodedPath}`
   }
 
-  const previewTypes = new Set([
+  const previewImageTypes = new Set([
     'png', 'jpg', 'gif', 'jpeg', 'svg',
-    'mp4', 'avi', 'mov', 'mkv', 'wmv',
   ])
 
   const ensureAndroidPermission = async () => {
@@ -253,12 +253,11 @@ const WsInfoFile = props => {
 
       if (!url) {
         console.warn('[WsInfoFile] empty url, value=', value)
-        setIsVisible(true)
         return
       }
 
-      // 圖片 / 影片直接預覽
-      if (previewTypes.has(type)) {
+      // 只有圖片或 useWebView 才開預覽
+      if (useWebView || previewImageTypes.has(type)) {
         setIsVisible(true)
         return
       }
@@ -288,24 +287,25 @@ const WsInfoFile = props => {
       }).promise
 
       if (downloadRes.statusCode === 200) {
+        console.log('FileViewer')
         await FileViewer.open(filePath, { showOpenWithDialog: true })
       } else {
         console.warn('[WsInfoFile] download failed status:', downloadRes.statusCode)
-        setIsVisible(true)
+        if (useWebView || previewImageTypes.has(type)) {
+          setIsVisible(true)
+        }
       }
     } catch (error) {
       console.error('Error during file open:', error)
-      setIsVisible(true)
+      if (useWebView || previewImageTypes.has(type)) {
+        setIsVisible(true)
+      }
     } finally {
       setIsProcessing(false)
     }
   }
 
   const handlePress = async () => {
-    if (onPressFile) {
-      onPressFile(fileItem ?? value)
-      // return
-    }
     await $_onCardPress()
   }
 
@@ -497,6 +497,8 @@ const WsInfoFile = props => {
             visible={isVisible}
             onRequestClose={$_onRequestClose}
             iconLeftOnPress={$_onRequestClose}
+            useWebView={useWebView}
+            onSavePress={onPressFile}
           />
         </>
       )}

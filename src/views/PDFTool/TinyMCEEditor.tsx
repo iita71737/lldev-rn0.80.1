@@ -70,7 +70,6 @@ const TinyMCEEditor: React.FC<Props> = ({ initialHtml, onChange }) => {
             <WebView
                 ref={webviewRef}
                 originWhitelist={['*']}
-                // source={{ html: htmlTemplate }}
                 source={{uri: `https://pdftron.s3.amazonaws.com/downloads/pl/report.docx`}}
                 onMessage={handleMessage}
                 onLoad={handleLoad}

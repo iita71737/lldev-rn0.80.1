@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import {
   Modal,
   View,
@@ -21,6 +21,7 @@ import $color from '@/__reactnative_stone/global/color'
 import S_url from '__reactnative_stone/services/app/url'
 import { useTranslation } from 'react-i18next'
 import Video from 'react-native-video';
+import { WebView } from 'react-native-webview';
 
 const WsModalPreview = props => {
   const { width, height } = Dimensions.get('window')
@@ -33,18 +34,36 @@ const WsModalPreview = props => {
     source,
     visible,
     onRequestClose,
+    onSavePress,
     ableDownload = true,
-    priority = 'normal'
+    priority = 'normal',
+    useWebView = false,
   } = props
 
   // PDF STATES
-  const [PDFLoading, setPDFLoading] = React.useState(true);
-  const [PDFError, setPDFError] = React.useState(false);
+  const webviewRef = useRef(null)
+  const handleLoad = event => {
+    const url = event.nativeEvent.url; // e.g. "https://editor.your-domain.com/page"
+    // 簡單取 domain（hostname）
+    try {
+      const { hostname } = new URL(url);
+      // console.log('hostname:', hostname); // e.g. "editor.your-domain.com"
+    } catch (e) {
+      console.log('URL parse error', e);
+    }
+  }
 
   // State
   const videoRef = React.useRef();
   const [previewAvailable, setPreviewAvailable] = React.useState(false)
+  const [webviewLoading, setWebviewLoading] = React.useState(false)
+  const [gviewFailed, setGviewFailed] = React.useState(false)
+  const [gviewRetryCount, setGviewRetryCount] = React.useState(0)
+  const [webKey, setWebKey] = React.useState(0)
+  const gviewFailHandledKeyRef = React.useRef(null)
 
+
+  // for video error handling
   const [isError, setIsError] = React.useState(false);
   const [isVideoReady, setIsVideoReady] = React.useState(false);
 
@@ -62,8 +81,19 @@ const WsModalPreview = props => {
     setPreviewAvailable(false)
   }
   const $_onSavePress = async () => {
+    if (typeof onSavePress === 'function') {
+      await onSavePress()
+    }
     setPreviewAvailable(true)
   }
+
+  React.useEffect(() => {
+    setGviewFailed(false)
+    setGviewRetryCount(0)
+    setWebKey(0)
+    gviewFailHandledKeyRef.current = null
+  }, [source, visible])
+
 
   // HELPER
   const $_getFileType = () => {
@@ -90,12 +120,6 @@ const WsModalPreview = props => {
         return 'image'
       }
     }
-  }
-  const $_PDFonLoaded = (e) => {
-    setPDFLoading(false)
-  }
-  const $_PDFonError = (e) => {
-    setPDFError(true)
   }
 
   const $_getFileName = () => {
@@ -169,11 +193,33 @@ const WsModalPreview = props => {
     return url;
   };
 
+  const rawDocumentUrl = React.useMemo(() => {
+    const raw =
+      typeof source === 'string'
+        ? source
+        : Array.isArray(source)
+          ? source[0]?.file?.source_url
+          : source?.file_version?.source_url ??
+          source?.file?.source_url ??
+          null
+    const fallback = `https://pdftron.s3.amazonaws.com/downloads/pl/report.docx`
+    return raw || fallback
+  }, [source])
+
+  const webViewSourceUri = React.useMemo(() => {
+    if (Platform.OS === 'android') {
+      return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(
+        rawDocumentUrl
+      )}`
+    }
+    return rawDocumentUrl
+  }, [rawDocumentUrl])
 
   // Render
   return (
     <>
       <Modal
+        hardwareAccelerated={Platform.OS === 'android'}
         transparent={true}
         visible={visible}
         onRequestClose={onRequestClose}
@@ -239,7 +285,7 @@ const WsModalPreview = props => {
                 />
               </>
             )}
-            {((['png', 'jpg', 'jpeg', 'svg', 'pdf', 'PNG', 'JPG', 'JPEG', 'SVG'].includes(fileType)) || $_getFileType() === 'image')
+            {((['png', 'jpg', 'jpeg', 'svg', 'PNG', 'JPG', 'JPEG', 'SVG'].includes(fileType)) || $_getFileType() === 'image')
               && (
                 <>
                   <FastImage
@@ -295,35 +341,136 @@ const WsModalPreview = props => {
                   />
                 </>
               )}
-            {$_getFileType() === 'pdf' && (
+            {($_getFileType() === 'pdf' || $_getFileType() === 'docx' || $_getFileType() === 'xlsx') && useWebView && !gviewFailed && (
               <>
-                {PDFLoading && (
-                  <View
-                    style={{
-                      transform: [{ rotate: '180deg' }],
-                      position: 'absolute',
-                      height: height * 0.8,
-                      width: width,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      backgroundColor: 'black'
-                    }}>
-                    <WsLoading size={30}></WsLoading>
-                  </View>
-                )}
-                {/* <PDFView
-                  fadeInDuration={0.0}
-                  style={{
-                    flex: 1
-                  }}
-                  resource={source}
-                  resourceType="url"
-                  onLoad={$_PDFonLoaded}
-                  onError={$_PDFonError}
-                /> */}
+                <View style={{ flex: 1 }}>
+                  <WebView
+                    key={`gview-${webKey}`}
+                    ref={webviewRef}
+                    originWhitelist={['*']}
+                    source={{ uri: webViewSourceUri }}
+                    onMessage={(event) => {
+                      try {
+                        const msg = JSON.parse(event.nativeEvent.data)
+                        console.log(msg,'msgmsgmsg')
+                        if (msg?.type === 'gview' && msg?.ok === false) {
+                          if (gviewFailHandledKeyRef.current === webKey) return
+                          gviewFailHandledKeyRef.current = webKey
+                          setGviewRetryCount(prev => {
+                            const next = prev + 1
+                            if (next >= 3) {
+                              setGviewFailed(true)
+                              return next
+                            }
+                            setWebKey(k => k + 1)
+                            return next
+                          })
+                        }
+                      } catch {
+                        // ignore invalid messages
+                      }
+                    }}
+                    onLoad={handleLoad}
+                    onLoadStart={() => setWebviewLoading(true)}
+                    onLoadEnd={() => setWebviewLoading(false)}
+                    onError={(e) => {
+                      console.log('WV onError', e.nativeEvent)
+                      setWebviewLoading(false)
+                      setGviewRetryCount(prev => {
+                        const next = prev + 1
+                        if (next >= 3) {
+                          setGviewFailed(true)
+                          return next
+                        }
+                        setWebKey(k => k + 1)
+                        return next
+                      })
+                    }}
+                    onHttpError={(e) => {
+                      console.log('WV onHttpError', e.nativeEvent)
+                      // 403/404 等也可能直接白：可以視情況重掛或顯示 fallback
+                      setGviewRetryCount(prev => {
+                        const next = prev + 1
+                        if (next >= 3) {
+                          setGviewFailed(true)
+                          return next
+                        }
+                        setWebKey(k => k + 1)
+                        return next
+                      })
+                    }}
+                    injectedJavaScript={`
+                      (function() {
+                        if (window.__gviewProbeStarted) return true;
+                        window.__gviewProbeStarted = true;
+                        const check = () => {
+                          const hasFrame = document.querySelector('iframe, embed, object');
+                          const hasText = document.body && document.body.innerText && document.body.innerText.trim().length > 0;
+                          if (hasFrame || hasText) {
+                            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'gview', ok: true }));
+                            return;
+                          }
+                          if (document.readyState === 'complete') {
+                            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'gview', ok: false }));
+                            return;
+                          }
+                          setTimeout(check, 1000);
+                        };
+                        setTimeout(check, 2000);
+                        true;
+                      })();
+                    `}
+
+                    androidLayerType="hardware"
+                    mixedContentMode="compatibility"
+                    javaScriptEnabled
+                    domStorageEnabled
+                    // Google gview 常因 cookie / 第三方 cookie 設定造成偶發白屏
+                    thirdPartyCookiesEnabled={true}
+                    sharedCookiesEnabled={true}
+                    // 避免 gview 嘗試開新視窗造成留白
+                    setSupportMultipleWindows={false}
+                    startInLoadingState
+                    renderLoading={() => (
+                      <View
+                        pointerEvents="none"
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          backgroundColor: 'rgba(0,0,0,0.2)',
+                        }}
+                      >
+                        <ActivityIndicator size="large" color={$color.white} />
+                      </View>
+                    )}
+                  />
+                </View>
               </>
             )}
-            {!['png', 'jpg', 'gif', 'jpeg', 'svg', 'pdf', 'PNG', 'JPG', 'GIF', 'JPEG', 'SVG', 'mp4', 'avi', 'mov', 'mkv', 'wmv'].includes(
+            {($_getFileType() === 'pdf' || $_getFileType() === 'docx' || $_getFileType() === 'xlsx') && useWebView && gviewFailed && (
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: 'center'
+                }}
+              >
+                <WsFlex
+                  justifyContent="center"
+                  style={{
+                    paddingHorizontal: 24
+                  }}>
+                  <WsText color={$color.white} textAlign="center">
+                    {t('無法預覽，請下載')}
+                  </WsText>
+                </WsFlex>
+              </View>
+            )}
+            {!['png', 'jpg', 'gif', 'jpeg', 'svg', 'pdf', 'docx', 'xlsx', 'PNG', 'JPG', 'GIF', 'JPEG', 'SVG', 'mp4', 'avi', 'mov', 'mkv', 'wmv'].includes(
               $_getFileType() || isError
             ) && (
                 <View

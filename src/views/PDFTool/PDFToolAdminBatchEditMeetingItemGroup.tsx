@@ -60,19 +60,6 @@ const isTemplateVariableValid = (
   return false
 }
 
-const getTemplateFiles = (template: any) => {
-  if (!template) return []
-  if (Array.isArray(template?.file_attachs) && template.file_attachs.length > 0) {
-    return template.file_attachs
-  }
-  if (Array.isArray(template?.file_attaches) && template.file_attaches.length > 0) {
-    return template.file_attaches
-  }
-  if (template.file) return [template]
-  if (template.name) return [template.name]
-  return []
-}
-
 const getTemplateName = (template: any) => template?.name ?? ''
 const getTemplateId = (template: any) => template?.id ?? ''
 
@@ -139,8 +126,6 @@ const PDFToolAdminBatchEditMeetingItemGroup = ({ route }: any) => {
 
   const meetingTitle = meeting?.name ?? t('使用者​自訂​議事標題')
   const owner = meeting?.owner ?? null
-  const meetingTemplateFiles = getTemplateFiles(meeting?.meeting_template?.attach)
-  const contentsTemplateFiles = getTemplateFiles(meeting?.contents_template?.attach)
   const meetingTemplateId = getTemplateId(meeting?.meeting_template)
   const meetingTemplateName = getTemplateName(meeting?.meeting_template)
   const contentsTemplateTemplateId = getTemplateId(meeting?.contents_template)

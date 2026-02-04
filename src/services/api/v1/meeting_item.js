@@ -64,5 +64,11 @@ export default {
         ...S_Processor.getFactoryParams()
       }
     })
+  },
+  async updateConvertAttach({ params }) {
+    return base.createWithFormData({
+      modelName: `meeting_item/${params?.meeting_item_id}/update/convert_attach`,
+      data: params.formData
+    })
   }
 }

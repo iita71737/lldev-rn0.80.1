@@ -1,95 +1,33 @@
 import React, { useRef, useState, useEffect } from 'react'
 import {
-  ScrollView,
   View,
-  Text,
-  Linking,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Platform,
-  Touchable,
   Dimensions,
   FlatList,
   Alert,
   TouchableOpacity,
-  SafeAreaView,
-  StyleSheet,
-  Button,
-  Modal,
-  TextInput,
-  PanResponder,
-  findNodeHandle,
 } from 'react-native'
 import {
   WsFlex,
-  WsTag,
-  WsCardPassage,
   WsText,
-  WsDes,
   WsIconBtn,
   WsPaddingContainer,
   WsInfo,
-  LlArticleCard001,
-  WsInfiniteScroll,
-  WsPageIndex,
-  WsSnackBar,
   WsGradientButton,
   WsIcon,
-  WsState,
-  WsModal,
   WsPopup,
-  WsDialog,
-  WsBtnLeftIconCircle,
-  LlBtnAct001,
-  WsCollapsible,
   WsBottomSheet,
-  LlRelatedLicenseTemplateCard001,
-  LlRelatedChecklistTemplateCard001,
-  LlRelatedAuditTemplateCard001,
-  LlRelatedContractorLicenseTemplateCard001,
-  LlRelatedTrainingTemplateCard001,
-  LlRelatedAuditDocs001,
-  LlRelatedTrainingDocs001,
-  LlRelatedLicenseDocs001,
-  LlRelatedContractorLicenseDocs001,
-  LlRelatedChecklistDocs001,
   WsSkeleton,
-  WsLoading,
-  LlRelatedFileStoreFiles001,
-  LlNavButton002,
-  LlTaskCard002,
-  LlGuidelineArticleCard001,
-  LlInfoContainer001,
-  LlGuidelineArticleEditCard001,
   WsDialogDelete,
-  LlRelatedGuidelineItem001,
-  WsErrorMessage,
-  LlRelatedTaskCard001,
-  LlGuidelineRelatedDocs001,
-  LlGuidelineRelatedTask001,
-  LlGuidelineRelatedActs001,
-  LlGuidelineRelatedGuidelines001,
-  LlPDFMotionGroupCard001,
   WsCard,
   WsAvatar
 } from '@/components'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
-import S_Act from '@/services/api/v1/act'
-import S_ArticleVersion from '@/services/api/v1/article_version'
 import { useSelector } from 'react-redux'
-import store from '@/store'
-import { setFactoryTags, setRefreshCounter } from '@/store/data'
-import { addToCollectIds, deleteCollectId } from '@/store/data'
 import { useTranslation } from 'react-i18next'
-import { setCurrentAct } from '@/store/data'
-import S_FactoryTag from '@/services/api/v1/factory_tag'
 import AsyncStorage from "@react-native-community/async-storage";
-import _ from 'lodash'
 import Clipboard from '@react-native-clipboard/clipboard'
 import S_MeetingTemplate from '@/services/api/v1/meeting_template'
-import S_File from '@/services/api/v1/file'
 
 export type PDFProposalItem = {
   id: string
@@ -109,13 +47,9 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
   console.log(id, '=id=')
 
   // REDUX
-  const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
-  const currentFactory = useSelector(state => state.data.currentFactory)
-  const currentFactoryTags = useSelector(state => state.data.factoryTags)
   const currentUserScope = useSelector(state => state.data.userScopes)
 
   // STATES
-  const [loading, setLoading] = useState(true)
   const [popupDelete, setPopupDelete] = useState(false)
 
   const [meetingTemplate, setMeetingTemplate] = useState<any>(null)
@@ -138,7 +72,6 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
       setWordFields(wf)
       wordFieldsRef.current = wf
     }
-    // console.log(meetingTemplate,'meetingTemplatemeetingTemplatemeetingTemplate')
     // 3) attach / items 用 null 保底（避免 undefined 被 stringify 吃掉）
     const meetingTemplateItems = (mt?.meeting_template_items ?? []).map((item, index) => {
       if (!item || typeof item !== 'object') return item
@@ -213,7 +146,6 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
 
   const $_fetchMeetingTemplate = async () => {
     try {
-      setLoading(true)
       const res = await S_MeetingTemplate.show({ modelId: id })
       const _template = {
         ...res,
@@ -226,8 +158,6 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
       }
     } catch (e) {
       console.log(e, 'fetch meeting_template failed')
-    } finally {
-      setLoading(false)
     }
   }
 

@@ -3,7 +3,7 @@ import { View, TouchableOpacity, FlatList } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import {
   WsFlex,
-  WsTag, WsCard, WsText, WsIcon, LlPDFMotionGroupCard001, WsSkeleton, WsModal, WsEmpty, WsDialog, WsDes
+  WsTag, WsText, WsIcon, LlPDFMotionGroupCard001, WsSkeleton, WsModal, WsEmpty, WsDialog, WsDes
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
@@ -126,10 +126,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   const isMeetingOwner =
     !!meeting?.owner?.id && meeting?.owner?.id === currentUser?.id
   const remind = '處理失敗建議'
-  const remindBtnDisabled = false
-  const remindColor = $color.danger
   const dialogButtonItems: any[] = []
-  const dialogTitle = undefined
   const contentHeight = undefined
   const autoFocus = false
   const [visible, setVisible] = useState(false)
@@ -401,6 +398,23 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
     }, [meeting?.id, meetingItemGroups.length, meetingItemsSignature, mode, meetingItemsAllRefreshKeyState])
   )
 
+  const shouldShowRemind = useMemo(() => {
+    const getStatusValue = (value: any) =>
+      String(value?.name ?? value ?? '').toUpperCase()
+    const isFailed = (item: any) => {
+      const parseStatus = getStatusValue(item?.parse_status)
+      const convertStatus = getStatusValue(item?.convert_status)
+      return parseStatus === 'FAILED' || convertStatus === 'FAILED'
+    }
+    const statusMap = meetingItemStatusByGroup
+    const listMap = meetingItemListByGroup
+    const groupIds = meetingItemGroups.map(group => group.id)
+    return groupIds.some(groupId => {
+      const items = statusMap[groupId] ?? listMap[groupId] ?? []
+      return Array.isArray(items) && items.some(isFailed)
+    })
+  }, [meetingItemGroups, meetingItemListByGroup, meetingItemStatusByGroup])
+
   if (loading) {
     return (
       <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
@@ -410,7 +424,6 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   }
 
   const toFlatItems = () => {
-    // console.log(JSON.stringify(meetingItemGroups),'meetingItemGroups')
     const orderedGroups = [...meetingItemGroups].sort((a: any, b: any) =>
       String(a?.sequence ?? '').localeCompare(String(b?.sequence ?? ''))
     )
@@ -441,7 +454,6 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
       return [groupItem, ...itemEntries]
     })
   }
-  // console.log(toFlatItems(),'toFlatItemstoFlatItemstoFlatItems')
 
   const applyPayloadToGroups = (payload: { meeting_item_groups: any[] }) => {
     const payloadGroups = payload.meeting_item_groups || []
@@ -470,6 +482,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
       .sort((a: any, b: any) => (a.sequence || '').localeCompare(b.sequence || ''))
   }
 
+
   const handleConfirmSort = () => {
     const payload = draggableListRef.current?.getPayload()
     if (payload) {
@@ -483,7 +496,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
 
   const renderListHeader = () => (
     <>
-      {remind && (
+      {shouldShowRemind && (
         <>
           <TouchableOpacity
             style={{ paddingHorizontal: 16, paddingTop: 16 }}
@@ -540,7 +553,6 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
         justifyContent="space-between"
       >
 
-        {/* <View /> */}
         {!!meetingItemGroups.length && isMeetingOwner ? (
           <TouchableOpacity
             style={{ alignItems: 'flex-start', marginRight: 8 }}

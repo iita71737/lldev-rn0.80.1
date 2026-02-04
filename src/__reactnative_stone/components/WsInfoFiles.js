@@ -18,7 +18,8 @@ const WsInfoFiles = props => {
     emptyText,
     exportAttachmentName,
     hasFrame,
-    onPressFile
+    useWebView,
+    onPressFile,
   } = props
 
   // Computed
@@ -93,6 +94,7 @@ const WsInfoFiles = props => {
                     value[itemIndex]?.file_version?.is_compressed == 1 ? t('轉檔完成') :
                       undefined
                 }
+                useWebView={useWebView}
                 onPressFile={onPressFile}
               />
             </View>

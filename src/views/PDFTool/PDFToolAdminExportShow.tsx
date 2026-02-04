@@ -1,119 +1,38 @@
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   ScrollView,
   View,
-  Text,
   Linking,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
-  Keyboard,
   Platform,
-  Touchable,
   Dimensions,
-  FlatList,
   Alert,
   TouchableOpacity,
-  SafeAreaView,
-  StyleSheet,
-  Button,
-  Modal,
-  TextInput,
-  PanResponder,
-  findNodeHandle,
 } from 'react-native'
 import {
   WsFlex,
   WsTag,
-  WsCardPassage,
   WsText,
   WsDes,
   WsIconBtn,
   WsPaddingContainer,
   WsInfo,
-  LlArticleCard001,
-  WsInfiniteScroll,
   WsPageIndex,
-  WsSnackBar,
-  WsGradientButton,
   WsIcon,
   WsState,
   WsModal,
-  WsPopup,
-  WsDialog,
-  WsBtnLeftIconCircle,
-  LlBtnAct001,
-  WsCollapsible,
   WsBottomSheet,
-  LlRelatedLicenseTemplateCard001,
-  LlRelatedChecklistTemplateCard001,
-  LlRelatedAuditTemplateCard001,
-  LlRelatedContractorLicenseTemplateCard001,
-  LlRelatedTrainingTemplateCard001,
-  LlRelatedAuditDocs001,
-  LlRelatedTrainingDocs001,
-  LlRelatedLicenseDocs001,
-  LlRelatedContractorLicenseDocs001,
-  LlRelatedChecklistDocs001,
   WsSkeleton,
-  WsLoading,
-  LlRelatedFileStoreFiles001,
-  LlNavButton002,
-  LlTaskCard002,
-  LlGuidelineArticleCard001,
-  LlInfoContainer001,
-  LlGuidelineArticleEditCard001,
-  WsDialogDelete,
-  LlRelatedGuidelineItem001,
-  WsErrorMessage,
-  LlRelatedTaskCard001,
-  LlGuidelineRelatedDocs001,
-  LlGuidelineRelatedTask001,
-  LlGuidelineRelatedActs001,
-  LlGuidelineRelatedGuidelines001,
-  LlPDFMotionGroupCard001,
-  WsEmpty,
   WsCard,
-  LlEventCard001,
   WsStateCheckBox002,
 } from '@/components'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
-import S_Act from '@/services/api/v1/act'
-import S_ArticleVersion from '@/services/api/v1/article_version'
 import { useSelector } from 'react-redux'
-import store from '@/store'
-import { setFactoryTags, setRefreshCounter } from '@/store/data'
-import { addToCollectIds, deleteCollectId } from '@/store/data'
 import { useTranslation } from 'react-i18next'
-import { setCurrentAct } from '@/store/data'
-import S_FactoryTag from '@/services/api/v1/factory_tag'
-import AsyncStorage from '@react-native-community/async-storage'
-import S_ActVersion from '@/services/api/v1/act_version'
-import S_Guideline from '@/services/api/v1/guideline'
-import S_GuidelineVersion from '@/services/api/v1/guideline_version'
-import S_GuidelineArticleVersion from '@/services/api/v1/guideline_article_version'
-import S_GuidelineAdmin from '@/services/api/v1/guideline_admin'
-import S_GuidelineVersionAdmin from '@/services/api/v1/guideline_version_admin'
-import S_GuidelineArticleVersionAdmin from '@/services/api/v1/guideline_article_version_admin'
-import S_GuidelineArticleAdmin from '@/services/api/v1/guideline_article_admin'
 import S_MeetingExport from '@/services/api/v1/meeting_export'
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
 import S_MeetingItem from '@/services/api/v1/meeting_item'
-import { actions, RichEditor, RichToolbar } from 'react-native-pell-rich-editor'
-import IonIcon from 'react-native-vector-icons/Ionicons'
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
-import effects from '@/services/api/v1/effects'
-import ViewArticleShowForModal from '@/views/Act/ArticleShowForModal'
-import { decode } from 'html-entities'
-import guideline_status from '@/services/api/v1/guideline_status'
-import RNFS from 'react-native-fs'
-import Share from 'react-native-share'
 import { pick, types } from '@react-native-documents/picker'
-import * as XLSX from 'xlsx'
-import { Table, Row, Rows, TableWrapper } from 'react-native-table-component'
-import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions'
-import FileViewer from 'react-native-file-viewer'
-import _ from 'lodash'
 
 export type PDFProposalItem = {
   id: string
@@ -130,15 +49,6 @@ type ExportDisplayItem = {
   children?: ExportDisplayItem[]
 }
 
-// 下載紀錄型別（純 UI 用）
-type DownloadRecord = {
-  id: string
-  title: string
-  downloadedAt: string
-  downloader: string
-}
-
-
 const PDFToolAdminExportShow = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
   const { width, height } = Dimensions.get('window')
@@ -148,10 +58,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   console.log(id, '=meeting export record id=')
 
   // REDUX
-  const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
   const currentFactory = useSelector(state => state.data.currentFactory)
-  const currentFactoryTags = useSelector(state => state.data.factoryTags)
-  const currentUser = useSelector(state => state.data.currentUser)
   const currentUserScope = useSelector(state => state.data.userScopes)
   const canUpdateMeetingExport =
     Array.isArray(currentUserScope) &&
@@ -173,8 +80,8 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editRemark, setEditRemark] = useState('')
-  const [downloadRecordRefreshKey, setDownloadRecordRefreshKey] = useState(0)
-  const [filterValue, setFilterValue] = useState<any>({})
+  const downloadRecordRefreshKey = 0
+  const defaultFilterValue = {}
   const [filterFields] = React.useState<any>({
     button: {
       type: 'date_range',
@@ -195,7 +102,6 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   const params = React.useMemo(() => {
     return {
       meeting_export: id,
-      refresh_key: downloadRecordRefreshKey,
       order_by: 'created_at',
       order_way: 'desc',
     }
@@ -559,10 +465,6 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
       meetingExport?.status ??
       '',
     ).toUpperCase()
-    const canDownload =
-      statusValue !== 'PENDING' &&
-      statusValue !== 'PROCESSING' &&
-      statusValue !== 'FAILED'
 
     const items = []
     if (canUpdateMeetingExport) {
@@ -572,13 +474,6 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
         label: t('編輯'),
       })
     }
-    // if (canReadMeetingExport && canDownload) {
-    //   items.push({
-    //     key: 'download',
-    //     icon: 'md-file-download',
-    //     label: t('下載匯出'),
-    //   })
-    // }
     return items
   }, [
     canReadMeetingExport,
@@ -589,6 +484,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   ])
 
   const handleDownloadExport = async () => {
+    console.log('S_MeetingExport.download')
     if (!meetingExport?.id) return
     try {
       const res = await S_MeetingExport.download({
@@ -601,8 +497,6 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
         Alert.alert(t('暫無可下載檔案'))
         return
       }
-      // Linking.openURL(url)
-      // setDownloadRecordRefreshKey(prev => prev + 1)
     } catch (err) {
       console.log('S_MeetingExport.download error', err)
       Alert.alert(t('下載失敗，請稍後再試'))
@@ -652,6 +546,62 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
     handleDownloadExport()
   }
 
+  const updateConvertAttach = async () => {
+    if (!meetingExport?.id) {
+      Alert.alert(t('請先選擇匯出紀錄'))
+      return
+    }
+    try {
+      const res = await pick({
+        mode: 'import',
+        type: [types.doc, types.docx],
+      })
+      if (!res || res.length === 0) return
+
+      const rawUri = res[0].uri
+      const originalName = res[0].name || rawUri.split('/').pop() || 'file.docx'
+
+      const isWordFile = (name: string) => {
+        const lower = (name || '').toLowerCase()
+        return lower.endsWith('.doc') || lower.endsWith('.docx')
+      }
+      if (!isWordFile(originalName)) {
+        Alert.alert(t('請選擇 .doc 或 .docx 檔案'))
+        return
+      }
+
+      const fileType =
+        res[0].type ||
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+      const formData = new FormData()
+      formData.append('factory', currentFactory?.id);
+      formData.append('file', {
+        uri: rawUri,
+        name: originalName,
+        type: fileType,
+      } as any)
+
+      console.log(meetingExport?.id, 'meetingExport.id')
+      console.log(JSON.stringify(formData), 'formData')
+
+      await S_MeetingExport.updateConvertWord({
+        params: {
+          formData,
+          meeting_export_id: meetingExport.id,
+        },
+      })
+      Alert.alert(t('更新成功，伺服器正在處理中，請到匯出紀錄確認處理狀態'))
+      $_fetchApi()
+    } catch (err: any) {
+      const isCancel =
+        err?.code === 'DOCUMENT_PICKER_CANCELED' ||
+        err?.message?.includes('user canceled') ||
+        err?.message?.includes('The operation was cancelled')
+      if (!isCancel) console.error('updateConvertAttach error', err)
+    }
+  }
+
   const bottomSheetSnapPoints = React.useMemo(() => ['25%'], [])
 
 
@@ -667,15 +617,13 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   return (
     <>
       <WsPageIndex
-        // mode={'pagination'} // 260128-rm
         hasMeta={true}
         modelName={'meeting_export_record'}
         serviceIndexKey={'index'}
         params={params}
-        // searchLabel={t('搜尋')} // 260128-rm
         searchVisible={false}
         filterFields={filterFields}
-        defaultFilterValue={filterValue}
+        defaultFilterValue={defaultFilterValue}
         ListHeaderComponent={() => {
           return (
             <>
@@ -778,6 +726,27 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                   />
                 </View>
 
+                <View
+                  style={{
+                    marginTop: 16,
+                    borderTopWidth: 0.7,
+                    borderBottomWidth: 0.7,
+                    paddingBottom: 12,
+                    paddingTop: 12,
+                    borderColor: $color.gray,
+                  }}
+                >
+                  <WsInfo
+                    labelWidth={100}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                    label={t('備註')}
+                    value={meetingExport?.remark ?? ''}
+                  />
+                </View>
+
                 {meetingExport?.convert_word_attach && (
                   <View
                     style={{
@@ -790,6 +759,10 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                       value={[
                         meetingExport?.convert_word_attach
                       ].filter(Boolean)}
+                      onPressFile={onPressFile}
+                      useWebView={true}
+                      labelBtnIcon="ws-outline-cloud-upload"
+                      labelBtnOnPress={updateConvertAttach}
                     />
                   </View>
                 )}
@@ -807,6 +780,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                         meetingExport?.convert_pdf_attach
                       ]}
                       onPressFile={onPressFile}
+                      useWebView={true}
                     />
                   </View>
                 )}
@@ -826,30 +800,13 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                           value={[
                             meetingExport?.convert_attach
                           ].filter(Boolean)}
+                          onPressFile={onPressFile}
+                          useWebView={true}
                         />
                       </View>
                     )}
                   </>
                 )}
-
-                <View
-                  style={{
-                    marginTop: 16,
-                    borderTopWidth: 1,
-                    paddingTop: 12,
-                    borderColor: $color.gray,
-                  }}
-                >
-                  <WsInfo
-                    labelWidth={100}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                    }}
-                    label={t('備註')}
-                    value={meetingExport?.remark ?? ''}
-                  />
-                </View>
 
                 {meetingExport?.type !== 'schedule' && (
                   <>
@@ -857,7 +814,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                     <View
                       style={{
                         marginTop: 16,
-                        borderTopWidth: 1,
+                        borderTopWidth: 0.7,
                         borderColor: $color.gray,
                         paddingTop: 12,
                       }}
@@ -916,7 +873,6 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
           return (
             <TouchableOpacity
               onPress={() => {
-                // 下載紀錄 item 點擊行為（目前留白）
               }}
             >
               <WsCard

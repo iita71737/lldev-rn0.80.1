@@ -248,7 +248,6 @@ const LlFileFolderCard = ({
               Alert.alert(t('您無此權限'))
               return
             }
-            console.log('11111');
             navigation.push('RoutesApp', {
               screen: 'FileStoreSubLayer',
               params: {

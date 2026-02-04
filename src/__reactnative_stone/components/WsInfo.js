@@ -81,7 +81,10 @@ const WsInfo = props => {
     textSize = 14,
     exportAttachmentName,
     hasFrame,
-    onPressFile
+    onPressFile,
+    useWebView,
+    labelBtnTextSize = 14,
+    labelBtnIcon
   } = props
 
   // Render
@@ -140,9 +143,21 @@ const WsInfo = props => {
                   testID={`${testID}-編輯`}
                   onPress={labelBtnOnPress}
                 >
-                  <WsText size={14} color={$color.primary}>
+                  <WsText size={labelBtnTextSize} color={$color.primary}>
                     {labelBtnText}
                   </WsText>
+                </TouchableOpacity>
+              )}
+              {labelBtnIcon && (
+                <TouchableOpacity
+                  testID={`${testID}-編輯`}
+                  onPress={labelBtnOnPress}
+                  style={{
+                    marginRight: 8
+                  }}
+                >
+                  <WsIcon name={labelBtnIcon} size={32} color={$color.primary}>
+                  </WsIcon>
                 </TouchableOpacity>
               )}
             </WsFlex>
@@ -196,7 +211,13 @@ const WsInfo = props => {
           {type == 'file' && (
             <WsInfoFile fileName={text} fileType={fileType} value={value} />
           )}
-          {type == 'files' && <WsInfoFiles value={value} onPressFile={onPressFile} />}
+          {type == 'files' && (
+            <WsInfoFiles
+              value={value}
+              onPressFile={onPressFile}
+              useWebView={useWebView}
+            />
+          )}
           {type == 'filesAndImages' && (
             <WsInfoFiles
               value={value}
@@ -205,6 +226,7 @@ const WsInfo = props => {
               exportAttachmentName={exportAttachmentName}
               hasFrame={hasFrame}
               onPressFile={onPressFile}
+              useWebView={useWebView}
             />
           )}
           {type == 'image' && (

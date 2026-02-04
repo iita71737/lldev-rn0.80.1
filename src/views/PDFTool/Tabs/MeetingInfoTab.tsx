@@ -31,7 +31,6 @@ const EsGoalVariableItem: React.FC<{ item: EsGoalVariable }> = ({ item }) => {
   const { t } = useTranslation()
 
   const onCopy = async () => {
-    // 你要複製的是 ${xxx} 的話，這裡就照 ${...} 複製
     Clipboard.setString(`\${${item.variableName}}`)
     Alert.alert(t('已成功複製'))
   }
@@ -151,19 +150,6 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
     return [input]
   }
 
-  const getTemplateFiles = (template: any) => {
-    if (!template) return []
-    if (Array.isArray(template?.file_attachs) && template.file_attachs.length > 0) {
-      return template.file_attachs
-    }
-    if (Array.isArray(template?.file_attaches) && template.file_attaches.length > 0) {
-      return template.file_attaches
-    }
-    if (template.file) return [template]
-    if (template.name) return [template.name]
-    return []
-  }
-
   const getTemplateName = (template: any) => template?.name ?? ''
   const getTemplateId = (template: any) => template?.id ?? ''
 
@@ -187,21 +173,16 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
   const signInForm = normalizeFiles(meeting?.sign_in_form ?? [])
   const meetingItemTemplateName = getTemplateName(meeting?.meeting_item_template)
   const meetingItemTemplateId = getTemplateId(meeting?.meeting_item_template)
-  const meetingItemTemplateFiles = getTemplateFiles(meeting?.meeting_item_template?.attach)
 
   const meetingTemplateId = getTemplateId(meeting?.meeting_template)
   const meetingTemplateName = getTemplateName(meeting?.meeting_template)
-  const meetingTemplateFiles = getTemplateFiles(meeting?.meeting_template?.attach)
 
-  const contentsTemplateFiles = getTemplateFiles(meeting?.contents_template?.attach)
   const contentsTemplateName = getTemplateName(meeting?.contents_template)
   const contentsTemplateTemplateId = getTemplateId(meeting?.contents_template)
 
-  const coverTemplateFiles = getTemplateFiles(meeting?.cover_template?.attach)
   const coverTemplateName = getTemplateName(meeting?.cover_template)
   const coverTemplateId = getTemplateId(meeting?.cover_template)
 
-  const attachCoverTemplateFiles = getTemplateFiles(meeting?.attach_cover_template?.attach)
   const attachCoverTemplateName = getTemplateName(meeting?.attach_cover_template)
   const attachCoverTemplateId = getTemplateId(meeting?.attach_cover_template)
 
@@ -237,13 +218,6 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
       })
       .filter((item: EsGoalVariable) => item.variableName)
 
-  const meetingTemplateItems = toVariableItems(
-    meeting?.meeting_template_items ??
-    meeting?.meeting_template?.meeting_template_items ??
-    meeting?.meeting_template?.file_attaches?.[0]?.meeting_template_items ??
-    meeting?.meeting_template?.file_attachs?.[0]?.meeting_template_items ??
-    []
-  )
   const meetingItemTemplateItems = toVariableItems(
     meeting?.meeting_item_template?.meeting_template_items ??
     meeting?.meeting_item_template?.file_attaches?.[0]?.meeting_template_items ??
@@ -326,10 +300,6 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
               }}
             />
           )}
-          {/* <WsInfo
-            type="filesAndImages"
-            value={meetingItemTemplateFiles}
-          /> */}
         </View>
 
         <View style={{ marginTop: 8 }}>
@@ -354,9 +324,6 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
               }
             }}
           />
-          {/* <WsInfo
-            type="filesAndImages"
-            value={coverTemplateFiles} /> */}
         </View>
 
         <View style={{ marginTop: 8 }}>
@@ -381,9 +348,6 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
               }}
             />
           )}
-          {/* <WsInfo
-            type="filesAndImages"
-            value={attachCoverTemplateFiles} /> */}
         </View>
 
         <View style={{ marginTop: 8 }}>
@@ -407,9 +371,6 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
               }}
             />
           )}
-          {/* <WsInfo
-            type="filesAndImages"
-            value={meetingTemplateFiles} /> */}
         </View>
 
 
@@ -434,9 +395,6 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
               }}
             />
           )}
-          {/* <WsInfo
-            type="filesAndImages"
-            value={contentsTemplateFiles} /> */}
         </View>
 
         <View style={{ marginTop: 8 }}>
@@ -515,43 +473,6 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
 
       </WsPaddingContainer>
 
-      {/* <WsPaddingContainer padding={0} style={{ marginTop: 8, paddingBottom: 8, backgroundColor: $color.primary11l }}>
-        <FlatList
-          data={meetingTemplateItems}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => <EsGoalVariableItem item={item} />}
-          ListHeaderComponent={() => (
-            <>
-              <WsPaddingContainer
-                padding={0}
-                style={{
-                  paddingTop: 16,
-                  paddingBottom: 16,
-                  paddingHorizontal: 16,
-                  backgroundColor: $color.primary11l,
-                }}
-              >
-                <WsInfo
-                  label={t('議程範本')}
-                  type="filesAndImages"
-                  value={meetingTemplateFiles}
-                />
-
-                <View style={{ marginTop: 0 }}>
-                  <WsInfo type="tags" value={tags} />
-                </View>
-              </WsPaddingContainer>
-
-              <WsPaddingContainer padding={0} style={{ paddingTop: 8, paddingHorizontal: 16 }}>
-                <WsText size={14} fontWeight={500}>
-                  {t('議程範本變數')}
-                </WsText>
-              </WsPaddingContainer>
-            </>
-          )}
-        />
-      </WsPaddingContainer> */}
-
       <WsPaddingContainer padding={0} style={{ marginTop: 8, paddingBottom: 8, backgroundColor: $color.primary11l }}>
         <FlatList
           data={meetingItemTemplateItems.length > 0 ? meetingItemTemplateItems : variableList}
@@ -559,25 +480,6 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
           renderItem={({ item }) => <EsGoalVariableItem item={item} />}
           ListHeaderComponent={() => (
             <>
-              {/* <WsPaddingContainer
-                padding={0}
-                style={{
-                  paddingTop: 16,
-                  paddingHorizontal: 16,
-                  backgroundColor: $color.primary11l,
-                }}
-              >
-                <WsInfo
-                  label={`${t('提案單範本')}`}
-                  type="filesAndImages"
-                  value={meetingItemTemplateFiles}
-                />
-
-                <View style={{ marginTop: 0 }}>
-                  <WsInfo type="tags" value={tags} />
-                </View>
-              </WsPaddingContainer> */}
-
               <WsPaddingContainer padding={0} style={{ paddingTop: 8, paddingHorizontal: 16 }}>
                 <WsText size={14} fontWeight={500}>
                   {t('提案單標記')}

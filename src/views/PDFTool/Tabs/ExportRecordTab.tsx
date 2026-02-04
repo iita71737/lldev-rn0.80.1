@@ -8,7 +8,6 @@ import {
   WsPageIndex,
   WsCard,
   WsFlex,
-  WsDes,
   WsTag,
   WsIconBtn,
   WsModal,
@@ -18,7 +17,6 @@ import {
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import S_MeetingExport from '@/services/api/v1/meeting_export'
-import { FontWeight } from '@shopify/react-native-skia'
 
 type ExportRecordTabProps = {
   meeting?: any
@@ -155,7 +153,6 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
     <View style={{ flex: 1 }} key={refreshKeyCombined}>
       <WsPageIndex
         searchLabel={t('標題')}
-        // mode="pagination"
         hasMeta={true}
         modelName="meeting_export"
         serviceIndexKey="index"
@@ -238,6 +235,7 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
                           style={{ marginLeft: 16 }}
                           onPress={() => {
                             (async () => {
+                              console.log('download')
                               try {
                                 const res = await S_MeetingExport.download({
                                   params: {

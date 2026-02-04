@@ -194,8 +194,6 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
   const [scrollEnabled, setScrollEnabled] = useState(true)
 
   const itemsSV = useSharedValue<SortItem[]>(_items)
-  const [listKey, setListKey] = useState(Date.now())
-
   const [hoverPositionState, setHoverPositionState] = useState<'child' | 'sibling' | null>(null)
   const hoverPosition = useSharedValue<'child' | 'sibling' | null>(null)
 
@@ -203,7 +201,6 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
     const next = applySequences(buildSortItems(items))
     setItems(next)
     itemsSV.value = next
-    setListKey(Date.now())
   }, [items])
 
   useImperativeHandle(ref, () => ({
@@ -297,7 +294,6 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
       }
 
       const nextItems = applySequences(remaining)
-      // setListKey(Date.now())
       return nextItems
     })
   }
@@ -370,8 +366,6 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
     runOnJS(setSelectedItems)([])
     runOnJS(setHoverItem)(null)
     runOnJS(setScrollEnabled)(true)
-    if (state !== State.FAILED) {
-    }
   }
 
   useEffect(() => {
@@ -397,51 +391,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      {/* <WsFlex
-        style={{
-          backgroundColor: $color.danger11l,
-          paddingHorizontal: 12,
-          marginBottom: 8,
-        }}
-        justifyContent="space-around"
-      >
-        <WsText color={$color.danger}>{t('變更順序將重新匯出檔案，預計需要較長時間，請耐心等候')}</WsText>
-      </WsFlex>
-
-      <WsFlex
-        style={{
-          backgroundColor: $color.white2d,
-        }}
-        justifyContent="space-around"
-      >
-        <WsFlex>
-          <View
-            style={{
-              height: 16,
-              width: 16,
-              backgroundColor: $color.yellow11l,
-              borderRadius: 16,
-              marginRight: 4
-            }}>
-          </View>
-          <WsText>{t('移至上方')}</WsText>
-        </WsFlex>
-        <WsFlex>
-          <View
-            style={{
-              height: 16,
-              width: 16,
-              backgroundColor: 'pink',
-              borderRadius: 16,
-              marginRight: 4
-            }}>
-          </View>
-          <WsText>{t('移至下方')}</WsText>
-        </WsFlex>
-      </WsFlex> */}
-
       <Animated.ScrollView
-        // key={listKey}
         ref={scrollViewRef}
         onScroll={scrollHandler}
         scrollEventThrottle={16}

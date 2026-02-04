@@ -271,6 +271,76 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     }
   }
 
+  const updateConvertAttach = async (meetingItem: Motion | null) => {
+    if (!meetingItem?.id) {
+      Alert.alert(t('請先選擇議案'))
+      return
+    }
+    try {
+      const res = await pick({
+        mode: 'import',
+        type: [types.doc, types.docx],
+      })
+      if (!res || res.length === 0) return
+
+      const rawUri = res[0].uri
+      const originalName = res[0].name || rawUri.split('/').pop() || 'file.docx'
+
+      const isWordFile = (name: string) => {
+        const lower = (name || '').toLowerCase()
+        return lower.endsWith('.doc') || lower.endsWith('.docx')
+      }
+      if (!isWordFile(originalName)) {
+        Alert.alert(t('請選擇 .doc 或 .docx 檔案'))
+        return
+      }
+
+      const fileType =
+        res[0].type ||
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+      const readableItemLabel =
+        typeof meetingItem?.item_label === 'string'
+          ? meetingItem?.item_label
+          : meetingItem?.item_label?.name ?? ''
+
+      const formData = new FormData()
+      if (currentFactory?.id) {
+        formData.append('factory', currentFactory.id)
+      }
+      if (readableItemLabel) {
+        formData.append('item_label', readableItemLabel)
+      }
+
+      const normalizedUri =
+        Platform.OS === 'ios' && rawUri && !rawUri.startsWith('file://')
+          ? `file:/${rawUri}`
+          : rawUri
+
+      formData.append('file', {
+        uri: normalizedUri,
+        name: originalName,
+        displayName: originalName,
+        type: fileType,
+      } as any)
+      formData.append('original_filename', originalName)
+
+      const _params = {
+        formData,
+        meeting_item_id: meetingItem.id,
+      }
+      await S_MeetingItem.updateConvertAttach({ params: _params })
+      Alert.alert(t('更新成功'))
+      onRequestMeetingItemsAll?.()
+    } catch (err: any) {
+      const isCancel =
+        err?.code === 'DOCUMENT_PICKER_CANCELED' ||
+        err?.message?.includes('user canceled') ||
+        err?.message?.includes('The operation was cancelled')
+      if (!isCancel) console.error('updateConvertAttach error', err)
+    }
+  }
+
 
   const submitUpdateProposal = async () => {
     if (!updateMeetingItemId) {
@@ -399,7 +469,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     try {
       console.log('S_MeetingItemGroup.show request', { groupId })
       const _res = await S_MeetingItemGroup.show({ modelId: groupId });
-      // console.log(_res, 'S_MeetingItemGroup.show')
     } catch (err) {
       console.log('S_MeetingItemGroup.show error', err);
     }
@@ -1022,13 +1091,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     </View>
                   )}
 
-                  {/* <View
-                    style={{
-                      height: 1,
-                      backgroundColor: $color.white2d,
-                      marginTop: 16,
-                    }}
-                  /> */}
 
                   {hasResolutionSummary && (
                     <View style={{ marginTop: 8 }}>
@@ -1060,13 +1122,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     </View>
                   )}
 
-                  {/* <View
-                    style={{
-                      height: 1,
-                      backgroundColor: $color.white2d,
-                      marginTop: 16,
-                    }}
-                  /> */}
 
                   {hasConvert && (
                     <View style={{ marginTop: 8 }}>
@@ -1085,6 +1140,8 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                         label={t('議案(DOCX)')}
                         labelColor={$color.gray}
                         value={[meetingItem?.convert_attach]}
+                        labelBtnIcon="ws-outline-cloud-upload"
+                        labelBtnOnPress={() => updateConvertAttach(meetingItem)}
                       />
                     </View>
                   )}
@@ -1350,14 +1407,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                       })
                     }}
                   />
-                  {/* <WsInfo
-                    type={'filesAndImages'}
-                    // label={t('時序表範本')}
-                    style={{
-                    }}
-                    labelColor={$color.gray}
-                    value={[item?.schedule_template?.attach]}
-                  /> */}
                 </View>
               )}
 
@@ -1686,7 +1735,30 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               </WsText>
             </WsFlex>
           </TouchableOpacity>
-
+        <TouchableOpacity
+            disabled={true}
+          >
+            <WsFlex
+              style={[false ? null : { marginTop: 4 }]}
+            >
+              <WsIcon
+                name="md-info-outline"
+                color={$color.danger}
+                style={{
+                  marginRight: 6
+                }}
+                size={18}
+              />
+              <WsText
+                style={{
+                  paddingRight: 16
+                }}
+                size={12}
+                color={$color.danger}>
+                {t('注意，更新提案單更新現有的議案(DOCX)​')}
+              </WsText>
+            </WsFlex>
+          </TouchableOpacity>
         </View>
       </WsModal>
     </>

@@ -1,27 +1,8 @@
 import React from 'react'
 import { View } from 'react-native'
-import {
-  LlActCard001,
-  WsSnackBar,
-  WsPageIndex,
-  LlGuidelineCard001,
-  WsIconBtn,
-  WsBottomSheet,
-  LlPDFToolListCard001
-} from '@/components'
-import S_Act from '@/services/api/v1/act'
+import { WsPageIndex, LlPDFToolListCard001 } from '@/components'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import $color from '@/__reactnative_stone/global/color'
-import { scopePermission, scopeSubscriptions } from '@/__reactnative_stone/global/permission'
-import AsyncStorage from '@react-native-community/async-storage'
-import S_GuidelineAdmin from '@/services/api/v1/guideline_admin'
-import S_GuidelineVersionAdmin from '@/services/api/v1/guideline_version_admin'
-import store from '@/store'
-import {
-  setRefreshCounter,
-} from '@/store/data'
 import { useNavigation } from '@react-navigation/native'
 interface ActListingProps {
   navigation: any;
@@ -34,9 +15,7 @@ const PDFToolTemplateList: React.FC<ActListingProps> = ({ route }) => {
   const navigation = useNavigation()
 
   // Redux
-  const currentUser = useSelector(state => state.data.currentUser)
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
-  const currentUserScope = useSelector(state => state.data.userScopes)
 
   // MEMO
   const _params = React.useMemo(() => {
