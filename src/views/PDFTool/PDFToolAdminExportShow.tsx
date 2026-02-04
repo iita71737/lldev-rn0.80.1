@@ -755,7 +755,8 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                   >
                     <WsInfo
                       type="filesAndImages"
-                      label={t('議案彙整 (DOCX)')}
+                      label={`${t('議案彙整 (DOCX)')}`}
+                      remind={t('注意，上傳議案彙整 (DOCX)不會變更原始議案內容​')}
                       value={[
                         meetingExport?.convert_word_attach
                       ].filter(Boolean)}

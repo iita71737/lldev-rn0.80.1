@@ -858,7 +858,18 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
       convertStatusValue === 'PENDING' || convertStatusValue === 'PROCESSING';
     const isParseFailed = parseStatusValue === 'FAILED';
     const isConvertFailed = convertStatusValue === 'FAILED';
-    const isFailed = isParseFailed || isConvertFailed;
+    const hasFailedStatus = isParseFailed || isConvertFailed;
+    const failedTitle = isParseFailed
+      ? t('解析失敗')
+      : isConvertFailed
+        ? t('轉檔失敗')
+        : '';
+    const failedReasonText = isParseFailed
+      ? t('檢查提案單跟提案單範本是否格式一致')
+      : isConvertFailed
+        ? t('檢查議程範本是否設定正確')
+        : '';
+
     const isComplete = parseStatusValue === 'COMPLETE' || parseStatusValue === 'COMPLETED';
     const statusTagText = isParseFailed
       ? t('解析失敗')
@@ -935,7 +946,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
           {!isMeetingItemCollapsed && (
             <WsPaddingContainer
               padding={0}
-              style={{ paddingHorizontal: 16, paddingBottom: 16 }}
+              style={{ paddingHorizontal: 16, paddingBottom: 12 }}
             >
               {isMeetingItemRefreshing ? (
                 <View style={{ marginTop: 8 }}>
@@ -945,14 +956,20 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                 <>
                   {canUpdateMeeting && (
                     <WsFlex
-                      style={{ paddingTop: 8, paddingBottom: 12 }}
+                      style={{
+                        paddingTop: statusTagText ? 8 : 0,
+                      }}
                       justifyContent="space-bewteen"
                     >
-                      <TouchableOpacity
+                      <WsIconBtn
+                        padding={0}
+                        name="ws-outline-cloud-upload"
+                        size={24}
+                        color={$color.primary}
+                        style={{}}
                         onPress={() => openUpdateProposalModal(group, meetingItem)}
-                      >
-                        <WsTag>{t('更新提案單')}</WsTag>
-                      </TouchableOpacity>
+                      />
+
                       <WsIconBtn
                         padding={0}
                         name="ws-outline-edit-pencil"
@@ -971,6 +988,62 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                       />
                     </WsFlex>
                   )}
+
+                  {hasFailedStatus && (
+                    <>
+                      <TouchableOpacity
+                        disabled={remindBtnDisabled}
+                        onPress={() => {
+                          if (!remindBtnDisabled) {
+                            setVisible(true)
+                          }
+                        }}>
+                        <WsFlex
+                          style={[{
+                            marginTop: 8,
+                            padding: 16,
+                            borderWidth: 1,
+                            borderColor: $color.danger11l,
+                            borderRadius: 10,
+                            backgroundColor: $color.danger11l
+                          }]}
+                        >
+                          <View style={{}}>
+                            <WsText size={14} fontWeight="600" color={$color.danger}>
+                              {failedTitle}
+                            </WsText>
+                            <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                              <WsText size={14} color={$color.danger}>{`1. ${failedReasonText}`}</WsText>
+                            </WsFlex>
+                          </View>
+                        </WsFlex>
+                      </TouchableOpacity>
+                      <WsDialog
+                        value={remindValue}
+                        onChange={setRemindValue}
+                        dialogButtonItems={dialogButtonItems}
+                        title={dialogTitle}
+                        dialogVisible={visible}
+                        setDialogVisible={() => {
+                          setVisible(false)
+                        }}
+                        contentHeight={contentHeight}
+                        mode={3}
+                      >
+                        <>
+                          <View style={{ paddingBottom: 16 }}>
+                            <WsText size={14} fontWeight="600" style={{}}>
+                              {failedTitle}
+                            </WsText>
+                            <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                              <WsDes size={14}>{`1. ${failedReasonText}`}</WsDes>
+                            </WsFlex>
+                          </View>
+                        </>
+                      </WsDialog>
+                    </>
+                  )}
+
                   <View style={{ marginTop: 8 }}>
                     <WsInfo
                       labelWidth={80}
@@ -1157,14 +1230,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     </View>
                   )}
 
-                  {isFailed && (
-                    <View style={{ marginTop: 8 }}>
-                      <WsText color={$color.danger}>
-                        {t('請確認範本後，重新上傳提案單解析')}
-                      </WsText>
-                    </View>
-                  )}
-
                 </>
               )}
             </WsPaddingContainer>
@@ -1192,7 +1257,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     const getStatusValue = (value: any) =>
       String(value?.name ?? value ?? '').toUpperCase();
 
-    const hasFailedStatus = statusItems.some(item => {
+    const hasFailedStatusGroup = statusItems.some(item => {
       const parseStatus = getStatusValue(item?.parse_status);
       const convertStatus = getStatusValue(item?.convert_status);
       return parseStatus === 'FAILED' || convertStatus === 'FAILED';
@@ -1217,14 +1282,14 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
       );
     });
 
-    const groupStatusText = hasFailedStatus
+    const groupStatusText = hasFailedStatusGroup
       ? t('處理失敗')
       : hasProcessingStatus
         ? t('處理中')
         : null;
 
-    const groupStatusTextColor = hasFailedStatus ? $color.danger : $color.gray;
-    const groupStatusBackgroundColor = hasFailedStatus
+    const groupStatusTextColor = hasFailedStatusGroup ? $color.danger : $color.gray;
+    const groupStatusBackgroundColor = hasFailedStatusGroup
       ? $color.danger11l
       : $color.yellow11l;
 
@@ -1269,63 +1334,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                         {groupStatusText}
                       </WsTag>
                     </View>
-                  )}
-
-                {
-                  hasFailedStatus &&
-                  remind &&
-                  (
-                    <>
-                      <TouchableOpacity
-                        disabled={remindBtnDisabled}
-                        onPress={() => {
-                          if (!remindBtnDisabled) {
-                            setVisible(true)
-                          }
-                        }}>
-                        <WsFlex style={[{ marginTop: 4 }]}>
-                          <WsIcon
-                            name="md-info-outline"
-                            color={$color.primary2l}
-                            style={{
-                              marginRight: 6
-                            }}
-                            size={18}
-                          />
-                          <WsText
-                            style={{
-                              paddingRight: 16
-                            }}
-                            size={12}
-                            color={$color.primary2l}>
-                            {remind}
-                          </WsText>
-                        </WsFlex>
-                      </TouchableOpacity>
-                      <WsDialog
-                        value={remindValue}
-                        onChange={setRemindValue}
-                        dialogButtonItems={dialogButtonItems}
-                        title={dialogTitle}
-                        dialogVisible={visible}
-                        setDialogVisible={() => {
-                          setVisible(false)
-                        }}
-                        contentHeight={contentHeight}
-                        mode={3}
-                      >
-                        <>
-                          <View style={{ paddingBottom: 16 }}>
-                            <WsText size={14} fontWeight="600" style={{}}>
-                              {t('解析失敗')}
-                            </WsText>
-                            <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
-                              <WsDes size={14}>{`1. ${t('檢查提案單跟提案單範本是否格式一致')}`}</WsDes>
-                            </WsFlex>
-                          </View>
-                        </>
-                      </WsDialog>
-                    </>
                   )}
 
               </View>
@@ -1707,7 +1715,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                 }}
                 size={12}
                 color={$color.danger}>
-                {t('注意，​重新​上傳​提案​單，​會覆​蓋​標題、​提案​單位、​報告人、​列席​人員、​內容​等​')}
+                {t('注意，重新上傳提案單，會覆蓋議案 (DOCX)、標題、提案單位、報告人、列席人員、內容等​')}
               </WsText>
             </WsFlex>
           </TouchableOpacity>
@@ -1735,7 +1743,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               </WsText>
             </WsFlex>
           </TouchableOpacity>
-        <TouchableOpacity
+          <TouchableOpacity
             disabled={true}
           >
             <WsFlex

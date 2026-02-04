@@ -27,6 +27,7 @@ import {
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
+import { re } from 'mathjs'
 
 const WsInfo = props => {
   const { width, height } = Dimensions.get('window')
@@ -84,7 +85,8 @@ const WsInfo = props => {
     onPressFile,
     useWebView,
     labelBtnTextSize = 14,
-    labelBtnIcon
+    labelBtnIcon,
+    remind
   } = props
 
   // Render
@@ -160,6 +162,33 @@ const WsInfo = props => {
                   </WsIcon>
                 </TouchableOpacity>
               )}
+            </WsFlex>
+          </TouchableOpacity>
+        )}
+
+        {remind && (
+          <TouchableOpacity
+            disabled={true}
+          >
+            <WsFlex
+              style={[false ? null : { marginTop: 4 }]}
+            >
+              <WsIcon
+                name="md-info-outline"
+                color={$color.danger}
+                style={{
+                  marginRight: 6
+                }}
+                size={18}
+              />
+              <WsText
+                style={{
+                  paddingRight: 16
+                }}
+                size={12}
+                color={$color.danger}>
+                {remind}
+              </WsText>
             </WsFlex>
           </TouchableOpacity>
         )}

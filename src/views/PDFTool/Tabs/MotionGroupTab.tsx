@@ -125,12 +125,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   const currentUser = useSelector(state => state.data.currentUser)
   const isMeetingOwner =
     !!meeting?.owner?.id && meeting?.owner?.id === currentUser?.id
-  const remind = '處理失敗建議'
-  const dialogButtonItems: any[] = []
-  const contentHeight = undefined
-  const autoFocus = false
-  const [visible, setVisible] = useState(false)
-  const [remindValue, setRemindValue] = useState<any>()
+
   const [loading, setLoading] = useState(true)
   const [meetingItemGroups, setMeetingItemGroups] = useState<Group[]>(data)
   const [meetingItemListByGroup, setMeetingItemListByGroup] = useState<Record<string, any[]>>({})
@@ -496,55 +491,6 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
 
   const renderListHeader = () => (
     <>
-      {shouldShowRemind && (
-        <>
-          <TouchableOpacity
-            style={{ paddingHorizontal: 16, paddingTop: 16 }}
-            onPress={() => {
-              setVisible(true)
-            }}>
-            <WsFlex style={[autoFocus ? null : {}]}>
-              <WsIcon
-                name="md-info-outline"
-                color={$color.primary2l}
-                style={{
-                  marginRight: 6
-                }}
-                size={20}
-              />
-              <WsText
-                style={{
-                  paddingRight: 16
-                }}
-                size={12}
-                color={$color.primary2l}>
-                {remind}
-              </WsText>
-            </WsFlex>
-          </TouchableOpacity>
-          <WsDialog
-            value={remindValue}
-            onChange={setRemindValue}
-            dialogButtonItems={dialogButtonItems}
-            title={remind}
-            dialogVisible={visible}
-            setDialogVisible={() => {
-              setVisible(false)
-            }}
-            contentHeight={contentHeight}
-            mode={3}
-          >
-            <View style={{ marginHorizontal: 16, paddingBottom: 16 }}>
-              <WsText size={14} fontWeight="600" style={{}}>
-                {t('解析失敗')}
-              </WsText>
-              <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
-                <WsDes size={14}>{`1. ${t('檢查提案單跟提案單範本是否格式一致')}`}</WsDes>
-              </WsFlex>
-            </View>
-          </WsDialog>
-        </>
-      )}
       <WsFlex
         style={{
           marginVertical: 12,
