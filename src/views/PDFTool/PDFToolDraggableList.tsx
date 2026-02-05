@@ -389,6 +389,18 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
     }
   }
 
+  const getItemDisplayName = (item: SortItem) => {
+    if (item.type === 'group') {
+      return item.name || t('議案群組')
+    }
+    const itemLabel =
+      typeof item.item_label === 'string'
+        ? item.item_label
+        : item.item_label?.name ?? ''
+    const itemName = decodeFilename(item.name) || t('項目名稱')
+    return itemLabel ? `${itemLabel} ${itemName}` : itemName
+  }
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <Animated.ScrollView
@@ -459,9 +471,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
                             color={$color.black}
                             size={14}
                           >
-                            {item.type === 'group'
-                              ? `${item.sequence}. ${item.name || t('議案群組')}`
-                              : `${item.sequence.split('-').slice(-1)[0]}. ${decodeFilename(item.name) || t('項目名稱')}`}
+                            {getItemDisplayName(item)}
                           </WsText>
                           <WsIcon
                             name="ws-outline-drag-horizontal"
@@ -512,11 +522,7 @@ const PDFToolDraggableList = forwardRef<PDFToolDraggableListRef, Props>(({ items
               }}
             >
               <WsText color={$color.white6d} size={14}>
-                {item.type === 'group'
-                  ? item.name || t('議案群組')
-                  : typeof item.item_label === 'string'
-                    ? item.item_label
-                    : item.item_label?.name ?? item.name ?? t('項目名稱')}
+                {getItemDisplayName(item)}
               </WsText>
             </WsCard>
           </View>

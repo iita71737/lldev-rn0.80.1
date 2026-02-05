@@ -123,8 +123,13 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   const { t } = useTranslation()
   const navigation = useNavigation()
   const currentUser = useSelector(state => state.data.currentUser)
+  const currentUserScope = useSelector(state => state.data.userScopes)
   const isMeetingOwner =
     !!meeting?.owner?.id && meeting?.owner?.id === currentUser?.id
+  const canUpdateMeeting =
+    Array.isArray(currentUserScope) &&
+    (currentUserScope.includes('meeting-update') ||
+      (currentUserScope.includes('meeting-update-owner') && isMeetingOwner))
 
   const [loading, setLoading] = useState(true)
   const [meetingItemGroups, setMeetingItemGroups] = useState<Group[]>(data)
@@ -499,7 +504,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
         justifyContent="space-between"
       >
 
-        {!!meetingItemGroups.length && isMeetingOwner ? (
+        {!!meetingItemGroups.length && canUpdateMeeting ? (
           <TouchableOpacity
             style={{ alignItems: 'flex-start', marginRight: 8 }}
             onPress={() => {
@@ -517,7 +522,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
         )}
 
         <WsFlex style={{ marginRight: 4 }}>
-          {mode === 'default' && isMeetingOwner && (
+          {mode === 'default' && canUpdateMeeting && (
             <>
               {!!meetingItemGroups.length && (
                 <TouchableOpacity
@@ -584,10 +589,41 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
             <WsSkeleton />
           </View>
         ) : (
-          <PDFToolDraggableList
-            ref={draggableListRef}
-            items={toFlatItems()}
-          />
+          <>
+            {true && (
+              <TouchableOpacity
+                disabled={true}
+                style={{
+                  paddingHorizontal: 16
+                }}
+              >
+                <WsFlex
+                  style={[false ? null : { marginTop: 4 }]}
+                >
+                  <WsIcon
+                    name="md-info-outline"
+                    color={$color.danger}
+                    style={{
+                      marginRight: 6
+                    }}
+                    size={18}
+                  />
+                  <WsText
+                    style={{
+                      paddingRight: 16
+                    }}
+                    size={12}
+                    color={$color.danger}>
+                    {t('注意：排序將重新產製全部議案 (DOCX)')}
+                  </WsText>
+                </WsFlex>
+              </TouchableOpacity>
+            )}
+            <PDFToolDraggableList
+              ref={draggableListRef}
+              items={toFlatItems()}
+            />
+          </>
         )}
       </WsModal>
     </>
