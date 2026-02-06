@@ -75,7 +75,7 @@ const LlPDFToolListCard001: React.FC<Props> = React.memo(props => {
           </View>
         ) : null}
 
-        {module === 'meeting_template' ? (
+        {item.owner ? (
           <>
             <View>
               <WsInfo

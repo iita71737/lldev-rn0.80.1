@@ -1,5 +1,5 @@
 import React from 'react'
-import { TouchableOpacity } from 'react-native'
+import { TouchableOpacity, View } from 'react-native'
 import { WsFlex, WsText, WsTag, WsCard, WsDes } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import moment from 'moment'

@@ -214,6 +214,7 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
           emptyText={isEqual(filtersValue, defaultFilterValue) ? t(emptyText) : t('請重新設定您的篩選條件')}
           ListFooterComponent={ListFooterComponent}
           ListHeaderComponent={ListHeaderComponent}
+          TARGET_INDEX_HIDE={TARGET_INDEX_HIDE}
           renderItem={({ item, index, items, isLastItem }: { item: any, index: number, items: any, isLastItem: any }) => {
             return (
               renderItem({

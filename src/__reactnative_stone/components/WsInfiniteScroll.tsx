@@ -101,6 +101,8 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
   const [models, setModels] = React.useState([])
   const [currentPage, setCurrentPage] = React.useState(0)
   const [lastPage, setLastPage] = React.useState(100)
+  const [metaTotal, setMetaTotal] = React.useState(0)
+  const metaTotalRef = useRef(0)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
   const [isFinalRound, setIsFinalRound] = React.useState(false)
   const [isReseting, setIsReseting] = React.useState(false)
@@ -178,6 +180,10 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
       } else if (mode == 'page') {
         if (hasMeta) {
           if (res.meta && res.meta[lastPageKey] !== undefined && res.meta[currentPageKey] !== undefined) {
+            const nextTotal = Number(res?.meta?.total)
+            if (Number.isFinite(nextTotal)) {
+              setMetaTotal(nextTotal)
+            }
             setLastPage(res.meta[lastPageKey])
             setCurrentPage(parseInt(res.meta[currentPageKey]))
           } else {
@@ -337,15 +343,29 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
   React.useEffect(() => {
     modelsRef.current = models;
   }, [models]);
+  React.useEffect(() => {
+    metaTotalRef.current = metaTotal
+  }, [metaTotal]);
 
   // 定義 viewability callback 的回呼函式
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (!modelsRef.current || modelsRef.current.length === 0) return;
-    const lastIndex = modelsRef.current.length - 1;
-    // 檢查是否有 viewableItems 中的 item.index === lastIndex
-    if (viewableItems.some(item => item.index === lastIndex) && (currentPage == lastPage)) {
-      // console.log("使用者已經看到最後一筆資料");
-      setBottomIconVisible(false)
+    const indices = viewableItems
+      .map(item => item?.index)
+      .filter(index => typeof index === 'number') as number[]
+    if (indices.length === 0) return
+    const maxIndex = Math.max(...indices)
+
+    if (hasMeta) {
+      const currentTotal = metaTotalRef.current
+      if (currentTotal > 0) {
+        setBottomIconVisible(maxIndex !== currentTotal - 1)
+      }
+      return
+    }
+
+    if (TARGET_INDEX_HIDE !== undefined && TARGET_INDEX_HIDE !== null) {
+      setBottomIconVisible(maxIndex <= TARGET_INDEX_HIDE)
     }
   }).current;
 

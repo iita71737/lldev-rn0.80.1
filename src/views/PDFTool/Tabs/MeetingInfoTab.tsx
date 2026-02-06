@@ -56,7 +56,7 @@ const EsGoalVariableItem: React.FC<{ item: EsGoalVariable }> = ({ item }) => {
             <WsText size={14}>{`\${${item.variableName}}`}</WsText>
 
             <TouchableOpacity style={{ marginLeft: 8 }} onPress={onCopy}>
-              <WsIcon name="md-content-copy" size={28} color={$color.primary} />
+              <WsIcon name="md-content-copy" size={24} color={$color.primary} />
             </TouchableOpacity>
           </WsFlex>
 
@@ -182,6 +182,9 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
 
   const coverTemplateName = getTemplateName(meeting?.cover_template)
   const coverTemplateId = getTemplateId(meeting?.cover_template)
+
+  const coverAttachTemplateName = getTemplateName(meeting?.attach_cover_template)
+  const coverAttachTemplateId = getTemplateId(meeting?.attach_cover_template)
 
   const attachCoverTemplateName = getTemplateName(meeting?.attach_cover_template)
   const attachCoverTemplateId = getTemplateId(meeting?.attach_cover_template)
@@ -319,6 +322,29 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
                   screen: 'PDFToolAdminTemplateShow',
                   params: {
                     id: coverTemplateId,
+                  }
+                })
+              }
+            }}
+          />
+        </View>
+
+        <View style={{ marginTop: 8 }}>
+
+          <WsInfo
+            labelWidth={120}
+            type="link"
+            label={`${t('封面附件範本')} `}
+            value={coverAttachTemplateName}
+            style={{
+              flexDirection: 'row'
+            }}
+            onPress={() => {
+              if (coverAttachTemplateName) {
+                navigation.push('RoutesPDFTool', {
+                  screen: 'PDFToolAdminTemplateShow',
+                  params: {
+                    id: coverAttachTemplateId,
                   }
                 })
               }

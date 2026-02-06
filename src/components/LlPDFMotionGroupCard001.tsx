@@ -1054,7 +1054,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     />
                   </View>
 
-                  {meetingItemName && (
+                  {/* {meetingItemName && (
                     <View style={{ marginTop: 8 }}>
                       <WsInfo
                         labelWidth={80}
@@ -1064,67 +1064,59 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                         value={meetingItemName}
                       />
                     </View>
-                  )}
+                  )} */}
 
-                  {hasPresenter && (
-                    <View style={{ marginTop: 8 }}>
-                      <WsInfo
-                        labelWidth={80}
-                        label={t('報告人')}
-                        style={{ flexDirection: 'row', alignItem: 'center', flexWrap: 'wrap' }}
-                        labelColor={$color.gray}
-                        value={presenter}
-                      />
-                    </View>
-                  )}
+                  <View style={{ marginTop: 8 }}>
+                    <WsInfo
+                      labelWidth={80}
+                      label={t('提案單位')}
+                      style={{
+                        flexDirection: 'row',
+                        alignItem: 'center',
+                        flexWrap: 'wrap',
+                      }}
+                      labelColor={$color.gray}
+                      value={meetingItemUnit}
+                    />
+                  </View>
 
-                  {hasMeetingItemUnit && (
-                    <View style={{ marginTop: 8 }}>
-                      <WsInfo
-                        labelWidth={80}
-                        label={t('提案單位')}
-                        style={{
-                          flexDirection: 'row',
-                          alignItem: 'center',
-                          flexWrap: 'wrap',
-                        }}
-                        labelColor={$color.gray}
-                        value={meetingItemUnit}
-                      />
-                    </View>
-                  )}
+                  <View style={{ marginTop: 8 }}>
+                    <WsInfo
+                      labelWidth={80}
+                      label={t('報告人')}
+                      style={{ flexDirection: 'row', alignItem: 'center', flexWrap: 'wrap' }}
+                      labelColor={$color.gray}
+                      value={presenter}
+                    />
+                  </View>
 
-                  {hasAttendeesPresent && (
-                    <View style={{ marginTop: 8 }}>
-                      <WsInfo
-                        labelWidth={80}
-                        label={t('列席人員')}
-                        style={{
-                          flexDirection: 'row',
-                          alignItem: 'center',
-                          flexWrap: 'wrap',
-                        }}
-                        labelColor={$color.gray}
-                        value={attendeesPresent}
-                      />
-                    </View>
-                  )}
+                  <View style={{ marginTop: 8 }}>
+                    <WsInfo
+                      labelWidth={80}
+                      label={t('列席人員')}
+                      style={{
+                        flexDirection: 'row',
+                        alignItem: 'center',
+                        flexWrap: 'wrap',
+                      }}
+                      labelColor={$color.gray}
+                      value={attendeesPresent}
+                    />
+                  </View>
 
-                  {hasAttendeesInvited && (
-                    <View style={{ marginTop: 8 }}>
-                      <WsInfo
-                        labelWidth={80}
-                        style={{
-                          flexDirection: 'row',
-                          alignItem: 'center',
-                          flexWrap: 'wrap',
-                        }}
-                        label={t('列席單位')}
-                        labelColor={$color.gray}
-                        value={attendeesInvited}
-                      />
-                    </View>
-                  )}
+                  <View style={{ marginTop: 8 }}>
+                    <WsInfo
+                      labelWidth={80}
+                      style={{
+                        flexDirection: 'row',
+                        alignItem: 'center',
+                        flexWrap: 'wrap',
+                      }}
+                      label={t('列席單位')}
+                      labelColor={$color.gray}
+                      value={attendeesInvited}
+                    />
+                  </View>
 
                   {meetingItemAttachesValue.length ? (
                     <View style={{ marginTop: 8 }}>
@@ -1153,6 +1145,40 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     }}
                   />
 
+                  <View style={{ marginTop: 8 }}>
+                    <WsInfo
+                      label={t('決議-簡述')}
+                      style={{
+                        flexDirection: 'row',
+                        alignItem: 'center',
+                        flexWrap: 'wrap',
+                      }}
+                      labelColor={$color.gray}
+                      value={resolutionSummary}
+                    />
+                  </View>
+
+                  <View style={{ marginTop: 8 }}>
+                    <WsInfo
+                      label={t('決議-詳述')}
+                      style={{
+                        flexDirection: 'row',
+                        alignItem: 'center',
+                        flexWrap: 'wrap',
+                      }}
+                      labelColor={$color.gray}
+                      value={resolutionDetails}
+                    />
+                  </View>
+
+                  <View
+                    style={{
+                      height: 1,
+                      backgroundColor: $color.white2d,
+                      marginTop: 16,
+                    }}
+                  />
+
                   {meetingItem?.original_attach && (
                     <View style={{ marginTop: 8 }}>
                       <WsInfo
@@ -1163,38 +1189,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                       />
                     </View>
                   )}
-
-
-                  {hasResolutionSummary && (
-                    <View style={{ marginTop: 8 }}>
-                      <WsInfo
-                        label={t('決議-簡述')}
-                        style={{
-                          flexDirection: 'row',
-                          alignItem: 'center',
-                          flexWrap: 'wrap',
-                        }}
-                        labelColor={$color.gray}
-                        value={resolutionSummary}
-                      />
-                    </View>
-                  )}
-
-                  {hasResolutionDetails && (
-                    <View style={{ marginTop: 8 }}>
-                      <WsInfo
-                        label={t('決議-詳述')}
-                        style={{
-                          flexDirection: 'row',
-                          alignItem: 'center',
-                          flexWrap: 'wrap',
-                        }}
-                        labelColor={$color.gray}
-                        value={resolutionDetails}
-                      />
-                    </View>
-                  )}
-
 
                   {hasConvert && (
                     <View style={{ marginTop: 8 }}>

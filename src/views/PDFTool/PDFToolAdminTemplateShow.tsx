@@ -234,54 +234,47 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
     }
 
     return (
-      <View style={{ marginHorizontal: 16, marginTop: 12 }}>
+      <TouchableOpacity activeOpacity={0.9} style={{ marginHorizontal: 16, marginTop: 12 }}>
         <WsCard
           borderRadius={12}
           style={{
-            paddingVertical: 10,
+            paddingVertical: 8,
             paddingHorizontal: 16,
             borderWidth: 1,
             borderColor: $color.gray,
           }}
         >
-          {/* 第 1 行：變數 + copy */}
-          <WsFlex alignItems="center" style={{ marginBottom: 6 }}>
-            <WsText size={14} style={{ width: 108 }}>
-              {t('變數')}
-            </WsText>
+          <View style={{}}>
+            <WsFlex style={{}} alignItems="center">
+              <WsText size={14} style={{ width: 60 }} color={$color.gray}>
+                {t('標記')}
+              </WsText>
 
-            <WsText size={14}>{item?.value ?? ''}</WsText>
+              <WsText size={14}>{item?.value ?? ''}</WsText>
 
-            <TouchableOpacity style={{ marginLeft: 8 }} onPress={onCopy}>
-              <WsIcon name="md-content-copy" size={20} color={$color.primary} />
-            </TouchableOpacity>
-          </WsFlex>
+              <TouchableOpacity style={{ marginLeft: 8 }} onPress={onCopy}>
+                <WsIcon name="md-content-copy" size={24} color={$color.primary} />
+              </TouchableOpacity>
+            </WsFlex>
 
-          {/* 第 2 行：名稱 */}
-          <WsFlex alignItems="center" style={{ marginBottom: 4 }} flexWrap={'wrap'}>
-            <WsText size={14} style={{ width: 108 }}>
-              {t('名稱')}
-            </WsText>
-            <WsText size={14}>
-              {item?.name ?? ''}
-            </WsText>
-          </WsFlex>
+            <WsFlex alignItems="center" justifyContent="">
+              <WsText size={14} style={{ width: 60 }} color={$color.gray}>
+                {t('名稱')}
+              </WsText>
+              <WsText size={14}>{item?.name ?? t('使用者自定名稱')}</WsText>
+            </WsFlex>
 
-          <View
-            style={{
-              marginTop: 8
-            }}
-          >
-            <WsInfo
-              value={fieldName}
-              label={t('對應ESGoal欄位')}
-              style={{
-              }}
-            />
+            <WsFlex alignItems="center">
+              <WsText size={14} style={{ width: 160 }} color={$color.gray}>
+                {t('對應ESGoal欄位')}
+              </WsText>
+              <WsText size={14} numberOfLines={1}>
+                {fieldName}
+              </WsText>
+            </WsFlex>
           </View>
-
         </WsCard>
-      </View>
+      </TouchableOpacity>
     )
   }
 
