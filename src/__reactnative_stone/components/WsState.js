@@ -21,7 +21,6 @@ import {
   WsStateFile,
   WsStateFiles,
   WsStateModels,
-  WsStateLayerSelect,
   WsStateToggleBtn,
   WsDialog,
   WsStateSubtaskCardShow,
@@ -1035,17 +1034,6 @@ const WsState = React.forwardRef((props, ref) => {
             testID={testID}
           />
         </>
-      )}
-      {type == 'layerSelect' && (
-        <WsStateLayerSelect
-          value={value}
-          onChange={onChange}
-          items={items && items.length > 0 ? item : undefined}
-          placeholder={placeholder}
-          title={title}
-          valueKey={valueKey}
-          nameKey={nameKey}
-        />
       )}
       {type == 'subtask' && (
         <WsStateSubtaskCardShow

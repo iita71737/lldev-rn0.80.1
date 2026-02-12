@@ -122,7 +122,7 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
 
   // FUNC
   const filteredSystemClasses = useMemo(() => {
-    if (data) {
+    if (data && data.length > 0) {
       return data.filter((item: any) =>
         item.system_subclasses.some((subclass: any) => filtersValue.system_subclasses.includes(subclass.id))
       );

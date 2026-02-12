@@ -34,7 +34,6 @@ import {
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
-import { addEventListener, useNetInfo } from "@react-native-community/netinfo";
 import base from '@/__reactnative_stone/services/wasaapi/v1/__base'
 
 import { checkForUpdate } from '@/__reactnative_stone/global/checkForUpdate'
@@ -61,7 +60,6 @@ import 'react-native-gesture-handler';
 
 function App(): JSX.Element {
   const { t, i18n } = useTranslation()
-  const info = useNetInfo()
   const { width, height } = Dimensions.get('window')
   const IOS_MARKETING_VERSION: string = DeviceInfo.getVersion();
   const IOS_CURRENT_PROJECT_VERSION: string = DeviceInfo.getBuildNumber();

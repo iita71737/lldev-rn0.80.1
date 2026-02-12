@@ -80,6 +80,15 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editRemark, setEditRemark] = useState('')
+
+  const exportStatusValue = String(
+    meetingExport?.convert_status?.name ??
+    meetingExport?.convert_status ??
+    meetingExport?.status?.name ??
+    meetingExport?.status ??
+    '',
+  ).toUpperCase()
+  const isExportFailed = exportStatusValue === 'FAILED'
   const downloadRecordRefreshKey = 0
   const defaultFilterValue = {}
   const [filterFields] = React.useState<any>({
@@ -642,6 +651,55 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                     marginTop: 8,
                   }}
                 >
+                  {(() => {
+                    const rawStatus =
+                      meetingExport?.convert_status ?? meetingExport?.status
+                    const statusValue = String(rawStatus?.name ?? rawStatus ?? '').toUpperCase()
+                    const isFailed = statusValue === 'FAILED'
+                    const failedTitle = t('處理失敗')
+                    return (
+                      <>
+                        {isFailed && (
+                          <WsFlex
+                            style={[{
+                              marginTop: 8,
+                              padding: 16,
+                              borderWidth: 1,
+                              borderColor: $color.danger11l,
+                              borderRadius: 10,
+                              backgroundColor: $color.danger11l
+                            }]}
+                          >
+                            <View style={{}}>
+                              <WsFlex>
+                                <WsIcon
+                                  name="md-info-outline"
+                                  color={$color.danger}
+                                  style={{
+                                    marginRight: 4
+                                  }}
+                                  size={24}
+                                />
+                                <WsText size={14} fontWeight="600" color={$color.danger}>
+                                  {failedTitle}
+                                </WsText>
+                              </WsFlex>
+                              <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                                <WsText size={14} color={$color.danger}>{`1. 檢查附件是否含有加密保護或限制編輯權限`}</WsText>
+                              </WsFlex>
+                            </View>
+                          </WsFlex>
+                        )}
+                      </>
+                    )
+                  })()}
+                </View>
+
+                <View
+                  style={{
+                    marginTop: 8,
+                  }}
+                >
                   <WsInfo
                     labelWidth={100}
                     style={{
@@ -659,30 +717,23 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                   }}
                 >
                   {(() => {
-                    const statusTag = getStatusTagProps(
-                      meetingExport?.convert_status ?? meetingExport?.status
-                    )
+                    const rawLocation = meetingExport?.attach_location_type ?? ''
+                    const locationLabel =
+                      rawLocation === 'item-attach-together'
+                        ? t('隨附於各議案後')
+                        : rawLocation === 'item-attach-seperate'
+                          ? t('集中於議程末尾')
+                          : ''
                     return (
-                      <WsFlex
+                      <WsInfo
+                        labelWidth={100}
                         style={{
                           flexDirection: 'row',
                           alignItems: 'center',
                         }}
-                      >
-                        <WsText
-                          size={14}
-                          color={$color.black}
-                          style={{ width: 100, fontWeight: '600' }}
-                        >
-                          {t('狀態')}
-                        </WsText>
-                        <WsTag
-                          backgroundColor={statusTag.backgroundColor}
-                          textColor={statusTag.textColor}
-                        >
-                          {statusTag.label}
-                        </WsTag>
-                      </WsFlex>
+                        value={locationLabel}
+                        label={t('附件位置')}
+                      />
                     )
                   })()}
                 </View>
@@ -747,7 +798,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                   />
                 </View>
 
-                {meetingExport?.convert_word_attach && (
+                {!isExportFailed && meetingExport?.convert_word_attach && (
                   <View
                     style={{
                       marginTop: 8
@@ -768,7 +819,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                   </View>
                 )}
 
-                {meetingExport?.convert_pdf_attach && (
+                {!isExportFailed && meetingExport?.convert_pdf_attach && (
                   <View
                     style={{
                       marginTop: 8
@@ -787,7 +838,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                 )}
 
 
-                {meetingExport?.attach_location_type === 'item-attach-seperate' && (
+                {!isExportFailed && meetingExport?.attach_location_type === 'item-attach-seperate' && (
                   <>
                     {meetingExport?.convert_attach && (
                       <View
@@ -815,7 +866,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                     <View
                       style={{
                         marginTop: 16,
-                        borderTopWidth: 0.7,
+                        borderTopWidth: isExportFailed ? 0 : 0.7,
                         borderColor: $color.gray,
                         paddingTop: 12,
                       }}

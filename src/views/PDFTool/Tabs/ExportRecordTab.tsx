@@ -113,6 +113,14 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
             },
           ]
       },
+      type: {
+        type: 'belongsto',
+        label: t('類型'),
+        nameKey: 'name',
+        modelName: 'meeting_template_type',
+        serviceIndexKey: 'index',
+        placeholder: t('選擇')
+      },
       owner: {
         type: 'belongsto',
         label: t('匯出者'),
@@ -181,23 +189,35 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
                   backgroundColor: $color.white,
                 }}
               >
-                <WsFlex style={{}} justifyContent="space-between">
+
+                <WsFlex
+                  style={{
+                  }}
+                  justifyContent="space-between"
+                >
 
                   <View
                     style={{
                     }}
                   >
-                    <WsInfo
-                      labelWidth={100}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        maxWidth: width * 0.7,
-                      }}
-                      value={item?.name}
-                      label={t('標題')}
-                    />
+                    {(() => {
+                      const statusTag = getStatusTagProps(item?.convert_status)
+                      return (
+                        <WsFlex
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <WsTag
+                            backgroundColor={statusTag.backgroundColor}
+                            textColor={statusTag.textColor}
+                          >
+                            {statusTag.label}
+                          </WsTag>
+                        </WsFlex>
+                      )
+                    })()}
                   </View>
 
                   <WsFlex
@@ -262,34 +282,37 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
 
                 <View
                   style={{
+                    marginTop: 8
+                  }}
+                >
+                  <WsInfo
+                    labelWidth={100}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      maxWidth: width * 0.7,
+                    }}
+                    value={item?.name}
+                    label={t('標題')}
+                  />
+                </View>
+
+
+                <View
+                  style={{
                     marginTop: 8,
                   }}
                 >
-                  {(() => {
-                    const statusTag = getStatusTagProps(item?.convert_status)
-                    return (
-                      <WsFlex
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <WsText
-                          size={14}
-                          color={$color.black5l}
-                          style={{ width: 100, fontWeight: '600' }}
-                        >
-                          {t('狀態')}
-                        </WsText>
-                        <WsTag
-                          backgroundColor={statusTag.backgroundColor}
-                          textColor={statusTag.textColor}
-                        >
-                          {statusTag.label}
-                        </WsTag>
-                      </WsFlex>
-                    )
-                  })()}
+                  <WsInfo
+                    labelWidth={100}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                    value={item?.type === 'meeting' ? t('議程') : t('時序表')}
+                    label={t('類型')}
+                  />
                 </View>
 
                 <View

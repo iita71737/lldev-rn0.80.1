@@ -16,6 +16,7 @@ import {
   LlPopupAlert,
   WsLoading,
   WsState,
+  WsDes
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
@@ -51,7 +52,9 @@ const LlFilesAndImagesPicker = props => {
     orderConfirmToken,
     orderCancelToken,
     exportAttachmentName,
-    disabled
+    disabled,
+    desVisible = true,
+    desVideoVisible = false
   } = props
 
   // redux
@@ -672,6 +675,25 @@ const LlFilesAndImagesPicker = props => {
           >
             {uploadBtnText ? uploadBtnText : t('上傳')}
           </WsUpdateBtn>
+        )}
+        {desVisible && (
+          <>
+            <WsDes
+              color={$color.gray}
+              style={{
+                paddingTop: 8
+              }}>
+              {`${t('檔案大小限制')} ≤ 30MB`}
+            </WsDes>
+            {desVideoVisible && (
+              <WsDes
+                color={$color.danger}
+                style={{
+                }}>
+                {`${t('影像長度限制')} ≤ ${t('{number}分鐘', { number: 3 })}`}
+              </WsDes>
+            )}
+          </>
         )}
       </View>
 

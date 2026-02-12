@@ -73,6 +73,7 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
     listBottomPaddingVisible = true,
     hasFooterBtn = false,
     shouldHandleScroll = true,
+    TARGET_INDEX_HIDE,
   } = props
 
   const flatListRef = React.useRef(null);

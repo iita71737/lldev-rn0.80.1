@@ -924,6 +924,7 @@ const MySubtasks = (props) => {
                                 <WsStateSubtaskCardShow
                                   sortValue={sortValue002}
                                   onPress={async () => {
+                                    console.log('1111')
                                     $_setFields(item)
                                     setCurrentTask(item.task)
                                     const _subtask = await S_SubTask.show({ subTaskId: item.id })

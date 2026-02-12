@@ -614,7 +614,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
                     }}
                     size={12}
                     color={$color.danger}>
-                    {t('注意：排序將重新產製全部議案 (DOCX)')}
+                    {t('注意，排序將重新產製全部議案 (DOCX)')}
                   </WsText>
                 </WsFlex>
               </TouchableOpacity>

@@ -1054,18 +1054,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     />
                   </View>
 
-                  {/* {meetingItemName && (
-                    <View style={{ marginTop: 8 }}>
-                      <WsInfo
-                        labelWidth={80}
-                        label={t('名稱')}
-                        style={{ flexDirection: 'row', alignItem: 'center' }}
-                        labelColor={$color.gray}
-                        value={meetingItemName}
-                      />
-                    </View>
-                  )} */}
-
                   <View style={{ marginTop: 8 }}>
                     <WsInfo
                       labelWidth={80}
@@ -1610,6 +1598,8 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             onChange={$event => {
               setMotionFiles($event)
             }}
+            remindColor={$color.danger}
+            remind={t('附件加密 或 附件無法編輯 會造成匯出失敗')}
           />
 
           <WsState

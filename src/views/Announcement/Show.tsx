@@ -409,6 +409,7 @@ export default function Show() {
     const attrs = (tnode?.attributes ?? {});
     const src = attrs.src;
     if (!src) return null;
+    console.log(src,'src-')
 
     const wAttr = Number(attrs.width);
     const hAttr = Number(attrs.height);

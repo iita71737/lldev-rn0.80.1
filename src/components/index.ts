@@ -205,7 +205,6 @@ import WsStateCheckBox002 from '@/__reactnative_stone/components/WsStateCheckBox
 import WsInfoBelongstomany from '@/__reactnative_stone/components/WsInfoBelongstomany'
 import WsQRcodeDetect from '@/__reactnative_stone/components/WsQRcodeDetect'
 import WsDetectIdle002 from '@/__reactnative_stone/components/WsDetectIdle002'
-import WsStateLayerSelect from '@/__reactnative_stone/components/WsStateLayerSelect'
 import WsIconHint from '@/__reactnative_stone/components/WsIconHint'
 import WsBlinkBorder from '@/__reactnative_stone/components/WsBlinkBorder'
 import WsIconBouncingArrow from '@/__reactnative_stone/components/WsIconBouncingArrow'
@@ -595,7 +594,6 @@ export {
   WsInfoBelongstomany,
   WsQRcodeDetect,
   WsDetectIdle002,
-  WsStateLayerSelect,
   WsIconHint,
   WsBlinkBorder,
   WsIconBouncingArrow,

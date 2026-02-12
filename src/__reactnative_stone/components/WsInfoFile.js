@@ -244,6 +244,7 @@ const WsInfoFile = props => {
   }
 
   const $_onCardPress = async () => {
+    console.log('$_onCardPress')
     if (isProcessing) return
     setIsProcessing(true)
 
