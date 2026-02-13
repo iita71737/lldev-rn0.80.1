@@ -89,7 +89,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
     '',
   ).toUpperCase()
   const isExportFailed = exportStatusValue === 'FAILED'
-  const downloadRecordRefreshKey = 0
+  const [downloadRecordRefreshKey, setDownloadRecordRefreshKey] = useState(0)
   const defaultFilterValue = {}
   const [filterFields] = React.useState<any>({
     button: {
@@ -509,6 +509,8 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
     } catch (err) {
       console.log('S_MeetingExport.download error', err)
       Alert.alert(t('下載失敗，請稍後再試'))
+    } finally {
+      setDownloadRecordRefreshKey(prev => prev + 1)
     }
   }
 
@@ -812,7 +814,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                         meetingExport?.convert_word_attach
                       ].filter(Boolean)}
                       onPressFile={onPressFile}
-                      useWebView={true}
+                      useWebView={Platform.OS === 'ios' ? true : false}
                       labelBtnIcon="ws-outline-cloud-upload"
                       labelBtnOnPress={updateConvertAttach}
                     />
@@ -832,7 +834,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                         meetingExport?.convert_pdf_attach
                       ]}
                       onPressFile={onPressFile}
-                      useWebView={true}
+                      useWebView={Platform.OS === 'ios' ? true : false}
                     />
                   </View>
                 )}
@@ -853,7 +855,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                             meetingExport?.convert_attach
                           ].filter(Boolean)}
                           onPressFile={onPressFile}
-                          useWebView={true}
+                          useWebView={Platform.OS === 'ios' ? true : false}
                         />
                       </View>
                     )}

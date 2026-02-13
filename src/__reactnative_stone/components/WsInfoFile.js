@@ -244,11 +244,15 @@ const WsInfoFile = props => {
   }
 
   const $_onCardPress = async () => {
-    console.log('$_onCardPress')
     if (isProcessing) return
     setIsProcessing(true)
 
     try {
+      if (onPressFile && Platform.OS === 'android') {
+        console.log('$_onCardPress')
+        await onPressFile(fileItem || value)
+      }
+
       const type = getDisplayFileType()
       const url = getSourceUrl(value)
 
@@ -288,7 +292,6 @@ const WsInfoFile = props => {
       }).promise
 
       if (downloadRes.statusCode === 200) {
-        console.log('FileViewer')
         await FileViewer.open(filePath, { showOpenWithDialog: true })
       } else {
         console.warn('[WsInfoFile] download failed status:', downloadRes.statusCode)

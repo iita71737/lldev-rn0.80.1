@@ -51,6 +51,12 @@ const WsTabView = props => {
     pointerVisible = false
   } = props
 
+  const formatTabNum = (value) => {
+    const n = Number(value)
+    if (!Number.isFinite(n)) return value
+    return n > 99 ? '99+' : String(n)
+  }
+
   const CustomTabBar = ({ navigationState, jumpTo }) => {
     const { t, i18n } = useTranslation()
     const { routes, index } = navigationState;
@@ -264,6 +270,43 @@ const WsTabView = props => {
           }}
           renderScene={renderScene}
           activeColor="yellow"
+          commonOptions={{
+            label: ({ route, labelText, focused, color }) => (
+              <WsFlex style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <WsText style={{ color }} size={textSize}>
+                  {t(labelText ?? route.title)}
+                </WsText>
+
+                {!!route.icon && <WsIcon name={route.icon} style={{ marginLeft: 8 }} />}
+
+                {(typeof route.tabNum === 'number' || typeof route.tabNum === 'string') && (
+                  <WsFlex
+                    justifyContent="center"
+                    style={{
+                      marginLeft: 2,
+                      borderRadius: 12,
+                      backgroundColor: $color.primary,
+                      paddingHorizontal: 4,
+                      minHeight: 24,
+                      minWidth: 24
+                    }}
+                  >
+                    <WsText
+                      color={$color.white}
+                      size={12}
+                      style={{
+                        includeFontPadding: false,
+                        textAlign: 'center',
+                        textAlignVertical: 'center',
+                      }}
+                    >
+                      {route.tabNum}
+                    </WsText>
+                  </WsFlex>
+                )}
+              </WsFlex>
+            ),
+          }}
           renderTabBar={props => {
             const { routes, index } = props.navigationState
             return (
@@ -342,58 +385,24 @@ const WsTabView = props => {
                           backgroundColor: $color.white,
                         }
                       ]}
-                      renderLabel={({ route, focused, color }) => (
-                        <>
-                          <WsFlex
-                            style={{
-                            }}
-                            key={route}>
-                            <WsText
-                              testID={route.title}
-                              style={{
-                                color: color
-                              }}
-                              size={textSize}>
-                              {t(route.title)}
-                            </WsText>
-                            {route.icon && (
-                              <WsIcon
-                                name={route.icon}
-                                style={{
-                                  marginLeft: 8
-                                }}
-                              />
-                            )}
-                            {(typeof route.tabNum == 'number' || typeof route.tabNum == 'string') && (
-                              <WsFlex
-                                justifyContent={'center'}
-                                style={{
-                                  marginLeft: 4,
-                                  borderRadius: 12,
-                                  backgroundColor: $color.primary,
-                                  width: 24,
-                                  height: 24,
-                                }}
-                              >
-                                <WsText
-                                  color={$color.white}
-                                  size={12}
-                                  style={{
-                                    includeFontPadding: false, // （Android 专有）去掉默认上下内边距
-                                    textAlign: 'center',
-                                    textAlignVertical: 'center',
-                                  }}>
-                                  {route.tabNum}
-                                </WsText>
-                              </WsFlex>
-                            )}
-                          </WsFlex>
-                        </>
+                      renderTabBar={(props) => (
+                        <TabBar
+                          {...props}
+                          inactiveColor={inactiveColor}
+                          activeColor={activeColor}
+                          pressColor={$color.primary11l}
+                          tabStyle={[/* 你原本的 tabStyle */]}
+                          indicatorStyle={{ backgroundColor: $color.primary5l }}
+                          style={{ backgroundColor: $color.white }}
+                        // ❌ 不要再放 renderLabel
+                        />
                       )}
                     />
                   </ScrollView>
                 ) : (
-                  <CustomTabBar {...props} />
+                  <>
+                    <CustomTabBar {...props} />
+                  </>
                 )}
 
                 {pointerVisible && (

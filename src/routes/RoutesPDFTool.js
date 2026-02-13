@@ -6,7 +6,8 @@ import {
   Platform,
   Button,
   Dimensions,
-  TouchableOpacity
+  TouchableOpacity,
+  ScrollView
 } from 'react-native'
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack'
 import { WsHeaderBackBtn } from '@/components'
@@ -19,7 +20,8 @@ import {
   WsFlex,
   WsDes,
   WsText,
-  WsIcon
+  WsIcon,
+  WsInfo
 } from '@/components'
 import ViewAct from '@/views/Act/Index'
 import ViewActShow from '@/views/Act/Show'
@@ -67,9 +69,11 @@ import PDFToolAdminBatchEditMeetingItemGroup from '@/views/PDFTool/PDFToolAdminB
 const StackSetting = createStackNavigator()
 import S_Meeting from '@/services/api/v1/meeting'
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
+import RNFS from 'react-native-fs';
 
 const RoutesPDFTool = () => {
   const { t, i18n } = useTranslation()
+  const { height: windowHeight } = Dimensions.get('window')
 
   // Redux
   const factory = useSelector(state => state.data.currentFactory)
@@ -93,6 +97,101 @@ const RoutesPDFTool = () => {
   const attachCoverTypeId = Array.isArray(currentMeetingTemplateType)
     ? currentMeetingTemplateType.find(item => item?.value === 'attach_cover')?.id
     : null
+
+  const SampleTemplateDownloads = () => {
+    const { t } = useTranslation()
+    const [sampleFileUris, setSampleFileUris] = React.useState([])
+
+    React.useEffect(() => {
+      let isMounted = true
+      const prepareSampleFiles = async () => {
+        try {
+        const fileItems = [
+          {
+            fileName: 'schedule_template_sample.xlsx',
+            displayName: t('時序表範本樣本'),
+            fileType: 'xlsx',
+          },
+          {
+            fileName: 'agenda_template_sample.docx',
+            displayName: t('議程表範本樣本'),
+            fileType: 'docx',
+          },
+          {
+            fileName: 'attach_cover_template_sample.docx',
+            displayName: t('附件封面範本樣本'),
+            fileType: 'docx',
+          },
+          {
+            fileName: 'cover_template_sample.docx',
+            displayName: t('封面範本樣本'),
+            fileType: 'docx',
+          },
+          {
+            fileName: 'index_template_sample.docx',
+            displayName: t('目錄範本樣本'),
+            fileType: 'docx',
+          },
+          {
+            fileName: 'proposal_template_sample.docx',
+            displayName: t('提案單範本樣本'),
+            fileType: 'docx',
+          },
+        ]
+
+        const uris = []
+        for (const item of fileItems) {
+          const destPath = `${RNFS.DocumentDirectoryPath}/${item.fileName}`
+          const destUri = `file://${destPath}`
+          const exists = await RNFS.exists(destPath)
+          if (!exists) {
+            if (Platform.OS === 'ios') {
+              const bundlePath = `${RNFS.MainBundlePath}/${item.fileName}`
+              const bundleExists = await RNFS.exists(bundlePath)
+              if (bundleExists) {
+                await RNFS.copyFile(bundlePath, destPath)
+              } else {
+                console.warn('[RoutesPDFTool] sample file missing in bundle:', bundlePath)
+              }
+            } else {
+              await RNFS.copyFileAssets(`meetingTemplate/${item.fileName}`, destPath)
+            }
+          }
+          uris.push({
+            file: {
+              name: item.displayName,
+              file_type: item.fileType,
+              source_url: destUri,
+            },
+          })
+        }
+
+          if (isMounted) {
+            setSampleFileUris(uris)
+          }
+        } catch (error) {
+          console.warn('[RoutesPDFTool] prepareSampleFiles failed:', error)
+        }
+      }
+      prepareSampleFiles()
+      return () => {
+        isMounted = false
+      }
+    }, [])
+
+    return (
+      <View>
+        <WsInfo
+          label={t('範本樣本下載')}
+          type="filesAndImages"
+          style={{
+            marginTop: 8
+          }}
+          value={Array.isArray(sampleFileUris) ? sampleFileUris : []}
+        />
+      </View>
+    )
+  }
 
   const fields = {
     name: {
@@ -354,61 +453,70 @@ const RoutesPDFTool = () => {
       limitFileExtension: ['docx', 'xlsx'],
       remind: t('注意，​重新​上​傳​範本，​會覆​蓋標記​設定​'),
       remindColor: $color.danger,
-      remind002: t('範本注意事項'),
+      remind002: t('範本注意事項及範本樣本下載'),
       remind002Color: $color.primary,
       remindBtnDisabled002: false,
-      dialogTitle: t('範本注意事項'),
+      dialogTitle: t('範本注意事項及範本樣本下載'),
+      contentHeight: windowHeight * 0.7,
       remindRenderItem002: () => {
         return (
           <>
-            <View style={{ marginHorizontal: 16, paddingBottom: 16 }}>
-              <WsText size={14} fontWeight="600" style={{}}>
-                {t('通用')}
-              </WsText>
-                 <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
-                <WsDes size={14}>{`1. ${t('標記需要使用 ${} 包起來')}`}</WsDes>
-              </WsFlex>
-              <WsFlex flexWrap="wrap">
-                <WsDes size={14}>{`2. ${t('標記只能為英文大小寫及數字')}`}</WsDes>
-              </WsFlex>
+            <ScrollView
+              style={{ maxHeight: windowHeight * 0.6 }}
+              contentContainerStyle={{ paddingBottom: 100 }}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+            >
+              <View style={{ marginHorizontal: 16 }}>
+                <WsText size={14} fontWeight="600" style={{}}>
+                  {t('通用')}
+                </WsText>
+                <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                  <WsDes size={14}>{`1. ${t('標記需要使用 ${} 包起來')}`}</WsDes>
+                </WsFlex>
+                <WsFlex flexWrap="wrap">
+                  <WsDes size={14}>{`2. ${t('標記只能為英文大小寫及數字')}`}</WsDes>
+                </WsFlex>
 
-              <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>
-                {t('提案單範本')}
-              </WsText>
-              <WsFlex flexWrap="wrap">
-                <WsDes size={14}>{`1. ${t('標記不能放在同一行')}`}</WsDes>
-              </WsFlex>
+                <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>
+                  {t('提案單範本')}
+                </WsText>
+                <WsFlex flexWrap="wrap">
+                  <WsDes size={14}>{`1. ${t('標記不能放在同一行')}`}</WsDes>
+                </WsFlex>
 
-              <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>
-                {t('封面範本')}
-              </WsText>
-              <WsFlex flexWrap="wrap">
-                <WsDes size={14}>{`1. ${t('只能放 “議事名稱”、”時間“、”地點“的標記')}`}</WsDes>
-              </WsFlex>
+                <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>
+                  {t('封面範本')}
+                </WsText>
+                <WsFlex flexWrap="wrap">
+                  <WsDes size={14}>{`1. ${t('只能放 “議事名稱”、”時間“、”地點“的標記')}`}</WsDes>
+                </WsFlex>
 
-              <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>
-                {t('目錄範本')}
-              </WsText>
-              <WsFlex flexWrap="wrap">
-                <WsDes size={14}>{`1. ${t('建議不要放議案內容標記')}`}</WsDes>
-              </WsFlex>
+                <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>
+                  {t('目錄範本')}
+                </WsText>
+                <WsFlex flexWrap="wrap">
+                  <WsDes size={14}>{`1. ${t('建議不要放議案內容標記')}`}</WsDes>
+                </WsFlex>
 
-              <WsText size={14} fontWeight="600" style={{ marginTop: 16, marginBottom: 8 }}>
-                {t('議程範本')}
-              </WsText>
-              <WsFlex flexWrap="wrap">
-                <WsDes size={14}>{`1. ${t('範本最上面加上標記${top}')}`}</WsDes>
-              </WsFlex>
-              <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
-                <WsDes size={14}>{`2. ${t('議案群組區塊：需要使用標記包起來，且標記要與標題不同行')}`}</WsDes>
-              </WsFlex>
-              <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
-                <WsDes size={14}>{`3. ${t('說明(內容)：標記要與標題不同行')}`}</WsDes>
-              </WsFlex>
-              <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
-                <WsDes size={14}>{`4. ${t('換行需要按enter')}`}</WsDes>
-              </WsFlex>
-            </View>
+                <WsText size={14} fontWeight="600" style={{ marginTop: 16, marginBottom: 8 }}>
+                  {t('議程範本')}
+                </WsText>
+                <WsFlex flexWrap="wrap">
+                  <WsDes size={14}>{`1. ${t('範本最上面加上標記${top}')}`}</WsDes>
+                </WsFlex>
+                <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                  <WsDes size={14}>{`2. ${t('議案群組區塊：需要使用標記包起來，且標記要與標題不同行')}`}</WsDes>
+                </WsFlex>
+                <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                  <WsDes size={14}>{`3. ${t('說明(內容)：標記要與標題不同行')}`}</WsDes>
+                </WsFlex>
+                <WsFlex flexWrap="wrap" style={{ marginTop: 4 }}>
+                  <WsDes size={14}>{`4. ${t('換行需要按enter')}`}</WsDes>
+                </WsFlex>
+                <SampleTemplateDownloads />
+              </View>
+            </ScrollView>
           </>
         )
       },

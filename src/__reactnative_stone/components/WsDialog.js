@@ -88,9 +88,15 @@ const WsDialog = props => {
               </TouchableOpacity>
             )}
           </>
-          <Dialog.Description>
-            {children}
-          </Dialog.Description>
+          {typeof children === 'string' || typeof children === 'number' ? (
+            <Dialog.Description>
+              {children}
+            </Dialog.Description>
+          ) : (
+            <View>
+              {children}
+            </View>
+          )}
           {dialogButtonItems && (
             <>
               <View
@@ -217,6 +223,8 @@ const WsDialog = props => {
               borderRadius: 10,
               padding: contentPadding,
               height: contentHeight ? contentHeight : undefined, // 250418-create-event-issues-remindRenderItem
+              ...(contentHeight ? { maxHeight: contentHeight } : {}),
+              flexShrink: 1,
               ...(contentWidth ? { width: contentWidth } : {}),
             },
           ]
@@ -246,9 +254,15 @@ const WsDialog = props => {
             {title}
           </Dialog.Title>
 
-          <Dialog.Description>
-            {children}
-          </Dialog.Description>
+          {typeof children === 'string' || typeof children === 'number' ? (
+            <Dialog.Description>
+              {children}
+            </Dialog.Description>
+          ) : (
+            <View style={{ flexShrink: 1 }}>
+              {children}
+            </View>
+          )}
 
           {dialogButtonItems && (
             <>

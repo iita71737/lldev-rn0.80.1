@@ -1,4 +1,4 @@
-v0.80.1.10.12
+v0.80.1.10.13
 
 # react-native upgrade to 0.80.1
 # yarn add mathjs

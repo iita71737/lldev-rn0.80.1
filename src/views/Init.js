@@ -80,6 +80,7 @@ const InitView = ({ navigation }) => {
       }, 1000)
     } catch (error) {
       console.log(error, '$_AuthCheckInit error')
+      S_Init.routeSet(navigation, false)
     }
   }
 
