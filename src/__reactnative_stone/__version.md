@@ -13,3 +13,4 @@ v0.80.1.10.13
 # yarn add react-native-maps
 # v0.80.1.8.2 - pdf tool
 # yarn add @react-native-clipboard/clipboard
+# 260213-copy meeting template assets to ios/android
