@@ -1,4 +1,4 @@
-v0.80.1.10.13
+v0.80.1.10.14
 
 # react-native upgrade to 0.80.1
 # yarn add mathjs
@@ -13,4 +13,5 @@ v0.80.1.10.13
 # yarn add react-native-maps
 # v0.80.1.8.2 - pdf tool
 # yarn add @react-native-clipboard/clipboard
-# 260213-copy meeting template assets to ios/android
+# v0.80.1.10.13-260213-copy meeting template assets to ios/android
+# v0.80.1.10.14-react-native-calendars-issue and patch

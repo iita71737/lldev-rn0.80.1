@@ -30,6 +30,7 @@ import S_ContractorEnterRecord from '@/services/api/v1/contractor_enter_record'
 import S_AuditRequest from '@/services/api/v1/audit_request'
 import S_Training from '@/services/api/v1/training'
 import S_Task from '@/services/api/v1/task'
+import S_Meeting from '@/services/api/v1/meeting'
 import { useTranslation } from 'react-i18next'
 import moment from 'moment'
 import S_LicenseVersion from '@/services/api/v1/license_version'
@@ -223,6 +224,19 @@ const BoardCalendar = ({ navigation }) => {
         auditees: currentUser.id,
         get_all: 1
       }
+    },
+    {
+      id: 'meeting',
+      parentId: currentFactory.id,
+      bgc: $color.white1d,
+      service: S_Meeting,
+      serviceIndexKey: 'index',
+      icon: 'ws-outline-calendar-extension',
+      nameKey: 'meeting_date',
+      textColor: $color.black,
+      type: 'meeting',
+      format: 'YYYY-MM-DD',
+      preText: `[${t('議事')}]`,
     }
   ])
 
@@ -368,6 +382,18 @@ const BoardCalendar = ({ navigation }) => {
           auditees: currentUser.id,
           get_all: 1
         }
+      },
+      {
+        id: 'meeting',
+        bgc: $color.white1d,
+        service: S_Meeting,
+        serviceIndexKey: 'index',
+        icon: 'ws-outline-calendar-extension',
+        nameKey: 'meeting_date',
+        textColor: $color.black,
+        type: 'meeting',
+        format: 'YYYY-MM-DD',
+        preText: `[${t('議事')}]`,
       }
     ]
     const _filterService = _service.filter(item => moduleType.includes(item.id))
@@ -453,6 +479,13 @@ const BoardCalendar = ({ navigation }) => {
           id: $event.id
         }
       })
+    } else if ($event.type == 'meeting') {
+      navigation.push('RoutesPDFTool', {
+        screen: 'PDFToolAdminShow',
+        params: {
+          id: $event.id
+        }
+      })
     }
     setPopupActive(false)
   }
@@ -518,6 +551,13 @@ const BoardCalendar = ({ navigation }) => {
     } else if ($event.type == 'extension') {
       try {
         return $event.payload[0]
+      } catch (e) {
+        console.error(e.message, '===extension err===')
+      }
+    } else if ($event.type == 'meeting') {
+      try {
+        const res = await S_Meeting.show({ modelId: id })
+        return res
       } catch (e) {
         console.error(e.message, '===extension err===')
       }
@@ -1154,6 +1194,65 @@ const BoardCalendar = ({ navigation }) => {
                               style={{
                                 flexDirection: 'row',
                                 alignItems: 'center'
+                              }}
+                            />
+                          </View>
+                        </WsPaddingContainer>
+                      </>
+                    )}
+
+                    {/* 議事 */}
+                    {popupContentType === 'meeting' && (
+                      <>
+                        <WsText color={$color.black} size={18}>{popupContent.title}</WsText>
+                        <WsPaddingContainer>
+                          <View
+                            style={{
+                            }}
+                          >
+                            <WsInfo
+                              labelWidth={100}
+                              label={t('時間')}
+                              value={
+                                popupContent.meeting_date
+                                  ? moment(popupContent.meeting_date).format('YYYY-MM-DD HH:mm')
+                                  : '無'
+                              }
+                              style={{
+                                flexDirection: 'row'
+                              }}
+                            />
+                          </View>
+                          <View
+                            style={{
+                              marginTop: 8
+                            }}
+                          >
+                            <WsInfo
+                              labelWidth={100}
+                              label={t('期限')}
+                              value={
+                                popupContent.expired_at
+                                  ? moment(popupContent.expired_at).format('YYYY-MM-DD')
+                                  : '無'
+                              }
+                              style={{
+                                flexDirection: 'row'
+                              }}
+                            />
+                          </View>
+                          <View
+                            style={{
+                              marginTop: 8
+                            }}
+                          >
+                            <WsInfo
+                              labelWidth={100}
+                              label={t('負責人')}
+                              type={'user'}
+                              value={popupContent.owner ? popupContent.owner : null}
+                              style={{
+                                flexDirection: 'row'
                               }}
                             />
                           </View>
