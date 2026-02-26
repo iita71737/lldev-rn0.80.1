@@ -18,11 +18,6 @@ interface TaskStatusProps {
   searchValue: string;
   defaultFilter: any;
 }
-interface TaskItem {
-  sub_tasks: any[];
-  done_at: string | null;
-  id: string;
-}
 
 const TaskStatus: React.FC<TaskStatusProps> = props => {
   const { t } = useTranslation()
@@ -61,7 +56,7 @@ const TaskStatus: React.FC<TaskStatusProps> = props => {
           order_by: 'completion_degree',
         } : {}
     return _params
-  }, [sortValue, status, currentRefreshCounter]);
+  }, [sortValue, status, currentRefreshCounter, params]);
 
   return (
     <>

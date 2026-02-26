@@ -12,7 +12,7 @@ import {
 import AsyncStorage from '@react-native-community/async-storage'
 import { createStackNavigator } from '@react-navigation/stack'
 import ViewTaskIndex from '@/views/Task/Index'
-import ViewTaskShow from '@/views/Task/Show'
+import ViewTaskShow from '@/views/Task/Tasks/Show'
 import { useSelector } from 'react-redux'
 import { scopeFilterScreen } from '@/__reactnative_stone/global/scopes'
 import { useTranslation } from 'react-i18next'
@@ -804,17 +804,36 @@ const RoutesTask = ({ navigation }) => {
     }
   ]
 
+  const $_resetToTaskShow = (navigation, taskId) => {
+    navigation.reset({
+      index: 1,
+      routes: [
+        {
+          name: 'TaskIndex',
+        },
+        {
+          name: 'TaskShow',
+          params: {
+            id: taskId
+          }
+        }
+      ],
+      key: null
+    })
+  }
+
   // 建立任務
   const submitForCreate = async (_postData, navigation, currentUserId) => {
-    console.log(JSON.stringify(_postData), '_postData');
+    // console.log(JSON.stringify(_postData), '_postData');
     const _data = S_Task.getFormattedDataForCreate(_postData, currentUserId)
-    console.log(JSON.stringify(_data), '_data');
+    // console.log(JSON.stringify(_data), '_data');
     try {
       const res = await S_Task.create({
         data: _data
       })
       if (_postData.redirect_routes && res) {
         // 250327-測試後可行，reset有問題
+        console.log('AAA')
         navigation.replace('RoutesTask', {
           screen: 'TaskShow',
           params: {
@@ -825,6 +844,7 @@ const RoutesTask = ({ navigation }) => {
         Alert.alert(t('任務已派發'))
       }
       else if (res.alert) {
+        console.log('BBB')
         navigation.replace('RoutesAlert', {
           screen: 'AlertShow',
           params: {
@@ -832,22 +852,8 @@ const RoutesTask = ({ navigation }) => {
           }
         })
       } else {
-        navigation.reset({
-          index: 0,
-          routes: [
-            {
-              name: 'TaskIndex',
-            },
-            {
-              name: 'TaskShow',
-              params: {
-                id: res.id,
-                refreshKey: Date.now()
-              }
-            }
-          ],
-          key: null
-        })
+        console.log('CCC')
+        $_resetToTaskShow(navigation, res.id)
         Alert.alert(t('任務已派發'))
       }
     } catch (e) {
@@ -880,27 +886,16 @@ const RoutesTask = ({ navigation }) => {
         modelId: modelId,
         data: _data
       })
+      $_resetToTaskShow(navigation, res.id)
       if (_data.status === '2') {
-        Alert.alert(t('任務已派發'))
+        setTimeout(() => {
+          Alert.alert(t('任務已派發'))
+        }, 50)
       } else {
-        Alert.alert(t('送出成功'))
+        setTimeout(() => {
+          Alert.alert(t('送出成功'))
+        }, 50)
       }
-      navigation.reset({
-        index: 1,
-        routes: [
-          {
-            name: 'TaskIndex',
-          },
-          {
-            name: 'TaskShow',
-            params: {
-              id: res.id,
-              refreshKey: Date.now()
-            }
-          }
-        ],
-        key: null
-      })
     } catch (e) {
       console.error(e.message, 'submitForEdit')
       navigation.reset({
@@ -984,8 +979,24 @@ const RoutesTask = ({ navigation }) => {
         component={scopeFilterScreen('task-read', ViewTaskIndex)}
         options={({ navigation }) => ({
           title: t('任務'),
-          headerShown: false,
+          headerShown: true,
           ...$option.headerOption,
+          headerRight: () => (
+            <WsIconBtn
+              name="md-add"
+              color={$color.white}
+              size={24}
+              style={{
+                marginRight: 4
+              }}
+              onPress={async () => {
+                await AsyncStorage.removeItem('TaskCreate')
+                navigation.push('RoutesTask', {
+                  screen: 'TaskCreate'
+                })
+              }}
+            />
+          ),
           headerLeft: () => (
             <WsIconBtn
               testID="backButton"
@@ -1004,9 +1015,54 @@ const RoutesTask = ({ navigation }) => {
       <StackSetting.Screen
         name="TaskShow"
         component={scopeFilterScreen('task-read', ViewTaskShow)}
-        options={({ navigation }) => ({
+        options={({ navigation, route }) => ({
           title: t('任務'),
-          headerLeft: null, // FOR INIT
+          headerShown: true,
+          animationEnabled: false,
+          headerRight: () => {
+            if (route?.params?.hideTaskShowEdit) {
+              return (
+                <View
+                  style={{
+                    width: 32,
+                    marginRight: 4
+                  }}
+                />
+              )
+            }
+            return (
+              <WsIconBtn
+                testID={'ws-outline-edit-pencil'}
+                name="ws-outline-edit-pencil"
+                size={24}
+                color={$color.white}
+                style={{
+                  marginRight: 4
+                }}
+                onPress={() => {
+                  navigation.setParams({
+                    taskHeaderActionAt: Date.now()
+                  })
+                }}
+              />
+            )
+          },
+          headerLeft: () => (
+            <WsIconBtn
+              testID="backButton"
+              name="md-chevron-left"
+              color={$color.white}
+              size={32}
+              onPress={() => {
+                navigation.goBack()
+                if (route?.params?.refreshKey) {
+                  setTimeout(() => {
+                    store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
+                  }, 100)
+                }
+              }}
+            />
+          ),
           ...$option.headerOption
         })}
       />

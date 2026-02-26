@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react'
 import {
   ScrollView,
@@ -76,10 +77,8 @@ const TaskShow = ({ navigation, route }) => {
   // Props
   const {
     id,
-    refreshKey
+    taskHeaderActionAt
   } = route.params
-
-  console.log(id, '=id=');
 
   // Redux
   const currentUser = useSelector(state => state.stone_auth.currentUser)
@@ -108,13 +107,33 @@ const TaskShow = ({ navigation, route }) => {
   const [task, setTask] = React.useState()
   const [currentSubtask, setCurrentSubtask] = React.useState()
 
-  const [replyAttaches, setReplyAttaches] = React.useState()
-  const [replyImages, setReplyImages] = React.useState()
-  const [reply, setReply] = React.useState()
-
-  const [reviewRemark, setReviewRemark] = React.useState()
-  const [reviewAttaches, setReviewAttaches] = React.useState()
-  const [reviewImages, setReviewImages] = React.useState()
+  const [subtaskForm, setSubtaskForm] = React.useState({
+    reply: undefined,
+    replyImages: undefined,
+    replyAttaches: undefined,
+    reviewRemark: undefined,
+    reviewImages: undefined,
+    reviewAttaches: undefined
+  })
+  const { reply, replyImages, replyAttaches, reviewRemark, reviewImages, reviewAttaches } = subtaskForm
+  const setReply = React.useCallback((value) => {
+    setSubtaskForm(prev => ({ ...prev, reply: value }))
+  }, [])
+  const setReplyImages = React.useCallback((value) => {
+    setSubtaskForm(prev => ({ ...prev, replyImages: value }))
+  }, [])
+  const setReplyAttaches = React.useCallback((value) => {
+    setSubtaskForm(prev => ({ ...prev, replyAttaches: value }))
+  }, [])
+  const setReviewRemark = React.useCallback((value) => {
+    setSubtaskForm(prev => ({ ...prev, reviewRemark: value }))
+  }, [])
+  const setReviewImages = React.useCallback((value) => {
+    setSubtaskForm(prev => ({ ...prev, reviewImages: value }))
+  }, [])
+  const setReviewAttaches = React.useCallback((value) => {
+    setSubtaskForm(prev => ({ ...prev, reviewAttaches: value }))
+  }, [])
 
   const [fields, setFields] = React.useState()
 
@@ -130,6 +149,7 @@ const TaskShow = ({ navigation, route }) => {
     React.useState(false)
 
   const [isBottomSheetActive, setIsBottomSheetActive] = React.useState(false)
+  const lastHideTaskShowEditRef = React.useRef(null)
   const [snackBarText, setSnackBarText] = React.useState(
     t('你無權限標記他人的待辦事項')
   )
@@ -162,52 +182,6 @@ const TaskShow = ({ navigation, route }) => {
     await AsyncStorage.setItem('TaskUpdate', _task)
   }
 
-  // Option
-  const $_setNavigationOption = () => {
-    navigation.setOptions({
-      // https://gitlab.com/ll_esh/ll_esh_lobby/ll_esh_lobby_app_issue/-/issues/1717
-      headerRight: (task?.done_at && task?.checked_at) ? undefined : () => {
-        return (
-          <>
-            <WsIconBtn
-              testID={'ws-outline-edit-pencil'}
-              name="ws-outline-edit-pencil"
-              size={24}
-              color={$color.white}
-              style={{
-                marginRight: 4
-              }}
-              onPress={() => {
-                $_setStorage()
-                setIsBottomSheetActive(true)
-              }}
-            />
-          </>
-        )
-      },
-      headerLeft: () => {
-        return (
-          <WsIconBtn
-            testID="backButton"
-            name="md-chevron-left"
-            color="white"
-            size={32}
-            style={{
-              marginRight: 4
-            }}
-            onPress={() => {
-              navigation.goBack()
-              if (refreshKey) {
-                setTimeout(() => {
-                  store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
-                }, 300) // 延遲 300 毫秒
-              }
-            }}
-          />
-        )
-      }
-    })
-  }
   // Services
   const $_fetchTask = React.useCallback(async () => {
     try {
@@ -290,21 +264,6 @@ const TaskShow = ({ navigation, route }) => {
       console.error(error)
     }
   }
-
-  // 已審核任務，負責人可取消審核
-  // const $_UnCheckTask = async () => {
-  //   console.log(id, 'id--');
-  //   try {
-  //     const res = await S_Task.uncheckTask(id)
-  //     Alert.alert('取消審核成功')
-  //     navigation.push('TaskIndex', {
-  //       _tabIndex: 2
-  //     })
-  //   } catch (error) {
-  //     Alert.alert('取消審核發生異常')
-  //     console.error(error)
-  //   }
-  // }
 
   // Function
   const $_userFormat = (user, date) => {
@@ -625,8 +584,6 @@ const TaskShow = ({ navigation, route }) => {
     if (popupContent &&
       popupContent?.redirectFactory &&
       (popupContent?.redirectFactory?.id !== factoryId)) {
-      console.log('AAAAA');
-      console.log(popupContent, 'popupContent--');
       if (popupContent?.redirectFactory?.name?.includes('集團')) {
         // 250717-issue-currentUser內才有child_factories 跳轉ViewsFactoryDashboardShow後才會正常選項
         const matchedFactory = currentUser.factories.find(factory => factory?.id === popupContent?.redirectFactory?.id);
@@ -684,22 +641,37 @@ const TaskShow = ({ navigation, route }) => {
 
   React.useEffect(() => {
     if (currentSubtask) {
-      setReply(currentSubtask.reply)
-      setReplyImages(currentSubtask.file_reply_images)
-      setReplyAttaches(currentSubtask.file_reply_attaches)
-      setReviewRemark(currentSubtask.review_remark)
-      setReviewImages(currentSubtask.file_review_images)
-      setReviewAttaches(currentSubtask.file_review_attaches)
+      setSubtaskForm({
+        reply: currentSubtask.reply,
+        replyImages: currentSubtask.file_reply_images,
+        replyAttaches: currentSubtask.file_reply_attaches,
+        reviewRemark: currentSubtask.review_remark,
+        reviewImages: currentSubtask.file_review_images,
+        reviewAttaches: currentSubtask.file_review_attaches
+      })
     }
   }, [currentSubtask])
 
   React.useEffect(() => {
     if (task) {
-      $_setNavigationOption()
+      const hideTaskShowEdit = !!(task?.done_at && task?.checked_at)
+      if (lastHideTaskShowEditRef.current !== hideTaskShowEdit) {
+        navigation.setParams({
+          hideTaskShowEdit
+        })
+        lastHideTaskShowEditRef.current = hideTaskShowEdit
+      }
       $_setStorage()
-      setLoading(false)
     }
-  }, [task])
+  }, [task, navigation])
+
+  React.useEffect(() => {
+    if (!taskHeaderActionAt) {
+      return
+    }
+    $_setStorage()
+    setIsBottomSheetActive(true)
+  }, [taskHeaderActionAt])
 
   return (
     <>

@@ -95,7 +95,9 @@ const WsFilterSystemSubclass = props => {
 
   React.useEffect(() => {
     if (!Array.isArray(systemClasses) || systemClasses.length === 0) return
-    if (Array.isArray(value) && value.length > 0) return
+    // If value is already an array (including empty array), respect user choice.
+    // Only auto-fill defaults when value is undefined/null.
+    if (Array.isArray(value)) return
 
     // 取得「全選」 id 清單（扁平 + 去重）
     const allIds: number[] = []

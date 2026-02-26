@@ -41,9 +41,6 @@ const LicenseIndex: React.FC<LicenseIndexProps> = ({ route }) => {
   const _tabIndex = route?.params?.tabIndex
 
   // State
-  const [numLoading, setNumLoading] = React.useState(true)
-  const [licenseTypesCards, setLicenseTypesCards] = React.useState([])
-
   const [tabIndex, setTabIndex] = React.useState(_tabIndex ? _tabIndex : 0)
   const [toggleTabs, setToggleTabs] = React.useState<ToggleTab[]>([
     {
@@ -76,23 +73,6 @@ const LicenseIndex: React.FC<LicenseIndexProps> = ({ route }) => {
     }
   ])
 
-  const $_fetchMeta = async () => {
-    try {
-      const _params = {}
-      const res = await S_LicenseType.index({ params: _params })
-      if (res && res.data) {
-        setLicenseTypesCards(res.data)
-        setNumLoading(false)
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  React.useEffect(() => {
-    $_fetchMeta()
-  }, [route])
-
   return (
     <>
       <WsPage002
@@ -100,30 +80,6 @@ const LicenseIndex: React.FC<LicenseIndexProps> = ({ route }) => {
         tabIndex={tabIndex}
         setTabIndex={setTabIndex}
       >
-        <View
-          style={{
-            width: width,
-            padding: 16,
-          }}
-        >
-          <WsGrid
-            numColumns={2}
-            data={licenseTypesCards}
-            keyExtractor={item => item.name}
-            renderItem={({ item, index }) => (
-              <LlLicenseHeaderNumCard
-                testID={item && item.name}
-                numLoading={numLoading}
-                text={item && item.name ? t(item.name) : null}
-                icon={item && item.icon}
-                num={item && item.licenses_count ? item.licenses_count : '...'}
-                style={{
-                  marginRight: 8
-                }}
-              />
-            )}
-          />
-        </View>
       </WsPage002>
     </>
   )

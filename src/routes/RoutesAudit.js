@@ -35,7 +35,6 @@ import S_Task from '@/services/api/v1/task'
 import moment from 'moment'
 import ViewAuditTemplateShow from '@/views/Audit/Template/AuditTemplateShow'
 import ViewAlertShow from '@/views/Alert/Show'
-import ViewTaskShow from '@/views/Task/Show'
 
 const StackSetting = createStackNavigator()
 const RoutesAudit = () => {
