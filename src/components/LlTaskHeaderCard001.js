@@ -64,12 +64,7 @@ const LlTaskHeaderCard001 = props => {
                 source={task.creator.avatar ? task.creator.avatar : ''}
               />
             ) : (
-              <WsAvatar
-                size={40}
-                source={
-                  'https://i1.jueshifan.com/7b077d83/78067d8b/31073d8a09acfa4c9c38.png'
-                }
-              />
+              <></>
             )}
             <View
               style={{
@@ -78,7 +73,7 @@ const LlTaskHeaderCard001 = props => {
               {task.creator ? (
                 <WsText size={12} color={$color.gray}>{t(task.creator.name)}</WsText>
               ) : (
-                <WsText color={$color.gray}>{t('曹阿毛')}</WsText>
+                <WsText color={$color.gray}>{t(' ')}</WsText>
               )}
               <WsText size={12} color={$color.gray}>
                 {t('建立時間')}{' '}

@@ -81,6 +81,7 @@ import meeting_template_item from '@/services/api/v1/meeting_template_item'
 import meeting_item_group from '@/services/api/v1/meeting_item_group'
 import meeting_export from '@/services/api/v1/meeting_export'
 import meeting_export_record from '@/services/api/v1/meeting_export_record'
+import task_factory_template from '@/services/api/v1/task_factory_template'
 
 export default {
   act,
@@ -165,5 +166,6 @@ export default {
   meeting_template_item,
   meeting_item_group,
   meeting_export,
-  meeting_export_record
+  meeting_export_record,
+  task_factory_template
 }

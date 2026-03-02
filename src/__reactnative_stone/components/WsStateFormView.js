@@ -75,16 +75,12 @@ const WsStateFormView = props => {
     const _rules = S_Validator.getRulesObjectFromFields(fields, fieldsValue)
     delete _rules.sub_tasks;
     const { errors, isValid } = S_Validator.validate(_rules, fieldsValue)
-    console.log(errors,'errors--');
-    console.log(isValid,'isValid--');
     if (!isValid) {
       console.log('$_onSubmitDraft');
       Alert.alert('有必填欄位尚未填寫')
       setErrorMessages(errors)
     } else {
-      console.log('2222');
       setErrorMessages({})
-      // console.log(fieldsValue, 'fieldsValue--');
       onSubmitDraft(fieldsValue)
     }
   }

@@ -13,11 +13,13 @@ import AsyncStorage from '@react-native-community/async-storage'
 import { createStackNavigator } from '@react-navigation/stack'
 import ViewTaskIndex from '@/views/Task/Index'
 import ViewTaskShow from '@/views/Task/Tasks/Show'
+import ViewTaskTemplateShow from '@/views/Task/Template/Show'
 import { useSelector } from 'react-redux'
 import { scopeFilterScreen } from '@/__reactnative_stone/global/scopes'
 import { useTranslation } from 'react-i18next'
 import $option from '@/__reactnative_stone/global/option'
 import S_Task from '@/services/api/v1/task'
+import S_TaskFactoryTemplete from '@/services/api/v1/task_factory_template'
 import moment from 'moment'
 import store from '@/store'
 import $color from '@/__reactnative_stone/global/color'
@@ -767,6 +769,137 @@ const RoutesTask = ({ navigation }) => {
     },
   }
 
+  // 任務公版
+  const taskTemplateFields = {
+    id: {
+    },
+    name: {
+      label: t('主旨'),
+      placeholder: `${t('輸入')}`,
+      rules: 'required',
+    },
+    remark: {
+      type: 'text',
+      label: t('說明'),
+      placeholder: `${t('輸入')}`,
+      rules: 'required',
+    },
+    taker: {
+      type: 'belongsto',
+      label: t('負責人'),
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'user',
+      serviceIndexKey: 'simplifyFactoryIndex',
+      customizedNameKey: 'userAndEmail',
+      rules: 'required',
+    },
+    system_subclasses: {
+      type: 'modelsSystemClass',
+      label: t('領域'),
+      placeholder: `${t('選擇')}`,
+      rules: 'required',
+      testID: 'modelsSystemClass'
+    },
+    factory_tags: {
+      type: 'Ll_relatedTags',
+      label: t('標籤'),
+      placeholder: `${t('選擇')}`,
+      nameKey: 'name',
+      modelName: 'factory_tag',
+      serviceIndexKey: 'indexV2',
+      hasMeta: false,
+      params: {
+        lang: 'tw',
+        order_by: 'sequence',
+        order_way: 'asc',
+        get_all: 1
+      }
+    },
+    links: {
+      type: 'Ll_relatedModule',
+      label: t('相關資料'),
+    },
+    subtask_factory_templates: {
+      label: t('待辦事項公版'),
+      rules: 'at_least',
+      type: 'models',
+      fields: {
+        name: {
+          text: t('新增'),
+          label: t('主旨'),
+          autoFocus: true,
+          rules: 'required',
+        },
+        remark: {
+          label: t('說明'),
+          rules: 'required',
+        },
+        taker: {
+          type: 'belongsto',
+          label: `${t('執行者')}`,
+          nameKey: 'name',
+          valueKey: 'id',
+          modelName: 'user',
+          serviceIndexKey: 'simplifyFactoryIndex',
+          customizedNameKey: 'userAndEmail',
+          rules: 'required',
+          testID: '執行人員'
+        },
+        system_subclasses: {
+          type: 'modelsSystemClass',
+          label: t('領域'),
+          placeholder: `${t('選擇')}`,
+          rules: 'required',
+          testID: 'modelsSystemClass'
+        },
+        links: {
+          type: 'Ll_relatedModule',
+          label: t('相關資料'),
+        },
+        attaches: {
+          modelName: 'task',
+          label: `${t('附件')}`,
+          type: 'Ll_filesAndImages',
+          testID: 'Ll_filesAndImages'
+        },
+      },
+      renderCom: WsSubtaskCard,
+      renderCom002Remind: t('注意，將會把現有待辦資料覆蓋'),
+      renderCom002: LlBatchEditBtn001,
+      renderCom002Label: t('批次編輯'),
+      renderCom002Fields: {
+        name: {
+          label: t('主旨'),
+          autoFocus: true,
+          rules: 'required',
+        },
+        remark: {
+          label: t('說明'),
+        },
+        expired_at: {
+          type: 'date',
+          label: t('期限'),
+          rules: 'requiredAndCompare',
+        },
+        file_attaches: {
+          modelName: 'task',
+          label: t('附件'),
+          type: 'Ll_filesAndImages',
+        },
+      },
+      renderCom003: LlBatchEditBtn001,
+      renderCom003Label: t('排序'),
+      modalTitle: t('待辦事項'),
+      renderCom004Label: t('依任務來新增待辦'),
+    },
+    status: {
+      displayCheck() {
+        return false
+      }
+    },
+  }
+
   const stepSettings = [
     {
       getShowFields(fieldsValue) {
@@ -797,7 +930,10 @@ const RoutesTask = ({ navigation }) => {
             'guideline_article_version',
             'internal_training_group',
             'related_module',
-            'factory_tags'
+            'factory_tags',
+            'subtask_factory_templates',
+            'links',
+            'status'
           ]
         }
       }
@@ -910,7 +1046,7 @@ const RoutesTask = ({ navigation }) => {
     }
   }
 
-  // 存儲草稿
+  // 存儲任務草稿
   const onSubmitDraft = async (_postData, navigation, currentUserId) => {
     // console.log(_postData, '_postData---');
     const _data = S_Task.getFormattedDataForCreate(_postData, currentUserId)
@@ -966,6 +1102,145 @@ const RoutesTask = ({ navigation }) => {
         ],
         key: null
       })
+    }
+  }
+
+  // 建立任務公版
+  const submitForTemplateCreate = async (_postData, navigation, currentUserId) => {
+    // console.log(JSON.stringify(_postData),'_postData')
+    const _data = S_TaskFactoryTemplete.getFormattedData(_postData, currentUserId, factory?.id)
+    // console.log(JSON.stringify(_data), '_data')
+    try {
+      await S_TaskFactoryTemplete.create({
+        data: _data
+      })
+      await AsyncStorage.removeItem('TaskTemplateCreate')
+      Alert.alert(t('任務公版已建立'))
+      navigation.goBack()
+    } catch (e) {
+      console.error(e?.message, 'TaskTemplateCreate error')
+      Alert.alert(t('建立失敗'))
+    }
+  }
+
+  // 建立任務公版草稿
+  const onSubmitTemplateCreateDraft = async (_postData, navigation, currentUserId) => {
+    const _data = S_TaskFactoryTemplete.getFormattedData(_postData, currentUserId, factory?.id)
+    try {
+      await S_TaskFactoryTemplete.storeDraft({
+        data: _data
+      })
+      await AsyncStorage.removeItem('TaskTemplateCreate')
+      Alert.alert(t('草稿已暫存'))
+      navigation.goBack()
+    } catch (e) {
+      console.error(e?.message, 'TaskTemplateCreateDraft error')
+      Alert.alert(t('暫存失敗'))
+    }
+  }
+
+  // 編輯任務公版草稿
+  const onSubmitTemplateUpdateDraft = async (_postData, navigation, currentUserId) => {
+    const _data = S_TaskFactoryTemplete.getFormattedData(_postData, currentUserId, factory?.id)
+    console.log(JSON.stringify(_data), '_data')
+    try {
+      if (!_data?.id) {
+        Alert.alert(t('暫存失敗'))
+        return
+      }
+      await S_TaskFactoryTemplete.updateDraft({
+        modelId: _data.id,
+        data: _data
+      })
+      await AsyncStorage.removeItem('TaskTemplateUpdate')
+      await AsyncStorage.removeItem('TaskTemplateUpdateDraft')
+      Alert.alert(t('草稿已暫存'))
+      navigation.goBack()
+    } catch (e) {
+      console.error(e?.message, 'TaskTemplateUpdateDraft error')
+      Alert.alert(t('暫存失敗'))
+    }
+  }
+
+  const $_resetToTaskTemplateShow = (navigation, templateId) => {
+    navigation.reset({
+      index: 1,
+      routes: [
+        {
+          name: 'TaskIndex',
+          params: {
+            _tabIndex: 1
+          }
+        },
+        {
+          name: 'TaskTemplateShow',
+          params: {
+            id: templateId
+          }
+        }
+      ],
+      key: null
+    })
+  }
+
+  // 編輯任務公版
+  const submitForTemplateEdit = async (
+    _formattedValue,
+    modelId,
+    versionId,
+    navigation,
+    currentUserId
+  ) => {
+    const _data = S_TaskFactoryTemplete.getFormattedData(_formattedValue, currentUserId, factory?.id)
+    try {
+      const _isDraft = (_formattedValue?.status === 'draft') || (_data?.status === 'draft')
+      const res = _isDraft
+        ? await S_TaskFactoryTemplete.updateDraft({
+          modelId: modelId,
+          data: _data
+        })
+        : await S_TaskFactoryTemplete.update({
+          modelId: modelId,
+          data: _data
+        })
+      await AsyncStorage.removeItem('TaskTemplateUpdate')
+      await AsyncStorage.removeItem('TaskTemplateUpdateDraft')
+      $_resetToTaskTemplateShow(navigation, res.id)
+      setTimeout(() => {
+        Alert.alert(t('送出成功'))
+      }, 50)
+    } catch (e) {
+      console.error(e?.message, 'submitForTemplateEdit')
+      Alert.alert(t('送出失敗'))
+    }
+  }
+
+  // 公版草稿頁：發布
+  const submitForTemplateDraftPublish = async (
+    _formattedValue,
+    modelId,
+    versionId,
+    navigation,
+    currentUserId
+  ) => {
+    const _data = S_TaskFactoryTemplete.getFormattedData(_formattedValue, currentUserId, factory?.id)
+    try {
+      const res = await S_TaskFactoryTemplete.update({
+        modelId: modelId,
+        data: {
+          ..._data,
+          status: 'released'
+        }
+      })
+      await AsyncStorage.removeItem('TaskTemplateUpdate')
+      await AsyncStorage.removeItem('TaskTemplateUpdateDraft')
+      $_resetToTaskTemplateShow(navigation, res.id)
+      setTimeout(() => {
+        Alert.alert(t('發布成功'))
+      }, 50)
+    } catch (e) {
+      console.error(e?.message, 'submitForTemplateDraftPublish')
+      Alert.alert(t('發布失敗'))
     }
   }
 
@@ -1054,12 +1329,7 @@ const RoutesTask = ({ navigation }) => {
               color={$color.white}
               size={32}
               onPress={() => {
-                navigation.goBack()
-                if (route?.params?.refreshKey) {
-                  setTimeout(() => {
-                    store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
-                  }, 100)
-                }
+                    navigation.goBack()
               }}
             />
           ),
@@ -1260,6 +1530,139 @@ const RoutesTask = ({ navigation }) => {
             />
           ),
         })}
+      />
+      <StackSetting.Screen
+        name="TaskTemplateCreate"
+        component={scopeFilterScreen([
+          'task-factory-template-create',
+        ], WsStepRoutesCreate)}
+        options={({ navigation }) => ({
+          title: t('任務公版'),
+          ...$option.headerOption,
+          headerShown: false
+        })}
+        initialParams={{
+          name: 'TaskTemplateCreate',
+          title: t('任務公版'),
+          modelName: 'task-factory-template',
+          fields: taskTemplateFields,
+          currentUserId: currentUser && currentUser.id,
+          stepSettings: stepSettings,
+          submitFunction: submitForTemplateCreate,
+          parentId: factory && factory.id,
+          headerRightBtnText002: t('暫存草稿'),
+          onSubmitDraft: onSubmitTemplateCreateDraft,
+        }}
+      />
+      <StackSetting.Screen
+        name="TaskTemplateUpdate"
+        component={scopeFilterScreen([
+          'task-factory-template-update',
+          'task-factory-template-create',
+        ], WsStepRoutesUpdate)}
+        options={({ navigation }) => ({
+          title: t('編輯任務公版'),
+          ...$option.headerOption,
+          headerShown: false
+        })}
+        initialParams={{
+          name: 'TaskTemplateUpdate',
+          title: t('編輯任務公版'),
+          modelName: 'task_factory_template',
+          fields: taskTemplateFields,
+          stepSettings: stepSettings,
+          afterFinishingTo: 'TaskTemplateShow',
+          parentId: factory && factory.id,
+          submitFunction: submitForTemplateEdit,
+          headerRightBtnText002: t('暫存草稿'),
+          onSubmitDraft: onSubmitTemplateUpdateDraft,
+        }}
+      />
+      <StackSetting.Screen
+        name="TaskTemplateShow"
+        component={scopeFilterScreen('task-factory-template-read', ViewTaskTemplateShow)}
+        options={({ navigation, route }) => ({
+          title: t('任務公版'),
+          headerShown: true,
+          animationEnabled: false,
+          headerRight: () => {
+            if (route?.params?.hideTaskShowEdit) {
+              return (
+                <View
+                  style={{
+                    width: 32,
+                    marginRight: 4
+                  }}
+                />
+              )
+            }
+            return (
+              <WsIconBtn
+                testID={'ws-outline-edit-pencil'}
+                name="ws-outline-edit-pencil"
+                size={24}
+                color={$color.white}
+                style={{
+                  marginRight: 4
+                }}
+                onPress={() => {
+                  navigation.setParams({
+                    taskHeaderActionAt: Date.now()
+                  })
+                }}
+              />
+            )
+          },
+          headerLeft: () => (
+            <WsIconBtn
+              testID="backButton"
+              name="md-chevron-left"
+              color={$color.white}
+              size={32}
+              onPress={() => {
+                navigation.reset({
+                  index: 0,
+                  routes: [
+                    {
+                      name: 'TaskIndex',
+                      params: {
+                        _tabIndex: 1,
+                        refreshKey: Date.now()
+                      }
+                    }
+                  ],
+                  key: null
+                })
+              }}
+            />
+          ),
+          ...$option.headerOption
+        })}
+      />
+      <StackSetting.Screen
+        name="TaskTemplateUpdateDraft"
+        component={scopeFilterScreen([
+          'task-factory-template-update',
+          'task-factory-template-create',
+        ], WsStepRoutesUpdate)}
+        options={({ navigation }) => ({
+          title: t('公版草稿'),
+          ...$option.headerOption,
+          headerShown: false
+        })}
+        initialParams={{
+          name: 'TaskTemplateUpdateDraft',
+          title: t('公版草稿'),
+          modelName: 'task_factory_template',
+          fields: taskTemplateFields,
+          stepSettings: stepSettings,
+          afterFinishingTo: 'TaskTemplateShow',
+          parentId: factory && factory.id,
+          submitFunction: submitForTemplateDraftPublish,
+          headerRightBtnText: t('發布'),
+          headerRightBtnText002: t('暫存草稿'),
+          onSubmitDraft: onSubmitTemplateUpdateDraft,
+        }}
       />
     </StackSetting.Navigator>
   )

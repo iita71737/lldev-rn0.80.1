@@ -129,7 +129,9 @@ const TaskIndex = ({ route }) => {
   }, [t, tabParams, filterFields, filterValue, tabNums])
 
   const $_setTabNum = async (_params: any = {}) => {
-    const _requestParams = { ..._params }
+    const _requestParams = { 
+      ..._params
+    }
     delete _requestParams.done_at
     delete _requestParams.checked_at
     try {

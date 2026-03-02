@@ -56,6 +56,7 @@ const WsStepUpdatePage = ({ navigation, route }) => {
     afterFinishingParams,
     submitFunction,
     extraParams,
+    headerRightBtnText,
     headerRightBtnText002,
     onSubmitDraft
   } = route.params
@@ -218,7 +219,11 @@ const WsStepUpdatePage = ({ navigation, route }) => {
             fields={$_getFields()}
             onChange={(e) => { $_onChange(e) }}
             headerRightBtnText={
-              currentPage != totalPages ? t('下一步') : t('送出')
+              headerRightBtnText
+                ? headerRightBtnText
+                : currentPage != totalPages
+                  ? t('下一步')
+                  : t('送出')
             }
             onSubmit={$_onSubmit}
             leftBtnOnPress={$_onBack}

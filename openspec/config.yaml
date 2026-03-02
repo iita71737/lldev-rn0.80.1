@@ -1,20 +1,48 @@
 schema: spec-driven
 
-Project context (optional)
-This is shown to AI when creating artifacts.
-Add your tech stack, conventions, style guides, domain knowledge, etc.
-Example:
-  context: |
-    Tech stack: TypeScript, ReactNative
-    We use conventional commits
-    Domain: ESG management for enterprises
+context: |
+  Tech stack: TypeScript, ReactNative
+  API conventions: RESTful, JSON responses
+  Testing: Vitest for unit tests, Playwright for e2e
+  Style: ESLint with Prettier, strict TypeScript
+  Domain: ESG management for enterprises
 
-Per-artifact rules (optional)
-Add custom rules for specific artifacts.
-Example:
-  rules:
-    proposal:
-      - Keep proposals under 500 words
-      - Always include a "Non-goals" section
-    tasks:
-      - Break tasks into chunks of max 2 hours
+  UI system conventions (must):
+  - Prefer Ws* components for UI and forms.
+    - Layout row: WsFlex
+    - Text: WsText (helper/description: WsDes)
+    - Clickable icon: WsIconBtn; Display icon: WsIcon
+    - Primary CTA: WsGradientButton
+    - Default form input: WsState (type/value/onChange)
+    - Checkbox: WsStateCheckBox002
+    - Loading spinner: WsLoading; Skeleton: WsSkeleton
+    - Tabs: WsTabView
+  - Modal patterns:
+    - Full-screen flow/process: WsModal
+    - Copy-only/message popup: WsPopup
+    - Bottom action options (edit/delete/etc.): WsBottomSheet
+  - No hardcoded colors; use tokens (e.g., $color.primary).
+  - Avoid raw RN primitives (View/Text/TextInput/TouchableOpacity) in feature screens unless explicitly required.
+
+  Component layering (must):
+  - Ws* = reusable shared components.
+  - Ll* = module-scoped composites (mostly one-off) composed from Ws*.
+  - Ll* MUST NOT be imported across modules; cross-module reuse => promote to Ws*.
+
+  Project structure hints:
+  - Screens: src/views/**
+  - Routes: src/routes/**
+  - Services: src/services/api/v1/**
+  - Shared components: src/__reactnative_stone/components/** and src/components/**
+  - Module-specific composites: src/modules/<module>/components/Ll*
+
+rules:
+  proposal:
+    - Include rollback plan
+    - Identify affected teams
+    - Include Implementation Constraints section referencing Ws/Ll and token rules
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Include UI state requirements: loading, empty, error where applicable
+  design:
+    - Include sequence diagrams for complex flows

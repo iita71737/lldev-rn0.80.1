@@ -1,8 +1,7 @@
 import base from '@/__reactnative_stone/services/wasaapi/v1/__base'
 import S_Processor from '@/services/app/processor'
-import moment from 'moment'
-import store from '@/store'
-import axios from 'axios'
+import S_Task from '@/services/api/v1/task'
+import factory from 'helpers/factory'
 
 export default {
   async index({ params, signal }) {
@@ -69,6 +68,16 @@ export default {
       data: _data
     })
   },
+  async authCollectIndex({ params }) {
+    return base.index({
+      preUrl: `${S_Processor.getFactoryPreUrl()}`,
+      modelName: `collect/task_factory_template`,
+      params: {
+        ...params,
+        ...S_Processor.getFactoryParams()
+      }
+    })
+  },
   async storeDraft({ data }) {
     return base.create({
       preUrl: S_Processor.getFactoryPreUrl(),
@@ -87,5 +96,89 @@ export default {
         ...data
       }
     })
+  },
+  getId(value) {
+    if (value === undefined || value === null) {
+      return undefined
+    }
+    if (typeof value === 'string' || typeof value === 'number') {
+      return value
+    }
+    return value?.id
+  },
+  toIdArray(value) {
+    if (!Array.isArray(value)) {
+      return []
+    }
+    return value
+      .map(item => this.getId(item))
+      .filter(item => item !== undefined && item !== null)
+  },
+  formattedForFileStore(attaches) {
+    if (!Array.isArray(attaches)) {
+      return []
+    }
+    return attaches.map(item => {
+      const newItem = {
+        file: item?.file?.id || item?.file
+      }
+      if (item?.file_version?.id || item?.file_version) {
+        newItem.file_version = item?.file_version?.id || item?.file_version
+      }
+      return newItem
+    }).filter(item => item.file)
+  },
+  getFormattedData(_postData, currentUserId, factoryId) {
+    const _subtaskFactoryTemplates = Array.isArray(_postData?.subtask_factory_templates)
+      ? _postData.subtask_factory_templates.map((subTask, index) => {
+        const _systemClasses = this.toIdArray(subTask?.system_classes)
+        const _systemSubclasses = this.toIdArray(subTask?.system_subclasses)
+        return {
+          ...subTask,
+          taker: this.getId(subTask?.taker),
+          system_classes: subTask?.system_classes
+            ? [...new Set(_systemClasses)]
+            : null,
+          system_subclasses: subTask?.system_subclasses
+            ? _systemSubclasses
+            : null,
+          attaches: subTask?.attaches
+            ? this.formattedForFileStore(subTask.attaches)
+            : subTask?.file_attaches
+              ? this.formattedForFileStore(subTask.file_attaches)
+              : [],
+          links: subTask?.links
+            ? S_Task.getFormattedLinksObject(subTask.links)
+            : subTask?.related_module
+              ? S_Task.getFormattedLinksObject(subTask.related_module)
+              : [],
+          factory: this.getId(_postData?.factory) || factoryId,
+        }
+      })
+      : []
+    const _systemClasses = this.toIdArray(_postData?.system_classes)
+    const _systemSubclasses = this.toIdArray(_postData?.system_subclasses)
+    const _data = {
+      id: _postData?.id,
+      name: _postData?.name,
+      remark: _postData?.remark,
+      status: _postData?.status,
+      taker: this.getId(_postData?.taker),
+      factory: this.getId(_postData?.factory) || factoryId,
+      system_classes: _postData?.system_classes
+        ? [...new Set(_systemClasses)]
+        : null,
+      system_subclasses: _postData?.system_subclasses
+        ? _systemSubclasses
+        : null,
+      factory_tags: this.toIdArray(_postData?.factory_tags),
+      links: _postData?.links
+        ? S_Task.getFormattedLinksObject(_postData.links)
+        : _postData?.related_module
+          ? S_Task.getFormattedLinksObject(_postData.related_module)
+          : [],
+      subtask_factory_templates: _subtaskFactoryTemplates,
+    }
+    return _data
   },
 }

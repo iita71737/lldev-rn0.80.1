@@ -19,6 +19,7 @@ const WsStepRoutesUpdate = ({ route }) => {
     currentUserId,
     submitFunction,
     mode,
+    headerRightBtnText,
     headerRightBtnText002,
     onSubmitDraft
   } = route.params
@@ -58,6 +59,7 @@ const WsStepRoutesUpdate = ({ route }) => {
                 afterFinishingTo: afterFinishingTo,
                 submitFunction: submitFunction,
                 mode: mode,
+                headerRightBtnText: headerRightBtnText,
                 headerRightBtnText002: headerRightBtnText002,
                 onSubmitDraft: onSubmitDraft
               }}

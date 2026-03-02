@@ -390,7 +390,7 @@ import LlStatisticsQuestionCard001 from './LlStatisticsQuestionCard001'
 import LlPDFToolListCard001 from './LlPDFToolListCard001'
 import LlPDFMotionGroupCard001 from './LlPDFMotionGroupCard001'
 import LlPDFConvertingCard001 from './LlPDFConvertingCard001'
-import LlPDFCollapsibleCard001 from './LlPDFCollapsibleCard001'
+import LlTaskTemplateCard001 from './LlTaskTemplateCard001'
 
 export {
   WsPopup,
@@ -784,5 +784,5 @@ export {
   LlPDFToolListCard001,
   LlPDFMotionGroupCard001,
   LlPDFConvertingCard001,
-  LlPDFCollapsibleCard001
+  LlTaskTemplateCard001
 }
