@@ -2,7 +2,6 @@ import React from 'react'
 import { Pressable } from 'react-native'
 import { WsPaddingContainer, WsInfoForm } from '@/components'
 import S_UserRole from '@/services/api/v1/user_role'
-import M_RoleScope from '@/models/role-scope'
 
 const ShowRolesList = props => {
   // Props
@@ -15,13 +14,13 @@ const ShowRolesList = props => {
   // Functions
   const $_setScopesFields = () => {
     const _fields = {}
-    M_RoleScope.scope.forEach(item => {
-      item.list.forEach(list => {
-        _fields[list.key] = {
-          label: list.name
-        }
-      })
-    })
+    // M_RoleScope.scope.forEach(item => {
+    //   item.list.forEach(list => {
+    //     _fields[list.key] = {
+    //       label: list.name
+    //     }
+    //   })
+    // })
     setFields(_fields)
   }
   const $_setScopesValue = () => {

@@ -16,6 +16,7 @@ import ViewTaskShow from '@/views/Task/Tasks/Show'
 import ViewTaskTemplateShow from '@/views/Task/Template/Show'
 import { useSelector } from 'react-redux'
 import { scopeFilterScreen } from '@/__reactnative_stone/global/scopes'
+import { scopePermission } from '@/__reactnative_stone/global/permission'
 import { useTranslation } from 'react-i18next'
 import $option from '@/__reactnative_stone/global/option'
 import S_Task from '@/services/api/v1/task'
@@ -42,6 +43,37 @@ const RoutesTask = ({ navigation }) => {
   const currentUser = useSelector(state => state.data.currentUser)
   const currentFactoryTags = useSelector(state => state.data.factoryTags)
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
+  const currentUserScope = useSelector(state => state.data.userScopes);
+
+  // console.log(currentUserScope, 'currentUserScope')
+
+  // state
+  const subTaskScopeField = {
+    type: 'picker',
+    label: t('待辦權限'),
+    placeholder: t('選擇'),
+    rules: 'required',
+    items: [
+      {
+        label: t('我有領域的待辦'),
+        value: 'system_subclass'
+      },
+      {
+        label: t('自己是執行者且有領域的待辦'),
+        value: 'taker'
+      },
+      {
+        label: t('不分領域的所有待辦'),
+        value: 'all'
+      }
+    ]
+  }
+  const TaskSubtaskCard = (props) => (
+    <WsSubtaskCard
+      {...props}
+      showMissingTakerWarning={true}
+    />
+  )
 
   const fields = {
     name: {
@@ -55,7 +87,30 @@ const RoutesTask = ({ navigation }) => {
       label: t('領域'),
       placeholder: `${t('選擇')}`,
       rules: 'required',
-      testID: 'modelsSystemClass'
+      testID: 'modelsSystemClass',
+      disabled: true
+    },
+    users: {
+      type: 'belongstomany',
+      label: `${t('限閱人員')}`,
+      nameKey: 'name',
+      valueKey: 'id',
+      modelName: 'user',
+      serviceIndexKey: 'simplifyFactoryIndex',
+      customizedNameKey: 'userAndEmail',
+    },
+    roles: {
+      type: 'multipleBelongstomany',
+      label: t('限閱角色'),
+      placeholder: t('選擇'),
+      innerLabel: [t('預設角色'), t('自訂角色')],
+      modelName: ['user_role', 'user_factory_role_template'],
+      hasMeta: false,
+      getAll: true,
+      params: {
+        get_all: 1
+      },
+      searchBarVisible: true
     },
     remark: {
       type: 'text',
@@ -102,9 +157,12 @@ const RoutesTask = ({ navigation }) => {
       type: 'Ll_relatedModule',
       label: t('相關資料'),
     },
+    sub_task_scope: {
+      ...subTaskScopeField
+    },
     sub_tasks: {
       label: t('待辦事項'),
-      rules: 'at_least',
+      rules: 'at_least|models_fields_required:taker',
       type: 'models',
       fields: {
         name: {
@@ -112,6 +170,11 @@ const RoutesTask = ({ navigation }) => {
           label: t('主旨'),
           autoFocus: true,
           rules: 'required',
+        },
+        system_subclasses: {
+          type: 'modelsSystemClass',
+          label: t('領域'),
+          placeholder: `${t('選擇')}`,
         },
         remark: {
           label: t('說明'),
@@ -145,7 +208,7 @@ const RoutesTask = ({ navigation }) => {
           testID: 'Ll_filesAndImages'
         },
       },
-      renderCom: WsSubtaskCard,
+      renderCom: TaskSubtaskCard,
       renderCom002Remind: t('注意，將會把現有待辦資料覆蓋'),
       renderCom002: LlBatchEditBtn001,
       renderCom002Label: t('批次編輯'),
@@ -173,6 +236,30 @@ const RoutesTask = ({ navigation }) => {
       renderCom003Label: t('排序'),
       modalTitle: t('待辦事項'),
       renderCom004Label: t('依任務來新增待辦'),
+      updateValueOnChange: (event, value, field, fields) => {
+        const _subTasks = Array.isArray(event) ? event : []
+        const _subClassMap = new Map()
+        _subTasks.forEach(subTask => {
+          if (!Array.isArray(subTask?.system_subclasses)) {
+            return
+          }
+          subTask.system_subclasses.forEach(subClass => {
+            if (!subClass) {
+              return
+            }
+            const _key = typeof subClass === 'object'
+              ? subClass.id
+              : String(subClass)
+            if (_key && !_subClassMap.has(_key)) {
+              _subClassMap.set(_key, subClass)
+            }
+          })
+        })
+        return {
+          sub_tasks: _subTasks,
+          system_subclasses: Array.from(_subClassMap.values())
+        }
+      },
     },
     apiAlert: {
       type: 'card',
@@ -295,6 +382,9 @@ const RoutesTask = ({ navigation }) => {
       rules: 'required',
       disabled: true
     },
+    sub_task_scope: {
+      ...subTaskScopeField
+    },
     remark: {
       type: 'text',
       label: t('說明'),
@@ -321,7 +411,7 @@ const RoutesTask = ({ navigation }) => {
       }
     },
     sub_tasks: {
-      rules: 'at_least',
+      rules: 'at_least|models_fields_required:taker',
       type: 'models',
       fields: {
         name: {
@@ -356,7 +446,7 @@ const RoutesTask = ({ navigation }) => {
           type: 'Ll_filesAndImages',
         },
       },
-      renderCom: WsSubtaskCard,
+      renderCom: TaskSubtaskCard,
       renderItem: ({ item, itemIndex }) => {
         return (
           <WsSubtaskCard
@@ -367,6 +457,30 @@ const RoutesTask = ({ navigation }) => {
           />
         )
       },
+      updateValueOnChange: (event, value, field, fields) => {
+        const _subTasks = Array.isArray(event) ? event : []
+        const _subClassMap = new Map()
+        _subTasks.forEach(subTask => {
+          if (!Array.isArray(subTask?.system_subclasses)) {
+            return
+          }
+          subTask.system_subclasses.forEach(subClass => {
+            if (!subClass) {
+              return
+            }
+            const _key = typeof subClass === 'object'
+              ? subClass.id
+              : String(subClass)
+            if (_key && !_subClassMap.has(_key)) {
+              _subClassMap.set(_key, subClass)
+            }
+          })
+        })
+        return {
+          sub_tasks: _subTasks,
+          system_subclasses: Array.from(_subClassMap.values())
+        }
+      }
     },
     apiAlert: {
       type: 'card',
@@ -418,7 +532,11 @@ const RoutesTask = ({ navigation }) => {
       type: 'modelsSystemClass',
       placeholder: t('選擇'),
       label: t('領域'),
-      rules: 'required'
+      rules: 'required',
+      disabled: true
+    },
+    sub_task_scope: {
+      ...subTaskScopeField
     },
     remark: {
       type: 'text',
@@ -461,7 +579,7 @@ const RoutesTask = ({ navigation }) => {
     },
     sub_tasks: {
       label: t('待辦事項'),
-      rules: 'at_least',
+      rules: 'at_least|models_fields_required:taker',
       type: 'models',
       fields: {
         id: {
@@ -603,7 +721,11 @@ const RoutesTask = ({ navigation }) => {
       type: 'modelsSystemClass',
       placeholder: t('選擇'),
       label: t('領域'),
-      rules: 'required'
+      rules: 'required',
+      disabled: true
+    },
+    sub_task_scope: {
+      ...subTaskScopeField
     },
     remark: {
       type: 'text',
@@ -646,7 +768,7 @@ const RoutesTask = ({ navigation }) => {
     },
     sub_tasks: {
       label: t('待辦事項'),
-      rules: 'at_least',
+      rules: 'at_least|models_fields_required:taker',
       type: 'models',
       fields: {
         id: {
@@ -714,6 +836,30 @@ const RoutesTask = ({ navigation }) => {
       renderCom003: LlBatchEditBtn001,
       renderCom003Label: t('排序'),
       renderCom004Label: t('依任務來新增待辦'),
+      updateValueOnChange: (event, value, field, fields) => {
+        const _subTasks = Array.isArray(event) ? event : []
+        const _subClassMap = new Map()
+        _subTasks.forEach(subTask => {
+          if (!Array.isArray(subTask?.system_subclasses)) {
+            return
+          }
+          subTask.system_subclasses.forEach(subClass => {
+            if (!subClass) {
+              return
+            }
+            const _key = typeof subClass === 'object'
+              ? subClass.id
+              : String(subClass)
+            if (_key && !_subClassMap.has(_key)) {
+              _subClassMap.set(_key, subClass)
+            }
+          })
+        })
+        return {
+          sub_tasks: _subTasks,
+          system_subclasses: Array.from(_subClassMap.values())
+        }
+      },
     },
     apiAlert: {
       type: 'card',
@@ -799,7 +945,8 @@ const RoutesTask = ({ navigation }) => {
       label: t('領域'),
       placeholder: `${t('選擇')}`,
       rules: 'required',
-      testID: 'modelsSystemClass'
+      testID: 'modelsSystemClass',
+      disabled: true
     },
     factory_tags: {
       type: 'Ll_relatedTags',
@@ -835,17 +982,17 @@ const RoutesTask = ({ navigation }) => {
           label: t('說明'),
           rules: 'required',
         },
-        taker: {
-          type: 'belongsto',
-          label: `${t('執行者')}`,
-          nameKey: 'name',
-          valueKey: 'id',
-          modelName: 'user',
-          serviceIndexKey: 'simplifyFactoryIndex',
-          customizedNameKey: 'userAndEmail',
-          rules: 'required',
-          testID: '執行人員'
-        },
+        // taker: {
+        //   type: 'belongsto',
+        //   label: `${t('執行者')}`,
+        //   nameKey: 'name',
+        //   valueKey: 'id',
+        //   modelName: 'user',
+        //   serviceIndexKey: 'simplifyFactoryIndex',
+        //   customizedNameKey: 'userAndEmail',
+        //   rules: 'required',
+        //   testID: '執行人員'
+        // },
         system_subclasses: {
           type: 'modelsSystemClass',
           label: t('領域'),
@@ -858,7 +1005,7 @@ const RoutesTask = ({ navigation }) => {
           label: t('相關資料'),
         },
         attaches: {
-          modelName: 'task',
+          modelName: 'subtask_factory_template',
           label: `${t('附件')}`,
           type: 'Ll_filesAndImages',
           testID: 'Ll_filesAndImages'
@@ -892,6 +1039,30 @@ const RoutesTask = ({ navigation }) => {
       renderCom003Label: t('排序'),
       modalTitle: t('待辦事項'),
       renderCom004Label: t('依任務來新增待辦'),
+      updateValueOnChange: (event, value, field, fields) => {
+        const _subTasks = Array.isArray(event) ? event : []
+        const _subClassMap = new Map()
+        _subTasks.forEach(subTask => {
+          if (!Array.isArray(subTask?.system_subclasses)) {
+            return
+          }
+          subTask.system_subclasses.forEach(subClass => {
+            if (!subClass) {
+              return
+            }
+            const _key = typeof subClass === 'object'
+              ? subClass.id
+              : String(subClass)
+            if (_key && !_subClassMap.has(_key)) {
+              _subClassMap.set(_key, subClass)
+            }
+          })
+        })
+        return {
+          sub_tasks: _subTasks,
+          system_subclasses: Array.from(_subClassMap.values())
+        }
+      },
     },
     status: {
       displayCheck() {
@@ -921,6 +1092,7 @@ const RoutesTask = ({ navigation }) => {
             'expired_at',
             'sub_tasks',
             'system_subclasses',
+            'sub_task_scope',
             'apiAlert',
             'relationEvent',
             'll_broadcast',
@@ -933,7 +1105,9 @@ const RoutesTask = ({ navigation }) => {
             'factory_tags',
             'subtask_factory_templates',
             'links',
-            'status'
+            'status',
+            'users',
+            'roles'
           ]
         }
       }
@@ -962,7 +1136,7 @@ const RoutesTask = ({ navigation }) => {
   const submitForCreate = async (_postData, navigation, currentUserId) => {
     // console.log(JSON.stringify(_postData), '_postData');
     const _data = S_Task.getFormattedDataForCreate(_postData, currentUserId)
-    // console.log(JSON.stringify(_data), '_data');
+    console.log(JSON.stringify(_data), '_data');
     try {
       const res = await S_Task.create({
         data: _data
@@ -987,7 +1161,8 @@ const RoutesTask = ({ navigation }) => {
             id: res.alert.id
           }
         })
-      } else {
+      } else if (res && res.id) {
+        console.log(res,'res && res.id')
         console.log('CCC')
         $_resetToTaskShow(navigation, res.id)
         Alert.alert(t('任務已派發'))
@@ -1142,7 +1317,6 @@ const RoutesTask = ({ navigation }) => {
   // 編輯任務公版草稿
   const onSubmitTemplateUpdateDraft = async (_postData, navigation, currentUserId) => {
     const _data = S_TaskFactoryTemplete.getFormattedData(_postData, currentUserId, factory?.id)
-    console.log(JSON.stringify(_data), '_data')
     try {
       if (!_data?.id) {
         Alert.alert(t('暫存失敗'))
@@ -1155,7 +1329,7 @@ const RoutesTask = ({ navigation }) => {
       await AsyncStorage.removeItem('TaskTemplateUpdate')
       await AsyncStorage.removeItem('TaskTemplateUpdateDraft')
       Alert.alert(t('草稿已暫存'))
-      navigation.goBack()
+      $_resetToTaskTemplateShow(navigation, _data.id)
     } catch (e) {
       console.error(e?.message, 'TaskTemplateUpdateDraft error')
       Alert.alert(t('暫存失敗'))
@@ -1175,7 +1349,8 @@ const RoutesTask = ({ navigation }) => {
         {
           name: 'TaskTemplateShow',
           params: {
-            id: templateId
+            id: templateId,
+            refreshKey: Date.now()
           }
         }
       ],
@@ -1251,7 +1426,7 @@ const RoutesTask = ({ navigation }) => {
       }}>
       <StackSetting.Screen
         name="TaskIndex"
-        component={scopeFilterScreen('task-read', ViewTaskIndex)}
+        component={scopeFilterScreen(['task-read','task-read-all'], ViewTaskIndex)}
         options={({ navigation }) => ({
           title: t('任務'),
           headerShown: true,
@@ -1289,12 +1464,23 @@ const RoutesTask = ({ navigation }) => {
       />
       <StackSetting.Screen
         name="TaskShow"
-        component={scopeFilterScreen('task-read', ViewTaskShow)}
+        component={scopeFilterScreen(['task-read','task-read-all'], ViewTaskShow)}
         options={({ navigation, route }) => ({
           title: t('任務'),
           headerShown: true,
           animationEnabled: false,
           headerRight: () => {
+            const _canEditTask = scopePermission(
+              ['task-update-creator', 'task-update-taker', 'task-update'],
+              currentUserScope
+            )
+            const _canDeleteTask = scopePermission(
+              ['task-delete-creator', 'task-delete-taker', 'task-delete'],
+              currentUserScope
+            )
+            if (!_canEditTask && !_canDeleteTask) {
+              return null
+            }
             if (route?.params?.hideTaskShowEdit) {
               return (
                 <View
@@ -1329,7 +1515,7 @@ const RoutesTask = ({ navigation }) => {
               color={$color.white}
               size={32}
               onPress={() => {
-                    navigation.goBack()
+                navigation.goBack()
               }}
             />
           ),
@@ -1339,9 +1525,7 @@ const RoutesTask = ({ navigation }) => {
       <StackSetting.Screen
         name="TaskCreate"
         component={scopeFilterScreen([
-          'task-update-creator',
-          'task-update-taker',
-          'task-update',
+          'task-create',
         ], WsStepRoutesCreate)}
         options={({ navigation }) => ({
           title: t('建立任務'),

@@ -23,8 +23,6 @@ const SettingLanguage = () => {
   const currentUser = useSelector(state => state.data.currentUser)
   const currentFactory = useSelector(state => state.data.currentFactory)
 
-  // console.log(currentUser,'currentUser--');
-
   // State
   const [loading, setLoading] = React.useState(false)
   const [locales, setLocales] = React.useState()

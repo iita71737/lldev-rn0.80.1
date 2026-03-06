@@ -10,7 +10,6 @@ import S_ActType from '@/services/api/v1/act_type'
 import S_ActStatus from '@/services/api/v1/act_status'
 import store from '@/store'
 import {
-  setSystemClasses,
   setEffect,
   setActType,
   setCollectIds,

@@ -1106,7 +1106,7 @@ const WsState = React.forwardRef((props, ref) => {
         </>
       )}
 
-      {errorMessage && (
+      {(errorMessage && !disabled) && (
         <>
           {errorMessage.map(errorMessageItem => (
             <WsErrorMessage key={errorMessageItem}>

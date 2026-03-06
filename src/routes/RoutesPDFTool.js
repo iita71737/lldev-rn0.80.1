@@ -481,7 +481,10 @@ const RoutesPDFTool = () => {
                   {t('提案單範本')}
                 </WsText>
                 <WsFlex flexWrap="wrap">
-                  <WsDes size={14}>{`1. ${t('標記不能放在同一行')}`}</WsDes>
+                  <WsDes size={14}>{`1. ${t('不可以在同一行文字內放入多個標記，一行文字只能有一個標記')}`}</WsDes>
+                </WsFlex>
+                <WsFlex flexWrap="wrap">
+                  <WsDes size={14}>{`2. ${t('若內容多於一行或是有表格，標題跟標記要分別放在不同行，\n例如：提案的說明包含表格，標題 "說明" 跟標記 "${content}" 要分別放在不同行')}`}</WsDes>
                 </WsFlex>
 
                 <WsText size={14} fontWeight="600" style={{ marginTop: 16 }}>

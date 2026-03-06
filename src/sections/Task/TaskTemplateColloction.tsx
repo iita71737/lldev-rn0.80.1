@@ -7,6 +7,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import S_TaskFactoryTemplate from '@/services/api/v1/task_factory_template'
 import { useNavigation } from '@react-navigation/native'
+import AsyncStorage from '@react-native-community/async-storage'
 
 const TaskTemplateColloction: React.FC = () => {
   const { t } = useTranslation()
@@ -46,6 +47,20 @@ const TaskTemplateColloction: React.FC = () => {
     }
   }
 
+  const createTaskOnPress = async (item: any) => {
+    try {
+      const _template = await S_TaskFactoryTemplate.show({
+        modelId: item?.id
+      })
+      const _taskCreateDraft = S_TaskFactoryTemplate.getTaskCreateDraftFromTemplate(_template)
+      await AsyncStorage.removeItem('TaskCreate')
+      await AsyncStorage.setItem('TaskCreate', JSON.stringify(_taskCreateDraft))
+      navigation.push('TaskCreate')
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   return (
     <>
       <WsSnackBar
@@ -68,10 +83,13 @@ const TaskTemplateColloction: React.FC = () => {
                   id: item?.id
                 })
               }}
-              is_collect={true}
+              is_collect={item?.is_collect}
               is_collect_visible={true}
               bookmarkOnPress={() => {
                 bookmarkOnPress(item)
+              }}
+              createTaskOnPress={() => {
+                createTaskOnPress(item)
               }}
             />
           </>

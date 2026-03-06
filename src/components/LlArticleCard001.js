@@ -156,6 +156,19 @@ const LlArticleCard001 = props => {
               </WsTitle>
             }
 
+            {article.division != '' &&
+              <WsTitle
+                fontSize={24}
+                fontWeight={'600'}
+                style={{
+                  marginBottom: 16,
+                  // borderWidth:1,
+                }}
+              >
+                {article.division}
+              </WsTitle>
+            }
+
             {article.chapter != '' &&
               <WsTitle
                 fontSize={20}

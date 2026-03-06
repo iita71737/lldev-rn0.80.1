@@ -76,6 +76,8 @@ const Menu = ({ navigation }) => {
   const currentUserScope = useSelector(state => state.data.userScopes)
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
 
+  // console.log(currentUserScope,'currentUserScope')
+
 
   // States
   const [manageList, setManageList] = React.useState([])
@@ -370,7 +372,8 @@ const Menu = ({ navigation }) => {
                   }}
                   iconLeft="ll-nav-assignment-outline"
                   onPress={(e) => {
-                    if (!scopePermission('task-read', currentUserScope)) {
+                    if (!scopePermission(['task-read','task-read-all'], currentUserScope)) {
+                      console.log('AAA')
                       Alert.alert(
                         t('您無此單位內相關權限，請聯絡系統管理員'),
                         "",
@@ -384,7 +387,8 @@ const Menu = ({ navigation }) => {
                         ]
                       )
                       e.preventDefault();
-                    } else if (scopePermission('task-read', currentUserScope)) {
+                    } else if (scopePermission(['task-read','task-read-all'], currentUserScope)) {
+                      console.log('BBB')
                       navigation.navigate('RoutesTask', { screen: 'TaskIndex' })
                     }
                   }}>

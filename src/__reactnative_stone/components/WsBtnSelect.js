@@ -27,6 +27,28 @@ const WsBtnSelect = props => {
     testID,
   } = props
 
+  const $_borderColor = disabled
+    ? $color.gray
+    : isError
+      ? $color.danger
+      : borderColor
+  const $_backgroundColor = disabled
+    ? 'transparent'
+    : isError
+      ? $color.danger11l
+      : 'transparent'
+  const $_iconColor = disabled
+    ? $color.gray
+    : isError
+      ? $color.danger
+      : $color.gray
+  const $_textColor = text && disabled === false ? $color.black : $color.gray
+  const $_placeholderColor = disabled
+    ? $color.gray
+    : isError
+      ? $color.danger
+      : $color.gray
+
   // Render
   return (
     <>
@@ -49,8 +71,8 @@ const WsBtnSelect = props => {
               paddingVertical: 12,
               paddingHorizontal: 16,
               borderWidth: isError ? borderWidth : borderWidth, // 關聯法規
-              borderColor: isError ? $color.danger : borderColor,
-              backgroundColor: isError ? $color.danger11l : 'transparent', // 關聯法規
+              borderColor: $_borderColor,
+              backgroundColor: $_backgroundColor,
               borderRadius: borderRadius,
               width: '100%',
             },
@@ -75,13 +97,13 @@ const WsBtnSelect = props => {
                   name={icon}
                   size={24}
                   style={{ marginRight: 8 }}
-                  color={isError ? $color.danger : $color.gray}
+                  color={$_iconColor}
                 />
               )}
               {text ? (
                 <WsText
                   numberOfLines={1}
-                  color={text && disabled === false ? $color.black : $color.gray}
+                  color={$_textColor}
                   style={{
                     maxWidth: width * 0.65,
                     // borderWidth: 1,
@@ -90,7 +112,7 @@ const WsBtnSelect = props => {
                 </WsText>
               ) : (
                 <WsText
-                  color={isError ? $color.danger : $color.gray}
+                  color={$_placeholderColor}
                   style={{
                     marginRight: 8
                   }}>

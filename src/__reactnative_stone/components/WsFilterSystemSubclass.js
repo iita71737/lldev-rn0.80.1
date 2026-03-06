@@ -14,7 +14,9 @@ const WsFilterSystemSubclass = props => {
   const { value, onChange } = props
 
   // Redux
+  const currentUser = useSelector(state => state.stone_auth.currentUser)
   const systemClasses = useSelector(state => state.data.systemClasses)
+  // console.log(JSON.stringify(systemClasses, null, 2 ),'systemClasses---')
 
   const _allSubClasses = React.useMemo(() => {
     const _value = value ? [...value] : []

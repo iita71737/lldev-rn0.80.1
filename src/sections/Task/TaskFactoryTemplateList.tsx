@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 import S_TaskFactoryTemplate from '@/services/api/v1/task_factory_template'
 import { useNavigation } from '@react-navigation/native'
 import { useSelector } from 'react-redux'
+import AsyncStorage from '@react-native-community/async-storage'
 
 const TaskFactoryTemplateList: React.FC = () => {
   const { t } = useTranslation()
@@ -33,16 +34,10 @@ const TaskFactoryTemplateList: React.FC = () => {
   const [snackBarText, setSnackBarText] = React.useState(
     t('已儲存至「我的收藏」')
   )
-  const [filterValue, setFilterValue] = React.useState<any>();
   const [filterFields] = React.useState<any>({
     system_subclasses: {
       type: 'system_subclass',
       label: t('領域')
-    },
-    button: {
-      type: 'date_range',
-      label: t('建立日期'),
-      time_field: 'created_at'
     },
     factory_tags: {
       type: 'checkbox',
@@ -84,6 +79,20 @@ const TaskFactoryTemplateList: React.FC = () => {
     }
   }
 
+  const createTaskOnPress = async (item: any) => {
+    try {
+      const _template = await S_TaskFactoryTemplate.show({
+        modelId: item?.id
+      })
+      const _taskCreateDraft = S_TaskFactoryTemplate.getTaskCreateDraftFromTemplate(_template)
+      await AsyncStorage.removeItem('TaskCreate')
+      await AsyncStorage.setItem('TaskCreate', JSON.stringify(_taskCreateDraft))
+      navigation.push('TaskCreate')
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   return (
     <>
       <WsSnackBar
@@ -96,8 +105,6 @@ const TaskFactoryTemplateList: React.FC = () => {
         modelName={'task_factory_template'}
         params={__params}
         filterFields={filterFields}
-        defaultFilterValue={filterValue}
-        // onParamsChange={(_params: any, filtersValue: any) => onParamsChange(_params, filtersValue)}
         renderItem={({ item, index }) => (
           <>
             <LlTaskTemplateCard001
@@ -112,6 +119,9 @@ const TaskFactoryTemplateList: React.FC = () => {
               is_collect_visible={true}
               bookmarkOnPress={() => {
                 bookmarkOnPress(item)
+              }}
+              createTaskOnPress={() => {
+                createTaskOnPress(item)
               }}
             />
           </>

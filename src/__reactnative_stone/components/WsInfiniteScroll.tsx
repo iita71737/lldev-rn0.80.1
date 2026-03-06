@@ -403,7 +403,6 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
     // first
     const timeout = setTimeout(() => {
       setIsReady(true)
-      $_fetchModels()
     }, 100)
     return () => clearTimeout(timeout);
   }, [])

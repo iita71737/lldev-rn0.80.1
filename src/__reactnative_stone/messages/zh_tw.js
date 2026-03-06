@@ -14,6 +14,7 @@ export default {
   'Too Many Attempts.': `嘗試登入的次數過多。\n為保護您的帳戶，\n目前暫時無法登入。\n稍後再試一次，\n或透過另一部裝置登入。`,
   'invalid app scope.': '您的帳號沒有使用APP的權限',
   'this expired date is exceed deadline.': '待辦事項期限超過任務期限',
+  'sub_task_taker_required': '尚未填寫執行者',
   'captcha error': '輸入的資訊有誤\n或是驗證碼過期，\n請確認輸入的資訊是否正確\n以及更新驗證碼',
   'Server Error': `輸入的資訊有誤\n或是驗證碼過期，\n請確認輸入的資訊是否正確\n以及更新驗證碼`
 }

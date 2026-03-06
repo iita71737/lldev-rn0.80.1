@@ -111,7 +111,7 @@ const MeetingInfoTab: React.FC<Props> = ({ variableList = [], meetingId }) => {
       })
       .catch(err => {
         if (!isMounted) return
-        Alert.alert(err?.message || t('取得議事內容失敗'))
+        Alert.alert(t('取得議事內容失敗'))
       })
       .finally(() => {
         if (!isMounted) return

@@ -17,7 +17,6 @@ import $option from '@/__reactnative_stone/global/option'
 import { scopeFilterScreen } from '@/__reactnative_stone/global/scopes'
 import { useTranslation } from 'react-i18next'
 import M_Users from '@/models/users'
-import M_RoleScope from '@/models/role-scope'
 import C_UserFactoryRole from '@/services/api/v1/user_factory_role'
 const StackSetting = createStackNavigator()
 import S_User from '@/services/api/v1/user'
@@ -261,7 +260,14 @@ const RoutesUsers = () => {
           name: 'RolesCreate',
           title: t('新增角色'),
           modelName: 'user_factory_role',
-          fields: M_RoleScope.getFields(),
+          fields: {
+            name: {
+              label: t('角色名稱'),
+            },
+            sequence: {
+              label: t('排序'),
+            },
+          },
           afterFinishingTo: 'RolesIndex',
           submitFunction: $_roleCreateSubmit
         }}

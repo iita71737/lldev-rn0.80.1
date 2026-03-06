@@ -23,7 +23,8 @@ const LlTaskTemplateCard001 = props => {
     testID,
     is_collect,
     is_collect_visible = false,
-    bookmarkOnPress
+    bookmarkOnPress,
+    createTaskOnPress
   } = props
 
   const [isCollect, setIsCollect] = React.useState(is_collect)
@@ -37,7 +38,10 @@ const LlTaskTemplateCard001 = props => {
       return i18next.t('未設定')
     }
     if (item.status === 'released') {
-      return i18next.t('已發佈')
+      return i18next.t('已發布')
+    }
+    if (item.status === 'draft') {
+      return i18next.t('草稿')
     }
     return item.status
   }
@@ -74,57 +78,74 @@ const LlTaskTemplateCard001 = props => {
               },
               style
             ]}>
-            {is_collect_visible && (
-              <WsIconBtn
+            <View
+              style={{
+                flex: 1
+              }}
+            >
+              <WsFlex
+                justifyContent="space-between"
+                alignItems="center"
                 style={{
-                  top: 0,
-                  right: 0,
-                  position: 'absolute',
-                  zIndex: 99
-                }}
-                name={isCollect ? 'md-bookmark' : 'ws-outline-bookmark'}
-                size={28}
-                onPress={() => {
-                  if (bookmarkOnPress) {
-                    bookmarkOnPress(item)
-                  }
-                  setIsCollect(!isCollect)
-                }}
-              />
-            )}
-            <WsFlex>
-              <View
-                style={{
-                  flex: 1
+                  marginBottom: 8,
                 }}
               >
-                {item.updated_at && (
-                  <WsFlex
-                    style={{
-                      marginBottom: 4,
-                      left: -2
-                    }}
-                  >
-                    <WsIcon
-                      name="md-date-note"
-                      size={18}
-                      style={{
-                        marginRight: 4
-                      }}
-                      color={$color.gray}
-                    />
-                    <WsDes
-                      size={12}
-                    >
-                      {i18next.t('更新日期')}
-                      {'  '}
-                      {moment(item.updated_at).format('YYYY-MM-DD')}
-                    </WsDes>
-                  </WsFlex>
-                )}
+                <WsFlex style={{ flex: 1 }}>
+                  {item.updated_at && (
+                    <>
+                      <WsIcon
+                        name="md-date-note"
+                        size={18}
+                        style={{
+                          marginRight: 4
+                        }}
+                        color={$color.gray}
+                      />
+                      <WsDes size={12}>
+                        {i18next.t('更新日期')}
+                        {'  '}
+                        {moment(item.updated_at).format('YYYY-MM-DD')}
+                      </WsDes>
+                    </>
+                  )}
+                </WsFlex>
 
-                <WsFlex justifyContent="space-between" alignItems="center">
-                  <WsText>{item?.name || i18next.t('未命名公版')}</WsText>
+                <WsFlex>
+                  {createTaskOnPress && (
+                    <WsIconBtn
+                      padding={0}
+                      testID={`${testID}-建立任務`}
+                      name="ll-nav-add-assignment"
+                      size={28}
+                      color={$color.primary}
+                      style={{
+                        top: -2,
+                        marginRight: 8
+                      }}
+                      onPress={() => {
+                        createTaskOnPress(item)
+                      }}
+                    />
+                  )}
+                  {is_collect_visible && (
+                    <WsIconBtn
+                      padding={0}
+                      name={isCollect ? 'md-bookmark' : 'ws-outline-bookmark'}
+                      size={28}
+                      onPress={() => {
+                        if (bookmarkOnPress) {
+                          bookmarkOnPress(item)
+                        }
+                        setIsCollect(!isCollect)
+                      }}
+                    />
+                  )}
+                </WsFlex>
+              </WsFlex>
+
+              <WsFlex justifyContent="space-between" alignItems="center">
+                <WsText style={{ flex: 1 }}>{item?.name || i18next.t('未命名公版')}</WsText>
+                <WsFlex>
                   <WsTag
                     backgroundColor={$_getStatusTagStyle().backgroundColor}
                     textColor={$_getStatusTagStyle().textColor}
@@ -132,81 +153,81 @@ const LlTaskTemplateCard001 = props => {
                     {$_getStatusText()}
                   </WsTag>
                 </WsFlex>
+              </WsFlex>
 
-                {item?.factory_tags &&
-                  item?.factory_tags?.length > 0 && (
-                    <View>
-                      <WsInfo
-                        type="tags"
-                        value={item.factory_tags}
-                      />
-                    </View>
-                  )}
+              {item?.factory_tags &&
+                item?.factory_tags?.length > 0 && (
+                  <View>
+                    <WsInfo
+                      type="tags"
+                      value={item.factory_tags}
+                    />
+                  </View>
+                )}
 
-                {item?.system_classes &&
-                  item?.system_classes?.length > 0 && (
-                    <View style={{ marginTop: 2 }}>
-                      <WsFlex flexWrap="wrap">
-                        {item.system_classes.map((systemClass, systemClassIndex) => (
-                          <WsTag
-                            key={`${systemClass?.id || systemClassIndex}`}
-                            img={systemClass?.icon}
-                            backgroundColor={$color.primary11l}
-                            textColor={$color.primary2l}
-                            style={{
-                              marginTop: 8,
-                              marginRight: 8
-                            }}
-                          >
-                            {`#${systemClass?.name || ''}`}
-                          </WsTag>
-                        ))}
-                      </WsFlex>
-                    </View>
-                  )}
+              {item?.system_classes &&
+                item?.system_classes?.length > 0 && (
+                  <View style={{ marginTop: 2 }}>
+                    <WsFlex flexWrap="wrap">
+                      {item.system_classes.map((systemClass, systemClassIndex) => (
+                        <WsTag
+                          key={`${systemClass?.id || systemClassIndex}`}
+                          img={systemClass?.icon}
+                          backgroundColor={$color.primary11l}
+                          textColor={$color.primary2l}
+                          style={{
+                            marginTop: 8,
+                            marginRight: 8
+                          }}
+                        >
+                          {`#${systemClass?.name || ''}`}
+                        </WsTag>
+                      ))}
+                    </WsFlex>
+                  </View>
+                )}
 
-                {item?.system_subclasses &&
-                  item?.system_subclasses?.length > 0 && (
-                    <View style={{ marginTop: 2 }}>
-                      <WsFlex flexWrap="wrap">
-                        {item.system_subclasses.map((subClass, subClassIndex) => (
-                          <WsTag
-                            key={`${subClass?.id || subClassIndex}`}
-                            img={subClass?.icon}
-                            backgroundColor={$color.primary11l}
-                            textColor={$color.primary2l}
-                            style={{
-                              marginTop: 8,
-                              marginRight: 8
-                            }}
-                          >
-                            {`#${subClass?.name || ''}`}
-                          </WsTag>
-                        ))}
-                      </WsFlex>
-                    </View>
-                  )}
+              {item?.system_subclasses &&
+                item?.system_subclasses?.length > 0 && (
+                  <View style={{ marginTop: 2 }}>
+                    <WsFlex flexWrap="wrap">
+                      {item.system_subclasses.map((subClass, subClassIndex) => (
+                        <WsTag
+                          key={`${subClass?.id || subClassIndex}`}
+                          img={subClass?.icon}
+                          backgroundColor={$color.primary11l}
+                          textColor={$color.primary2l}
+                          style={{
+                            marginTop: 8,
+                            marginRight: 8
+                          }}
+                        >
+                          {`#${subClass?.name || ''}`}
+                        </WsTag>
+                      ))}
+                    </WsFlex>
+                  </View>
+                )}
 
-                <View
+              <View
+                style={{
+                  marginTop: 8
+                }}
+              >
+                <WsInfo
+                  labelWidth={80}
                   style={{
-                    marginTop: 8
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center'
                   }}
-                >
-                  <WsInfo
-                    labelWidth={120}
-                    style={{
-                      flex: 1,
-                      flexDirection: 'row',
-                      alignItems: 'center'
-                    }}
-                    type="user"
-                    label={i18next.t('負責人')}
-                    value={item?.taker || undefined}
-                  />
-                </View>
-
+                  type="user"
+                  label={i18next.t('負責人')}
+                  value={item?.taker || undefined}
+                />
               </View>
-            </WsFlex>
+
+            </View>
           </WsCard>
         </TouchableOpacity>
       )}

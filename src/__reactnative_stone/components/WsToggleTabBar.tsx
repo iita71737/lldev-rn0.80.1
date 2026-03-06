@@ -313,9 +313,11 @@ const styles = StyleSheet.create({
   },
   tabBarText: {
     fontSize: 12,
-    lineHeight: 18,
     textAlign: 'center',
     color: '#ffffff',
+    includeFontPadding: true,
+    textAlignVertical: 'center',
+    flexShrink: 1,
   },
   tabBarTextActive: {
     fontWeight: '700',

@@ -121,6 +121,7 @@ const ActShow = ({ navigation, route }) => {
       ...params
     }
   }, [params, actRelatedTaskCollapsed, actRelatedTemplateCollapsed, actRelatedDocsCollapsed, actRelatedFileStoreFilesCollapsed, actVersionRelatedGuidelineCollapsed, actVersionRelatedGuidelineArticles]);
+  console.log(_params,'_params_params')
 
   const [actTags, setActTags] = React.useState([])
   const [collectionIcon, setCollectionIcon] = React.useState()

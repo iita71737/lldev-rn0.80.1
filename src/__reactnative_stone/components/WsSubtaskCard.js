@@ -36,6 +36,7 @@ const WsSubtaskCard = props => {
     deleteOnPress,
     _dateCompare,
     onPress,
+    showMissingTakerWarning = false,
     placeholderTitle = t('主旨'),
     placeholderRemark = t('說明'),
   } = props
@@ -43,6 +44,15 @@ const WsSubtaskCard = props => {
 
   // Dimension
   const { width, height } = Dimensions.get('window')
+
+  // helper
+  const _hasTaker = Boolean(
+    value?.taker &&
+    (
+      (typeof value?.taker === 'object' && (value?.taker?.id || value?.taker?.name)) ||
+      (typeof value?.taker === 'string' && value?.taker?.trim?.())
+    )
+  )
 
   // Render
   return (
@@ -203,7 +213,7 @@ const WsSubtaskCard = props => {
                   </WsFlex>
                 )}
 
-                {value?.taker && (
+                {_hasTaker && (
                   <WsFlex
                     style={{
                     }}>
@@ -211,6 +221,25 @@ const WsSubtaskCard = props => {
                       {t('執行人員')}
                     </WsDes>
                     <WsDes>{value?.taker?.name}</WsDes>
+                  </WsFlex>
+                )}
+
+                {showMissingTakerWarning && !_hasTaker && (
+                  <WsFlex>
+                    <WsIcon
+                      color={$color.danger}
+                      name={'ws-outline-warning'}
+                      size={18}
+                      style={{
+                        marginRight : 2
+                      }}
+                    />
+                    <WsText
+                      size={12}
+                      color={$color.danger}
+                    >
+                      {t('尚未填寫執行者')}
+                    </WsText>
                   </WsFlex>
                 )}
 

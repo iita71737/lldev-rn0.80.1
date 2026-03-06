@@ -80,6 +80,8 @@ const TaskShow = ({ navigation, route }) => {
     taskHeaderActionAt
   } = route.params
 
+  console.log(id,'=id=')
+
   // Redux
   const currentUser = useSelector(state => state.stone_auth.currentUser)
   const factoryId = useSelector(state => state.data.currentFactory.id)
@@ -138,6 +140,7 @@ const TaskShow = ({ navigation, route }) => {
   const [fields, setFields] = React.useState()
 
   const [loading, setLoading] = React.useState(true)
+  const [taskNotFoundPopupActive, setTaskNotFoundPopupActive] = React.useState(false)
 
   const [dialogVisible, setDialogVisible] = React.useState(false)
   const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false)
@@ -153,27 +156,45 @@ const TaskShow = ({ navigation, route }) => {
   const [snackBarText, setSnackBarText] = React.useState(
     t('你無權限標記他人的待辦事項')
   )
-  const bottomSheetItems = React.useMemo(() => [
-    {
-      to: {
-        name: 'TaskUpdate',
-        params: {
-          id: id
-        }
-      },
-      icon: 'ws-outline-edit-pencil',
-      label: t('編輯')
-    },
-    {
-      icon: 'ws-outline-delete',
-      color: $color.danger,
-      label: t('刪除'),
-      labelColor: $color.danger,
-      onPress: () => {
-        setDialogVisible(true);
-      }
+  const canDeleteTask = React.useMemo(() => (
+    scopePermission(
+      ['task-delete-creator', 'task-delete-taker', 'task-delete'],
+      currentUserScope
+    )
+  ), [currentUserScope])
+  const canEditTask = React.useMemo(() => (
+    scopePermission(
+      ['task-update-creator', 'task-update-taker', 'task-update'],
+      currentUserScope
+    )
+  ), [currentUserScope])
+  const bottomSheetItems = React.useMemo(() => {
+    const _items: any[] = []
+    if (canEditTask) {
+      _items.push({
+        to: {
+          name: 'TaskUpdate',
+          params: {
+            id: id
+          }
+        },
+        icon: 'ws-outline-edit-pencil',
+        label: t('編輯')
+      })
     }
-  ], [id, route])
+    if (canDeleteTask) {
+      _items.push({
+        icon: 'ws-outline-delete',
+        color: $color.danger,
+        label: t('刪除'),
+        labelColor: $color.danger,
+        onPress: () => {
+          setDialogVisible(true);
+        }
+      })
+    }
+    return _items
+  }, [id, t, canDeleteTask, canEditTask])
 
   // Storage
   const $_setStorage = async () => {
@@ -186,10 +207,17 @@ const TaskShow = ({ navigation, route }) => {
   const $_fetchTask = React.useCallback(async () => {
     try {
       const res = await S_Task.show({ modelId: id });
+      if (!res || !res.id) {
+        setTaskNotFoundPopupActive(true)
+        setLoading(false)
+        return
+      }
       setTask(res);
       setLoading(false);
     } catch (error) {
       console.error(error);
+      setTaskNotFoundPopupActive(true)
+      setLoading(false)
     }
   }, [id]);
 
@@ -371,6 +399,18 @@ const TaskShow = ({ navigation, route }) => {
         nameKey: 'name',
         type: 'user',
         isUri: true,
+        style: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginVertical: 4
+        },
+        labelWidth: 100
+      },
+      system_subclasses: {
+        type: 'modelsSystemClass',
+        placeholder: t('選擇'),
+        disabled: true,
+        label: t('領域'),
         style: {
           flexDirection: 'row',
           alignItems: 'center',
@@ -704,10 +744,10 @@ const TaskShow = ({ navigation, route }) => {
         <ScrollView
           scrollIndicatorInsets={{ right: 1 }}
         >
-          {!loading ? (
+          {!loading && task ? (
             <>
               <LlTaskHeaderCard001
-                title={task.name}
+                title={task?.name}
                 task={task}
               />
               <WsPaddingContainer
@@ -728,7 +768,7 @@ const TaskShow = ({ navigation, route }) => {
                     label={t('期限')}
                     icon="ws-outline-calendar-duedate"
                     color={$color.black5l}
-                    value={moment(task.expired_at).format('YYYY-MM-DD')}
+                    value={moment(task?.expired_at).format('YYYY-MM-DD')}
                   />
                 </View>
                 {task && task.taker && (
@@ -858,7 +898,8 @@ const TaskShow = ({ navigation, route }) => {
                                     <>
                                       <View
                                         style={{
-                                          marginTop: 8
+                                          marginTop: 8,
+                                          // borderWidth:1
                                         }}
                                       >
                                         <WsInfo
@@ -869,7 +910,7 @@ const TaskShow = ({ navigation, route }) => {
                                             flexWrap: 'wrap',
                                           }}
                                           onPress={() => {
-                                            // console.log(item, 'item');
+                                            console.log(item, 'item');
                                             setPopupContentRelatedModule(item)
                                             setPopupActive002(true)
                                           }}
@@ -1532,10 +1573,8 @@ const TaskShow = ({ navigation, route }) => {
                               flexDirection: 'row',
                             }}
                             onPress={async () => {
-                              console.log('22222QAQ');
                               setStateModalSubtask(false)
                               let item = popupContentRelatedModule
-                              // console.log(item, '--item');
                               if (!item.from_module) {
                                 openURL(item?.url)
                                 return
@@ -1600,7 +1639,7 @@ const TaskShow = ({ navigation, route }) => {
                 </WsModal>
               )}
             </>
-          ) : (
+          ) : loading ? (
             <SafeAreaView>
               <WsLoading
                 style={{
@@ -1608,7 +1647,7 @@ const TaskShow = ({ navigation, route }) => {
                 }}
               />
             </SafeAreaView>
-          )}
+          ) : null}
         </ScrollView>
 
         <View
@@ -1771,7 +1810,6 @@ const TaskShow = ({ navigation, route }) => {
         <View
           style={{
             width: width * 0.9,
-            // height: height * 0.3,
             backgroundColor: $color.white,
             borderRadius: 10,
             padding: 16,
@@ -1795,10 +1833,8 @@ const TaskShow = ({ navigation, route }) => {
                   flexDirection: 'row',
                 }}
                 onPress={async () => {
-                  console.log('22222');
                   setStateModalSubtask(false)
                   let item = popupContentRelatedModule
-                  console.log(item, '--item');
                   if (!item.from_module && item?.url) {
                     openURL(item?.url)
                     return
@@ -1841,7 +1877,6 @@ const TaskShow = ({ navigation, route }) => {
               />
             </View>
           )}
-
           <View
             style={{
               marginTop: 8
@@ -1860,6 +1895,46 @@ const TaskShow = ({ navigation, route }) => {
               }}
             />
           </View>
+        </View>
+      </WsPopup>
+
+      <WsPopup
+        active={taskNotFoundPopupActive}
+        onClose={() => {
+          setTaskNotFoundPopupActive(false)
+          navigation.goBack()
+        }}
+      >
+        <View
+          style={{
+            width: width * 0.9,
+            backgroundColor: $color.white,
+            borderRadius: 10,
+            padding: 16,
+          }}
+        >
+          <WsText size={18} color={$color.black}>
+            {t('這個頁面已經不存在囉！這筆資料可能已被人刪除。')}
+          </WsText>
+          <WsFlex
+            justifyContent="flex-end"
+            style={{
+              marginTop: 16
+            }}
+          >
+            <WsGradientButton
+              testID={t('我知道了')}
+              style={{
+                width: 110,
+              }}
+              onPress={() => {
+                setTaskNotFoundPopupActive(false)
+                navigation.goBack()
+              }}
+            >
+              {t('我知道了')}
+            </WsGradientButton>
+          </WsFlex>
         </View>
       </WsPopup>
     </>

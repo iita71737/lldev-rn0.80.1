@@ -12,7 +12,8 @@ import {
   WsGradientButton,
   WsIconBtn,
   WsDialog,
-  WsDes
+  WsDes,
+  WsPopup
 } from '@/components'
 import { useSelector } from 'react-redux'
 import AsyncStorage from '@react-native-community/async-storage'
@@ -79,14 +80,24 @@ const AlertShow = ({ route, navigation }) => {
   const [visible, setVisible] = React.useState(false)
   const [alert, setAlert] = React.useState()
   const [apiAlert, setApiAlert] = React.useState()
+  const [notFoundPopupActive, setNotFoundPopupActive] = React.useState(false)
 
   // Services
   // 取得警示
   const $_fetchAlert = async () => {
-    const res = await S_Alert.show(id)
-    const _alert = S_Alert.setAlertContent(res)
-    setAlert(_alert)
-    setApiAlert(res)
+    try {
+      const res = await S_Alert.show(id)
+      if (!res || !res.id) {
+        setNotFoundPopupActive(true)
+        return
+      }
+      const _alert = S_Alert.setAlertContent(res)
+      setAlert(_alert)
+      setApiAlert(res)
+    } catch (e) {
+      setNotFoundPopupActive(true)
+      console.error(e)
+    }
   }
   // 排除警示
   const $_solveAlert = async () => {
@@ -440,6 +451,45 @@ const AlertShow = ({ route, navigation }) => {
         }}>
         <WsText size={18}>{apiAlert && apiAlert.solved_at ? t('確定復原嗎？') : t('確定排除嗎？')}</WsText>
       </WsDialog>
+
+      <WsPopup
+        active={notFoundPopupActive}
+        onClose={() => {
+          setNotFoundPopupActive(false)
+          navigation.goBack()
+        }}
+      >
+        <View
+          style={{
+            width: width * 0.9,
+            backgroundColor: $color.white,
+            borderRadius: 10,
+            padding: 16
+          }}
+        >
+          <WsText size={18} color={$color.black}>
+            {t('這個頁面已經不存在囉！這筆資料可能已被人刪除。')}
+          </WsText>
+          <WsFlex
+            justifyContent="flex-end"
+            style={{
+              marginTop: 16
+            }}
+          >
+            <WsGradientButton
+              style={{
+                width: 110
+              }}
+              onPress={() => {
+                setNotFoundPopupActive(false)
+                navigation.goBack()
+              }}
+            >
+              {t('返回')}
+            </WsGradientButton>
+          </WsFlex>
+        </View>
+      </WsPopup>
     </>
   )
 }

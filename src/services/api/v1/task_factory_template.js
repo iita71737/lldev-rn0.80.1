@@ -181,4 +181,32 @@ export default {
     }
     return _data
   },
+  getTaskCreateDraftFromTemplate(template) {
+    if (!template) {
+      return {}
+    }
+    const _subTasks = Array.isArray(template?.subtask_factory_templates)
+      ? template.subtask_factory_templates.map((subTask, index) => ({
+        sequence: subTask?.sequence || String(index + 1).padStart(3, '0'),
+        name: subTask?.name || '',
+        remark: subTask?.remark || '',
+        // taker: subTask?.taker || null,
+        system_subclasses: subTask?.system_subclasses || [],
+        related_module: subTask?.links || [],
+        file_attaches: subTask?.attaches || []
+      }))
+      : []
+
+    return {
+      name: template?.name || '',
+      remark: template?.remark || '',
+      // taker: template?.taker || null,
+      system_subclasses: template?.system_subclasses || [],
+      factory_tags: template?.factory_tags || [],
+      related_module: template?.links || [],
+      sub_tasks: _subTasks,
+      status: template?.status || undefined,
+      sub_task_scope: template?.sub_task_scope || 'taker'
+    }
+  },
 }

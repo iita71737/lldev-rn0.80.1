@@ -1,8 +1,9 @@
 import React from 'react'
-import { Alert, Linking, SafeAreaView, ScrollView, View } from 'react-native'
+import { Alert, Linking, SafeAreaView, ScrollView, View, Dimensions, TouchableOpacity } from 'react-native'
 import AsyncStorage from '@react-native-community/async-storage'
 import moment from 'moment'
 import { useTranslation } from 'react-i18next'
+import { useSelector } from 'react-redux'
 import {
   WsBottomSheet,
   WsCard,
@@ -11,22 +12,46 @@ import {
   WsIcon,
   LlTaskHeaderCard001,
   WsLoading,
+  WsPassageCollapse,
   WsPaddingContainer,
+  WsPopup,
+  WsGradientButton,
   WsTag,
   WsText
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import S_TaskFactoryTemplate from '@/services/api/v1/task_factory_template'
+import { scopePermission } from '@/__reactnative_stone/global/permission'
+import S_ModulePage from '@/services/api/v1/module_page'
+import S_Factory from '@/services/api/v1/factory'
+import store from '@/store'
+import {
+  setCurrentFactory,
+  setCurrentOrganization,
+  setCurrentViewMode
+} from '@/store/data'
 
 const TaskTemplateShow = ({ navigation, route }) => {
+  const { width } = Dimensions.get('window')
   const { t } = useTranslation()
   const { id, taskHeaderActionAt, refreshKey } = route?.params || {}
 
   console.log(id,'=id=')
 
+  // redux
+  const currentUser = useSelector(state => state.stone_auth.currentUser)
+  const currentUserScope = useSelector(state => state.data.userScopes)
+  const factoryId = useSelector(state => state.data.currentFactory?.id)
+  const canDeleteTemplate = scopePermission('task-factory-template-destory', currentUserScope)
+
+  // state
   const [loading, setLoading] = React.useState(true)
   const [isBottomSheetActive, setIsBottomSheetActive] = React.useState(false)
   const [taskTemplate, setTaskTemplate] = React.useState<any>()
+  const [popupActive002, setPopupActive002] = React.useState(false)
+  const [popupContentRelatedModule, setPopupContentRelatedModule] = React.useState<any>()
+  const [popupActive, setPopupActive] = React.useState(false)
+  const [popupContent, setPopupContent] = React.useState<any>()
 
   const $_fetchTaskTemplate = React.useCallback(async () => {
     try {
@@ -66,7 +91,21 @@ const TaskTemplateShow = ({ navigation, route }) => {
     navigation.push('TaskTemplateCreate')
   }
 
+  const $_createTaskByTemplate = async () => {
+    if (!taskTemplate) {
+      return
+    }
+    const _taskCreateDraft = S_TaskFactoryTemplate.getTaskCreateDraftFromTemplate(taskTemplate)
+    await AsyncStorage.removeItem('TaskCreate')
+    await AsyncStorage.setItem('TaskCreate', JSON.stringify(_taskCreateDraft))
+    navigation.push('TaskCreate')
+  }
+
   const $_deleteTaskTemplate = async () => {
+    if (!canDeleteTemplate) {
+      Alert.alert(t('無刪除權限'))
+      return
+    }
     try {
       await S_TaskFactoryTemplate.delete({ modelId: id })
       Alert.alert(t('已成功刪除'))
@@ -121,26 +160,137 @@ const TaskTemplateShow = ({ navigation, route }) => {
       await $_copyTemplate()
       return
     }
-    if (item?.label === t('刪除')) {
+    if (item?.key === 'createTask') {
+      setIsBottomSheetActive(false)
+      await $_createTaskByTemplate()
+      return
+    }
+    if (item?.key === 'delete') {
       setIsBottomSheetActive(false)
       $_confirmDelete()
     }
   }
 
-  const $_openURL = async (url: string) => {
+  const openURL = async (url: string) => {
     if (!url) {
       return
     }
     const supported = await Linking.canOpenURL(url)
-    if (!supported) {
+    if (supported) {
+      await Linking.openURL(url)
+    } else {
       Alert.alert(t('無法開啟連結'))
-      return
     }
-    await Linking.openURL(url)
   }
 
-  const bottomSheetItems = React.useMemo(
-    () => [
+  const $_setLocalStorage = async (item: any, mode: string) => {
+    if (mode === 'factory') {
+      await AsyncStorage.setItem('factory', JSON.stringify(item))
+      await AsyncStorage.removeItem('organization')
+      return
+    }
+    if (mode === 'organization') {
+      await AsyncStorage.setItem('organization', JSON.stringify(item))
+      await AsyncStorage.removeItem('factory')
+    }
+  }
+
+  const $_checkoutFactory = async (_factory: any) => {
+    $_setLocalStorage(_factory, 'factory')
+    store.dispatch(setCurrentFactory(_factory))
+  }
+
+  const $_checkoutOrganization = async (_factory: any) => {
+    $_setLocalStorage(_factory, 'organization')
+    store.dispatch(setCurrentOrganization(_factory))
+    store.dispatch(setCurrentFactory(_factory))
+    store.dispatch(setCurrentViewMode('organization'))
+  }
+
+  const $_getRedirectFactory = async (_factoryId: string, data: any) => {
+    try {
+      const _redirectFactory = await S_Factory.show({ modelId: _factoryId })
+      setPopupContent({
+        redirectFactory: _redirectFactory,
+        payload: data
+      })
+      setPopupActive(true)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  const $_readAndRedirect = async () => {
+    if (
+      popupContent &&
+      popupContent?.redirectFactory &&
+      popupContent?.redirectFactory?.id !== factoryId
+    ) {
+      if (popupContent?.redirectFactory?.name?.includes('集團')) {
+        const matchedFactory = currentUser?.factories?.find(
+          (factory: any) => factory?.id === popupContent?.redirectFactory?.id
+        )
+        await $_checkoutOrganization(matchedFactory)
+        setTimeout(() => {
+          S_ModulePage.redirectByAPIParams(popupContent?.payload, navigation)
+        }, 1000)
+      } else {
+        try {
+          await $_checkoutFactory(popupContent?.redirectFactory)
+          setTimeout(() => {
+            S_ModulePage.redirectByAPIParams(popupContent?.payload, navigation)
+          }, 1000)
+        } catch (error) {
+          Alert.alert(t('您無此單位內相關權限，請聯絡系統管理員'))
+        }
+      }
+    }
+  }
+
+  const $_redirectRelatedModule = async () => {
+    let item = popupContentRelatedModule
+    if (!item) {
+      return
+    }
+    if (!item.from_module) {
+      console.log('missing from_module')
+      openURL(item?.url)
+      return
+    }
+    try {
+      const _params = {
+        url: item?.url
+      }
+      const _res2 = await S_ModulePage.findAppPage({ params: _params })
+      item.factoryId = _res2.data?.params?.factory
+      item.from_module = item.from_module || _res2.data?.module
+      item.route = _res2.data?.route
+      item.modelId = _res2.data?.params?.id
+      item.params = { ..._res2.data?.params }
+      if (factoryId === item?.factoryId) {
+        const result = await S_ModulePage.redirectByAPIParams(item, navigation)
+        if (result === '404') {
+          Alert.alert(t('請至電腦版使用。'))
+        }
+      } else {
+        if (item.from_module) {
+          $_getRedirectFactory(item?.factoryId, item)
+        } else {
+          openURL(item?.url)
+        }
+      }
+    } catch (error) {
+      console.error(error, 'e')
+      if (item?.from_module) {
+        Alert.alert(t('請至電腦版使用。'))
+      }
+    } finally {
+      setPopupActive002(false)
+    }
+  }
+
+  const bottomSheetItems = React.useMemo(() => {
+    const _items = [
       {
         key: 'edit',
         icon: 'ws-outline-edit-pencil',
@@ -152,15 +302,24 @@ const TaskTemplateShow = ({ navigation, route }) => {
         label: t('複製公版')
       },
       {
+        key: 'createTask',
+        icon: 'll-nav-add-assignment',
+        label: t('建立任務')
+      }
+    ]
+
+    if (canDeleteTemplate) {
+      _items.push({
         key: 'delete',
         icon: 'ws-outline-delete',
         color: $color.danger,
         label: t('刪除'),
         labelColor: $color.danger
-      }
-    ],
-    [t, taskTemplate?.status]
-  )
+      })
+    }
+
+    return _items
+  }, [canDeleteTemplate, t, taskTemplate?.status])
 
   React.useEffect(() => {
     $_fetchTaskTemplate()
@@ -319,24 +478,75 @@ const TaskTemplateShow = ({ navigation, route }) => {
                     backgroundColor: $color.white,
                   }}
                 >
-                  <WsText size={14} fontWeight={'600'}>
-                    {t('相關資料')}
-                  </WsText>
-                  {taskTemplate.links.map((item: any, index: number) => (
-                    <View
-                      key={`${item?.id || index}`}
-                      style={{ marginTop: 8 }}
-                    >
-                      <WsInfo
-                        type="link"
-                        value={item?.name || t('無')}
-                        style={{ maxWidth: '90%', flexWrap: 'wrap' }}
-                        onPress={() => {
-                          $_openURL(item?.url)
-                        }}
-                      />
-                    </View>
-                  ))}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <WsText size={14} fontWeight={'600'}>
+                      {t('相關資料')}
+                    </WsText>
+                  </View>
+                  <WsPassageCollapse type={'array'}>
+                    {taskTemplate.links.map((item: any, index: number) => (
+                      <View
+                        key={`${item?.id || index}`}
+                        style={{ marginTop: 8 }}
+                      >
+                        <WsInfo
+                          type="link"
+                          value={item?.name || t('無')}
+                          style={{
+                            maxWidth: width * 0.8,
+                            flexWrap: 'wrap',
+                          }}
+                          onPress={() => {
+                            setPopupContentRelatedModule(item)
+                            setPopupActive002(true)
+                          }}
+                        />
+
+                        {Array.isArray(item?.record_links) && item.record_links.length > 0 && (
+                          <View
+                            style={{
+                              backgroundColor: $color.primary11l,
+                              paddingHorizontal: 16,
+                              paddingVertical: 8,
+                              borderRadius: 10,
+                            }}
+                          >
+                            <View
+                              style={{
+                                marginTop: 4,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <WsText size={14} fontWeight={'600'}>
+                                {t('關聯連結')}
+                              </WsText>
+                            </View>
+                            {item.record_links.map((subItem: any, subIndex: number) => (
+                              <View key={`${subItem?.id || subIndex}`}>
+                                <WsInfo
+                                  type="link"
+                                  value={`[${t('結果')}] ${subItem?.name || ''} (${moment(subItem?.created_at).format('YYYY-MM-DD HH:mm:ss')}) `}
+                                  style={{
+                                    flexWrap: 'wrap',
+                                  }}
+                                  onPress={() => {
+                                    setPopupContentRelatedModule(subItem)
+                                    setPopupActive002(true)
+                                  }}
+                                />
+                              </View>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </WsPassageCollapse>
                 </WsPaddingContainer>
               )}
             </WsPaddingContainer>
@@ -375,34 +585,66 @@ const TaskTemplateShow = ({ navigation, route }) => {
                     }}
                   >
                     <WsText>{subtask?.name || t('未命名待辦')}</WsText>
-                    <WsInfo
-                      style={{ marginTop: 8 }}
-                      labelWidth={84}
-                      label={t('說明')}
-                      value={subtask?.remark || t('無')}
-                    />
-                    <WsInfo
-                      style={{ marginTop: 8 }}
-                      labelWidth={84}
-                      type="user"
-                      label={t('執行者')}
-                      value={subtask?.taker}
-                    />
+
                     {!!subtask?.system_subclasses?.length && (
-                      <WsFlex style={{ marginTop: 8 }} flexWrap="wrap">
-                        {subtask.system_subclasses.map((item: any, subIndex: number) => (
-                          <WsTag
-                            key={`${item?.id || subIndex}`}
-                            img={item?.icon}
-                            backgroundColor={$color.white}
-                            textColor={$color.primary2l}
-                            style={{ marginRight: 8, marginBottom: 8 }}
-                          >
-                            {`#${item?.name || ''}`}
-                          </WsTag>
-                        ))}
-                      </WsFlex>
+                      <View style={{
+                        marginTop: 8
+                      }}>
+                        <WsFlex
+                          style={{}}
+                          flexWrap="wrap"
+                          alignItems="flex-start"
+                          justifyContent="flex-start"
+                        >
+                          {subtask.system_subclasses.map((item: any, subIndex: number) => (
+                            <WsTag
+                              key={`${item?.id || subIndex}`}
+                              img={item?.icon}
+                              backgroundColor={$color.white}
+                              textColor={$color.primary2l}
+                              style={{
+                                marginRight: 4,
+                                marginBottom: 4,
+                                alignSelf: 'flex-start'
+                              }}
+                            >
+                              {`#${item?.name || ''}`}
+                            </WsTag>
+                          ))}
+                        </WsFlex>
+                      </View>
                     )}
+
+                    <View
+                      style={{
+                        marginTop: 4
+                      }}
+                    >
+                      <WsInfo
+                        style={{
+                          flexDirection: 'row',
+                        }}
+                        labelWidth={84}
+                        label={t('說明')}
+                        value={subtask?.remark || t('無')}
+                      />
+                    </View>
+                    {/* <View
+                      style={{
+                        marginTop: 8
+                      }}
+                    >
+                      <WsInfo
+                        style={{
+                          flexDirection: 'row',
+                        }}
+                        labelWidth={84}
+                        type="user"
+                        label={t('執行者')}
+                        value={subtask?.taker}
+                      />
+                    </View> */}
+
                   </WsCard>
                 ))
               ) : (
@@ -421,9 +663,132 @@ const TaskTemplateShow = ({ navigation, route }) => {
           setIsBottomSheetActive(false)
         }}
         items={bottomSheetItems}
-        snapPoints={[148, 200]}
+        snapPoints={[148, 248]}
         onItemPress={$_onBottomSheetItemPress}
       />
+
+      <WsPopup
+        active={popupActive002}
+        onClose={() => {
+          setPopupActive002(false)
+        }}
+      >
+        <View
+          style={{
+            width: width * 0.9,
+            backgroundColor: $color.white,
+            borderRadius: 10,
+            padding: 16,
+          }}
+        >
+          {popupContentRelatedModule?.name && (
+            <View>
+              <WsInfo
+                labelWidth={80}
+                value={popupContentRelatedModule?.name || t('無')}
+                type="link"
+                label={t('名稱')}
+                style={{
+                  flexDirection: 'row',
+                }}
+                onPress={async () => {
+                  await $_redirectRelatedModule()
+                }}
+              />
+            </View>
+          )}
+
+          <View
+            style={{
+              marginTop: 8
+            }}
+          >
+            <WsInfo
+              labelWidth={80}
+              value={popupContentRelatedModule?.remark || t('無')}
+              label={t('備註')}
+              style={{
+                flexDirection: 'row',
+              }}
+            />
+          </View>
+        </View>
+      </WsPopup>
+
+      <WsPopup
+        active={popupActive}
+        onClose={() => {
+          setPopupActive(false)
+        }}
+      >
+        <View
+          style={{
+            width: width * 0.9,
+            backgroundColor: $color.white,
+            borderRadius: 10,
+            padding: 16,
+            paddingBottom: 88,
+          }}
+        >
+          <WsText
+            size={14}
+            color={$color.black}
+            style={{
+              flexWrap: 'wrap',
+            }}
+          >
+            {t(`即將前往{text}，若尚未儲存資料請先儲存`, {
+              text: popupContent?.redirectFactory?.name
+            })}
+          </WsText>
+          <WsFlex
+            style={{
+              position: 'absolute',
+              right: 16,
+              bottom: 16,
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 9,
+                borderColor: $color.gray,
+                borderRadius: 25,
+                borderWidth: 1,
+                width: 110,
+                height: 48,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 8,
+              }}
+              onPress={() => {
+                setPopupActive(false)
+              }}
+            >
+              <WsText
+                size={14}
+                color={$color.gray}
+              >
+                {t('取消')}
+              </WsText>
+            </TouchableOpacity>
+            <WsGradientButton
+              testID={'繼續前往'}
+              style={{
+                width: 110,
+              }}
+              onPress={() => {
+                setPopupActive(false)
+                setTimeout(() => {
+                  $_readAndRedirect()
+                }, 1000)
+              }}
+            >
+              {t('前往')}
+            </WsGradientButton>
+          </WsFlex>
+        </View>
+      </WsPopup>
     </>
   )
 }

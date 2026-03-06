@@ -130,7 +130,7 @@ const WsStateModelsSystemClass = props => {
             borderRadius: 5,
             height: 'auto'
           },
-          isError
+          isError && !disabled 
             ? {
               borderWidth: 0.5,
               borderColor: borderColorError,

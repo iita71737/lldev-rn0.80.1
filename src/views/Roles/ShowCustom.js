@@ -5,7 +5,6 @@ import ShowRolesLsit from '@/sections/Roles/ShowRolesList'
 import S_UserFactoryRole from '@/services/api/v1/user_factory_role'
 import $color from '@/__reactnative_stone/global/color'
 import AsyncStorage from '@react-native-community/async-storage'
-import M_RoleScope from '@/models/role-scope'
 import { useTranslation } from 'react-i18next'
 
 const RolesShowCustom = ({ route }) => {
@@ -25,7 +24,7 @@ const RolesShowCustom = ({ route }) => {
 
   // Function
   const $_setUpdateRoleInitValue = async () => {
-    const _fields = M_RoleScope.getFields()
+    // const _fields = M_RoleScope.getFields()
     const _values = {}
 
     for (let key in _fields) {

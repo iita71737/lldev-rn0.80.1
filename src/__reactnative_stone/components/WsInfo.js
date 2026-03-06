@@ -22,7 +22,8 @@ import {
   WsStateAlertCard,
   WsInfoTags,
   WsInfoUsers002,
-  WsInfoBelongstomany
+  WsInfoBelongstomany,
+  WsTag
 } from '@/components'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
@@ -312,6 +313,42 @@ const WsInfo = props => {
           {type == 'card' && <WsStateAlertCard value={value} cardType={cardType} modelId={modelId} values={values} />}
           {type == 'tags' && (
             <WsInfoTags value={value} color={color} style={style} />
+          )}
+          {type == 'modelsSystemClass' && (
+            <WsFlex
+              flexWrap={'wrap'}
+              style={{
+                marginRight: 16,
+                flex: 1
+              }}
+            >
+              {Array.isArray(value) && value.length > 0 ? (
+                value.map((systemSubclass, systemSubclassIndex) => (
+                  <WsTag
+                    img={systemSubclass?.icon}
+                    key={`${systemSubclass?.id || systemSubclassIndex}`}
+                    style={{
+                      marginTop: 4,
+                      marginRight: 8
+                    }}
+                  >
+                    {t(systemSubclass?.name)}
+                  </WsTag>
+                ))
+              ) : (
+                <WsInfoText
+                  testID={testID}
+                  style={style}
+                  fontWeight={400}
+                  textSize={textSize}
+                  textColor={textColor}
+                  label={label}
+                  emptyText={emptyText}
+                >
+                  {emptyText ? t(emptyText) : ''}
+                </WsInfoText>
+              )}
+            </WsFlex>
           )}
           {type == 'belongstomany' && (
             <WsInfoBelongstomany

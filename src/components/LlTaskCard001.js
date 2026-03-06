@@ -94,7 +94,6 @@ const LlTaskCard001 = props => {
                   <WsFlex
                     style={{
                       marginBottom: 4,
-                      left: -2
                     }}
                   >
                     <WsIcon
@@ -117,15 +116,30 @@ const LlTaskCard001 = props => {
 
                 <WsText>{item?.name}</WsText>
 
+                {item?.system_subclasses &&
+                  item?.system_subclasses?.length > 0 && (
+                    <View
+                      style={{
+                        marginTop: 4
+                      }}
+                    >
+                      <WsInfo
+                        type="modelsSystemClass"
+                        value={item.system_subclasses}
+                        style={{
+                        }}
+                      />
+                    </View>
+                  )}
+
                 {item?.factory_tags &&
                   item?.factory_tags?.length > 0 && (
                     <View
                       style={{
+                        marginTop: 4
                       }}
                     >
                       <WsInfo
-                        style={{
-                        }}
                         type="tags"
                         value={item.factory_tags}
                       />
@@ -133,18 +147,16 @@ const LlTaskCard001 = props => {
                   )}
 
                 <WsFlex style={{ marginTop: 4 }} justifyContent="space-between">
-                  <View
+                  <WsInfo
+                    type={'user'}
+                    label={i18next.t('負責人')}
+                    value={item?.taker}
                     style={{
-                      flexDirection: 'row'
-                    }}>
-                    <WsDes style={{ marginRight: 4 }}>{i18next.t('負責人')}</WsDes>
-                    <WsDes>
-                      {item.taker && item.taker?.name ? item.taker?.name : '無'}
-                    </WsDes>
-                  </View>
-                  <View>
-                    <WsIcon size={24} name="md-chevron-right" />
-                  </View>
+                      flexDirection: 'row',
+                      alignItems: 'center'
+                    }}
+                    labelFontWeight={'400'}
+                  />
                 </WsFlex>
 
 

@@ -27,8 +27,41 @@ const TaskIndex = ({ route }) => {
 
   const [tabIndex, setTabIndex] = React.useState(_tabIndex ? _tabIndex : 0)
 
-  const [filterValue, setFilterValue] = React.useState<any>();
+  const [filterValue, setFilterValue] = React.useState<any>({
+    order: {
+      order_by: 'created_at',
+      order_way: 'desc'
+    }
+  });
   const [filterFields] = React.useState<any>({
+    order: {
+      type: 'picker',
+      label: t('排序'),
+      placeholder: t('選擇排序'),
+      items: [
+        {
+          label: t('依建立日期由近至遠'),
+          value: {
+            order_by: 'created_at',
+            order_way: 'desc'
+          }
+        },
+        {
+          label: t('依期限由舊至新'),
+          value: {
+            order_by: 'expired_at',
+            order_way: 'asc'
+          }
+        },
+        {
+          label: t('依完成度由低至高'),
+          value: {
+            order_by: 'completion_degree',
+            order_way: 'asc'
+          }
+        }
+      ]
+    },
     system_subclasses: {
       type: 'system_subclass',
       label: t('領域')
@@ -54,6 +87,7 @@ const TaskIndex = ({ route }) => {
   })
 
   const tabNumDebounceRef = React.useRef<any>(null)
+  const isFirstParamsChangeRef = React.useRef<boolean>(true)
 
   const tabItems = React.useMemo(() => {
     return [
@@ -129,7 +163,7 @@ const TaskIndex = ({ route }) => {
   }, [t, tabParams, filterFields, filterValue, tabNums])
 
   const $_setTabNum = async (_params: any = {}) => {
-    const _requestParams = { 
+    const _requestParams = {
       ..._params
     }
     delete _requestParams.done_at
@@ -156,8 +190,18 @@ const TaskIndex = ({ route }) => {
   }
 
   function $_onParamsChange(params: any, filtersValue: any) {
-    const _allParams = {
+    if (isFirstParamsChangeRef.current) {
+      isFirstParamsChangeRef.current = false
+      return
+    }
+    const _allParams: any = {
       ...params,
+    }
+    delete _allParams.done_at
+    delete _allParams.checked_at
+    if (!_allParams.order_by || !_allParams.order_way) {
+      _allParams.order_by = 'created_at'
+      _allParams.order_way = 'desc'
     }
     if (!filtersValue?.search) {
       delete _allParams.search
@@ -172,7 +216,11 @@ const TaskIndex = ({ route }) => {
       clearTimeout(tabNumDebounceRef.current)
     }
     tabNumDebounceRef.current = setTimeout(() => {
-      setTabParams(_allParams)
+      const _prevParamsText = JSON.stringify(tabParams || {})
+      const _nextParamsText = JSON.stringify(_allParams || {})
+      if (_prevParamsText !== _nextParamsText) {
+        setTabParams(_allParams)
+      }
     }, 200)
   }
 

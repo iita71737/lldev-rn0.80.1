@@ -90,7 +90,6 @@ export default {
         }
       } else if (field.type == 'picker') {
         if (value != undefined && typeof value === 'object') {
-          delete filtersValue.order
           _filtersValue['order_way'] = value.order_way
           _filtersValue['order_by'] = value.order_by
         } else {

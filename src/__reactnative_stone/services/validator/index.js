@@ -62,16 +62,42 @@ export default {
     }
   },
   getRuleName(rule) {
-    if (rule.includes('max')) {
-      return 'max'
-    } else if (rule.includes('min')) {
-      return 'min'
-    } else {
+    if (!rule) {
       return rule
     }
+    return rule.split(':')[0]
   },
   getRuleParam(rule) {
     return rule.split(':')[1]
+  },
+  getValueByPath(source, path) {
+    if (!source || !path) {
+      return undefined
+    }
+    return path.split('.').reduce((acc, key) => {
+      if (acc == null) {
+        return undefined
+      }
+      return acc[key]
+    }, source)
+  },
+  isFilled(value) {
+    if (value === undefined || value === null) {
+      return false
+    }
+    if (typeof value === 'string') {
+      return value.trim() !== ''
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0
+    }
+    if (typeof value === 'object') {
+      if (value.id !== undefined && value.id !== null) {
+        return String(value.id).trim() !== ''
+      }
+      return Object.keys(value).length > 0
+    }
+    return Boolean(value)
   },
   ruleValidate(rule, value, _dateCompare = null) {
     let _error
@@ -153,6 +179,52 @@ export default {
       }
       if (value && value.length > 0) {
         _valid = true
+      }
+    } else if (ruleName == 'sub_task_taker_required') {
+      if (!Array.isArray(value) || value.length === 0) {
+        _valid = true
+      } else {
+        const _allSubTaskHasTaker = value.every(item => {
+          if (!item || !item.taker) {
+            return false
+          }
+          if (typeof item.taker === 'string') {
+            return item.taker.trim() !== ''
+          }
+          if (typeof item.taker === 'object') {
+            if (item.taker.id !== undefined && item.taker.id !== null) {
+              return String(item.taker.id).trim() !== ''
+            }
+            return Object.keys(item.taker).length > 0
+          }
+          return Boolean(item.taker)
+        })
+        _valid = _allSubTaskHasTaker
+        if (!_valid) {
+          _error = gMessage['this field is required.']
+        }
+      }
+    } else if (ruleName == 'models_fields_required') {
+      const _ruleParam = this.getRuleParam(rule)
+      const _requiredPaths = _ruleParam
+        ? _ruleParam.split(',').map(_path => _path.trim()).filter(Boolean)
+        : []
+      if (!Array.isArray(value) || value.length === 0 || _requiredPaths.length === 0) {
+        _valid = true
+      } else {
+        _valid = value.every(item => {
+          return _requiredPaths.every(path => {
+            const _fieldValue = this.getValueByPath(item, path)
+            return this.isFilled(_fieldValue)
+          })
+        })
+        if (!_valid) {
+          if (_requiredPaths.length === 1 && _requiredPaths[0] === 'taker') {
+            _error = undefined
+          } else {
+            _error = gMessage['this field is required.']
+          }
+        }
       }
     } else if (ruleName == 'isMobilePhone') {
       if (value) {
