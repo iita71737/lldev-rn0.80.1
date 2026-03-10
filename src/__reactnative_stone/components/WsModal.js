@@ -1,24 +1,23 @@
 import React from 'react'
 import {
-  // Modal,
+  Modal as RNModal,
   View,
   ScrollView,
   Platform,
+  Dimensions,
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Keyboard,
   SafeAreaView,
-  StyleSheet,
-  Text
 } from 'react-native'
-import layouts from '@/__reactnative_stone/global/layout'
 import $color from '@/__reactnative_stone/global/color'
 import $theme from '@/__reactnative_stone/global/theme'
 import { WsModalHeader, WsModalFooter } from '@/components'
 import Modal from 'react-native-modal'
 
 const WsModal = props => {
-  const { windowWidth, windowHeight } = layouts
+  const screenHeight = Dimensions.get('screen').height
+  const screenWidth = Dimensions.get('screen').width
 
   // Props
   const {
@@ -56,105 +55,130 @@ const WsModal = props => {
 
   if (!visible) return null
 
+  const modalChildren = (
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: 'white',
+      }}
+    >
+      <KeyboardAvoidingView
+        style={{
+          flex: 1,
+          backgroundColor: 'white',
+        }}
+        enabled
+        keyboardVerticalOffset={0}
+        behavior={Platform.OS === 'ios' ? 'padding' : null}>
+        <TouchableWithoutFeedback
+          onPress={Keyboard.dismiss}
+        >
+          <View
+            style={{
+              flex: 1, // android-selector-issue
+              backgroundColor: 'white',
+            }}
+          >
+            <WsModalHeader
+              onSwipeDown={onSwipeDown}
+              hasReduce={hasReduce}
+              iconLeftSize={iconLeftSize}
+              iconLeftColor={iconLeftColor}
+              iconRightColor={iconRightColor}
+              iconRightName={iconRightName}
+              iconLeftName={iconLeftName}
+              leftOnPress={headerLeftOnPress}
+              RightOnPress={headerRightOnPress}
+              RightOnPressIsDisabled={RightOnPressIsDisabled}
+              colorDisabled={colorDisabled}
+              headerRightText={headerRightText}
+              title={title}
+            />
+            {!childrenScroll &&
+              <>
+                {children}
+              </>
+            }
+            {childrenScroll && (
+              <>
+                <ScrollView
+                  style={[
+                    {
+                      flex: 1, // 250329-限制檢閱權限-依角色-issue
+                      paddingBottom: !footerDisable ? 108 : 0,
+                      // borderWidth:1,
+                    },
+                    contentStyle
+                  ]}>
+                  {children}
+                </ScrollView>
+              </>
+            )}
+
+            {(footerBtnLeftText || footerBtnRightText) &&
+              !footerDisable && (
+                <>
+                  <WsModalFooter
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      width: '100%',
+                      backgroundColor: 'white', // 選擇人員會有底部透明度問題
+                    }}
+                    btnLeftHidden={btnLeftHidden}
+                    btnLeftText={footerBtnLeftText}
+                    btnLeftOnPress={footerBtnLeftOnPress}
+                    btnLeftIcon={footerBtnLeftIcon}
+
+                    btnRightText={footerBtnRightText}
+                    btnRightOnPress={footerBtnRightOnPress}
+                    btnRightIcon={footerBtnRightIcon}
+                    btnRightColors={btnRightDisable ? [$color.gray, $color.white5d] : [$color.primary5l, $color.primary]}
+                    btnRightDisable={btnRightDisable}
+                    remind={remind}
+                  />
+                </>
+              )}
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  )
+
+  if (Platform.OS === 'android') {
+    return (
+      <RNModal
+        visible={visible}
+        animationType={animationType}
+        transparent={false}
+        statusBarTranslucent={false}
+        onRequestClose={() => onBackButtonPress && onBackButtonPress()}
+      >
+        {modalChildren}
+      </RNModal>
+    )
+  }
+
   // Render
   return (
     <Modal
       isVisible={visible} // ✅ 注意：prop 是 isVisible，不是 visible
       onBackdropPress={() => onBackButtonPress()} // 點背景關閉
-      useNativeDriver={true}
+      useNativeDriver={false}
       hideModalContentWhileAnimating={true}
+      coverScreen={true}
+      statusBarTranslucent={false}
+      deviceHeight={Platform.OS === 'android' ? screenHeight : undefined}
+      deviceWidth={Platform.OS === 'android' ? screenWidth : undefined}
+      backdropColor="white"
+      backdropOpacity={1}
       style={{
         margin: 0,
-        backgroundColor: 'white'
+        backgroundColor: 'white',
+        justifyContent: 'flex-start'
       }} // ✅ 保持全螢幕
     >
-      <SafeAreaView
-        style={{
-          // flex: 1, // DO NOT CLEAR
-          flexGrow: 1,
-        }}
-      >
-        <KeyboardAvoidingView
-          style={{
-            // flex: 1, // DO NOT CLEAR,
-            flexGrow: 1,
-            // borderWidth:1,
-          }}
-          enabled
-          keyboardVerticalOffset={0}
-          behavior={Platform.OS === 'ios' ? 'padding' : null}>
-          <TouchableWithoutFeedback
-            onPress={Keyboard.dismiss}
-          >
-            <View
-              style={{
-                flex: 1 // android-selector-issue
-              }}
-            >
-              <WsModalHeader
-                onSwipeDown={onSwipeDown}
-                hasReduce={hasReduce}
-                iconLeftSize={iconLeftSize}
-                iconLeftColor={iconLeftColor}
-                iconRightColor={iconRightColor}
-                iconRightName={iconRightName}
-                iconLeftName={iconLeftName}
-                leftOnPress={headerLeftOnPress}
-                RightOnPress={headerRightOnPress}
-                RightOnPressIsDisabled={RightOnPressIsDisabled}
-                colorDisabled={colorDisabled}
-                headerRightText={headerRightText}
-                title={title}
-              />
-              {!childrenScroll &&
-                <>
-                  {children}
-                </>
-              }
-              {childrenScroll && (
-                <>
-                  <ScrollView
-                    style={[
-                      {
-                        flex: 1, // 250329-限制檢閱權限-依角色-issue
-                        paddingBottom: !footerDisable ? 108 : 0,
-                        // borderWidth:1,
-                      },
-                      contentStyle
-                    ]}>
-                    {children}
-                  </ScrollView>
-                </>
-              )}
-
-              {(footerBtnLeftText || footerBtnRightText) &&
-                !footerDisable && (
-                  <>
-                    <WsModalFooter
-                      style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        width: '100%',
-                        backgroundColor: 'white', // 選擇人員會有底部透明度問題
-                      }}
-                      btnLeftHidden={btnLeftHidden}
-                      btnLeftText={footerBtnLeftText}
-                      btnLeftOnPress={footerBtnLeftOnPress}
-                      btnLeftIcon={footerBtnLeftIcon}
-
-                      btnRightText={footerBtnRightText}
-                      btnRightOnPress={footerBtnRightOnPress}
-                      btnRightIcon={footerBtnRightIcon}
-                      btnRightColors={btnRightDisable ? [$color.gray, $color.white5d] : [$color.primary5l, $color.primary]}
-                      btnRightDisable={btnRightDisable}
-                      remind={remind}
-                    />
-                  </>
-                )}
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+      {modalChildren}
     </Modal>
   )
 }

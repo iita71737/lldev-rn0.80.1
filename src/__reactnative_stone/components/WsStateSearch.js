@@ -51,6 +51,7 @@ const WsStateSearch = React.forwardRef(
       editable,
       secureTextEntry = false,
       returnKeyType = 'search',
+      onSubmitEditing,
       defaultValue,
       style,
       value = '',
@@ -79,6 +80,9 @@ const WsStateSearch = React.forwardRef(
       const text = e.nativeEvent.text.trim();
       onChange(text);
       setValue(text)
+      if (onSubmitEditing) {
+        onSubmitEditing(e)
+      }
     };
 
     React.useEffect(() => {
@@ -168,13 +172,10 @@ const WsStateSearch = React.forwardRef(
                 onFocus()
               }
             }}
-            onBlur={() => {
+            onBlur={(e) => {
               setFocus(false)
               if (onBlur) {
-                onBlur()
-              }
-              if (_value) {
-                onChange(_value)
+                onBlur(e)
               }
             }}
           />

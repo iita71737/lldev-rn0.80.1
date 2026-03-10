@@ -1,5 +1,14 @@
 import React from 'react'
 import {
+  Pressable,
+  ScrollView,
+  View,
+  TouchableOpacity,
+  SafeAreaView,
+  FlatList,
+  Dimensions
+} from 'react-native'
+import {
   LlTaskTemplateCard001,
   WsPageIndex,
   WsSnackBar,
@@ -95,6 +104,19 @@ const TaskTemplateColloction: React.FC = () => {
           </>
         )}
         emptyTitle={t('目前尚無資料')}
+        ListFooterComponent={() => {
+          return (
+            <>
+              <View
+                style={{
+                  height: 50,
+                }}
+              >
+              </View>
+            </>
+
+          )
+        }}
       >
       </WsPageIndex>
     </>

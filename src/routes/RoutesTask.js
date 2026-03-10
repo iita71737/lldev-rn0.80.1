@@ -1286,12 +1286,14 @@ const RoutesTask = ({ navigation }) => {
     const _data = S_TaskFactoryTemplete.getFormattedData(_postData, currentUserId, factory?.id)
     // console.log(JSON.stringify(_data), '_data')
     try {
-      await S_TaskFactoryTemplete.create({
+      const res = await S_TaskFactoryTemplete.create({
         data: _data
       })
       await AsyncStorage.removeItem('TaskTemplateCreate')
-      Alert.alert(t('任務公版已建立'))
-      navigation.goBack()
+      $_resetToTaskTemplateShow(navigation, res.id)
+      setTimeout(() => {
+        Alert.alert(t('任務公版已建立'))
+      }, 50)
     } catch (e) {
       console.error(e?.message, 'TaskTemplateCreate error')
       Alert.alert(t('建立失敗'))

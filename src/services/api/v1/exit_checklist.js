@@ -5,6 +5,15 @@ import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
 
 export default {
+  getToggleValue(value) {
+    if (value === undefined || value === null) {
+      return undefined
+    }
+    if (typeof value === 'object') {
+      return value?.value
+    }
+    return value
+  },
   async index({ params }) {
     return base.index({
       modelName: 'exit_checklist',
@@ -51,6 +60,10 @@ export default {
     });
   },
   getExitChecklistCreateData(contractorEnter, enterDate, $event, _enterStatus, _remark) {
+    const _enterScore = this.getToggleValue($event?.[0]?.enter_score)
+    const _exitCheckItemScore = this.getToggleValue($event?.[1]?.exit_check_item_score)
+    const _finalCheckScore = this.getToggleValue($event?.[2]?.final_check_score)
+
     const data = {
       owner: contractorEnter.owner.id,
       contractor: contractorEnter.contractor.id,
@@ -62,22 +75,22 @@ export default {
       enter_end_time: contractorEnter.enter_end_time,
       checked_at: moment().utc(),
 
-      enter_score: $event[0].enter_score ? $event[0].enter_score : undefined,
+      enter_score: _enterScore ? _enterScore : undefined,
       // enter_attaches: $event[0].enter_attaches ? $event[0].enter_attaches : undefined,
       enter_attaches: $event[0].enter_attaches ? this.formattedForFileStore($event[0].enter_attaches) : [],
-      enter_remark: $event[0].enter_score && $event[0].enter_remark ? $event[0].enter_remark : undefined,
+      enter_remark: _enterScore && $event[0].enter_remark ? $event[0].enter_remark : undefined,
 
-      exit_check_item_score: $event[0].enter_score == 36 && $event[1] && $event[1].exit_check_item_score ? $event[1].exit_check_item_score : undefined,
+      exit_check_item_score: _enterScore == 36 && $event[1] && _exitCheckItemScore ? _exitCheckItemScore : undefined,
       // exit_check_item_attaches: $event[0].enter_score == 36 && $event[1] && $event[1].exit_check_item_attaches ? $event[1].exit_check_item_attaches : undefined,
-      exit_check_item_attaches: $event[0].enter_score == 36 && $event[1] && $event[1].exit_check_item_attaches ? this.formattedForFileStore($event[1].exit_check_item_attaches) : [],
-      exit_check_item_remark: $event[0].enter_score == 36 && $event[1] && $event[1].exit_check_item_remark ? $event[1].exit_check_item_remark : undefined,
+      exit_check_item_attaches: _enterScore == 36 && $event[1] && $event[1].exit_check_item_attaches ? this.formattedForFileStore($event[1].exit_check_item_attaches) : [],
+      exit_check_item_remark: _enterScore == 36 && $event[1] && $event[1].exit_check_item_remark ? $event[1].exit_check_item_remark : undefined,
 
       exit_check_item: contractorEnter.exit_check_item,
 
-      final_check_score: $event[0].enter_score == 36 && $event[2] && $event[2].final_check_score ? $event[2].final_check_score : undefined,
+      final_check_score: _enterScore == 36 && $event[2] && _finalCheckScore ? _finalCheckScore : undefined,
       // final_check_attaches: $event[0].enter_score == 36 && $event[2] && $event[2].final_check_attaches ? $event[2].final_check_attaches : undefined,
-      final_check_attaches: $event[0].enter_score == 36 && $event[2] && $event[2].final_check_attaches ? this.formattedForFileStore($event[2].final_check_attaches) : [],
-      final_check_remark: $event[0].enter_score == 36 && $event[2] && $event[2].final_check_remark ? $event[2].final_check_remark : undefined,
+      final_check_attaches: _enterScore == 36 && $event[2] && $event[2].final_check_attaches ? this.formattedForFileStore($event[2].final_check_attaches) : [],
+      final_check_remark: _enterScore == 36 && $event[2] && $event[2].final_check_remark ? $event[2].final_check_remark : undefined,
 
       enter_status: _enterStatus ? _enterStatus : undefined,
       remark: _remark ? _remark : undefined,
@@ -350,20 +363,26 @@ export default {
   },
   validationQuestionSubmit($event) {
     let validation = false
-    if ($event[0].enter_score && $event[0].enter_score == '37') {
-      if ($event[0] && $event[0].enter_remark) {
+    const _enterScore = String(this.getToggleValue($event?.[0]?.enter_score) ?? '')
+    const _enterRemark = typeof $event?.[0]?.enter_remark === 'string'
+      ? $event[0].enter_remark.trim()
+      : $event?.[0]?.enter_remark
+    const _exitCheckItemScore = this.getToggleValue($event?.[1]?.exit_check_item_score)
+    const _finalCheckScore = this.getToggleValue($event?.[2]?.final_check_score)
+
+    if (_enterScore === '37') {
+      if ($event[0] && _enterRemark) {
         validation = true
       } else {
         validation = false
       }
     }
     if ($event[0] &&
-      $event[0].enter_score &&
-      $event[0].enter_score == '36' &&
+      _enterScore === '36' &&
       $event[1] &&
-      $event[1].exit_check_item_score &&
+      _exitCheckItemScore &&
       $event[2] &&
-      $event[2].final_check_score) {
+      _finalCheckScore) {
       validation = true
     }
     return validation

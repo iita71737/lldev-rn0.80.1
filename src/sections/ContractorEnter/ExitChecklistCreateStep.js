@@ -166,10 +166,9 @@ const ExitChecklistCreateStep = props => {
                 items={itemsToggleBtn}
                 value={enterScore}
                 onChange={$event => {
-                  // console.log($event,'$event--');
                   onChange($event, 'enter_score', contractorEnter)
                   setEnterScore($event)
-                  if ($event.value == 36) {
+                  if ($event?.value == 36) {
                     setHadEnter(true)
                   } else {
                     setHadEnter(false)
@@ -364,7 +363,7 @@ const ExitChecklistCreateStep = props => {
                       }
                     } else {
                       if (page == 1) {
-                        onChange(stepRemark, 'enter_remark', contractorEnter)
+                        onChange($event, 'enter_remark', contractorEnter)
                         setStepRemark($event)
                       }
                     }

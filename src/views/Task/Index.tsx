@@ -32,6 +32,11 @@ const TaskIndex: React.FC = () => {
   const { t } = useTranslation()
   const navigation = useNavigation<any>()
   const route = useRoute<any>()
+  
+  // REDUX
+  const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
+  const currentFactory = useSelector(state => state.data.currentFactory)
+  const currentFactoryTags = useSelector(state => state.data.factoryTags)
   const currentUserScope = useSelector(state => state.data.userScopes)
   const canReadTaskTemplate = scopePermission('task-factory-template-read', currentUserScope)
 
@@ -39,6 +44,35 @@ const TaskIndex: React.FC = () => {
   const [tabIndex, setTabIndex] = React.useState(route?.params?._tabIndex ?? 0)
   const [stateModal, setStateModal] = React.useState(false)
   const [stateTemplateModal, setStateTemplateModal] = React.useState(false)
+  const [filterFields] = React.useState<any>({
+    status: {
+      type: 'picker',
+      label: t('狀態'),
+      placeholder: t('選擇狀態'),
+      items: [
+        {
+          label: t('已發布'),
+          value: 'released'
+        },
+        {
+          label: t('草稿'),
+          value: 'draft'
+        },
+      ]
+    },
+    system_subclasses: {
+      type: 'system_subclass',
+      label: t('領域')
+    },
+    factory_tags: {
+      type: 'checkbox',
+      label: t('標籤'),
+      items: currentFactoryTags ? currentFactoryTags : [],
+      searchVisible: true,
+      selectAllVisible: false,
+      defaultSelected: false
+    },
+  })
 
   const $_onSelectTemplateForCreate = React.useCallback(async (template: any) => {
     try {
@@ -141,86 +175,86 @@ const TaskIndex: React.FC = () => {
               onPress={async () => {
                 await AsyncStorage.removeItem('TaskTemplateCreate')
                 // 方便測試流程假資料
-                // await AsyncStorage.setItem('TaskTemplateCreate',
-                //   JSON.stringify({
-                //     name: `${moment().format('YYYY/MM/DD HH:mm:ss')}-測試用`,
-                //     remark: 'remark',
-                //     taker: {
-                //       id: 'bff06c0a-81ff-11ee-89b0-42010a8c000b',
-                //       name: '蔡A辣',
-                //       avatar: 'https://api.ll-esh-app.wasateam.com/api/user/avatar/1754365746fCn2w/5A0D3BA9-8F5E-47CE-B6D8-A869CCA6B93E.jpg?signature=98c856a75b992806a1ad706b1396db4339b07d04207ea1ea22ae77930f7d27b2'
-                //     },
-                //     system_subclasses: [
-                //       {
-                //         id: '071076a4-9354-11ee-89b0-42010a8c000b',
-                //         icon: 'https://api.ll-esh-app.wasateam.com/api/system_class/icon/15970290907Hxye/%E7%A9%BA%E6%B0%A3%E6%B1%A1%E6%9F%93%E9%98%B2%E6%B2%BB.png?signature=92e2de79f59870c095a20f86b32f91b7c6c0cafb97a13a17300c44a72b253361',
-                //         name: '空氣污染防治'
-                //       },
-                //       {
-                //         id: '071076f7-9354-11ee-89b0-42010a8c000b',
-                //         icon: 'https://api.ll-esh-app.wasateam.com/api/system_class/icon/15970291166yRtf/%E6%B0%B4%E6%B1%A1%E6%9F%93%E9%98%B2%E6%B2%BB.png?signature=a6a7398e07bf6b21a3f7a69cadaa964af1a9c7a892c5fb8a2744409f6e9bdc8e',
-                //         name: '水污染防治'
-                //       }
-                //     ],
-                //     subtask_factory_templates: [
-                //       {
-                //         sequence: '001',
-                //         factory: '9b720f8a-81ff-11ee-89b0-42010a8c000b',
-                //         name: 'postman-test-subtask-template',
-                //         remark: 'remark',
-                //         // taker: {
-                //         //   id: 'bff06c0a-81ff-11ee-89b0-42010a8c000b',
-                //         //   name: '蔡A辣',
-                //         //   avatar: 'https://api.ll-esh-app.wasateam.com/api/user/avatar/1754365746fCn2w/5A0D3BA9-8F5E-47CE-B6D8-A869CCA6B93E.jpg?signature=98c856a75b992806a1ad706b1396db4339b07d04207ea1ea22ae77930f7d27b2'
-                //         // },
-                //         attaches: [],
-                //         system_subclasses: [
-                //           {
-                //             id: '071076a4-9354-11ee-89b0-42010a8c000b',
-                //             icon: 'https://api.ll-esh-app.wasateam.com/api/system_class/icon/15970290907Hxye/%E7%A9%BA%E6%B0%A3%E6%B1%A1%E6%9F%93%E9%98%B2%E6%B2%BB.png?signature=92e2de79f59870c095a20f86b32f91b7c6c0cafb97a13a17300c44a72b253361',
-                //             name: '空氣污染防治'
-                //           },
-                //           {
-                //             id: '071076f7-9354-11ee-89b0-42010a8c000b',
-                //             icon: 'https://api.ll-esh-app.wasateam.com/api/system_class/icon/15970291166yRtf/%E6%B0%B4%E6%B1%A1%E6%9F%93%E9%98%B2%E6%B2%BB.png?signature=a6a7398e07bf6b21a3f7a69cadaa964af1a9c7a892c5fb8a2744409f6e9bdc8e',
-                //             name: '水污染防治'
-                //           }
-                //         ],
-                //         links: [
-                //           {
-                //             name: '客戶服務缺失',
-                //             url: 'factory/9b720f8a-81ff-11ee-89b0-42010a8c000b/checklist-content/93390f87-3e40-4368-8cc0-f12907e2dc48',
-                //             remark: 'remark',
-                //             from_module: 'checklist',
-                //             module_page_value: 'module_page_value',
-                //             type: 'domain'
-                //           }
-                //         ]
-                //       }
-                //     ],
-                //     factory: '9b720f8a-81ff-11ee-89b0-42010a8c000b',
-                //     factory_tags: [
-                //       {
-                //         id: 'ce238274-89e7-4a55-9746-86f14e598336',
-                //         name: 'Beautiful'
-                //       },
-                //       {
-                //         id: '432a6410-84c7-4822-a64d-d9bbc0605588',
-                //         name: 'HR'
-                //       }
-                //     ],
-                //     links: [
-                //       {
-                //         name: '客戶服務缺失',
-                //         url: 'factory/9b720f8a-81ff-11ee-89b0-42010a8c000b/checklist-content/93390f87-3e40-4368-8cc0-f12907e2dc48',
-                //         remark: 'remark',
-                //         from_module: 'checklist',
-                //         module_page_value: 'module_page_value',
-                //         type: 'domain'
-                //       }
-                //     ]
-                //   })
-                // )
+                await AsyncStorage.setItem('TaskTemplateCreate',
+                  JSON.stringify({
+                    name: `${moment().format('YYYY/MM/DD HH:mm:ss')}-測試用`,
+                    remark: 'remark',
+                    taker: {
+                      id: 'bff06c0a-81ff-11ee-89b0-42010a8c000b',
+                      name: '蔡A辣',
+                      avatar: 'https://api.ll-esh-app.wasateam.com/api/user/avatar/1754365746fCn2w/5A0D3BA9-8F5E-47CE-B6D8-A869CCA6B93E.jpg?signature=98c856a75b992806a1ad706b1396db4339b07d04207ea1ea22ae77930f7d27b2'
+                    },
+                    system_subclasses: [
+                      {
+                        id: '071076a4-9354-11ee-89b0-42010a8c000b',
+                        icon: 'https://api.ll-esh-app.wasateam.com/api/system_class/icon/15970290907Hxye/%E7%A9%BA%E6%B0%A3%E6%B1%A1%E6%9F%93%E9%98%B2%E6%B2%BB.png?signature=92e2de79f59870c095a20f86b32f91b7c6c0cafb97a13a17300c44a72b253361',
+                        name: '空氣污染防治'
+                      },
+                      {
+                        id: '071076f7-9354-11ee-89b0-42010a8c000b',
+                        icon: 'https://api.ll-esh-app.wasateam.com/api/system_class/icon/15970291166yRtf/%E6%B0%B4%E6%B1%A1%E6%9F%93%E9%98%B2%E6%B2%BB.png?signature=a6a7398e07bf6b21a3f7a69cadaa964af1a9c7a892c5fb8a2744409f6e9bdc8e',
+                        name: '水污染防治'
+                      }
+                    ],
+                    subtask_factory_templates: [
+                      {
+                        sequence: '001',
+                        factory: '9b720f8a-81ff-11ee-89b0-42010a8c000b',
+                        name: 'postman-test-subtask-template',
+                        remark: 'remark',
+                        // taker: {
+                        //   id: 'bff06c0a-81ff-11ee-89b0-42010a8c000b',
+                        //   name: '蔡A辣',
+                        //   avatar: 'https://api.ll-esh-app.wasateam.com/api/user/avatar/1754365746fCn2w/5A0D3BA9-8F5E-47CE-B6D8-A869CCA6B93E.jpg?signature=98c856a75b992806a1ad706b1396db4339b07d04207ea1ea22ae77930f7d27b2'
+                        // },
+                        attaches: [],
+                        system_subclasses: [
+                          {
+                            id: '071076a4-9354-11ee-89b0-42010a8c000b',
+                            icon: 'https://api.ll-esh-app.wasateam.com/api/system_class/icon/15970290907Hxye/%E7%A9%BA%E6%B0%A3%E6%B1%A1%E6%9F%93%E9%98%B2%E6%B2%BB.png?signature=92e2de79f59870c095a20f86b32f91b7c6c0cafb97a13a17300c44a72b253361',
+                            name: '空氣污染防治'
+                          },
+                          {
+                            id: '071076f7-9354-11ee-89b0-42010a8c000b',
+                            icon: 'https://api.ll-esh-app.wasateam.com/api/system_class/icon/15970291166yRtf/%E6%B0%B4%E6%B1%A1%E6%9F%93%E9%98%B2%E6%B2%BB.png?signature=a6a7398e07bf6b21a3f7a69cadaa964af1a9c7a892c5fb8a2744409f6e9bdc8e',
+                            name: '水污染防治'
+                          }
+                        ],
+                        links: [
+                          {
+                            name: '客戶服務缺失',
+                            url: 'factory/9b720f8a-81ff-11ee-89b0-42010a8c000b/checklist-content/93390f87-3e40-4368-8cc0-f12907e2dc48',
+                            remark: 'remark',
+                            from_module: 'checklist',
+                            module_page_value: 'module_page_value',
+                            type: 'domain'
+                          }
+                        ]
+                      }
+                    ],
+                    factory: '9b720f8a-81ff-11ee-89b0-42010a8c000b',
+                    factory_tags: [
+                      {
+                        id: 'ce238274-89e7-4a55-9746-86f14e598336',
+                        name: 'Beautiful'
+                      },
+                      {
+                        id: '432a6410-84c7-4822-a64d-d9bbc0605588',
+                        name: 'HR'
+                      }
+                    ],
+                    links: [
+                      {
+                        name: '客戶服務缺失',
+                        url: 'factory/9b720f8a-81ff-11ee-89b0-42010a8c000b/checklist-content/93390f87-3e40-4368-8cc0-f12907e2dc48',
+                        remark: 'remark',
+                        from_module: 'checklist',
+                        module_page_value: 'module_page_value',
+                        type: 'domain'
+                      }
+                    ]
+                  })
+                )
                 navigation.push('RoutesTask', {
                   screen: 'TaskTemplateCreate'
                 })
@@ -336,6 +370,7 @@ const TaskIndex: React.FC = () => {
         <WsPageIndex
           modelName={'task_factory_template'}
           params={{}}
+          filterFields={filterFields}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={{

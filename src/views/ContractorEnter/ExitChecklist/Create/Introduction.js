@@ -78,37 +78,41 @@ const ExitChecklistIntroduction = ({ route, navigation }) => {
               <WsText size={24} letterSpacing={0.6} fontWeight="700">
                 {exitChecklistAssignment.task_content}
               </WsText>
-              <WsInfo
-                label={t('進場日期')}
-                style={{
-                  marginTop: 24,
-                  flexDirection: 'row',
-                  alignItems: 'center'
-                }}
-                value={
-                  exitChecklistAssignment.enter_start_time
-                    ? moment(exitChecklistAssignment.enter_start_time).format(
-                      'YYYY-MM-DD'
-                    )
-                    : null
-                }
-              />
-              <WsInfo
-                label={t('進場時間')}
-                style={{
-                  marginTop: 8,
-                  flexDirection: 'row',
-                  alignItems: 'center'
-                }}
-                value={
-                  exitChecklistAssignment.enter_start_time
-                    ? $_setEnterTime(
-                      exitChecklistAssignment.enter_start_time,
-                      exitChecklistAssignment.enter_end_time
-                    )
-                    : null
-                }
-              />
+              <View style={{ marginTop: 24 }}>
+                <WsInfo
+                  labelWidth={108}
+                  label={t('進場日期')}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center'
+                  }}
+                  value={
+                    exitChecklistAssignment.enter_start_time
+                      ? moment(exitChecklistAssignment.enter_start_time).format(
+                        'YYYY-MM-DD'
+                      )
+                      : null
+                  }
+                />
+              </View>
+              <View style={{ marginTop: 8 }}>
+                <WsInfo
+                  labelWidth={108}
+                  label={t('進場時間')}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center'
+                  }}
+                  value={
+                    exitChecklistAssignment.enter_start_time
+                      ? $_setEnterTime(
+                        exitChecklistAssignment.enter_start_time,
+                        exitChecklistAssignment.enter_end_time
+                      )
+                      : null
+                  }
+                />
+              </View>
               {exitChecklistAssignment.exit_checklists &&
                 exitChecklistAssignment.exit_checklists[0] &&
                 exitChecklistAssignment.exit_checklists[0].checked_at && (
@@ -119,6 +123,7 @@ const ExitChecklistIntroduction = ({ route, navigation }) => {
                       marginHorizontal: 8
                     }}>
                     <WsInfo
+                      labelWidth={108}
                       label={t('檢查時間')}
                       value={
                         exitChecklistAssignment.exit_checklists[0].checked_at
@@ -130,56 +135,64 @@ const ExitChecklistIntroduction = ({ route, navigation }) => {
                     />
                   </WsFlex>
                 )}
-              <WsInfo
-                label={t('承攬商')}
-                style={{
-                  marginTop: 8,
-                  flexDirection: 'row',
-                  alignItems: 'center'
-                }}
-                value={
-                  exitChecklistAssignment.contractor
-                    ? exitChecklistAssignment.contractor.name
-                    : null
-                }
-              />
-              <WsInfo
-                label={t('工作內容')}
-                style={{
-                  marginTop: 8,
-                  flexDirection: 'row',
-                  alignItems: 'center'
-                }}
-                value={
-                  exitChecklistAssignment.task_content
-                    ? exitChecklistAssignment.task_content
-                    : null
-                }
-              />
-              <WsInfo
-                label={t('工作地點')}
-                style={{
-                  marginTop: 8,
-                  flexDirection: 'row',
-                  alignItems: 'center'
-                }}
-                value={
-                  exitChecklistAssignment.operate_location
-                    ? exitChecklistAssignment.operate_location
-                    : null
-                }
-              />
-              <WsInfo
-                label={t('負責人')}
-                style={{
-                  marginTop: 8,
-                  flexDirection: 'row',
-                  alignItems: 'center'
-                }}
-                type="user"
-                value={exitChecklistAssignment.owner}
-                isUri={true}
-              />
+              <View style={{ marginTop: 8 }}>
+                <WsInfo
+                  labelWidth={108}
+                  label={t('承攬商')}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center'
+                  }}
+                  value={
+                    exitChecklistAssignment.contractor
+                      ? exitChecklistAssignment.contractor.name
+                      : null
+                  }
+                />
+              </View>
+              <View style={{ marginTop: 8 }}>
+                <WsInfo
+                  labelWidth={108}
+                  label={t('工作內容')}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center'
+                  }}
+                  value={
+                    exitChecklistAssignment.task_content
+                      ? exitChecklistAssignment.task_content
+                      : null
+                  }
+                />
+              </View>
+              <View style={{ marginTop: 8 }}>
+                <WsInfo
+                  labelWidth={108}
+                  label={t('工作地點')}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center'
+                  }}
+                  value={
+                    exitChecklistAssignment.operate_location
+                      ? exitChecklistAssignment.operate_location
+                      : null
+                  }
+                />
+              </View>
+              <View style={{ marginTop: 8 }}>
+                <WsInfo
+                  labelWidth={108}
+                  label={t('負責人')}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center'
+                  }}
+                  type="user"
+                  value={exitChecklistAssignment.owner}
+                  isUri={true}
+                />
+              </View>
               <WsState
                 type={"radio"}
                 label={t('進場狀態變更')}

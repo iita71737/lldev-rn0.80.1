@@ -410,6 +410,7 @@ const ActShow = ({ navigation, route }) => {
     const _defaultValue = {
       act_id: id,
       act_version: pickValue && pickValue.id ? pickValue.id : undefined,
+      system_subclasses: act?.system_subclasses ? act.system_subclasses : [],
       redirect_routes: [
         {
           name: 'ActIndex',

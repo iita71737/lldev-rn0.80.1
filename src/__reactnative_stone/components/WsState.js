@@ -1074,6 +1074,8 @@ const WsState = React.forwardRef((props, ref) => {
           iconColor={iconColor}
           style={stateStyle}
           testID={testID}
+          onFocus={onFocus}
+          onBlur={onBlur}
         />
       )}
       {type == 'user_scopes' && (

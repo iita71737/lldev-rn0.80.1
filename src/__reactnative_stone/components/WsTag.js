@@ -22,7 +22,8 @@ const WsTag = props => {
     textColor = $color.primary2l,
     iconColor = $color.primary2l,
     dotColor,
-    testID
+    testID,
+    textStyle
   } = props
 
   // Render
@@ -75,6 +76,12 @@ const WsTag = props => {
         <WsText
           size={size}
           color={textColor}
+          style={[
+            {
+              flexShrink: 1
+            },
+            textStyle
+          ]}
           testID={testID}
         >
           {children}

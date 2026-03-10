@@ -66,7 +66,59 @@ const WsStatebelongstoModalPicker = props => {
 
   // States
   const [stateModal, setStateModal] = React.useState(false)
+  const [searchInput, setSearchInput] = React.useState('')
   const [searchValue, setSearchValue] = React.useState()
+  const searchInputRef = React.useRef('')
+  const searchDebounceTimerRef = React.useRef()
+
+  const $_onSearchChange = React.useCallback((text) => {
+    const nextText = text || ''
+    searchInputRef.current = nextText
+    setSearchInput(nextText)
+    if (nextText === '') {
+      if (searchDebounceTimerRef.current) {
+        clearTimeout(searchDebounceTimerRef.current)
+      }
+      setSearchValue(undefined)
+      return
+    }
+    if (searchDebounceTimerRef.current) {
+      clearTimeout(searchDebounceTimerRef.current)
+    }
+    searchDebounceTimerRef.current = setTimeout(() => {
+      $_applySearch(nextText)
+    }, 300)
+  }, [])
+
+  const $_applySearch = React.useCallback((text) => {
+    const rawText = text !== undefined && text !== null
+      ? text
+      : searchInputRef.current
+    const nextValue = typeof rawText === 'string'
+      ? rawText.trim()
+      : rawText
+    setSearchValue(nextValue || undefined)
+  }, [])
+
+  const __params = React.useMemo(() => {
+    const _params = {
+      ...params
+    }
+    if (searchValue) {
+      _params.search = searchValue
+    } else {
+      delete _params.search
+    }
+    return _params
+  }, [params, searchValue])
+
+  React.useEffect(() => {
+    return () => {
+      if (searchDebounceTimerRef.current) {
+        clearTimeout(searchDebounceTimerRef.current)
+      }
+    }
+  }, [])
 
   // Render
   return (
@@ -209,127 +261,122 @@ const WsStatebelongstoModalPicker = props => {
             ></_renderCustomizedCom>
           </>
         ) : (
-          <WsInfiniteScroll
-            hasMeta={hasMeta}
-            getAll={getAll}
-            service={Services[modelName]}
-            serviceIndexKey={serviceIndexKey}
-            params={
-              searchValue ? {
-                ...params,
-                search: searchValue
-              } : {
-                ...params,
-              }
-            }
-            renderItem={({ item, index }) => {
-              return (
-                <TouchableOpacity
-                  testID={item.name}
-                  onPress={() => {
-                    onChange(item)
-                    setStateModal(false)
-                  }}>
-                  <WsCard
-                    style={[
-                      index != 0 ?
-                        {
-                          marginTop: 8
-                        } :
-                        null,
-                      {
-                        flexDirection: 'row'
-                      }
-                    ]}>
-                    <WsFlex
-                      style={{
-                        flex: 1
-                      }}
-                      flexWrap={'wrap'}
-                      justifyContent={formatNameKey2 ? 'space-between' : 'flex-start'}
-                    >
-                      <WsText
-                        color={value?.id === item.id ? $color.primary : $color.black}
-                        style={[
-                          formatNameKey2 && customizedNameKey == null ?
-                            {
-                              maxWidth: width * 0.6
-                            } : null
-                        ]}
-                      >
-                        {preText ? t(preText) : ''}
-                        {
-                          formatNameKey
-                            ? moment(item[nameKey]).format(formatNameKey)
-                            : customizedNameKey == null
-                              ? t(item?.[nameKey] || '')
-                              : ''
-                        }
-                        {customizedNameKey === 'ApprovalPerson' ?
-                          `${t(item?.last_version?.taker?.name)} - ${t(item?.name)} - ${t(item?.last_version?.license_number)}` :
-                          ''
-                        }
-                        {customizedNameKey === 'userAndEmail' ?
-                          `${item?.[nameKey]} ( ${item?.['email']} )` :
-                          ''
-                        }
-                        {item?.is_released === 0 ? `(${t('未發布')})` : ''}
-                      </WsText>
-                      {nameKey2 && (
-                        <WsText
-                          size={12}
-                        >
-                          {formatNameKey2 ? moment(t(item[nameKey2])).format(formatNameKey2) : t(item[nameKey2])}
-                        </WsText>
-                      )}
-                    </WsFlex>
-                    {FlatListRenderCom && (
-                      <FlatListRenderCom {...item} />
-                    )}
-                  </WsCard>
-                </TouchableOpacity>
-              )
-            }}
-            ListHeaderComponent={() => {
-              return (
-                <>
-                  <View
-                    style={{
-                      alignItems: 'center',
-                      marginVertical: 8,
-                      marginHorizontal: 8,
+          <>
+            <View
+              style={{
+                alignItems: 'center',
+                marginVertical: 8,
+                marginHorizontal: 8,
+              }}>
+              <WsState
+                type="search"
+                value={searchInput}
+                stateStyle={{
+                  backgroundColor: $color.white,
+                  width: width * 0.95,
+                  borderRadius: 10
+                }}
+                onChange={(e) => {
+                  $_onSearchChange(e)
+                }}
+                onSubmitEditing={(e) => {
+                  $_applySearch(e?.nativeEvent?.text)
+                }}
+                onBlur={(e) => {
+                  $_applySearch(e?.nativeEvent?.text)
+                }}
+              />
+            </View>
+            <WsInfiniteScroll
+              hasMeta={hasMeta}
+              getAll={getAll}
+              service={Services[modelName]}
+              serviceIndexKey={serviceIndexKey}
+              params={__params}
+              renderItem={({ item, index }) => {
+                return (
+                  <TouchableOpacity
+                    testID={item.name}
+                    onPress={() => {
+                      onChange(item)
+                      setStateModal(false)
                     }}>
-                    <WsState
-                      type="search"
-                      stateStyle={{
-                        backgroundColor: $color.white,
-                        width: width * 0.95,
-                        borderRadius: 10
+                    <WsCard
+                      style={[
+                        index != 0 ?
+                          {
+                            marginTop: 8
+                          } :
+                          null,
+                        {
+                          flexDirection: 'row'
+                        }
+                      ]}>
+                      <WsFlex
+                        style={{
+                          flex: 1
+                        }}
+                        flexWrap={'wrap'}
+                        justifyContent={formatNameKey2 ? 'space-between' : 'flex-start'}
+                      >
+                        <WsText
+                          color={value?.id === item.id ? $color.primary : $color.black}
+                          style={[
+                            formatNameKey2 && customizedNameKey == null ?
+                              {
+                                maxWidth: width * 0.6
+                              } : null
+                          ]}
+                        >
+                          {preText ? t(preText) : ''}
+                          {
+                            formatNameKey
+                              ? moment(item[nameKey]).format(formatNameKey)
+                              : customizedNameKey == null
+                                ? t(item?.[nameKey] || '')
+                                : ''
+                          }
+                          {customizedNameKey === 'ApprovalPerson' ?
+                            `${t(item?.last_version?.taker?.name)} - ${t(item?.name)} - ${t(item?.last_version?.license_number)}` :
+                            ''
+                          }
+                          {customizedNameKey === 'userAndEmail' ?
+                            `${item?.[nameKey]} ( ${item?.['email']} )` :
+                            ''
+                          }
+                          {item?.is_released === 0 ? `(${t('未發布')})` : ''}
+                        </WsText>
+                        {nameKey2 && (
+                          <WsText
+                            size={12}
+                          >
+                            {formatNameKey2 ? moment(t(item[nameKey2])).format(formatNameKey2) : t(item[nameKey2])}
+                          </WsText>
+                        )}
+                      </WsFlex>
+                      {FlatListRenderCom && (
+                        <FlatListRenderCom {...item} />
+                      )}
+                    </WsCard>
+                  </TouchableOpacity>
+                )
+              }}
+              ListFooterComponent={() => {
+                return (
+                  <>
+                    <View
+                      style={{
+                        height: 100,
                       }}
-                      value={searchValue}
-                      onChange={(e) => {
-                        setSearchValue(e)
-                      }}
-                    />
-                  </View>
-                </>
-              )
-            }}
-            ListFooterComponent={() => {
-              return (
-                <>
-                  <View
-                    style={{
-                      height: 100,
-                    }}
-                  >
-                  </View>
-                </>
+                    >
+                    </View>
+                  </>
 
-              )
-            }}
-            emptyTitle={t('沒有資料')}
-          />
+                )
+              }}
+              emptyTitle={t('沒有資料')}
+            />
+          </>
         )}
       </WsModal>
     </>

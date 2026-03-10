@@ -36,7 +36,7 @@ const TaskTemplateShow = ({ navigation, route }) => {
   const { t } = useTranslation()
   const { id, taskHeaderActionAt, refreshKey } = route?.params || {}
 
-  console.log(id,'=id=')
+  console.log(id, '=id=')
 
   // redux
   const currentUser = useSelector(state => state.stone_auth.currentUser)
@@ -561,7 +561,7 @@ const TaskTemplateShow = ({ navigation, route }) => {
                 justifyContent="space-between"
                 style={{ marginRight: 4 }}
               >
-                <WsText>{t('待辦事項公版')}</WsText>
+                <WsText>{t('待辦事項')}</WsText>
                 <WsFlex>
                   <WsIcon
                     name="ws-filled-check-circle"
@@ -629,21 +629,107 @@ const TaskTemplateShow = ({ navigation, route }) => {
                         value={subtask?.remark || t('無')}
                       />
                     </View>
-                    {/* <View
-                      style={{
-                        marginTop: 8
-                      }}
-                    >
-                      <WsInfo
+
+                    {!!(subtask?.links?.length || subtask?.related_module?.length) && (
+                      <WsPaddingContainer
+                        padding={0}
                         style={{
-                          flexDirection: 'row',
+                          marginTop: 8,
+                          backgroundColor: 'transparent',
                         }}
-                        labelWidth={84}
-                        type="user"
-                        label={t('執行者')}
-                        value={subtask?.taker}
-                      />
-                    </View> */}
+                      >
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <WsText size={14} fontWeight={'600'}>
+                            {t('相關資料')}
+                          </WsText>
+                        </View>
+                        <WsPassageCollapse type={'array'}>
+                          {(subtask?.links || subtask?.related_module || []).map((item: any, linkIndex: number) => (
+                            <View
+                              key={`${item?.id || linkIndex}`}
+                              style={{
+                                marginTop: 8,
+                              }}
+                            >
+                              <WsInfo
+                                type="link"
+                                value={item?.name || t('無')}
+                                style={{
+                                  maxWidth: width * 0.8,
+                                  flexWrap: 'wrap',
+                                }}
+                                onPress={() => {
+                                  setPopupContentRelatedModule(item)
+                                  setPopupActive002(true)
+                                }}
+                              />
+
+                              {Array.isArray(item?.record_links) &&
+                                item.record_links.length > 0 && (
+                                  <View
+                                    style={{
+                                      backgroundColor: $color.primary11l,
+                                      paddingHorizontal: 16,
+                                      paddingVertical: 8,
+                                      borderRadius: 10,
+                                    }}
+                                  >
+                                    <View
+                                      style={{
+                                        marginTop: 4,
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                      }}
+                                    >
+                                      <WsText size={14} fontWeight={'600'}>
+                                        {t('關聯連結')}
+                                      </WsText>
+                                    </View>
+                                    {item.record_links.map((subItem: any, subIndex: number) => (
+                                      <View key={`${subItem?.id || subIndex}`}>
+                                        <WsInfo
+                                          type="link"
+                                          value={`[${t('結果')}] ${subItem?.name || ''} (${moment(subItem?.created_at).format('YYYY-MM-DD HH:mm:ss')}) `}
+                                          style={{
+                                            flexWrap: 'wrap',
+                                          }}
+                                          onPress={() => {
+                                            setPopupContentRelatedModule(subItem)
+                                            setPopupActive002(true)
+                                          }}
+                                        />
+                                      </View>
+                                    ))}
+                                  </View>
+                                )}
+                            </View>
+                          ))}
+                        </WsPassageCollapse>
+                      </WsPaddingContainer>
+                    )}
+
+                    {!!(subtask?.attaches?.length || subtask?.file_attaches?.length) && (
+                      <View
+                        style={{
+                          marginTop: 8
+                        }}
+                      >
+                        <WsInfo
+                          style={{
+                            flexDirection: 'row',
+                          }}
+                          labelWidth={84}
+                          label={t('附件')}
+                          type="filesAndImages"
+                          value={subtask?.attaches || subtask?.file_attaches || []}
+                        />
+                      </View>
+                    )}
 
                   </WsCard>
                 ))

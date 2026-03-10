@@ -322,11 +322,11 @@ const ContractorEnterList = (props) => {
                       />
                     </View>
 
-                    <WsFlex
+                    <View
                       style={{
                         marginTop: 8,
                         flexDirection: 'row',
-                        alignItems: 'center',
+                        alignItems: 'flex-start',
                       }}>
                       <WsText size={14} fontWeight={'600'} style={{ width: 128 }}>
                         {t('領域')}
@@ -334,6 +334,9 @@ const ContractorEnterList = (props) => {
                       <WsFlex
                         flexWrap={'wrap'}
                         style={{
+                          flex: 1,
+                          flexDirection: 'row',
+                          alignItems: 'flex-start'
                         }}>
                         {
                           contractorEnter.system_subclasses &&
@@ -343,14 +346,19 @@ const ContractorEnterList = (props) => {
                                 <WsTag
                                   key={`subClass${subClassIndex}`}
                                   img={subClass.icon}
-                                  style={{ marginRight: 8, marginTop: 4 }}>
+                                  style={{
+                                    marginRight: 8,
+                                    marginTop: 8,
+                                    maxWidth: '100%',
+                                    alignSelf: 'flex-start'
+                                  }}>
                                   {t(subClass.name)}
                                 </WsTag>
                               )
                             }
                           )}
                       </WsFlex>
-                    </WsFlex>
+                    </View>
 
                     <View
                       style={{

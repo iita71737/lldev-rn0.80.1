@@ -89,7 +89,39 @@ const WsStateBelongstoModalPicker002 = props => {
   const [loading, setLoading] = React.useState(false)
 
   const [data, setData] = React.useState({})
+  const [searchInput, setSearchInput] = React.useState('')
   const [search, setSearch] = React.useState()
+  const searchInputRef = React.useRef('')
+  const searchDebounceTimerRef = React.useRef()
+
+  const $_onSearchChange = React.useCallback((text) => {
+    const nextText = text || ''
+    searchInputRef.current = nextText
+    setSearchInput(nextText)
+    if (nextText === '') {
+      if (searchDebounceTimerRef.current) {
+        clearTimeout(searchDebounceTimerRef.current)
+      }
+      setSearch(undefined)
+      return
+    }
+    if (searchDebounceTimerRef.current) {
+      clearTimeout(searchDebounceTimerRef.current)
+    }
+    searchDebounceTimerRef.current = setTimeout(() => {
+      $_applySearch(nextText)
+    }, 300)
+  }, [])
+
+  const $_applySearch = React.useCallback((text) => {
+    const rawText = text !== undefined && text !== null
+      ? text
+      : searchInputRef.current
+    const nextValue = typeof rawText === 'string'
+      ? rawText.trim()
+      : rawText
+    setSearch(nextValue || undefined)
+  }, [])
 
   // MEMO
   const __params = React.useMemo(() => {
@@ -102,7 +134,15 @@ const WsStateBelongstoModalPicker002 = props => {
       delete _params.search
     }
     return _params
-  }, [search, currentRefreshCounter]);
+  }, [params, search, currentRefreshCounter]);
+
+  React.useEffect(() => {
+    return () => {
+      if (searchDebounceTimerRef.current) {
+        clearTimeout(searchDebounceTimerRef.current)
+      }
+    }
+  }, [])
 
   // Services
   const $_createItem = async () => {
@@ -336,6 +376,31 @@ const WsStateBelongstoModalPicker002 = props => {
         )
           : (
             <>
+              <View
+                style={{
+                  alignItems: 'center',
+                  marginVertical: 8,
+                  marginHorizontal: 8,
+                }}>
+                <WsState
+                  type="search"
+                  value={searchInput}
+                  stateStyle={{
+                    backgroundColor: $color.white,
+                    width: width * 0.95,
+                    borderRadius: 10
+                  }}
+                  onChange={(e) => {
+                    $_onSearchChange(e)
+                  }}
+                  onSubmitEditing={(e) => {
+                    $_applySearch(e?.nativeEvent?.text)
+                  }}
+                  onBlur={(e) => {
+                    $_applySearch(e?.nativeEvent?.text)
+                  }}
+                />
+              </View>
               <WsInfiniteScroll
                 style={{
                 }}
@@ -397,31 +462,6 @@ const WsStateBelongstoModalPicker002 = props => {
                         )}
                       </WsCard>
                     </TouchableOpacity>
-                  )
-                }}
-                ListHeaderComponent={() => {
-                  return (
-                    <>
-                      <View
-                        style={{
-                          alignItems: 'center',
-                          marginVertical: 8,
-                          marginHorizontal: 8,
-                        }}>
-                        <WsState
-                          type="search"
-                          stateStyle={{
-                            backgroundColor: $color.white,
-                            width: width * 0.95,
-                            borderRadius: 10
-                          }}
-                          value={search}
-                          onChange={(e) => {
-                            setSearch(e)
-                          }}
-                        />
-                      </View>
-                    </>
                   )
                 }}
               />

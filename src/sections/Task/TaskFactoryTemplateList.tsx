@@ -35,6 +35,21 @@ const TaskFactoryTemplateList: React.FC = () => {
     t('已儲存至「我的收藏」')
   )
   const [filterFields] = React.useState<any>({
+    status: {
+      type: 'picker',
+      label: t('狀態'),
+      placeholder: t('選擇狀態'),
+      items: [
+        {
+          label: t('已發布'),
+          value: 'released'
+        },
+        {
+          label: t('草稿'),
+          value: 'draft'
+        },
+      ]
+    },
     system_subclasses: {
       type: 'system_subclass',
       label: t('領域')

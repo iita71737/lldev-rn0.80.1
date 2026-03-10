@@ -165,7 +165,7 @@ const LlTaskTemplateCard001 = props => {
                   </View>
                 )}
 
-              {item?.system_classes &&
+              {/* {item?.system_classes &&
                 item?.system_classes?.length > 0 && (
                   <View style={{ marginTop: 2 }}>
                     <WsFlex flexWrap="wrap">
@@ -185,7 +185,7 @@ const LlTaskTemplateCard001 = props => {
                       ))}
                     </WsFlex>
                   </View>
-                )}
+                )} */}
 
               {item?.system_subclasses &&
                 item?.system_subclasses?.length > 0 && (

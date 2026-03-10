@@ -57,6 +57,14 @@ const ContractorEnterRecordExitCheck = props => {
         params={params}
         padding={16}
         renderItem={({ item, index }) => {
+          const canStartWork =
+            item?.owner &&
+            currentUser &&
+            item.owner.id === currentUser.id &&
+            moment(item.enter_date).isSame(moment(), 'day') &&
+            item?.exit_checklist_status == 'uncheck' &&
+            hasPermission(currentUserScope, 'exit-checklist')
+
           return (
             <LlExitChecklistCard001
               testID={`LlExitChecklistCard001-${index}`}
@@ -65,7 +73,7 @@ const ContractorEnterRecordExitCheck = props => {
               btnText={
                 hasContractorEnterRecordRead && (item.exit_checklist && item.exit_checklist.id) ?
                   i18next.t('查看結果') :
-                  (item.owner && currentUser && item.owner.id === currentUser.id) && moment(item.enter_date).isSame(moment(), 'day') ?
+                  canStartWork ?
                     i18next.t('開始作業') :
                     ''
               }
@@ -81,13 +89,16 @@ const ContractorEnterRecordExitCheck = props => {
               style={{ marginBottom: 12 }}
               onPress={() => {
                 if (item.exit_checklist && item.exit_checklist.id && hasContractorEnterRecordRead) {
+                  console.log('AAA')
                   navigation.push('RoutesContractorEnter', {
                     screen: 'ExitChecklistShow',
                     params: {
                       id: item.exit_checklist && item.exit_checklist.id ? item.exit_checklist.id : null
                     }
                   })
-                } else if (item.owner && currentUser && item.owner.id === currentUser.id) {
+                } else if (canStartWork) {
+                  console.log(item,'item!!')
+                  console.log('BBB')
                   navigation.navigate('ExitChecklistIntroduction', {
                     enterDate: item.enter_start_date,
                     id: item.id

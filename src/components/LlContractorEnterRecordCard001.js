@@ -158,7 +158,9 @@ const LlContractorEnterRecordCard001 = props => {
           onPress={onPress}
           isFullWidth={true}
           style={{
-            marginTop: 16
+            marginTop: 16,
+            borderWidth: 1,
+            borderColor: borderColor
           }}
           btnColor={btnColor}
           textColor={textColor}
