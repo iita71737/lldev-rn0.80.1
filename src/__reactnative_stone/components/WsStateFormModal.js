@@ -43,7 +43,7 @@ const WsStateFormModal = (props) => {
   } = props
 
   // States
-  const [value, setValue] = React.useState()
+  const [value, setValue] = React.useState(initValue ?? {})
   const [errorMessages, setErrorMessages] = React.useState({})
   const [btnRightDisable, setBtnRightDisable] = React.useState(true)
 
@@ -72,19 +72,21 @@ const WsStateFormModal = (props) => {
   }
 
   React.useEffect(() => {
-    if (value) {
-      const _rules = S_Validator.getRulesObjectFromFields(fields);
-      const { errors, isValid } = S_Validator.validate(_rules, value);
-      const containsRequiredField = Object.values(errors).some(value =>
-        value.includes("此項目為必填")
-      );
-      if (containsRequiredField) {
-        setBtnRightDisable(true);
-      } else {
-        setBtnRightDisable(false);
+    setValue(initValue ?? {})
+  }, [initValue, visible])
+
+  React.useEffect(() => {
+    const _formValue = value ?? initValue ?? {}
+    const _rules = S_Validator.getRulesObjectFromFields(fields)
+    const { errors } = S_Validator.validate(_rules, _formValue)
+    const containsRequiredField = Object.values(errors).some(errorItem => {
+      if (!Array.isArray(errorItem)) {
+        return false
       }
-    }
-  }, [value]);
+      return errorItem.includes('此項目為必填')
+    })
+    setBtnRightDisable(containsRequiredField)
+  }, [value, initValue, fields])
 
   // Render
   return (

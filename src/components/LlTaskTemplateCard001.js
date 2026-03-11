@@ -90,26 +90,14 @@ const LlTaskTemplateCard001 = props => {
                   marginBottom: 8,
                 }}
               >
-                <WsFlex style={{ flex: 1 }}>
-                  {item.updated_at && (
-                    <>
-                      <WsIcon
-                        name="md-date-note"
-                        size={18}
-                        style={{
-                          marginRight: 4
-                        }}
-                        color={$color.gray}
-                      />
-                      <WsDes size={12}>
-                        {i18next.t('更新日期')}
-                        {'  '}
-                        {moment(item.updated_at).format('YYYY-MM-DD')}
-                      </WsDes>
-                    </>
-                  )}
-                </WsFlex>
-
+                <WsText
+                  style={{
+                    flex: 1,
+                    marginRight: 8
+                  }}
+                >
+                  {item?.name || i18next.t('未命名公版')}
+                </WsText>
                 <WsFlex>
                   {createTaskOnPress && (
                     <WsIconBtn
@@ -143,16 +131,19 @@ const LlTaskTemplateCard001 = props => {
                 </WsFlex>
               </WsFlex>
 
-              <WsFlex justifyContent="space-between" alignItems="center">
-                <WsText style={{ flex: 1 }}>{item?.name || i18next.t('未命名公版')}</WsText>
-                <WsFlex>
-                  <WsTag
-                    backgroundColor={$_getStatusTagStyle().backgroundColor}
-                    textColor={$_getStatusTagStyle().textColor}
-                  >
-                    {$_getStatusText()}
-                  </WsTag>
-                </WsFlex>
+              <WsFlex
+                justifyContent="flex-start"
+                alignItems="center"
+                style={{
+                  marginBottom: 8
+                }}
+              >
+                <WsTag
+                  backgroundColor={$_getStatusTagStyle().backgroundColor}
+                  textColor={$_getStatusTagStyle().textColor}
+                >
+                  {$_getStatusText()}
+                </WsTag>
               </WsFlex>
 
               {item?.factory_tags &&
@@ -164,28 +155,6 @@ const LlTaskTemplateCard001 = props => {
                     />
                   </View>
                 )}
-
-              {/* {item?.system_classes &&
-                item?.system_classes?.length > 0 && (
-                  <View style={{ marginTop: 2 }}>
-                    <WsFlex flexWrap="wrap">
-                      {item.system_classes.map((systemClass, systemClassIndex) => (
-                        <WsTag
-                          key={`${systemClass?.id || systemClassIndex}`}
-                          img={systemClass?.icon}
-                          backgroundColor={$color.primary11l}
-                          textColor={$color.primary2l}
-                          style={{
-                            marginTop: 8,
-                            marginRight: 8
-                          }}
-                        >
-                          {`#${systemClass?.name || ''}`}
-                        </WsTag>
-                      ))}
-                    </WsFlex>
-                  </View>
-                )} */}
 
               {item?.system_subclasses &&
                 item?.system_subclasses?.length > 0 && (
@@ -202,14 +171,14 @@ const LlTaskTemplateCard001 = props => {
                             marginRight: 8
                           }}
                         >
-                          {`#${subClass?.name || ''}`}
+                          {`${subClass?.name || ''}`}
                         </WsTag>
                       ))}
                     </WsFlex>
                   </View>
                 )}
 
-              <View
+              {/* <View
                 style={{
                   marginTop: 8
                 }}
@@ -225,7 +194,27 @@ const LlTaskTemplateCard001 = props => {
                   label={i18next.t('負責人')}
                   value={item?.taker || undefined}
                 />
-              </View>
+              </View> */}
+
+              <WsFlex style={{ flex: 1,  marginTop: 8 }}>
+                {item.updated_at && (
+                  <>
+                    <WsIcon
+                      name="md-date-note"
+                      size={18}
+                      style={{
+                        marginRight: 4
+                      }}
+                      color={$color.gray}
+                    />
+                    <WsDes size={12}>
+                      {i18next.t('更新日期')}
+                      {'  '}
+                      {moment(item.updated_at).format('YYYY-MM-DD')}
+                    </WsDes>
+                  </>
+                )}
+              </WsFlex>
 
             </View>
           </WsCard>

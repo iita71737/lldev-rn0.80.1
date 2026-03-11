@@ -45,25 +45,23 @@ const RoutesTask = ({ navigation }) => {
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
   const currentUserScope = useSelector(state => state.data.userScopes);
 
-  // console.log(currentUserScope, 'currentUserScope')
-
   // state
   const subTaskScopeField = {
     type: 'picker',
-    label: t('待辦權限'),
+    label: t('待辦執行者的待辦閱覽權限'),
     placeholder: t('選擇'),
     rules: 'required',
     items: [
       {
-        label: t('我有領域的待辦'),
+        label: t('依待辦領域'),
         value: 'system_subclass'
       },
       {
-        label: t('自己是執行者且有領域的待辦'),
+        label: t('限執行者'),
         value: 'taker'
       },
       {
-        label: t('不分領域的所有待辦'),
+        label: t('所有待辦'),
         value: 'all'
       }
     ]
@@ -75,6 +73,7 @@ const RoutesTask = ({ navigation }) => {
     />
   )
 
+  // 建立任務
   const fields = {
     name: {
       label: t('主旨'),
@@ -85,7 +84,7 @@ const RoutesTask = ({ navigation }) => {
     system_subclasses: {
       type: 'modelsSystemClass',
       label: t('領域'),
-      placeholder: `${t('選擇')}`,
+      placeholder: `${t('待辦無領域')}`,
       rules: 'required',
       testID: 'modelsSystemClass',
       disabled: true
@@ -175,6 +174,7 @@ const RoutesTask = ({ navigation }) => {
           type: 'modelsSystemClass',
           label: t('領域'),
           placeholder: `${t('選擇')}`,
+          rules: 'required',
         },
         remark: {
           label: t('說明'),
@@ -369,6 +369,7 @@ const RoutesTask = ({ navigation }) => {
     },
   }
 
+  // 從警示建立任務
   const fieldsCreateFromAlert = {
     name: {
       label: t('主旨'),
@@ -523,6 +524,7 @@ const RoutesTask = ({ navigation }) => {
     },
   }
 
+  // 編輯任務
   const fieldsForEdit = {
     name: {
       label: t('主旨'),
@@ -702,6 +704,7 @@ const RoutesTask = ({ navigation }) => {
     },
   }
 
+  // 編輯任務草稿
   const fieldsForEditDraft = {
     id: {
       displayCheck() {
@@ -938,13 +941,13 @@ const RoutesTask = ({ navigation }) => {
       modelName: 'user',
       serviceIndexKey: 'simplifyFactoryIndex',
       customizedNameKey: 'userAndEmail',
-      rules: 'required',
+      // rules: 'required',
     },
     system_subclasses: {
       type: 'modelsSystemClass',
       label: t('領域'),
-      placeholder: `${t('選擇')}`,
-      rules: 'required',
+      placeholder: `${t('待辦無領域')}`,
+      // rules: 'required',
       testID: 'modelsSystemClass',
       disabled: true
     },
@@ -968,7 +971,7 @@ const RoutesTask = ({ navigation }) => {
       label: t('相關資料'),
     },
     subtask_factory_templates: {
-      label: t('待辦事項公版'),
+      label: t('待辦事項'),
       rules: 'at_least',
       type: 'models',
       fields: {
@@ -982,22 +985,20 @@ const RoutesTask = ({ navigation }) => {
           label: t('說明'),
           rules: 'required',
         },
-        // taker: {
-        //   type: 'belongsto',
-        //   label: `${t('執行者')}`,
-        //   nameKey: 'name',
-        //   valueKey: 'id',
-        //   modelName: 'user',
-        //   serviceIndexKey: 'simplifyFactoryIndex',
-        //   customizedNameKey: 'userAndEmail',
-        //   rules: 'required',
-        //   testID: '執行人員'
-        // },
+        taker: {
+          type: 'belongsto',
+          label: `${t('執行者')}`,
+          nameKey: 'name',
+          valueKey: 'id',
+          modelName: 'user',
+          serviceIndexKey: 'simplifyFactoryIndex',
+          customizedNameKey: 'userAndEmail',
+        },
         system_subclasses: {
           type: 'modelsSystemClass',
           label: t('領域'),
           placeholder: `${t('選擇')}`,
-          rules: 'required',
+          // rules: 'required', 260310-task
           testID: 'modelsSystemClass'
         },
         links: {
@@ -1024,11 +1025,11 @@ const RoutesTask = ({ navigation }) => {
         remark: {
           label: t('說明'),
         },
-        expired_at: {
-          type: 'date',
-          label: t('期限'),
-          rules: 'requiredAndCompare',
-        },
+        // expired_at: {
+        //   type: 'date',
+        //   label: t('期限'),
+        //   rules: 'requiredAndCompare',
+        // },
         file_attaches: {
           modelName: 'task',
           label: t('附件'),
@@ -1059,7 +1060,7 @@ const RoutesTask = ({ navigation }) => {
           })
         })
         return {
-          sub_tasks: _subTasks,
+          subtask_factory_templates: _subTasks,
           system_subclasses: Array.from(_subClassMap.values())
         }
       },
@@ -1162,10 +1163,15 @@ const RoutesTask = ({ navigation }) => {
           }
         })
       } else if (res && res.id) {
-        console.log(res,'res && res.id')
-        console.log('CCC')
-        $_resetToTaskShow(navigation, res.id)
-        Alert.alert(t('任務已派發'))
+        const _resTakerId = res?.taker?.id
+        const _currentUserId = currentUser?.id
+        if (_resTakerId && _currentUserId && _resTakerId === _currentUserId) {
+          $_resetToTaskShow(navigation, res.id)
+          Alert.alert(t('任務已派發'))
+        } else {
+          navigation.goBack()
+          Alert.alert(t('任務已派發'))
+        }
       }
     } catch (e) {
       console.error(e.message, 'TaskCreate error')
@@ -1428,7 +1434,7 @@ const RoutesTask = ({ navigation }) => {
       }}>
       <StackSetting.Screen
         name="TaskIndex"
-        component={scopeFilterScreen(['task-read','task-read-all'], ViewTaskIndex)}
+        component={scopeFilterScreen(['task-read', 'task-read-all'], ViewTaskIndex)}
         options={({ navigation }) => ({
           title: t('任務'),
           headerShown: true,
@@ -1466,7 +1472,7 @@ const RoutesTask = ({ navigation }) => {
       />
       <StackSetting.Screen
         name="TaskShow"
-        component={scopeFilterScreen(['task-read','task-read-all'], ViewTaskShow)}
+        component={scopeFilterScreen(['task-read', 'task-read-all'], ViewTaskShow)}
         options={({ navigation, route }) => ({
           title: t('任務'),
           headerShown: true,
@@ -1747,13 +1753,13 @@ const RoutesTask = ({ navigation }) => {
           'task-factory-template-create',
         ], WsStepRoutesUpdate)}
         options={({ navigation }) => ({
-          title: t('編輯任務公版'),
+          title: t('編輯公版'),
           ...$option.headerOption,
           headerShown: false
         })}
         initialParams={{
           name: 'TaskTemplateUpdate',
-          title: t('編輯任務公版'),
+          title: t('編輯公版'),
           modelName: 'task_factory_template',
           fields: taskTemplateFields,
           stepSettings: stepSettings,

@@ -168,7 +168,7 @@ const WsFilter = (props) => {
               <WsText
                 style={{
                   padding: 16,
-                  color: $color.primary
+                  color: $color.primary,
                 }}
               >
                 {t(field.label)}

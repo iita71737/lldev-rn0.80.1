@@ -1,8 +1,17 @@
+import React from 'react'
+import {
+  Pressable,
+  ScrollView,
+  View,
+  TouchableOpacity,
+  SafeAreaView,
+  FlatList,
+  Dimensions
+} from 'react-native'
 import {
   LlTaskCard001,
   WsPageIndex
 } from '@/components'
-import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 
@@ -52,6 +61,19 @@ const TaskStatus: React.FC<TaskStatusProps> = props => {
           </>
         )}
         emptyTitle={t('目前尚無資料')}
+        ListFooterComponent={() => {
+          return (
+            <>
+              <View
+                style={{
+                  height: 50,
+                }}
+              >
+              </View>
+            </>
+
+          )
+        }}
       >
       </WsPageIndex>
     </>

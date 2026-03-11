@@ -76,9 +76,9 @@ const LlTaskHeaderCard001 = props => {
                 <WsText color={$color.gray}>{t(' ')}</WsText>
               )}
               <WsText size={12} color={$color.gray}>
-                {t('建立時間')}{' '}
+                {t('編輯時間')}{' '}
                 {task.created_at
-                  ? moment(task.created_at).format('YYYY-MM-DD HH:mm:ss')
+                  ? moment(task.updated_at).format('YYYY-MM-DD HH:mm:ss')
                   : moment().format('YYYY-MM-DD HH:mm')}
               </WsText>
             </View>

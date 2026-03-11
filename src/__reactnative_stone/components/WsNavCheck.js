@@ -17,6 +17,7 @@ const WsNavCheck = props => {
     fontColor,
     testID,
     textRight,
+    textRightColor,
     defaultRightWidthTimes,
     textRightWidthTimes,
     defaultLeftWidthTime,
@@ -60,6 +61,7 @@ const WsNavCheck = props => {
       disabled={disabled}
       fontColor={fontColor}
       textRight={textRight}
+      textRightColor={textRightColor}
       textRightSize={12}
       defaultRightWidthTimes={defaultRightWidthTimes}
       textRightWidthTimes={textRightWidthTimes}

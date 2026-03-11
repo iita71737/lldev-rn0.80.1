@@ -1,8 +1,6 @@
 import React from 'react'
 import {
-  StyleSheet,
   View,
-  Pressable,
   TouchableOpacity,
   TouchableHighlight,
   Dimensions
@@ -14,8 +12,9 @@ import {
   WsIcon,
   WsIconCircle,
   WsFlex,
-  WsStateFormModal,
-  WsDes
+  WsDes,
+  WsInfo,
+  WsTag
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
@@ -53,6 +52,29 @@ const WsSubtaskCard = props => {
       (typeof value?.taker === 'string' && value?.taker?.trim?.())
     )
   )
+  const _takerValue = React.useMemo(() => {
+    if (!value?.taker) {
+      return undefined
+    }
+    if (typeof value?.taker === 'string') {
+      return {
+        name: value.taker
+      }
+    }
+    return value.taker
+  }, [value?.taker])
+
+  const _remark = value?.remark || ''
+  const _systemSubclasses = Array.isArray(value?.system_subclasses)
+    ? value.system_subclasses
+    : []
+  const _linkCount = Array.isArray(value?.links)
+    ? value.links.length
+    : Array.isArray(value?.related_module)
+      ? value.related_module.length
+      : 0
+
+  console.log(value?.links, 'linkslinks')
 
   // Render
   return (
@@ -81,8 +103,12 @@ const WsSubtaskCard = props => {
                 alignItems: 'center'
               }}>
               <WsIconCircle
+                padding={0}
                 name="ws-outline-check"
                 size={30}
+                style={{
+                  marginRight: 16,
+                }}
                 iconStyle={{}}
                 color={value && value.done_at ? $color.white : $color.gray}
                 gradientColor={
@@ -108,6 +134,89 @@ const WsSubtaskCard = props => {
                 >
                   {name ? name : placeholderTitle}
                 </WsText>
+
+                {_systemSubclasses.length > 0 && (
+                  <View
+                    style={{
+                      marginTop: 4
+                    }}
+                  >
+                    <WsFlex flexWrap="wrap">
+                      {_systemSubclasses.map((subClass, subClassIndex) => (
+                        <WsTag
+                          key={`${subClass?.id || subClassIndex}`}
+                          img={subClass?.icon}
+                          backgroundColor={$color.primary11l}
+                          textColor={$color.primary2l}
+                          style={{
+                            marginTop: 4,
+                            marginRight: 8
+                          }}
+                        >
+                          {`#${subClass?.name || ''}`}
+                        </WsTag>
+                      ))}
+                    </WsFlex>
+                  </View>
+                )}
+
+                {_hasTaker && (
+                  <WsFlex
+                    style={{
+                      marginTop: 8
+                    }}>
+                    <WsInfo
+                      labelWidth={60}
+                      type={'user'}
+                      label={t('執行者')}
+                      value={_takerValue}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center'
+                      }}
+                      labelFontWeight={'400'}
+                    />
+                  </WsFlex>
+                )}
+
+                {showMissingTakerWarning && !_hasTaker && (
+                  <WsFlex>
+                    <WsIcon
+                      color={$color.danger}
+                      name={'ws-outline-warning'}
+                      size={18}
+                      style={{
+                        marginRight: 2
+                      }}
+                    />
+                    <WsText
+                      size={12}
+                      color={$color.danger}
+                    >
+                      {t('尚未填寫執行者')}
+                    </WsText>
+                  </WsFlex>
+                )}
+
+                {_remark ? (
+                  <View
+                    style={{
+                      marginTop: 4
+                    }}
+                  >
+                    <WsInfo
+                      labelWidth={60}
+                      label={t('說明')}
+                      value={_remark}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center'
+                      }}
+                      labelFontWeight={'400'}
+                    />
+                  </View>
+                ) : null}
+
                 <WsFlex
                   style={[
                     {
@@ -116,6 +225,7 @@ const WsSubtaskCard = props => {
                   {date && (
                     <WsFlex
                       style={{
+                        marginTop: 4,
                         marginRight: 12
                       }}>
                       <WsIcon
@@ -137,6 +247,7 @@ const WsSubtaskCard = props => {
                     <>
                       <WsFlex
                         style={{
+                          marginTop: 4,
                           marginRight: 12
                         }}>
                         <WsIcon
@@ -155,26 +266,7 @@ const WsSubtaskCard = props => {
                       </WsFlex>
                     </>
                   )}
-                  {attachCount != undefined && attachCount > 0 && (
-                    <WsFlex
-                      style={{
-                        marginRight: 12
-                      }}>
-                      <WsIcon
-                        name="ws-outline-attachment"
-                        size={18}
-                        color={desColor}
-                      />
-                      <WsText
-                        style={{
-                          marginLeft: 4
-                        }}
-                        size={12}
-                        color={desColor}>
-                        {t('附件')} ({attachCount})
-                      </WsText>
-                    </WsFlex>
-                  )}
+
                   {user && (
                     <WsFlex
                       style={{
@@ -196,6 +288,7 @@ const WsSubtaskCard = props => {
                     </WsFlex>
                   )}
                 </WsFlex>
+
                 {_dateCompare != undefined && _dateCompare.diff(value.expired_at, 'days') < 0 && (
                   <WsFlex>
                     <WsIcon
@@ -213,36 +306,50 @@ const WsSubtaskCard = props => {
                   </WsFlex>
                 )}
 
-                {_hasTaker && (
+                {_linkCount > 0 && (
                   <WsFlex
                     style={{
-                    }}>
-                    <WsDes color={$color.gray3d} style={{ marginRight: 4 }}>
-                      {t('執行人員')}
-                    </WsDes>
-                    <WsDes>{value?.taker?.name}</WsDes>
-                  </WsFlex>
-                )}
-
-                {showMissingTakerWarning && !_hasTaker && (
-                  <WsFlex>
+                      marginTop: 4
+                    }}
+                  >
                     <WsIcon
-                      color={$color.danger}
-                      name={'ws-outline-warning'}
+                      name="ws-outline-attachment"
                       size={18}
-                      style={{
-                        marginRight : 2
-                      }}
+                      color={desColor}
                     />
                     <WsText
+                      style={{
+                        marginLeft: 4
+                      }}
                       size={12}
-                      color={$color.danger}
+                      color={desColor}
                     >
-                      {t('尚未填寫執行者')}
+                      {`${t('相關資料')} (${_linkCount})`}
                     </WsText>
                   </WsFlex>
                 )}
 
+                {attachCount != undefined && attachCount > 0 && (
+                  <WsFlex
+                    style={{
+                      marginTop: 4,
+                      marginRight: 12
+                    }}>
+                    <WsIcon
+                      name="ws-outline-attachment"
+                      size={18}
+                      color={desColor}
+                    />
+                    <WsText
+                      style={{
+                        marginLeft: 4
+                      }}
+                      size={12}
+                      color={desColor}>
+                      {t('附件')} ({attachCount})
+                    </WsText>
+                  </WsFlex>
+                )}
 
               </View>
             </View>
@@ -260,7 +367,7 @@ const WsSubtaskCard = props => {
             </TouchableHighlight>
           </WsFlex>
         </WsCard>
-      </TouchableOpacity>
+      </TouchableOpacity >
     </>
   )
 }

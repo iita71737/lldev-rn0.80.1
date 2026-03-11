@@ -181,16 +181,29 @@ export default {
     }
     return _data
   },
-  getTaskCreateDraftFromTemplate(template) {
+  getTaskCreateDraftFromTemplate(template, options = {}) {
     if (!template) {
       return {}
     }
+    const {
+      includeSubTaskTaker = false,
+      includeTaskTaker = false,
+      currentUser = null
+    } = options
+
+    const _currentUser = currentUser || null
+    const _taskTaker = includeTaskTaker && template?.taker
+      ? template.taker
+      : _currentUser
+
     const _subTasks = Array.isArray(template?.subtask_factory_templates)
       ? template.subtask_factory_templates.map((subTask, index) => ({
         sequence: subTask?.sequence || String(index + 1).padStart(3, '0'),
         name: subTask?.name || '',
         remark: subTask?.remark || '',
-        // taker: subTask?.taker || null,
+        taker: includeSubTaskTaker
+          ? (subTask?.taker || null)
+          : null,
         system_subclasses: subTask?.system_subclasses || [],
         related_module: subTask?.links || [],
         file_attaches: subTask?.attaches || []
@@ -200,7 +213,7 @@ export default {
     return {
       name: template?.name || '',
       remark: template?.remark || '',
-      // taker: template?.taker || null,
+      taker: _taskTaker,
       system_subclasses: template?.system_subclasses || [],
       factory_tags: template?.factory_tags || [],
       related_module: template?.links || [],

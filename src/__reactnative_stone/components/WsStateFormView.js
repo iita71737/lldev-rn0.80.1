@@ -51,7 +51,6 @@ const WsStateFormView = props => {
 
   // Function
   const $_onChange = $event => {
-    // console.log(JSON.stringify($event),'$eventQQQQ')
     if (onChange) {
       onChange($event)
     }

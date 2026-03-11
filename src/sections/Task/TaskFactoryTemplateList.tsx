@@ -12,12 +12,18 @@ import {
   LlTaskTemplateCard001,
   WsPageIndex,
   WsSnackBar,
+  WsPopup,
+  WsText,
+  WsFlex,
+  WsStateCheckBox002,
+  WsGradientButton,
 } from '@/components'
 import { useTranslation } from 'react-i18next'
 import S_TaskFactoryTemplate from '@/services/api/v1/task_factory_template'
 import { useNavigation } from '@react-navigation/native'
 import { useSelector } from 'react-redux'
 import AsyncStorage from '@react-native-community/async-storage'
+import $color from '@/__reactnative_stone/global/color'
 
 const TaskFactoryTemplateList: React.FC = () => {
   const { t } = useTranslation()
@@ -27,6 +33,7 @@ const TaskFactoryTemplateList: React.FC = () => {
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentFactoryTags = useSelector(state => state.data.factoryTags)
+  const currentUser = useSelector(state => state.data.currentUser)
 
   // State
   const [refreshCounter, setRefreshCounter] = React.useState(0)
@@ -34,12 +41,24 @@ const TaskFactoryTemplateList: React.FC = () => {
   const [snackBarText, setSnackBarText] = React.useState(
     t('已儲存至「我的收藏」')
   )
+  const [popupActive, setPopupActive] = React.useState(false)
+  const [pendingTemplate, setPendingTemplate] = React.useState<any>(null)
+  const [templateHasTaker, setTemplateHasTaker] = React.useState(false)
+  const [templateHasSubTaskTaker, setTemplateHasSubTaskTaker] = React.useState(false)
+  const [includeSubTaskTaker, setIncludeSubTaskTaker] = React.useState(true)
+  const [includeTaskTaker, setIncludeTaskTaker] = React.useState(true)
+  const includeSubTaskTakerRef = React.useRef(true)
+  const includeTaskTakerRef = React.useRef(true)
   const [filterFields] = React.useState<any>({
     status: {
       type: 'picker',
       label: t('狀態'),
       placeholder: t('選擇狀態'),
       items: [
+        {
+          label: t('全部'),
+          value: 'released,draft'
+        },
         {
           label: t('已發布'),
           value: 'released'
@@ -67,7 +86,8 @@ const TaskFactoryTemplateList: React.FC = () => {
   // MEMO
   const __params = React.useMemo(() => {
     const _params = {
-      refresh_counter: refreshCounter
+      order_by: 'updated_at',
+      order_way: 'desc'
     }
     return _params
   }, [refreshCounter]);
@@ -94,15 +114,42 @@ const TaskFactoryTemplateList: React.FC = () => {
     }
   }
 
+  const $_createTaskFromTemplate = async (
+    _template,
+    {
+      includeSubTaskTaker,
+      includeTaskTaker
+    }: {
+      includeSubTaskTaker: boolean
+      includeTaskTaker: boolean
+    }
+  ) => {
+    const _taskCreateDraft = S_TaskFactoryTemplate.getTaskCreateDraftFromTemplate(_template, {
+      includeSubTaskTaker,
+      includeTaskTaker,
+      currentUser: currentUser || null
+    })
+    await AsyncStorage.removeItem('TaskCreate')
+    await AsyncStorage.setItem('TaskCreate', JSON.stringify(_taskCreateDraft))
+    navigation.push('TaskCreate')
+  }
+
   const createTaskOnPress = async (item: any) => {
     try {
       const _template = await S_TaskFactoryTemplate.show({
         modelId: item?.id
       })
-      const _taskCreateDraft = S_TaskFactoryTemplate.getTaskCreateDraftFromTemplate(_template)
-      await AsyncStorage.removeItem('TaskCreate')
-      await AsyncStorage.setItem('TaskCreate', JSON.stringify(_taskCreateDraft))
-      navigation.push('TaskCreate')
+      const _hasTemplateTaker = Boolean(_template?.taker)
+      const _hasSubTaskTaker = Array.isArray(_template?.subtask_factory_templates)
+        && _template.subtask_factory_templates.some(subTask => Boolean(subTask?.taker))
+      setPendingTemplate(_template)
+      setTemplateHasTaker(_hasTemplateTaker)
+      setTemplateHasSubTaskTaker(_hasSubTaskTaker)
+      setIncludeTaskTaker(_hasTemplateTaker)
+      setIncludeSubTaskTaker(_hasSubTaskTaker)
+      includeTaskTakerRef.current = _hasTemplateTaker
+      includeSubTaskTakerRef.current = _hasSubTaskTaker
+      setPopupActive(true)
     } catch (error) {
       console.log(error)
     }
@@ -116,6 +163,107 @@ const TaskFactoryTemplateList: React.FC = () => {
         visible={isSnackBarVisible}
         quickHidden={true}
       />
+      <WsPopup
+        active={popupActive}
+        onClose={() => {
+          setPopupActive(false)
+        }}
+      >
+        <View
+          style={{
+            width: 320,
+            backgroundColor: $color.white,
+            borderRadius: 10,
+            padding: 16
+          }}
+        >
+          <View style={{ marginTop: 16 }}>
+            <WsText>{t('選擇是否要帶入待辦執行者')}</WsText>
+            <View style={{ marginTop: 8 }}>
+              <WsStateCheckBox002
+                value={includeSubTaskTaker}
+                disabled={!templateHasSubTaskTaker}
+                onChange={(value: boolean) => {
+                  includeSubTaskTakerRef.current = value
+                  setIncludeSubTaskTaker(value)
+                }}
+                checkboxText={
+                  templateHasSubTaskTaker
+                    ? t('帶入公版待辦執行者')
+                    : t('公版無待辦執行者')
+                }
+              />
+            </View>
+          </View>
+
+          <View style={{ marginTop: 16 }}>
+            <WsText>{t('選擇是否要帶入任務負責人')}</WsText>
+            <View style={{ marginTop: 8 }}>
+              <WsStateCheckBox002
+                value={includeTaskTaker}
+                disabled={!templateHasTaker}
+                onChange={(value: boolean) => {
+                  includeTaskTakerRef.current = value
+                  setIncludeTaskTaker(value)
+                }}
+                checkboxText={
+                  templateHasTaker
+                    ? t('帶入公版任務負責人')
+                    : t('公版無負責人，將帶入目前使用者')
+                }
+              />
+            </View>
+          </View>
+
+          <WsFlex
+            justifyContent="flex-end"
+            style={{
+              marginTop: 24
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                width: 110,
+                height: 50,
+                borderColor: $color.gray,
+                borderWidth: 1,
+                borderRadius: 30,
+                marginHorizontal: 8,
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+              onPress={() => {
+                setPopupActive(false)
+              }}
+            >
+              <WsText color={$color.gray}>{t('取消')}</WsText>
+            </TouchableOpacity>
+            <WsGradientButton
+              style={{
+                width: 110,
+                height: 50,
+                marginHorizontal: 8
+              }}
+              onPress={async () => {
+                if (!pendingTemplate) {
+                  return
+                }
+                try {
+                  await $_createTaskFromTemplate(pendingTemplate, {
+                    includeSubTaskTaker: includeSubTaskTakerRef.current,
+                    includeTaskTaker: includeTaskTakerRef.current
+                  })
+                  setPopupActive(false)
+                } catch (error) {
+                  console.log(error)
+                }
+              }}
+            >
+              {t('確定')}
+            </WsGradientButton>
+          </WsFlex>
+        </View>
+      </WsPopup>
       <WsPageIndex
         modelName={'task_factory_template'}
         params={__params}

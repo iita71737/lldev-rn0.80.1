@@ -16,23 +16,61 @@ const WsFilterSystemSubclass = props => {
   // Redux
   const currentUser = useSelector(state => state.stone_auth.currentUser)
   const systemClasses = useSelector(state => state.data.systemClasses)
-  // console.log(JSON.stringify(systemClasses, null, 2 ),'systemClasses---')
+  const currentFactory = useSelector(state => state.data.currentFactory)
+
+  const _factoryPermissionMatch = React.useMemo(() => {
+    const _currentFactoryId = currentFactory?.id
+    const _factoryItems = currentUser?.user_factory_system_subclasses
+    if (!_currentFactoryId || !Array.isArray(_factoryItems)) {
+      return null
+    }
+
+    return _factoryItems.find(item => {
+      return item?.factory?.id === _currentFactoryId
+    })
+  }, [currentFactory?.id, currentUser?.user_factory_system_subclasses])
+
+  const _factoryAllowedSubclasses = React.useMemo(() => {
+    if (!_factoryPermissionMatch || !Array.isArray(_factoryPermissionMatch.system_subclasses)) {
+      return []
+    }
+    return _factoryPermissionMatch.system_subclasses
+  }, [_factoryPermissionMatch])
+
+  const _factoryAllowedSubclassIds = React.useMemo(() => {
+    const _ids = []
+    _factoryAllowedSubclasses.forEach(systemSubclass => {
+      const _id = systemSubclass?.id
+      if (_id && !_ids.includes(_id)) {
+        _ids.push(_id)
+      }
+    })
+    return _ids
+  }, [_factoryAllowedSubclasses])
 
   const _allSubClasses = React.useMemo(() => {
-    const _value = value ? [...value] : []
+    const _value = []
+    if (!Array.isArray(systemClasses)) {
+      return _value
+    }
     systemClasses.forEach(systemClass => {
-      systemClass.system_subclasses.forEach(systemSubclass => {
-        _value.push(systemSubclass.id)
+      ;(systemClass?.system_subclasses || []).forEach(systemSubclass => {
+        if (!_value.includes(systemSubclass.id)) {
+          _value.push(systemSubclass.id)
+        }
       })
     })
-
     return _value
-  }, [systemClasses]);
+  }, [systemClasses])
+
+  const $_hasPermission = systemSubclass => {
+    return _factoryAllowedSubclassIds.includes(systemSubclass?.id)
+  }
 
   // Function
   const $_onSystemClassSelectAll = systemClass => {
     const _value = value ? [...value] : []
-    systemClass.system_subclasses.forEach(systemSubclass => {
+    ;(systemClass?.system_subclasses || []).forEach(systemSubclass => {
       if (!_value.includes(systemSubclass.id)) {
         _value.push(systemSubclass.id)
       }
@@ -41,7 +79,7 @@ const WsFilterSystemSubclass = props => {
   }
   const $_onSystemClassClearAll = systemClass => {
     const _value = value ? [...value] : []
-    systemClass.system_subclasses.forEach(systemSubclass => {
+    ;(systemClass?.system_subclasses || []).forEach(systemSubclass => {
       const tarIndex = _value.findIndex(e => {
         return e == systemSubclass.id
       })
@@ -84,33 +122,14 @@ const WsFilterSystemSubclass = props => {
     onChange(_allSubClasses)
   }
 
-  // 簡單的陣列相等：長度一樣且每個元素都在對方裡（用排序避免順序問題）
-  const arraysEqual = (a: number[] = [], b: number[] = []) => {
-    if (a.length !== b.length) return false
-    const aa = [...a].sort((x, y) => x - y)
-    const bb = [...b].sort((x, y) => x - y)
-    for (let i = 0; i < aa.length; i++) {
-      if (aa[i] !== bb[i]) return false
-    }
-    return true
-  }
-
   React.useEffect(() => {
     if (!Array.isArray(systemClasses) || systemClasses.length === 0) return
     // If value is already an array (including empty array), respect user choice.
     // Only auto-fill defaults when value is undefined/null.
     if (Array.isArray(value)) return
 
-    // 取得「全選」 id 清單（扁平 + 去重）
-    const allIds: number[] = []
-    systemClasses.forEach(sc => {
-      (sc?.system_subclasses ?? []).forEach(ssc => {
-        if (!allIds.includes(ssc.id)) allIds.push(ssc.id)
-      })
-    })
-
-    onChange(allIds)
-  }, [systemClasses, value, onChange])
+    onChange(_allSubClasses)
+  }, [systemClasses, _allSubClasses, value, onChange])
 
   // Render
   return (
@@ -175,7 +194,7 @@ const WsFilterSystemSubclass = props => {
                 color={$color.black}
                 size={14}
                 style={{
-                  flex: 1
+                  flex: 1,
                 }}
                 fontWeight="700">
                 {t(systemClass.name)}
@@ -208,7 +227,7 @@ const WsFilterSystemSubclass = props => {
                 </Pressable>
               </WsFlex>
             </WsFlex>
-            {systemClass.system_subclasses.map(
+            {(systemClass?.system_subclasses || []).map(
               (systemSubclass, systemSubclassIndex) => {
                 return (
                   <WsNavCheck
@@ -217,7 +236,11 @@ const WsFilterSystemSubclass = props => {
                     onChange={$event => {
                       $_onSystemSubclassPress($event, systemSubclass)
                     }}
-                    key={`${systemClassIndex} -${systemSubclassIndex} `}>
+                    textRight={!$_hasPermission(systemSubclass) ? t('無權限') : undefined}
+                    textRightColor={!$_hasPermission(systemSubclass) ? $color.danger : undefined}
+                    key={`${systemClassIndex}-${systemSubclassIndex}`}
+                    textRightWidthTimes={0.2}
+                    >
                     {t(systemSubclass.name)}
                   </WsNavCheck>
                 )

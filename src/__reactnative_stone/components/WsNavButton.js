@@ -83,10 +83,7 @@ const WsNavButton = props => {
           {iconRight && iconRightVisible && (
             <WsIcon
               style={{
-                // position: 'absolute',
-                // right: 16,
-                // borderWidth:1
-                marginRight: 4
+                marginRight: 8
               }}
               name={iconRight}
               size={iconRightSize}
@@ -94,45 +91,57 @@ const WsNavButton = props => {
             />
           )}
 
-          {imageLeft && (
-            <Image source={{ uri: imageLeft }} style={styles.imageLeft} />
-          )}
-          {iconLeft && (
-            <WsIcon name={iconLeft} size={24} color={iconLeftColor} />
-          )}
-          <View
-            style={[
-              imageLeft || iconLeft
-                ? {
-                  marginLeft: 8
-                }
-                : null,
-              {
-                minWidth: width * defaultLeftWidthTime,
-                // borderWidth:1,
-              }
-            ]}>
-            <WsText size={fontSize} color={fontColor}
-              style={{
-                maxWidth: width * textLeftWidthTimes,
-              }}
-            >
-              {children ? children : leftTitle ? leftTitle : ''}
-            </WsText>
-            {subTitle && (
-              <WsDes
-                style={{
-                  marginTop: 8
-                }}>
-                {subTitle}
-              </WsDes>
+          <WsFlex
+            alignItems="center"
+            style={{
+              flex: 1,
+              minWidth: 0
+            }}
+          >
+            {imageLeft && (
+              <Image source={{ uri: imageLeft }} style={styles.imageLeft} />
             )}
-          </View>
+            {iconLeft && (
+              <WsIcon name={iconLeft} size={24} color={iconLeftColor} />
+            )}
+            <View
+              style={[
+                imageLeft || iconLeft
+                  ? {
+                    marginLeft: 8
+                  }
+                  : null,
+                {
+                  flex: 1,
+                  minWidth: width * defaultLeftWidthTime
+                }
+              ]}>
+              <WsText
+                size={fontSize}
+                color={fontColor}
+                style={{
+                  maxWidth: width * textLeftWidthTimes,
+                  lineHeight: fontSize * 1.4,
+                }}
+              >
+                {children ? children : leftTitle ? leftTitle : ''}
+              </WsText>
+              {subTitle && (
+                <WsDes
+                  style={{
+                    marginTop: 4,
+                    lineHeight: 18
+                  }}>
+                  {subTitle}
+                </WsDes>
+              )}
+            </View>
+          </WsFlex>
 
           <WsFlex
             justifyContent={'space-between'}
             style={{
-              width: width * defaultRightWidthTimes,
+              width: textRight || textRight002 ? width * defaultRightWidthTimes : 0,
               flexDirection: 'row',
               // borderWidth: 2,
             }}>

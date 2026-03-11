@@ -393,13 +393,6 @@ const TaskTemplateShow = ({ navigation, route }) => {
                 marginTop: 8
               }}
             >
-              <WsInfo
-                labelWidth={100}
-                style={{ flexDirection: 'row', alignItems: 'center' }}
-                label={t('更新日期')}
-                color={$color.black5l}
-                value={taskTemplate?.updated_at ? moment(taskTemplate.updated_at).format('YYYY-MM-DD') : t('無')}
-              />
 
               <View style={{ marginTop: 8 }}>
                 <WsFlex>
@@ -421,7 +414,7 @@ const TaskTemplateShow = ({ navigation, route }) => {
                   style={{ flexDirection: 'row', alignItems: 'center' }}
                   type="user"
                   label={t('負責人')}
-                  color={$color.black5l}
+                  color={taskTemplate?.taker}
                   value={taskTemplate?.taker}
                 />
               </View>
@@ -562,17 +555,6 @@ const TaskTemplateShow = ({ navigation, route }) => {
                 style={{ marginRight: 4 }}
               >
                 <WsText>{t('待辦事項')}</WsText>
-                <WsFlex>
-                  <WsIcon
-                    name="ws-filled-check-circle"
-                    size={18}
-                    color={$color.gray}
-                    style={{ marginRight: 4 }}
-                  />
-                  <WsText size={12} color={$color.gray}>
-                    {`0 / ${taskTemplate?.subtask_factory_templates?.length || 0}`}
-                  </WsText>
-                </WsFlex>
               </WsFlex>
 
               {!!taskTemplate?.subtask_factory_templates?.length ? (
@@ -608,12 +590,28 @@ const TaskTemplateShow = ({ navigation, route }) => {
                                 alignSelf: 'flex-start'
                               }}
                             >
-                              {`#${item?.name || ''}`}
+                              {`${item?.name || ''}`}
                             </WsTag>
                           ))}
                         </WsFlex>
                       </View>
                     )}
+
+                    <View
+                      style={{
+                        marginTop: 8
+                      }}
+                    >
+                      <WsInfo
+                        type={'user'}
+                        style={{
+                          flexDirection: 'row',
+                        }}
+                        labelWidth={84}
+                        label={t('執行者')}
+                        value={subtask?.taker}
+                      />
+                    </View>
 
                     <View
                       style={{

@@ -2,6 +2,7 @@ import React from 'react'
 import { View } from 'react-native'
 import { WsFlex, WsText, WsAvatar, WsDes, WsTag } from '@/components'
 import { useTranslation } from 'react-i18next'
+import $color from '@/__reactnative_stone/global/color'
 
 const WsInfoUser = props => {
   // i18n
@@ -49,7 +50,7 @@ const WsInfoUser = props => {
             )}
           </View>
         )}
-        {!value && <WsText size={fontsize}>{t('無')}</WsText>}
+        {!value && <WsText size={fontsize} color={$color.gray}>{t('無')}</WsText>}
       </WsFlex>
     </>
   )
