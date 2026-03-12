@@ -237,6 +237,7 @@ import LlInfoContainer001 from './LlInfoContainer001'
 import LlCheckListRecordCard001 from './LlCheckListRecordCard001'
 import LlCheckListRecordCard002 from './LlCheckListRecordCard002'
 import LlCheckListRecordCard003 from './LlCheckListRecordCard003'
+import LlTaskTempalteResuePopup001 from './LlTaskTempalteResuePopup001'
 import LlToggleTabBar001 from './LlToggleTabBar001'
 import LlNavButton001 from './LlNavButton001'
 import LlAuditResultCard from './LlAuditResultCard'
@@ -616,6 +617,7 @@ export {
   LlRiskCircleBubble,
   LlAuditListCard001,
   LlAuditManageFilter,
+  LlTaskTempalteResuePopup001,
   LlAuditQuestionCard001,
   LlSOSBtn001,
   LlBtn001,

@@ -12,18 +12,13 @@ import {
   LlTaskTemplateCard001,
   WsPageIndex,
   WsSnackBar,
-  WsPopup,
-  WsText,
-  WsFlex,
-  WsStateCheckBox002,
-  WsGradientButton,
+  LlTaskTempalteResuePopup001
 } from '@/components'
 import { useTranslation } from 'react-i18next'
 import S_TaskFactoryTemplate from '@/services/api/v1/task_factory_template'
 import { useNavigation } from '@react-navigation/native'
 import AsyncStorage from '@react-native-community/async-storage'
 import { useSelector } from 'react-redux'
-import $color from '@/__reactnative_stone/global/color'
 
 const TaskTemplateColloction: React.FC = () => {
   const { t } = useTranslation()
@@ -107,6 +102,13 @@ const TaskTemplateColloction: React.FC = () => {
       setIncludeSubTaskTaker(_hasSubTaskTaker)
       includeTaskTakerRef.current = _hasTemplateTaker
       includeSubTaskTakerRef.current = _hasSubTaskTaker
+      if (!_hasTemplateTaker && !_hasSubTaskTaker) {
+        await $_createTaskFromTemplate(_template, {
+          includeSubTaskTaker: false,
+          includeTaskTaker: false
+        })
+        return
+      }
       setPopupActive(true)
     } catch (error) {
       console.log(error)
@@ -121,107 +123,38 @@ const TaskTemplateColloction: React.FC = () => {
         visible={isSnackBarVisible}
         quickHidden={true}
       />
-      <WsPopup
+      <LlTaskTempalteResuePopup001
         active={popupActive}
         onClose={() => {
           setPopupActive(false)
         }}
-      >
-        <View
-          style={{
-            width: 320,
-            backgroundColor: $color.white,
-            borderRadius: 10,
-            padding: 16
-          }}
-        >
-          <View style={{ marginTop: 16 }}>
-            <WsText>{t('選擇是否帶入待辦執行者')}</WsText>
-            <View style={{ marginTop: 8 }}>
-              <WsStateCheckBox002
-                value={includeSubTaskTaker}
-                disabled={!templateHasSubTaskTaker}
-                onChange={(value: boolean) => {
-                  includeSubTaskTakerRef.current = value
-                  setIncludeSubTaskTaker(value)
-                }}
-                checkboxText={
-                  templateHasSubTaskTaker
-                    ? t('帶入公版待辦執行者')
-                    : t('公版無待辦執行者')
-                }
-              />
-            </View>
-          </View>
-
-          <View style={{ marginTop: 16 }}>
-            <WsText>{t('選擇是否帶入任務負責人')}</WsText>
-            <View style={{ marginTop: 8 }}>
-              <WsStateCheckBox002
-                value={includeTaskTaker}
-                disabled={!templateHasTaker}
-                onChange={(value: boolean) => {
-                  includeTaskTakerRef.current = value
-                  setIncludeTaskTaker(value)
-                }}
-                checkboxText={
-                  templateHasTaker
-                    ? t('帶入公版任務負責人')
-                    : t('公版無負責人，將帶入目前使用者')
-                }
-              />
-            </View>
-          </View>
-
-          <WsFlex
-            justifyContent="flex-end"
-            style={{
-              marginTop: 24
-            }}
-          >
-            <TouchableOpacity
-              style={{
-                width: 110,
-                height: 50,
-                borderColor: $color.gray,
-                borderWidth: 1,
-                borderRadius: 30,
-                marginHorizontal: 8,
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-              onPress={() => {
-                setPopupActive(false)
-              }}
-            >
-              <WsText color={$color.gray}>{t('取消')}</WsText>
-            </TouchableOpacity>
-            <WsGradientButton
-              style={{
-                width: 110,
-                height: 50,
-                marginHorizontal: 8
-              }}
-              onPress={async () => {
-                if (!pendingTemplate) {
-                  return
-                }
-                try {
-                  await $_createTaskFromTemplate(pendingTemplate, {
-                    includeSubTaskTaker: includeSubTaskTakerRef.current,
-                    includeTaskTaker: includeTaskTakerRef.current
-                  })
-                  setPopupActive(false)
-                } catch (error) {
-                  console.log(error)
-                }
-              }}
-            >
-              {t('確定')}
-            </WsGradientButton>
-          </WsFlex>
-        </View>
-      </WsPopup>
+        templateHasTaker={templateHasTaker}
+        templateHasSubTaskTaker={templateHasSubTaskTaker}
+        includeTaskTaker={includeTaskTaker}
+        includeSubTaskTaker={includeSubTaskTaker}
+        onChangeIncludeTaskTaker={(value: boolean) => {
+          includeTaskTakerRef.current = value
+          setIncludeTaskTaker(value)
+        }}
+        onChangeIncludeSubTaskTaker={(value: boolean) => {
+          includeSubTaskTakerRef.current = value
+          setIncludeSubTaskTaker(value)
+        }}
+        onConfirm={async () => {
+          if (!pendingTemplate) {
+            return
+          }
+          try {
+            await $_createTaskFromTemplate(pendingTemplate, {
+              includeSubTaskTaker: includeSubTaskTakerRef.current,
+              includeTaskTaker: includeTaskTakerRef.current
+            })
+            setPopupActive(false)
+          } catch (error) {
+            console.log(error)
+          }
+        }}
+      />
       <WsPageIndex
         modelName={'task_factory_template'}
         serviceIndexKey={'authCollectIndex'}

@@ -5,7 +5,8 @@ import {
   WsModal,
   WsCard,
   WsText,
-  WsPageIndex
+  WsPageIndex,
+  LlTaskTempalteResuePopup001
 } from '@/components'
 import { StatusBar, TouchableOpacity } from 'react-native'
 import TaskListIndex from '@/views/Task/Tasks/Index'
@@ -38,6 +39,7 @@ const TaskIndex: React.FC = () => {
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentFactoryTags = useSelector(state => state.data.factoryTags)
   const currentUserScope = useSelector(state => state.data.userScopes)
+  const currentUser = useSelector(state => state.data.currentUser)
   const canReadTaskTemplate = scopePermission('task-factory-template-read', currentUserScope)
   const canCreateTask = scopePermission('task-create', currentUserScope)
 
@@ -45,6 +47,14 @@ const TaskIndex: React.FC = () => {
   const [tabIndex, setTabIndex] = React.useState(route?.params?._tabIndex ?? 0)
   const [stateModal, setStateModal] = React.useState(false)
   const [stateTemplateModal, setStateTemplateModal] = React.useState(false)
+  const [stateTemplateReuseModal, setStateTemplateReuseModal] = React.useState(false)
+  const [pendingTemplate, setPendingTemplate] = React.useState<any>(null)
+  const [templateHasTaker, setTemplateHasTaker] = React.useState(false)
+  const [templateHasSubTaskTaker, setTemplateHasSubTaskTaker] = React.useState(false)
+  const [includeSubTaskTaker, setIncludeSubTaskTaker] = React.useState(true)
+  const [includeTaskTaker, setIncludeTaskTaker] = React.useState(true)
+  const includeSubTaskTakerRef = React.useRef(true)
+  const includeTaskTakerRef = React.useRef(true)
   const [filterFields] = React.useState<any>({
     status: {
       type: 'picker',
@@ -75,6 +85,28 @@ const TaskIndex: React.FC = () => {
     },
   })
 
+  const $_createTaskFromTemplate = React.useCallback(async (
+    _template: any,
+    {
+      includeSubTaskTaker,
+      includeTaskTaker
+    }: {
+      includeSubTaskTaker: boolean
+      includeTaskTaker: boolean
+    }
+  ) => {
+    const _taskCreateDraft = S_TaskFactoryTemplate.getTaskCreateDraftFromTemplate(_template, {
+      includeSubTaskTaker,
+      includeTaskTaker,
+      currentUser: currentUser || null
+    })
+    await AsyncStorage.removeItem('TaskCreate')
+    await AsyncStorage.setItem('TaskCreate', JSON.stringify(_taskCreateDraft))
+    navigation.push('RoutesTask', {
+      screen: 'TaskCreate'
+    })
+  }, [navigation, currentUser])
+
   const $_onSelectTemplateForCreate = React.useCallback(async (template: any) => {
     try {
       if (!template?.id) {
@@ -83,17 +115,30 @@ const TaskIndex: React.FC = () => {
       const _template = await S_TaskFactoryTemplate.show({
         modelId: template.id
       })
-      const _taskCreateDraft = S_TaskFactoryTemplate.getTaskCreateDraftFromTemplate(_template)
-      await AsyncStorage.removeItem('TaskCreate')
-      await AsyncStorage.setItem('TaskCreate', JSON.stringify(_taskCreateDraft))
+      const _hasTemplateTaker = Boolean(_template?.taker)
+      const _hasSubTaskTaker = Array.isArray(_template?.subtask_factory_templates)
+        && _template.subtask_factory_templates.some(subTask => Boolean(subTask?.taker))
+      setPendingTemplate(_template)
+      setTemplateHasTaker(_hasTemplateTaker)
+      setTemplateHasSubTaskTaker(_hasSubTaskTaker)
+      setIncludeTaskTaker(_hasTemplateTaker)
+      setIncludeSubTaskTaker(_hasSubTaskTaker)
+      includeTaskTakerRef.current = _hasTemplateTaker
+      includeSubTaskTakerRef.current = _hasSubTaskTaker
+      if (!_hasTemplateTaker && !_hasSubTaskTaker) {
+        setStateTemplateModal(false)
+        await $_createTaskFromTemplate(_template, {
+          includeSubTaskTaker: false,
+          includeTaskTaker: false
+        })
+        return
+      }
       setStateTemplateModal(false)
-      navigation.push('RoutesTask', {
-        screen: 'TaskCreate'
-      })
+      setStateTemplateReuseModal(true)
     } catch (error) {
       console.log(error)
     }
-  }, [navigation])
+  }, [])
 
   const toggleTabs = React.useMemo(() => {
     const _tabs: ToggleTab[] = [
@@ -400,6 +445,39 @@ const TaskIndex: React.FC = () => {
           emptyTitle={t('目前尚無資料')}
         />
       </WsModal>
+
+      <LlTaskTempalteResuePopup001
+        active={stateTemplateReuseModal}
+        onClose={() => {
+          setStateTemplateReuseModal(false)
+        }}
+        templateHasTaker={templateHasTaker}
+        templateHasSubTaskTaker={templateHasSubTaskTaker}
+        includeTaskTaker={includeTaskTaker}
+        includeSubTaskTaker={includeSubTaskTaker}
+        onChangeIncludeTaskTaker={(value: boolean) => {
+          includeTaskTakerRef.current = value
+          setIncludeTaskTaker(value)
+        }}
+        onChangeIncludeSubTaskTaker={(value: boolean) => {
+          includeSubTaskTakerRef.current = value
+          setIncludeSubTaskTaker(value)
+        }}
+        onConfirm={async () => {
+          if (!pendingTemplate) {
+            return
+          }
+          try {
+            await $_createTaskFromTemplate(pendingTemplate, {
+              includeSubTaskTaker: includeSubTaskTakerRef.current,
+              includeTaskTaker: includeTaskTakerRef.current
+            })
+            setStateTemplateReuseModal(false)
+          } catch (error) {
+            console.log(error)
+          }
+        }}
+      />
     </>
   )
 }
