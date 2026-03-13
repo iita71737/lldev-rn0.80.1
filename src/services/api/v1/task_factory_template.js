@@ -205,7 +205,7 @@ export default {
           ? (subTask?.taker || null)
           : null,
         system_subclasses: subTask?.system_subclasses || [],
-        related_module: subTask?.links || [],
+        related_module: subTask?.related_module || subTask?.links || [],
         file_attaches: subTask?.attaches || []
       }))
       : []
@@ -216,7 +216,7 @@ export default {
       taker: _taskTaker,
       system_subclasses: template?.system_subclasses || [],
       factory_tags: template?.factory_tags || [],
-      related_module: template?.links || [],
+      related_module: template?.related_module || template?.links || [],
       sub_tasks: _subTasks,
       status: template?.status || undefined,
       sub_task_scope: template?.sub_task_scope || 'taker'

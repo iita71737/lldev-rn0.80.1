@@ -37,6 +37,10 @@ const StackSetting = createStackNavigator()
 
 const RoutesTask = ({ navigation }) => {
   const { t, i18n } = useTranslation()
+  // Feature flag:
+  // true  -> 編輯已發布公版時，顯示「暫存草稿」
+  // false -> 編輯已發布公版時，隱藏「暫存草稿」
+  const ENABLE_TEMPLATE_UPDATE_DRAFT_SAVE_BUTTON = false
 
   // Redux
   const factory = useSelector(state => state.data.currentFactory)
@@ -70,6 +74,8 @@ const RoutesTask = ({ navigation }) => {
     <WsSubtaskCard
       {...props}
       showMissingTakerWarning={true}
+      showMissingExpiredAtWarning={true}
+      showMissingSystemSubclassWarning={true}
     />
   )
 
@@ -931,7 +937,6 @@ const RoutesTask = ({ navigation }) => {
       type: 'text',
       label: t('說明'),
       placeholder: `${t('輸入')}`,
-      rules: 'required',
     },
     taker: {
       type: 'belongsto',
@@ -941,13 +946,11 @@ const RoutesTask = ({ navigation }) => {
       modelName: 'user',
       serviceIndexKey: 'simplifyFactoryIndex',
       customizedNameKey: 'userAndEmail',
-      // rules: 'required',
     },
     system_subclasses: {
       type: 'modelsSystemClass',
       label: t('領域'),
       placeholder: `${t('待辦無領域')}`,
-      // rules: 'required',
       testID: 'modelsSystemClass',
       disabled: true
     },
@@ -983,7 +986,6 @@ const RoutesTask = ({ navigation }) => {
         },
         remark: {
           label: t('說明'),
-          rules: 'required',
         },
         taker: {
           type: 'belongsto',
@@ -998,7 +1000,6 @@ const RoutesTask = ({ navigation }) => {
           type: 'modelsSystemClass',
           label: t('領域'),
           placeholder: `${t('選擇')}`,
-          // rules: 'required', 260310-task
           testID: 'modelsSystemClass'
         },
         links: {
@@ -1025,11 +1026,6 @@ const RoutesTask = ({ navigation }) => {
         remark: {
           label: t('說明'),
         },
-        // expired_at: {
-        //   type: 'date',
-        //   label: t('期限'),
-        //   rules: 'requiredAndCompare',
-        // },
         file_attaches: {
           modelName: 'task',
           label: t('附件'),
@@ -1137,7 +1133,7 @@ const RoutesTask = ({ navigation }) => {
   const submitForCreate = async (_postData, navigation, currentUserId) => {
     // console.log(JSON.stringify(_postData), '_postData');
     const _data = S_Task.getFormattedDataForCreate(_postData, currentUserId)
-    console.log(JSON.stringify(_data), '_data');
+    // console.log(JSON.stringify(_data), '_data');
     try {
       const res = await S_Task.create({
         data: _data
@@ -1235,7 +1231,7 @@ const RoutesTask = ({ navigation }) => {
     try {
       if (_data.status === '2') {
         const _modelId = _data?.id
-        console.log(_modelId, '_modelIdQQQ');
+        console.log(_modelId, '=_modelId=');
         const res = await S_Task.updateDraft({
           modelId: _modelId,
           data: _data
@@ -1318,7 +1314,7 @@ const RoutesTask = ({ navigation }) => {
       navigation.goBack()
     } catch (e) {
       console.error(e?.message, 'TaskTemplateCreateDraft error')
-      Alert.alert(t('暫存失敗'))
+      Alert.alert(t('草稿暫存失敗'))
     }
   }
 
@@ -1340,7 +1336,7 @@ const RoutesTask = ({ navigation }) => {
       $_resetToTaskTemplateShow(navigation, _data.id)
     } catch (e) {
       console.error(e?.message, 'TaskTemplateUpdateDraft error')
-      Alert.alert(t('暫存失敗'))
+      Alert.alert(t('草稿暫存失敗'))
     }
   }
 
@@ -1766,8 +1762,12 @@ const RoutesTask = ({ navigation }) => {
           afterFinishingTo: 'TaskTemplateShow',
           parentId: factory && factory.id,
           submitFunction: submitForTemplateEdit,
-          headerRightBtnText002: t('暫存草稿'),
-          onSubmitDraft: onSubmitTemplateUpdateDraft,
+          ...(ENABLE_TEMPLATE_UPDATE_DRAFT_SAVE_BUTTON
+            ? {
+              headerRightBtnText002: t('暫存草稿'),
+              onSubmitDraft: onSubmitTemplateUpdateDraft,
+            }
+            : {}),
         }}
       />
       <StackSetting.Screen

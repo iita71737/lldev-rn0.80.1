@@ -87,7 +87,6 @@ const LlTaskTemplateCard001 = props => {
                 justifyContent="space-between"
                 alignItems="center"
                 style={{
-                  marginBottom: 8,
                 }}
               >
                 <WsText
@@ -98,8 +97,9 @@ const LlTaskTemplateCard001 = props => {
                 >
                   {item?.name || i18next.t('未命名公版')}
                 </WsText>
+
                 <WsFlex>
-                  {createTaskOnPress && (
+                  {createTaskOnPress && item?.status !== 'draft' && (
                     <WsIconBtn
                       padding={0}
                       testID={`${testID}-建立任務`}
@@ -135,7 +135,7 @@ const LlTaskTemplateCard001 = props => {
                 justifyContent="flex-start"
                 alignItems="center"
                 style={{
-                  marginBottom: 8
+                  marginTop: 8
                 }}
               >
                 <WsTag
@@ -146,19 +146,9 @@ const LlTaskTemplateCard001 = props => {
                 </WsTag>
               </WsFlex>
 
-              {item?.factory_tags &&
-                item?.factory_tags?.length > 0 && (
-                  <View>
-                    <WsInfo
-                      type="tags"
-                      value={item.factory_tags}
-                    />
-                  </View>
-                )}
-
               {item?.system_subclasses &&
                 item?.system_subclasses?.length > 0 && (
-                  <View style={{ marginTop: 2 }}>
+                  <View style={{ marginTop: 8 }}>
                     <WsFlex flexWrap="wrap">
                       {item.system_subclasses.map((subClass, subClassIndex) => (
                         <WsTag
@@ -167,7 +157,7 @@ const LlTaskTemplateCard001 = props => {
                           backgroundColor={$color.primary11l}
                           textColor={$color.primary2l}
                           style={{
-                            marginTop: 8,
+                            marginTop: 4,
                             marginRight: 8
                           }}
                         >
@@ -175,6 +165,16 @@ const LlTaskTemplateCard001 = props => {
                         </WsTag>
                       ))}
                     </WsFlex>
+                  </View>
+                )}
+
+              {item?.factory_tags &&
+                item?.factory_tags?.length > 0 && (
+                  <View style={{ marginTop: 8 }}>
+                    <WsInfo
+                      type="tags"
+                      value={item.factory_tags}
+                    />
                   </View>
                 )}
 
@@ -196,7 +196,7 @@ const LlTaskTemplateCard001 = props => {
                 />
               </View> */}
 
-              <WsFlex style={{ flex: 1,  marginTop: 8 }}>
+              <WsFlex style={{ flex: 1, marginTop: 8 }}>
                 {item.updated_at && (
                   <>
                     <WsIcon

@@ -167,7 +167,7 @@ const WsStateModels = props => {
                     _dateCompare={moment(_dateCompare).utc()}
                     fields={fields}
                     value={_dateCompare ? { ...item, task_expired_at: moment(_dateCompare).utc() } : item}
-                    attachCount={item.attaches ? item.attaches.length : 0}
+                    attachCount={item.attaches?.length || item.file_attaches?.length || 0}
                     onChange={$event => {
                       let _value = [...value]
                       _value[index] = $event

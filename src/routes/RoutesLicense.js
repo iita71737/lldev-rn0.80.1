@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 import ViewDashboardLicenseExpired from '@/views/DashboardFactory/LicenseExpired'
 import ViewDashboardLicenseExpiredList from '@/views/DashboardFactory/DashboardLicenseExpiredListTab'
 import PickTypeTemplate from '@/views/License/Create/PickTypeTemplate'
+import { params } from 'views/Statistics/Create/mock/records'
 
 const StackSetting = createStackNavigator()
 const RoutesLicense = () => {
@@ -57,8 +58,13 @@ const RoutesLicense = () => {
       type: 'belongsto',
       label: t('公版名稱'),
       nameKey: 'name',
-      modelName: 'license_template',
+      modelName: 'license_type',
       parentId: factory && factory.id,
+      hasMete: false,
+      params: {
+        order_by: 'sequence',
+        order_way: 'asc'
+      },
       editable: false,
       displayCheck(fieldsValue) {
         if (fieldsValue.license_template) {

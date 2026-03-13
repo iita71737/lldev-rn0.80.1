@@ -169,13 +169,13 @@ const WsStatebelongstoModalPicker = props => {
                       maxWidth: width * 0.8
                     }}
                     color={
-                      value !== undefined && editable ? $color.black :
+                      value !== undefined && value !== null && editable ? $color.black :
                         (isError && rules && rules.includes('required')) ? $color.danger :
                           $color.gray
                     }
                   >
                     {
-                      `${preText ? t(preText) : ''} ${value ? formatNameKey ? moment(value[nameKey]).utc().local().format(formatNameKey) : t(value[nameKey]) : value !== undefined ? t('其他') : t(placeholder)} ${suffixText ? t(suffixText) : ''}`
+                      `${preText ? t(preText) : ''} ${value ? formatNameKey ? moment(value[nameKey]).utc().local().format(formatNameKey) : t(value[nameKey]) : value !== undefined && value !== null ? t('其他') : t(placeholder)} ${suffixText ? t(suffixText) : ''}`
                     }
                   </WsText>
                 </WsFlex>

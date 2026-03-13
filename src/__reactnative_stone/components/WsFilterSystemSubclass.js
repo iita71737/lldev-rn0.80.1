@@ -1,7 +1,7 @@
 // @refresh reset 
 import React from 'react'
 import { Pressable, View } from 'react-native'
-import { WsText, WsNavCheck, WsFlex } from '@/components'
+import { WsText, WsNavCheck, WsFlex, WsIcon } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -54,7 +54,7 @@ const WsFilterSystemSubclass = props => {
       return _value
     }
     systemClasses.forEach(systemClass => {
-      ;(systemClass?.system_subclasses || []).forEach(systemSubclass => {
+      ; (systemClass?.system_subclasses || []).forEach(systemSubclass => {
         if (!_value.includes(systemSubclass.id)) {
           _value.push(systemSubclass.id)
         }
@@ -70,23 +70,23 @@ const WsFilterSystemSubclass = props => {
   // Function
   const $_onSystemClassSelectAll = systemClass => {
     const _value = value ? [...value] : []
-    ;(systemClass?.system_subclasses || []).forEach(systemSubclass => {
-      if (!_value.includes(systemSubclass.id)) {
-        _value.push(systemSubclass.id)
-      }
-    })
+      ; (systemClass?.system_subclasses || []).forEach(systemSubclass => {
+        if (!_value.includes(systemSubclass.id)) {
+          _value.push(systemSubclass.id)
+        }
+      })
     onChange(_value)
   }
   const $_onSystemClassClearAll = systemClass => {
     const _value = value ? [...value] : []
-    ;(systemClass?.system_subclasses || []).forEach(systemSubclass => {
-      const tarIndex = _value.findIndex(e => {
-        return e == systemSubclass.id
+      ; (systemClass?.system_subclasses || []).forEach(systemSubclass => {
+        const tarIndex = _value.findIndex(e => {
+          return e == systemSubclass.id
+        })
+        if (tarIndex >= 0) {
+          _value.splice(tarIndex, 1)
+        }
       })
-      if (tarIndex >= 0) {
-        _value.splice(tarIndex, 1)
-      }
-    })
     onChange(_value)
   }
   const $_onSystemSubclassPress = ($event, systemSubclass) => {
@@ -134,6 +134,28 @@ const WsFilterSystemSubclass = props => {
   // Render
   return (
     <>
+      <WsFlex
+        style={{
+          paddingHorizontal: 16,
+          paddingTop: 4
+        }}
+      >
+        <WsIcon
+          name="md-info-outline"
+          size={20}
+          color={$color.danger}
+        />
+        <WsText
+          color={$color.danger}
+          size={12}
+          style={{
+            marginLeft: 4
+          }}
+        >
+          {t('紅字為無權限')}
+        </WsText>
+      </WsFlex>
+
       {systemClasses && systemClasses.length > 0 && (
         <WsFlex
           style={{
@@ -236,11 +258,9 @@ const WsFilterSystemSubclass = props => {
                     onChange={$event => {
                       $_onSystemSubclassPress($event, systemSubclass)
                     }}
-                    textRight={!$_hasPermission(systemSubclass) ? t('無權限') : undefined}
-                    textRightColor={!$_hasPermission(systemSubclass) ? $color.danger : undefined}
+                    fontColor={!$_hasPermission(systemSubclass) ? $color.danger : $color.black}
                     key={`${systemClassIndex}-${systemSubclassIndex}`}
-                    textRightWidthTimes={0.2}
-                    >
+                  >
                     {t(systemSubclass.name)}
                   </WsNavCheck>
                 )

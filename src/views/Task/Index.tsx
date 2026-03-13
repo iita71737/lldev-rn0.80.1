@@ -59,7 +59,7 @@ const TaskIndex: React.FC = () => {
     status: {
       type: 'picker',
       label: t('狀態'),
-      placeholder: t('選擇狀態'),
+      placeholder: t('選擇'),
       items: [
         {
           label: t('已發布'),

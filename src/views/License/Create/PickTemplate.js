@@ -70,7 +70,7 @@ const LicensePickTemplate = (props) => {
             text={t('找不到想新增的種類嗎？')}
             onPressText={t('點此新增「其他」')}
             onPress={() => {
-              onPressOthers()
+              onPressOthers(type)
             }}
             modelName="license_templates"
             parentId={type ? type.id : undefined}

@@ -632,6 +632,8 @@ const LlRelatedModuleModalPicker = props => {
     }
   }, [value]);
 
+  // console.log(fetchItems,'fetchItems----')
+
   // Render
   return (
     <>

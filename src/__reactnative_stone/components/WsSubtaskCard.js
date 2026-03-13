@@ -36,6 +36,8 @@ const WsSubtaskCard = props => {
     _dateCompare,
     onPress,
     showMissingTakerWarning = false,
+    showMissingExpiredAtWarning = false,
+    showMissingSystemSubclassWarning = false,
     placeholderTitle = t('主旨'),
     placeholderRemark = t('說明'),
   } = props
@@ -65,6 +67,7 @@ const WsSubtaskCard = props => {
   }, [value?.taker])
 
   const _remark = value?.remark || ''
+  const _hasExpiredAt = Boolean(value?.expired_at)
   const _systemSubclasses = Array.isArray(value?.system_subclasses)
     ? value.system_subclasses
     : []
@@ -73,8 +76,6 @@ const WsSubtaskCard = props => {
     : Array.isArray(value?.related_module)
       ? value.related_module.length
       : 0
-
-  console.log(value?.links, 'linkslinks')
 
   // Render
   return (
@@ -153,7 +154,7 @@ const WsSubtaskCard = props => {
                             marginRight: 8
                           }}
                         >
-                          {`#${subClass?.name || ''}`}
+                          {`${subClass?.name || ''}`}
                         </WsTag>
                       ))}
                     </WsFlex>
@@ -179,8 +180,54 @@ const WsSubtaskCard = props => {
                   </WsFlex>
                 )}
 
+                {_remark ? (
+                  <View
+                    style={{
+                      marginTop: 4
+                    }}
+                  >
+                    <WsInfo
+                      labelWidth={60}
+                      label={t('說明')}
+                      value={_remark}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'flex-start'
+                      }}
+                      labelFontWeight={'400'}
+                    />
+                  </View>
+                ) : null}
+
+                {showMissingSystemSubclassWarning && _systemSubclasses.length === 0 && (
+                  <WsFlex
+                    style={{
+                      marginTop: 4
+                    }}
+                  >
+                    <WsIcon
+                      color={$color.danger}
+                      name={'ws-outline-warning'}
+                      size={18}
+                      style={{
+                        marginRight: 2
+                      }}
+                    />
+                    <WsText
+                      size={12}
+                      color={$color.danger}
+                    >
+                      {t('尚未設定領域')}
+                    </WsText>
+                  </WsFlex>
+                )}
+
                 {showMissingTakerWarning && !_hasTaker && (
-                  <WsFlex>
+                  <WsFlex
+                    style={{
+                      marginTop: 4
+                    }}
+                  >
                     <WsIcon
                       color={$color.danger}
                       name={'ws-outline-warning'}
@@ -198,24 +245,26 @@ const WsSubtaskCard = props => {
                   </WsFlex>
                 )}
 
-                {_remark ? (
-                  <View
-                    style={{
-                      marginTop: 4
-                    }}
+                {showMissingExpiredAtWarning && !_hasExpiredAt && (
+                  <WsFlex
+                    style={{ marginTop: 4 }}
                   >
-                    <WsInfo
-                      labelWidth={60}
-                      label={t('說明')}
-                      value={_remark}
+                    <WsIcon
+                      color={$color.danger}
+                      name={'ws-outline-warning'}
+                      size={18}
                       style={{
-                        flexDirection: 'row',
-                        alignItems: 'center'
+                        marginRight: 2
                       }}
-                      labelFontWeight={'400'}
                     />
-                  </View>
-                ) : null}
+                    <WsText
+                      size={12}
+                      color={$color.danger}
+                    >
+                      {t('尚未設定期限')}
+                    </WsText>
+                  </WsFlex>
+                )}
 
                 <WsFlex
                   style={[

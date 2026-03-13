@@ -17,7 +17,8 @@ import {
   WsPopup,
   WsGradientButton,
   WsTag,
-  WsText
+  WsText,
+  WsDes
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import S_TaskFactoryTemplate from '@/services/api/v1/task_factory_template'
@@ -161,6 +162,9 @@ const TaskTemplateShow = ({ navigation, route }) => {
       return
     }
     if (item?.key === 'createTask') {
+      if (taskTemplate?.status === 'draft') {
+        return
+      }
       setIsBottomSheetActive(false)
       await $_createTaskByTemplate()
       return
@@ -300,13 +304,15 @@ const TaskTemplateShow = ({ navigation, route }) => {
         key: 'copy',
         icon: 'ws-outline-copy',
         label: t('複製公版')
-      },
-      {
+      }
+    ]
+    if (taskTemplate?.status !== 'draft') {
+      _items.push({
         key: 'createTask',
         icon: 'll-nav-add-assignment',
         label: t('建立任務')
-      }
-    ]
+      })
+    }
 
     if (canDeleteTemplate) {
       _items.push({
@@ -423,20 +429,24 @@ const TaskTemplateShow = ({ navigation, route }) => {
                 <WsText size={14} fontWeight={'600'} style={{ width: 100 }}>
                   {t('領域')}
                 </WsText>
-                <WsFlex
-                  flexWrap={'wrap'}
-                  style={{ marginLeft: 8, marginRight: 16, flex: 1 }}
-                >
-                  {taskTemplate?.system_subclasses?.map((systemSubclass: any, index: number) => (
-                    <WsTag
-                      img={systemSubclass?.icon}
-                      key={`${systemSubclass?.id || index}`}
-                      style={{ marginTop: 4, marginRight: 8 }}
-                    >
-                      {systemSubclass?.name}
-                    </WsTag>
-                  ))}
-                </WsFlex>
+                {!!taskTemplate?.system_subclasses?.length ? (
+                  <WsFlex
+                    flexWrap={'wrap'}
+                    style={{ marginLeft: 8, marginRight: 16, flex: 1 }}
+                  >
+                    {taskTemplate.system_subclasses.map((systemSubclass: any, index: number) => (
+                      <WsTag
+                        img={systemSubclass?.icon}
+                        key={`${systemSubclass?.id || index}`}
+                        style={{ marginTop: 4, marginRight: 8 }}
+                      >
+                        {systemSubclass?.name}
+                      </WsTag>
+                    ))}
+                  </WsFlex>
+                ) : (
+                  <WsDes style={{}} size={14}>{t('無')}</WsDes>
+                )}
               </WsFlex>
 
               <View style={{ marginTop: 8 }}>
@@ -563,7 +573,8 @@ const TaskTemplateShow = ({ navigation, route }) => {
                     key={`${subtask?.id || index}`}
                     style={{
                       backgroundColor: $color.primary11l,
-                      marginTop: 8
+                      marginTop: 8,
+                      paddingVertical: 12,
                     }}
                   >
                     <WsText>{subtask?.name || t('未命名待辦')}</WsText>
@@ -599,6 +610,21 @@ const TaskTemplateShow = ({ navigation, route }) => {
 
                     <View
                       style={{
+                        marginTop: 4
+                      }}
+                    >
+                      <WsInfo
+                        style={{
+                          flexDirection: 'row',
+                        }}
+                        labelWidth={84}
+                        label={t('說明')}
+                        value={subtask?.remark || t('無')}
+                      />
+                    </View>
+
+                    <View
+                      style={{
                         marginTop: 8
                       }}
                     >
@@ -610,21 +636,6 @@ const TaskTemplateShow = ({ navigation, route }) => {
                         labelWidth={84}
                         label={t('執行者')}
                         value={subtask?.taker}
-                      />
-                    </View>
-
-                    <View
-                      style={{
-                        marginTop: 4
-                      }}
-                    >
-                      <WsInfo
-                        style={{
-                          flexDirection: 'row',
-                        }}
-                        labelWidth={84}
-                        label={t('說明')}
-                        value={subtask?.remark || t('無')}
                       />
                     </View>
 

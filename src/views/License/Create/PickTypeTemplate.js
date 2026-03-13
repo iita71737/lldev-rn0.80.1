@@ -115,7 +115,7 @@ const LicensePickTypeTemplate = (props) => {
       console.log(error)
     }
   }
-  const $_otherTemplateOnPress = async (licenseType) => {
+  const $_otherTemplateOnPress = async (licenseType = selectType) => {
     console.log(licenseType,'$_otherTemplateOnPress');
     const _data = {
       license_owned_factory: currentFactory,
