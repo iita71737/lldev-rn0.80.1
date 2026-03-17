@@ -118,4 +118,15 @@ export default {
       return newItem;
     });
   },
+  indexAll({ params }) {
+    const _params = {
+      ...S_Processor.getFactoryData(),
+      ...S_Processor.getLocaleParams(),
+      ...params
+    }
+    return base.index({
+      modelName: `task/${params.task_id}/sub_task/index/all`,
+      params: _params,
+    })
+  }
 }

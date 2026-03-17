@@ -5,13 +5,6 @@ import SpInAppUpdates, {
 } from "sp-react-native-in-app-updates";
 import DeviceInfo from "react-native-device-info";
 import { Platform, Alert } from "react-native";
-// import semver from "semver";
-import Config from "react-native-config";
-
-// 檢查版本是否符合要求的函數，返回布林值
-// const isUpToDate = (currentVersion: string, targetVersion: string): boolean => {
-//   return semver.gte(currentVersion, targetVersion); // 大於或等於則返回 true
-// };
 
 // 檢查並處理更新的主函數
 export const checkForUpdate = async (): Promise<boolean> => {

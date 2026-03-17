@@ -129,6 +129,40 @@ const LlArticleCard001 = props => {
     }
   }
 
+  const _articleHierarchyTitles = React.useMemo(() => {
+    const _levels = [
+      { key: 'part', text: article?.part },
+      { key: 'chapter', text: article?.chapter },
+      { key: 'division', text: article?.division },
+      { key: 'section', text: article?.section },
+      { key: 'sub_section', text: article?.sub_section }
+    ]
+
+    let _depth = 0
+    const _result = []
+    _levels.forEach(level => {
+      const _text = typeof level.text === 'string'
+        ? level.text.trim()
+        : level.text
+      if (!_text) {
+        return
+      }
+      _result.push({
+        key: level.key,
+        text: _text,
+        indent: _depth
+      })
+      _depth += 1
+    })
+    return _result
+  }, [
+    article?.part,
+    article?.chapter,
+    article?.division,
+    article?.section,
+    article?.sub_section
+  ])
+
   // console.log(article, 'articleQQ')
 
   return (
@@ -143,70 +177,19 @@ const LlArticleCard001 = props => {
               style
             ]}
           >
-            {article.part != '' &&
+            {_articleHierarchyTitles.map(level => (
               <WsTitle
-                fontSize={24}
-                fontWeight={'600'}
-                style={{
-                  marginBottom: 16,
-                  // borderWidth:1,
-                }}
-              >
-                {article.part}
-              </WsTitle>
-            }
-
-            {article.division != '' &&
-              <WsTitle
-                fontSize={24}
-                fontWeight={'600'}
-                style={{
-                  marginBottom: 16,
-                  // borderWidth:1,
-                }}
-              >
-                {article.division}
-              </WsTitle>
-            }
-
-            {article.chapter != '' &&
-              <WsTitle
+                key={level.key}
                 fontSize={20}
                 fontWeight={'600'}
                 style={{
                   marginBottom: 16,
-                  // borderWidth:1,
+                  marginLeft: level.indent * 16
                 }}
               >
-                {article.chapter}
+                {level.text}
               </WsTitle>
-            }
-
-            {article.section != '' &&
-              <WsTitle
-                fontSize={18}
-                fontWeight={'600'}
-                style={{
-                  marginBottom: 16,
-                  // borderWidth:1,
-                }}
-              >
-                {article.section}
-              </WsTitle>
-            }
-
-            {article.sub_section != '' &&
-              <WsTitle
-                fontSize={18}
-                fontWeight={'600'}
-                style={{
-                  marginBottom: 16,
-                  // borderWidth:1,
-                }}
-              >
-                {article.sub_section}
-              </WsTitle>
-            }
+            ))}
 
             {article.no_text != '' && (
               <WsFlex
@@ -221,8 +204,8 @@ const LlArticleCard001 = props => {
                   fontWeight={'600'}
                   style={{
                     // borderWidth: 1,
-                    // maxWidth: width * 0.5
                   }}
+                  color={$color.primary}
                 >
                   {article.no_text}
                 </WsText>

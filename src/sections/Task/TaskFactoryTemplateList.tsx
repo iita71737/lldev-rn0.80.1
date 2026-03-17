@@ -18,6 +18,7 @@ import S_TaskFactoryTemplate from '@/services/api/v1/task_factory_template'
 import { useNavigation } from '@react-navigation/native'
 import { useSelector } from 'react-redux'
 import AsyncStorage from '@react-native-community/async-storage'
+import { scopePermission } from '@/__reactnative_stone/global/permission'
 
 const TaskFactoryTemplateList: React.FC = () => {
   const { t } = useTranslation()
@@ -28,6 +29,8 @@ const TaskFactoryTemplateList: React.FC = () => {
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentFactoryTags = useSelector(state => state.data.factoryTags)
   const currentUser = useSelector(state => state.data.currentUser)
+  const currentUserScope = useSelector(state => state.data.userScopes)
+  const canCreateTask = scopePermission('task-create', currentUserScope)
 
   // State
   const [refreshCounter, setRefreshCounter] = React.useState(0)
@@ -218,6 +221,7 @@ const TaskFactoryTemplateList: React.FC = () => {
               createTaskOnPress={() => {
                 createTaskOnPress(item)
               }}
+              canCreateTask={canCreateTask}
             />
           </>
         )}

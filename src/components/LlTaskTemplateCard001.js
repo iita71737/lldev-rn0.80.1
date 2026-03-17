@@ -24,7 +24,8 @@ const LlTaskTemplateCard001 = props => {
     is_collect,
     is_collect_visible = false,
     bookmarkOnPress,
-    createTaskOnPress
+    createTaskOnPress,
+    canCreateTask = true
   } = props
 
   const [isCollect, setIsCollect] = React.useState(is_collect)
@@ -99,7 +100,7 @@ const LlTaskTemplateCard001 = props => {
                 </WsText>
 
                 <WsFlex>
-                  {createTaskOnPress && item?.status !== 'draft' && (
+                  {canCreateTask && createTaskOnPress && item?.status !== 'draft' && (
                     <WsIconBtn
                       padding={0}
                       testID={`${testID}-建立任務`}

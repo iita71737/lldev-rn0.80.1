@@ -19,10 +19,21 @@ import S_TaskFactoryTemplate from '@/services/api/v1/task_factory_template'
 import { useNavigation } from '@react-navigation/native'
 import AsyncStorage from '@react-native-community/async-storage'
 import { useSelector } from 'react-redux'
+import { scopePermission } from '@/__reactnative_stone/global/permission'
 
 const TaskTemplateColloction: React.FC = () => {
   const { t } = useTranslation()
   const navigation = useNavigation<any>()
+
+  // REDUX
+  const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
+  const currentFactory = useSelector(state => state.data.currentFactory)
+  const currentFactoryTags = useSelector(state => state.data.factoryTags)
+  const currentUser = useSelector(state => state.data.currentUser)
+  const currentUserScope = useSelector(state => state.data.userScopes)
+  const canCreateTask = scopePermission('task-create', currentUserScope)
+  
+  // state
   const [refreshCounter, setRefreshCounter] = React.useState(0)
   const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false)
   const [snackBarText, setSnackBarText] = React.useState(
@@ -36,7 +47,39 @@ const TaskTemplateColloction: React.FC = () => {
   const [includeTaskTaker, setIncludeTaskTaker] = React.useState(true)
   const includeSubTaskTakerRef = React.useRef(true)
   const includeTaskTakerRef = React.useRef(true)
-  const currentUser = useSelector(state => state.data.currentUser)
+  const [filterFields] = React.useState<any>({
+    status: {
+      type: 'picker',
+      label: t('狀態'),
+      placeholder: t('選擇'),
+      items: [
+        {
+          label: t('全部'),
+          value: 'released,draft'
+        },
+        {
+          label: t('已發布'),
+          value: 'released'
+        },
+        {
+          label: t('草稿'),
+          value: 'draft'
+        },
+      ]
+    },
+    system_subclasses: {
+      type: 'system_subclass',
+      label: t('領域')
+    },
+    factory_tags: {
+      type: 'checkbox',
+      label: t('標籤'),
+      items: currentFactoryTags ? currentFactoryTags : [],
+      searchVisible: true,
+      selectAllVisible: false,
+      defaultSelected: false
+    },
+  })
 
   const __params = React.useMemo(() => {
     const _params = {
@@ -159,6 +202,7 @@ const TaskTemplateColloction: React.FC = () => {
         modelName={'task_factory_template'}
         serviceIndexKey={'authCollectIndex'}
         params={__params}
+        filterFields={filterFields}
         renderItem={({ item, index }) => (
           <>
             <LlTaskTemplateCard001
@@ -177,6 +221,7 @@ const TaskTemplateColloction: React.FC = () => {
               createTaskOnPress={() => {
                 createTaskOnPress(item)
               }}
+              canCreateTask={canCreateTask}
             />
           </>
         )}

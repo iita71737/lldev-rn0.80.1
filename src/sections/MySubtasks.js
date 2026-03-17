@@ -195,7 +195,7 @@ const MySubtasks = (props) => {
         labelRemarkText:
           subtask.reply_updated_at &&
           `${t('編輯時間')} ` +
-          `${moment(subtask.reply_updated_at).format('YYYY-MM-DD HH:mm')} `,
+          `${moment(subtask.reply_updated_at).format('YYYY-MM-DD HH:mm:ss')} `,
         labelRemarkTextUser:
           subtask.reply_update_user &&
           <WsInfoUser
@@ -240,9 +240,9 @@ const MySubtasks = (props) => {
         label: `${t('回覆審核結果')}`,
         emptyText: t('尚無回覆'),
         labelBtnText:
-          currentUser && currentUser.id && subtask.task && subtask.task.taker && subtask.task.taker.id && currentUser.id === subtask.task.taker.id ? t('編輯') : null,
+          currentUser && currentUser.id && subtask.task && subtask.task.taker && subtask.task.taker.id && (currentUser.id === subtask.task.taker.id) ? t('編輯') : null,
         labelBtnOnPress:
-          currentUser && currentUser.id && subtask.task && subtask.task.taker && subtask.task.taker.id && currentUser.id === subtask.task.taker.id
+          currentUser && currentUser.id && subtask.task && subtask.task.taker && subtask.task.taker.id && (currentUser.id === subtask.task.taker.id)
             ? () => {
               setStateModalForReviewSubtask(true)
             }
@@ -253,7 +253,7 @@ const MySubtasks = (props) => {
         labelRemarkText:
           subtask.review_updated_at ?
             `${t('編輯時間')} ` +
-            `${moment(subtask.review_updated_at).format('YYYY-MM-DD HH:mm')} ` : null,
+            `${moment(subtask.review_updated_at).format('YYYY-MM-DD HH:mm:ss')} ` : null,
         labelRemarkTextUser:
           subtask.review_update_user &&
           <WsInfoUser

@@ -42,6 +42,7 @@ const TaskIndex: React.FC = () => {
   const currentUser = useSelector(state => state.data.currentUser)
   const canReadTaskTemplate = scopePermission('task-factory-template-read', currentUserScope)
   const canCreateTask = scopePermission('task-create', currentUserScope)
+  const canCreateTaskTemplate = scopePermission('task-factory-template-create', currentUserScope)
 
   // State
   const [tabIndex, setTabIndex] = React.useState(route?.params?._tabIndex ?? 0)
@@ -56,21 +57,21 @@ const TaskIndex: React.FC = () => {
   const includeSubTaskTakerRef = React.useRef(true)
   const includeTaskTakerRef = React.useRef(true)
   const [filterFields] = React.useState<any>({
-    status: {
-      type: 'picker',
-      label: t('狀態'),
-      placeholder: t('選擇'),
-      items: [
-        {
-          label: t('已發布'),
-          value: 'released'
-        },
-        {
-          label: t('草稿'),
-          value: 'draft'
-        },
-      ]
-    },
+    // status: {
+    //   type: 'picker',
+    //   label: t('狀態'),
+    //   placeholder: t('選擇'),
+    //   items: [
+    //     {
+    //       label: t('已發布'),
+    //       value: 'released'
+    //     },
+    //     {
+    //       label: t('草稿'),
+    //       value: 'draft'
+    //     },
+    //   ]
+    // },
     system_subclasses: {
       type: 'system_subclass',
       label: t('領域')
@@ -209,7 +210,7 @@ const TaskIndex: React.FC = () => {
             />
           )
         }
-        if (isTaskTemplateTab) {
+        if (isTaskTemplateTab && canCreateTaskTemplate) {
           return (
             <WsIconBtn
               name="md-add"
@@ -311,7 +312,7 @@ const TaskIndex: React.FC = () => {
         return null
       }
     })
-  }, [tabIndex, navigation, t, canReadTaskTemplate, canCreateTask])
+  }, [tabIndex, navigation, t, canReadTaskTemplate, canCreateTask, canCreateTaskTemplate])
 
   // 本頁 render 後兩次執行 $_applyHeaderOptions，確保 header 的設定被正確套用
   React.useLayoutEffect(() => {
@@ -419,7 +420,7 @@ const TaskIndex: React.FC = () => {
         title={t('引用任務公版')}
       >
         <WsPageIndex
-          filterVisible={false}
+          // filterVisible={false}
           modelName={'task_factory_template'}
           params={{
             order_by: 'updated_at',

@@ -905,6 +905,7 @@ export default {
         navigation.navigate('RoutesTask', {
           screen: 'TaskIndex',
           params: {
+            tabIndex: payload?.params?.tabIndex
           }
         })
         return

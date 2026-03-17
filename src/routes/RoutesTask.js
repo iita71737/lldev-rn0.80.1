@@ -48,12 +48,18 @@ const RoutesTask = ({ navigation }) => {
   const currentFactoryTags = useSelector(state => state.data.factoryTags)
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
   const currentUserScope = useSelector(state => state.data.userScopes);
+  const canTaskTemplateHeaderAction = (
+    scopePermission('task-factory-template-update', currentUserScope) ||
+    scopePermission('task-factory-template-destory', currentUserScope) ||
+    scopePermission('task-create', currentUserScope)
+  )
 
   // state
   const subTaskScopeField = {
     type: 'picker',
     label: t('待辦執行者的待辦閱覽權限'),
     placeholder: t('選擇'),
+    defaultValue: 'taker',
     rules: 'required',
     items: [
       {
@@ -103,6 +109,8 @@ const RoutesTask = ({ navigation }) => {
       modelName: 'user',
       serviceIndexKey: 'simplifyFactoryIndex',
       customizedNameKey: 'userAndEmail',
+      remind: t('可瀏覽全部待辦，不受執行者權限影響‘'),
+      remindColor: $color.danger,
     },
     roles: {
       type: 'multipleBelongstomany',
@@ -115,7 +123,9 @@ const RoutesTask = ({ navigation }) => {
       params: {
         get_all: 1
       },
-      searchBarVisible: true
+      searchBarVisible: true,
+      remind: t('可瀏覽全部待辦，不受執行者權限影響‘'),
+      remindColor: $color.danger,
     },
     remark: {
       type: 'text',
@@ -542,6 +552,32 @@ const RoutesTask = ({ navigation }) => {
       label: t('領域'),
       rules: 'required',
       disabled: true
+    },
+    users: {
+      type: 'belongstomany',
+      label: `${t('限閱人員')}`,
+      nameKey: 'name',
+      valueKey: 'id',
+      modelName: 'user',
+      serviceIndexKey: 'simplifyFactoryIndex',
+      customizedNameKey: 'userAndEmail',
+      remind: t('可瀏覽全部待辦，不受執行者權限影響‘'),
+      remindColor: $color.danger,
+    },
+    roles: {
+      type: 'multipleBelongstomany',
+      label: t('限閱角色'),
+      placeholder: t('選擇'),
+      innerLabel: [t('預設角色'), t('自訂角色')],
+      modelName: ['user_role', 'user_factory_role_template'],
+      hasMeta: false,
+      getAll: true,
+      params: {
+        get_all: 1
+      },
+      searchBarVisible: true,
+      remind: t('可瀏覽全部待辦，不受執行者權限影響‘'),
+      remindColor: $color.danger,
     },
     sub_task_scope: {
       ...subTaskScopeField
@@ -1778,7 +1814,7 @@ const RoutesTask = ({ navigation }) => {
           headerShown: true,
           animationEnabled: false,
           headerRight: () => {
-            if (route?.params?.hideTaskShowEdit) {
+            if (route?.params?.hideTaskShowEdit || !canTaskTemplateHeaderAction) {
               return (
                 <View
                   style={{
@@ -1795,7 +1831,7 @@ const RoutesTask = ({ navigation }) => {
                 size={24}
                 color={$color.white}
                 style={{
-                  marginRight: 4
+                  marginRight: 4,
                 }}
                 onPress={() => {
                   navigation.setParams({

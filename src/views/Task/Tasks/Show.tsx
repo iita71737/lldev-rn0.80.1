@@ -80,7 +80,7 @@ const TaskShow = ({ navigation, route }) => {
     taskHeaderActionAt
   } = route.params
 
-  console.log(id,'=id=')
+  console.log(id, '=id=')
 
   // Redux
   const currentUser = useSelector(state => state.stone_auth.currentUser)
@@ -138,6 +138,19 @@ const TaskShow = ({ navigation, route }) => {
   }, [])
 
   const [fields, setFields] = React.useState()
+
+  const $_getSubTaskScopeText = React.useCallback((scope) => {
+    if (scope === 'taker') {
+      return t('依執行者')
+    }
+    if (scope === 'system_subclass') {
+      return t('依子領域')
+    }
+    if (scope === 'all') {
+      return t('全部')
+    }
+    return t('無')
+  }, [t])
 
   const [loading, setLoading] = React.useState(true)
   const [taskNotFoundPopupActive, setTaskNotFoundPopupActive] = React.useState(false)
@@ -198,8 +211,13 @@ const TaskShow = ({ navigation, route }) => {
 
   // Storage
   const $_setStorage = async () => {
+    const _subtasks = await S_SubTask.indexAll({ params: { task_id: id } })
     const _formatted = S_Task.transformTaskLinksToRelatedModules(task)
-    const _task = JSON.stringify(_formatted)
+    const _taskData = {
+      ..._formatted,
+      sub_tasks: Array.isArray(_subtasks?.data) ? _subtasks.data : []
+    }
+    const _task = JSON.stringify(_taskData)
     await AsyncStorage.setItem('TaskUpdate', _task)
   }
 
@@ -369,6 +387,18 @@ const TaskShow = ({ navigation, route }) => {
   }
 
   const $_setFields = subtask => {
+    const _isSubtaskTaker = Boolean(
+      subtask?.taker?.id &&
+      currentUser?.id === subtask.taker.id
+    )
+    const _isTaskTaker = Boolean(
+      task?.taker?.id &&
+      currentUser?.id === task.taker.id
+    )
+    const _canEditBySubtaskTaker = _isSubtaskTaker && !task?.checked_at
+    const _canEditByTaskTaker = _isTaskTaker && !task?.done_at && !task?.checked_at
+    const _canEditReply = _canEditBySubtaskTaker || _canEditByTaskTaker
+
     setFields({
       expired_at: {
         type: 'date',
@@ -447,11 +477,13 @@ const TaskShow = ({ navigation, route }) => {
         label: `${t('執行結果')}`,
         emptyText: t('尚無回覆'),
         labelBtnText:
-          ((subtask && currentUser && subtask.taker && currentUser.id == subtask.taker.id) || (currentUser.id === task.taker.id) && (!task.done_at))
+          // 待辦執行者：審核前可編輯（checked_at 為 null）
+          // 任務負責人：任務未完成且未審核可編輯
+          _canEditReply
             ? t('編輯')
             : null,
         labelBtnOnPress:
-          (subtask && currentUser && subtask.taker && (currentUser.id == subtask.taker.id) || (currentUser.id === task.taker.id) && (!task.done_at))
+          _canEditReply
             ? () => {
               setReply(subtask.reply)
               setStateModalForReplySubtask(true)
@@ -463,7 +495,7 @@ const TaskShow = ({ navigation, route }) => {
         labelRemarkText:
           subtask.reply_updated_at &&
           t('編輯時間') +
-          moment(subtask.reply_updated_at).format('YYYY-MM-DD HH:mm'),
+          moment(subtask.reply_updated_at).format('YYYY-MM-DD HH:mm:ss'),
         style: {
           marginVertical: 4
         },
@@ -508,9 +540,8 @@ const TaskShow = ({ navigation, route }) => {
         label: `${t('審核結果')}`,
         emptyText: t('尚無回覆'),
         labelBtnText:
-          // 250609-issue
-          //  ((subtask && currentUser && subtask.taker && currentUser.id == subtask.taker.id) || (currentUser.id === task.taker.id) && (!task.done_at && !task.checked_at))
-          ((currentUser.id === task.taker.id) && (!task.done_at && !task.checked_at) && (scopePermission('task-check-taker', currentUserScope)))
+          // 260316-任務狀態進行中或審核中,且待辦已有執行結果,任務負責人都可以回覆待辦審核結果
+          ((currentUser.id === task.taker.id) && (subtask.reply && !task.checked_at) && (scopePermission('task-check-taker', currentUserScope)))
             ? t('編輯')
             : null,
         labelBtnOnPress:
@@ -525,7 +556,7 @@ const TaskShow = ({ navigation, route }) => {
         labelRemarkText:
           subtask.review_updated_at ?
             `${t('編輯時間')} ` +
-            `${moment(subtask.review_updated_at).format('YYYY-MM-DD HH:mm')} ` : null,
+            `${moment(subtask.review_updated_at).format('YYYY-MM-DD HH:mm:ss')} ` : null,
         labelRemarkTextUser:
           subtask.review_update_user &&
           <WsInfoUser
@@ -580,9 +611,15 @@ const TaskShow = ({ navigation, route }) => {
 
   const $_setProgress = (task) => {
     if (!task) {
-      return
+      return 0
     }
-    return Math.floor((task.sub_tasks_done_count / task.sub_tasks_count * 100));
+    const _subTasks = Array.isArray(task?.sub_tasks) ? task.sub_tasks : []
+    const _total = _subTasks.length
+    if (_total === 0) {
+      return 0
+    }
+    const _done = $_isDone(_subTasks)
+    return Math.floor((_done / _total) * 100)
   }
 
   // Local Storage
@@ -766,7 +803,6 @@ const TaskShow = ({ navigation, route }) => {
                       alignItems: 'center'
                     }}
                     label={t('期限')}
-                    icon="ws-outline-calendar-duedate"
                     color={$color.black5l}
                     value={moment(task?.expired_at).format('YYYY-MM-DD')}
                   />
@@ -793,6 +829,7 @@ const TaskShow = ({ navigation, route }) => {
                     />
                   </View>
                 )}
+
                 <WsFlex
                   style={{
                     marginTop: 4,
@@ -840,6 +877,22 @@ const TaskShow = ({ navigation, route }) => {
                   />
                 </View>
 
+                <View
+                  style={{
+                    marginTop: 8
+                  }}
+                >
+                  <WsInfo
+                    labelWidth={240}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center'
+                    }}
+                    label={t('待辦執行者的待辦閱覽權限')}
+                    color={$color.black5l}
+                    value={$_getSubTaskScopeText(task?.sub_task_scope)}
+                  />
+                </View>
 
                 <WsFlex
                   style={{
@@ -924,7 +977,7 @@ const TaskShow = ({ navigation, route }) => {
                                                 // borderWidth: 1,
                                                 backgroundColor: $color.primary11l,
                                                 paddingHorizontal: 16,
-                                                paddingVertical:8,
+                                                paddingVertical: 8,
                                                 borderRadius: 10,
                                               }}
                                             >
@@ -1662,7 +1715,7 @@ const TaskShow = ({ navigation, route }) => {
             task.taker &&
             (task.taker.id === currentUser.id) &&
             !task.checked_at &&
-            $_setProgress(task) == '100' &&
+            $_setProgress(task) === 100 &&
             currentUserScope.includes('task-check-taker') && (
               <View
                 style={{
@@ -1697,7 +1750,7 @@ const TaskShow = ({ navigation, route }) => {
           task.taker &&
           (task.taker.id === currentUser.id) &&
           !task.checked_at &&
-          $_setProgress(task) == '100' &&
+          $_setProgress(task) === 100 &&
           currentUserScope.includes('task-check-taker') && (
             <View
               style={{

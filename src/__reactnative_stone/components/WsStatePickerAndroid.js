@@ -68,6 +68,10 @@ const WsStatePickerAndroid = props => {
     }
   }, [value, items])
 
+  React.useEffect(() => {
+    setSelectedValue(value)
+  }, [value])
+
   // Render
   return (
     <>

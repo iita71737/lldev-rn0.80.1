@@ -10,12 +10,14 @@ import {
   WsFlex,
   WsInfo,
   WsIcon,
+  WsIconBtn,
   LlTaskHeaderCard001,
   WsLoading,
   WsPassageCollapse,
   WsPaddingContainer,
   WsPopup,
   WsGradientButton,
+  WsSnackBar,
   WsTag,
   WsText,
   WsDes
@@ -43,6 +45,8 @@ const TaskTemplateShow = ({ navigation, route }) => {
   const currentUser = useSelector(state => state.stone_auth.currentUser)
   const currentUserScope = useSelector(state => state.data.userScopes)
   const factoryId = useSelector(state => state.data.currentFactory?.id)
+  const canUpdateTemplate = scopePermission('task-factory-template-update', currentUserScope)
+  const canCreateTask = scopePermission('task-create', currentUserScope)
   const canDeleteTemplate = scopePermission('task-factory-template-destory', currentUserScope)
 
   // state
@@ -53,6 +57,9 @@ const TaskTemplateShow = ({ navigation, route }) => {
   const [popupContentRelatedModule, setPopupContentRelatedModule] = React.useState<any>()
   const [popupActive, setPopupActive] = React.useState(false)
   const [popupContent, setPopupContent] = React.useState<any>()
+  const [isCollect, setIsCollect] = React.useState(false)
+  const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false)
+  const [snackBarText, setSnackBarText] = React.useState(t('已儲存至「我的收藏」'))
 
   const $_fetchTaskTemplate = React.useCallback(async () => {
     try {
@@ -90,6 +97,29 @@ const TaskTemplateShow = ({ navigation, route }) => {
     }
     await AsyncStorage.setItem('TaskTemplateCreate', JSON.stringify(_copyData))
     navigation.push('TaskTemplateCreate')
+  }
+
+  const bookmarkOnPress = async () => {
+    try {
+      if (!taskTemplate?.id) {
+        return
+      }
+      if (isCollect) {
+        setIsSnackBarVisible(false)
+        setIsSnackBarVisible(true)
+        setSnackBarText(t('已從我的收藏中移除'))
+        await S_TaskFactoryTemplate.unCollect(taskTemplate.id)
+      } else {
+        setIsSnackBarVisible(false)
+        setIsSnackBarVisible(true)
+        setSnackBarText(t('已儲存至「我的收藏」'))
+        await S_TaskFactoryTemplate.collect(taskTemplate.id)
+      }
+      setIsCollect(!isCollect)
+      setTaskTemplate((prev: any) => prev ? { ...prev, is_collect: !isCollect } : prev)
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   const $_createTaskByTemplate = async () => {
@@ -294,19 +324,22 @@ const TaskTemplateShow = ({ navigation, route }) => {
   }
 
   const bottomSheetItems = React.useMemo(() => {
-    const _items = [
-      {
+    const _items: any[] = []
+
+    if (canUpdateTemplate) {
+      _items.push({
         key: 'edit',
         icon: 'ws-outline-edit-pencil',
         label: taskTemplate?.status === 'draft' ? t('編輯草稿') : t('編輯')
-      },
-      {
+      })
+      _items.push({
         key: 'copy',
         icon: 'ws-outline-copy',
         label: t('複製公版')
-      }
-    ]
-    if (taskTemplate?.status !== 'draft') {
+      })
+    }
+
+    if (canCreateTask && taskTemplate?.status !== 'draft') {
       _items.push({
         key: 'createTask',
         icon: 'll-nav-add-assignment',
@@ -325,11 +358,56 @@ const TaskTemplateShow = ({ navigation, route }) => {
     }
 
     return _items
-  }, [canDeleteTemplate, t, taskTemplate?.status])
+  }, [canUpdateTemplate, canCreateTask, canDeleteTemplate, t, taskTemplate?.status])
 
   React.useEffect(() => {
     $_fetchTaskTemplate()
   }, [$_fetchTaskTemplate, refreshKey])
+
+  React.useEffect(() => {
+    setIsCollect(Boolean(taskTemplate?.is_collect))
+  }, [taskTemplate?.is_collect])
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => {
+        const _hideTaskShowEdit = route?.params?.hideTaskShowEdit
+        const _showEditIcon = !_hideTaskShowEdit && bottomSheetItems.length > 0
+        return (
+          <WsFlex>
+            <WsIconBtn
+              padding={0}
+              name={isCollect ? 'md-bookmark' : 'ws-outline-bookmark'}
+              size={28}
+              color={$color.white}
+              style={{
+                marginRight: _hideTaskShowEdit ? 16 : 8
+              }}
+              onPress={() => {
+                bookmarkOnPress()
+              }}
+            />
+            {_showEditIcon && (
+              <WsIconBtn
+                testID={'ws-outline-edit-pencil'}
+                name="ws-outline-edit-pencil"
+                size={24}
+                color={$color.white}
+                style={{
+                  marginRight: 8,
+                }}
+                onPress={() => {
+                  navigation.setParams({
+                    taskHeaderActionAt: Date.now()
+                  })
+                }}
+              />
+            )}
+          </WsFlex>
+        )
+      }
+    })
+  }, [navigation, route?.params?.hideTaskShowEdit, isCollect, taskTemplate?.id, bottomSheetItems.length])
 
   React.useEffect(() => {
     if (!taskHeaderActionAt) {
@@ -374,6 +452,12 @@ const TaskTemplateShow = ({ navigation, route }) => {
 
   return (
     <>
+      <WsSnackBar
+        text={snackBarText}
+        setVisible={setIsSnackBarVisible}
+        visible={isSnackBarVisible}
+        quickHidden={true}
+      />
       {loading ? (
         <WsLoading
           style={{
