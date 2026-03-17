@@ -21,6 +21,7 @@ import { useNavigation } from '@react-navigation/native'
 import S_ActVersion from '@/services/api/v1/act_version'
 import S_GuidelineVersionAdmin from '@/services/api/v1/guideline_version_admin'
 import S_GuidelineArticleVersionAdmin from '@/services/api/v1/guideline_article_version_admin'
+import S_CheckListRecord from '@/services/api/v1/checklist_record'
 import ViewGuidelineArticleShowForModal from '@/views/ActGuideline/GuidelineArticleShowForModal'
 import S_TrainingGroup from '@/services/api/v1/internal_training_group'
 
@@ -53,6 +54,7 @@ const WsStateAlertCard = props => {
   const [modalArticle, setModalArticle] = React.useState(false)
   const [articleVersionId, setArticleVersionId] = React.useState()
   const [relativeGuidelineArticleVersion, setRelativeGuidelineArticleVersion] = React.useState()
+  const [relativeChecklistRecord, setRelativeChecklistRecord] = React.useState()
 
   // 取得警示
   const $_fetchAlert = () => {
@@ -144,6 +146,24 @@ const WsStateAlertCard = props => {
     }
   }
 
+  // 相關點檢記錄
+  const $_fetchRelativeChecklistRecord = async () => {
+    const _recordId = value && value.id ? value.id : value ? value : undefined
+    if (!_recordId) {
+      setLoading(false)
+      return
+    }
+    try {
+      const _record = await S_CheckListRecord.show({ modelId: _recordId })
+      console.log(_record,'_record_record')
+      setRelativeChecklistRecord(_record)
+      setLoading(false)
+    } catch (e) {
+      console.log(e.message, 'error')
+      setLoading(false)
+    }
+  }
+
   //取得相關變動
   const $_fetchRelativeChange = async () => {
     try {
@@ -206,6 +226,12 @@ const WsStateAlertCard = props => {
   React.useEffect(() => {
     if (value && cardType === 'relativeTrainingGroup') {
       $_fetchRelativeTrainingGroup()
+    }
+  }, [value])
+
+  React.useEffect(() => {
+    if (value && cardType === 'relativeChecklistRecord') {
+      $_fetchRelativeChecklistRecord()
     }
   }, [value])
 
@@ -495,11 +521,12 @@ const WsStateAlertCard = props => {
             relativeAct.id && (
               <TouchableOpacity
                 onPress={() => {
-                  if (values.act_id) {
+                  const _actId = values?.act_id || value?.act?.id || value?.act_id || relativeAct?.act?.id || relativeAct?.act_id
+                  if (_actId) {
                     navigation.push('RoutesAct', {
                       screen: 'ActShow',
                       params: {
-                        id: values.act_id
+                        id: _actId
                       }
                     })
                   }
@@ -602,6 +629,70 @@ const WsStateAlertCard = props => {
                           }}>
                           {t('建立日期')}{' '}
                           {moment(relativeTrainingGroup.created_at ? relativeTrainingGroup.created_at : null).format('YYYY-MM-DD')}
+                        </WsDes>
+                      </View>
+                      <WsIcon
+                        size={24}
+                        name="md-chevron-right"
+                        color={$color.gray2d}
+                      />
+                    </WsFlex>
+                  </WsFlex>
+                </WsPaddingContainer>
+              </TouchableOpacity>
+            )}
+
+          {cardType === 'relativeChecklistRecord' &&
+            relativeChecklistRecord &&
+            relativeChecklistRecord.id && (
+              <TouchableOpacity
+                onPress={() => {
+                  navigation.push('RoutesCheckList', {
+                    screen: 'CheckListAssignmentShow',
+                    params: {
+                      id: relativeChecklistRecord.id
+                    }
+                  })
+                }}
+                style={{
+                  marginTop: 4
+                }}
+              >
+                <WsPaddingContainer
+                  style={{
+                    backgroundColor: $color.white,
+                    borderRadius: 10,
+                    shadowColor: '#999',
+                    shadowOffset: {
+                      width: 0,
+                      height: 6
+                    },
+                    shadowOpacity: 0.6,
+                    shadowRadius: 4,
+                    elevation: 1.5
+                  }}>
+                  <WsFlex>
+                    <WsFlex alignItems="center">
+                      <WsIcon
+                        name="ll-nav-checksheet-filled"
+                        size={24}
+                      />
+                      <View
+                        style={{
+                          flex: 1,
+                          marginHorizontal: 16
+                        }}>
+                        <WsText>
+                          {relativeChecklistRecord?.name || relativeChecklistRecord?.checklist?.name || 'null'}
+                        </WsText>
+                        <WsDes
+                          style={{
+                            marginTop: 8
+                          }}>
+                          {t('點檢日期')}{' '}
+                          {relativeChecklistRecord?.record_at
+                            ? moment(relativeChecklistRecord.record_at).format('YYYY-MM-DD')
+                            : t('無')}
                         </WsDes>
                       </View>
                       <WsIcon

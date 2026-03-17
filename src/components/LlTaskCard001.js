@@ -7,7 +7,8 @@ import {
   WsIcon,
   WsNumberCircle,
   WsDes,
-  WsInfo
+  WsInfo,
+  WsTag
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import i18next from 'i18next'
@@ -27,6 +28,49 @@ const LlTaskCard001 = props => {
 
   const $_isExpired = () => {
     return moment().isBefore(item.expired_at)
+  }
+
+  const $_hasDateValue = value => {
+    if (value === null || value === undefined) return false
+    if (value === 'null') return false
+    if (value === 'not_null') return true
+    if (typeof value === 'string') return value.trim() !== ''
+    return Boolean(value)
+  }
+
+  const $_getTaskStatus = () => {
+    const _isDone = $_hasDateValue(item?.done_at)
+    const _isChecked = $_hasDateValue(item?.checked_at)
+
+    if (_isDone && _isChecked) {
+      return i18next.t('已完成')
+    }
+    if (_isDone && !_isChecked) {
+      return i18next.t('待審核')
+    }
+    return i18next.t('進行中')
+  }
+
+  const $_getTaskStatusTagStyle = () => {
+    const _isDone = $_hasDateValue(item?.done_at)
+    const _isChecked = $_hasDateValue(item?.checked_at)
+
+    if (_isDone && _isChecked) {
+      return {
+        backgroundColor: $color.white2d,
+        textColor: $color.black
+      }
+    }
+    if (_isDone && !_isChecked) {
+      return {
+        backgroundColor: $color.orange11l,
+        textColor: $color.black
+      }
+    }
+    return {
+      backgroundColor: $color.yellow11l,
+      textColor: $color.black
+    }
   }
 
   // HELPER Function
@@ -90,29 +134,41 @@ const LlTaskCard001 = props => {
                 }}
               >
 
-                {item.created_at && (
-                  <WsFlex
-                    style={{
-                      marginBottom: 4,
-                    }}
+                <WsFlex
+                  justifyContent="space-between"
+                  alignItems="center"
+                  style={{
+                    marginBottom: 4,
+                  }}
+                >
+                  {item.created_at ? (
+                    <WsFlex>
+                      <WsIcon
+                        name="md-date-note"
+                        size={18}
+                        style={{
+                          marginRight: 4
+                        }}
+                        color={$color.gray}
+                      />
+                      <WsDes
+                        size={12}
+                      >
+                        {i18next.t('建立日期')}
+                        {'  '}
+                        {moment(item.created_at).format('YYYY-MM-DD')}
+                      </WsDes>
+                    </WsFlex>
+                  ) : (
+                    <View />
+                  )}
+                  <WsTag
+                    backgroundColor={$_getTaskStatusTagStyle().backgroundColor}
+                    textColor={$_getTaskStatusTagStyle().textColor}
                   >
-                    <WsIcon
-                      name="md-date-note"
-                      size={18}
-                      style={{
-                        marginRight: 4
-                      }}
-                      color={$color.gray}
-                    />
-                    <WsDes
-                      size={12}
-                    >
-                      {i18next.t('建立日期')}
-                      {'  '}
-                      {moment(item.created_at).format('YYYY-MM-DD')}
-                    </WsDes>
-                  </WsFlex>
-                )}
+                    {$_getTaskStatus()}
+                  </WsTag>
+                </WsFlex>
 
                 <WsText>{item?.name}</WsText>
 

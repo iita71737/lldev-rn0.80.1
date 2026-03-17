@@ -166,6 +166,10 @@ export default {
   getFormattedDataForCreate(_postData, currentUserId) {
     const state = store.getState()
     const _currentUserId = state.stone_auth.currentUser.id
+    const _alertId = typeof _postData?.apiAlert === 'object'
+      ? _postData?.apiAlert?.id
+      : (_postData?.apiAlert || (typeof _postData?.alert === 'object' ? _postData?.alert?.id : _postData?.alert))
+
     const _data = {
       done_at: _postData?.done_at
         ? moment(_postData?.done_at).format('YYYY-MM-DD')
@@ -178,7 +182,7 @@ export default {
       remark: _postData?.remark,
       taker: _postData?.taker,
       creator: currentUserId ? currentUserId : _currentUserId,
-      alert: _postData?.apiAlert ? _postData?.apiAlert.id : null,
+      alert: _alertId || null,
       ll_broadcast: _postData?.ll_broadcast ? _postData?.ll_broadcast : null,
       event: _postData?.event ? _postData?.event : null,
       article: _postData?.article ? _postData?.article : null,
@@ -200,11 +204,11 @@ export default {
         )
         : [],
       audit_record:
-        _postData?.apiAlert && _postData?.apiAlert?.audit_record
+        _postData?.apiAlert && typeof _postData?.apiAlert === 'object' && _postData?.apiAlert?.audit_record
           ? _postData?.apiAlert.audit_record.id
           : null,
       checklist_record:
-        _postData?.apiAlert && _postData?.apiAlert?.checklist_record
+        _postData?.apiAlert && typeof _postData?.apiAlert === 'object' && _postData?.apiAlert?.checklist_record
           ? _postData?.apiAlert.checklist_record.id
           : null,
       event: _postData?.relationEvent ? _postData?.relationEvent?.id : null,
@@ -224,6 +228,22 @@ export default {
   getFormattedDataForEdit(_postData, currentUserId) {
     const state = store.getState()
     const _currentUserId = state.stone_auth.currentUser.id
+    const _alertId = _postData?.apiAlert
+      ? (typeof _postData.apiAlert === 'object' ? _postData.apiAlert.id : _postData.apiAlert)
+      : (_postData?.alert
+        ? (typeof _postData.alert === 'object' ? _postData.alert.id : _postData.alert)
+        : null)
+    const _auditRecordId = _postData?.audit_record
+      ? (typeof _postData.audit_record === 'object' ? _postData.audit_record.id : _postData.audit_record)
+      : (_postData?.apiAlert && typeof _postData?.apiAlert === 'object' && _postData?.apiAlert?.audit_record
+        ? _postData.apiAlert.audit_record.id
+        : null)
+    const _checklistRecordId = _postData?.checklist_record
+      ? (typeof _postData.checklist_record === 'object' ? _postData.checklist_record.id : _postData.checklist_record)
+      : (_postData?.apiAlert && typeof _postData?.apiAlert === 'object' && _postData?.apiAlert?.checklist_record
+        ? _postData.apiAlert.checklist_record.id
+        : null)
+
     const _data = {
       done_at: _postData?.done_at
         ? moment(_postData.done_at).format('YYYY-MM-DD')
@@ -236,7 +256,9 @@ export default {
       remark: _postData?.remark,
       taker: _postData?.taker,
       creator: _postData?.creator ? _postData.creator : _currentUserId,
-      alert: _postData?.alert ? _postData.alert : null,
+      alert: _alertId,
+      audit_record: _auditRecordId,
+      checklist_record: _checklistRecordId,
       ll_broadcast: _postData?.ll_broadcast ? _postData.ll_broadcast : null,
       event: _postData?.event ? _postData.event : null,
       article: _postData?.article ? _postData.article : null,
@@ -423,6 +445,8 @@ export default {
 
     return {
       ...task,
+      apiAlert: task.apiAlert || task.alert || undefined,
+      act_id: task?.act_id || task?.act_version?.act?.id || task?.act_version?.act_id,
       related_module,
       sub_tasks
     }

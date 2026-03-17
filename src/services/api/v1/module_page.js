@@ -13,6 +13,8 @@ import S_Training from '@/services/api/v1/training'
 import S_EventType from '@/services/api/v1/event_type'
 import S_Event from '@/services/api/v1/event'
 import S_Task from '@/services/api/v1/task'
+import S_SubTask from '@/services/api/v1/sub_task'
+import S_Act from '@/services/api/v1/act'
 import S_GuidelineAdmin from '@/services/api/v1/guideline_admin'
 import S_GuidelineVersionAdmin from '@/services/api/v1/guideline_version_admin'
 import S_Checklist from '@/services/api/v1/checklist'
@@ -830,7 +832,37 @@ export default {
           const id = payload?.modelId
           const res = await S_Task.show({ modelId: id });
           const _formatted = S_Task.transformTaskLinksToRelatedModules(res)
-          const _task = JSON.stringify(_formatted)
+          const _subtasks = await S_SubTask.indexAll({ params: { task_id: id } })
+          const _actId = _formatted?.act_id || _formatted?.act_version?.act?.id
+          let _actVersion = _formatted?.act_version
+          if (
+            _actId &&
+            !Array.isArray(_formatted?.act_version?.act?.system_subclasses) &&
+            !Array.isArray(_formatted?.act_version?.system_subclasses)
+          ) {
+            try {
+              const _act = await S_Act.show({ modelId: _actId })
+              if (_act?.id) {
+                _actVersion = {
+                  ..._formatted?.act_version,
+                  act: {
+                    ..._formatted?.act_version?.act,
+                    ..._act
+                  },
+                  system_subclasses: Array.isArray(_act?.system_subclasses)
+                    ? _act.system_subclasses
+                    : _formatted?.act_version?.system_subclasses
+                }
+              }
+            } catch (error) {
+              console.log(error, 'module_page TaskUpdate act subclasses fallback')
+            }
+          }
+          const _task = JSON.stringify({
+            ..._formatted,
+            act_version: _actVersion,
+            sub_tasks: Array.isArray(_subtasks?.data) ? _subtasks.data : []
+          })
           await AsyncStorage.setItem('TaskUpdate', _task)
           navigation.push('RoutesTask', {
             screen: payload?.route,

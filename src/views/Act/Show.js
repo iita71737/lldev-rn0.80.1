@@ -18,6 +18,7 @@ import {
 import {
   WsFlex,
   WsTag,
+  WsCard,
   WsCardPassage,
   WsText,
   WsDes,
@@ -52,7 +53,10 @@ import {
   LlNavButton002,
   LlTaskCard002,
   LlInfoContainer001,
-  LlRelatedGuidelineItem001
+  LlRelatedGuidelineItem001,
+  WsPageIndex,
+  LlTaskTemplateCard001,
+  LlTaskTempalteResuePopup001
 } from '@/components'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
@@ -71,7 +75,8 @@ import AsyncStorage from '@react-native-community/async-storage'
 import S_ActVersion from '@/services/api/v1/act_version'
 import S_GuidelineArticleVersion from '@/services/api/v1/guideline_article_version'
 import S_GuidelineVersion from '@/services/api/v1/guideline_version'
-import { scopeSubscriptions } from '@/__reactnative_stone/global/permission'
+import S_TaskFactoryTemplate from '@/services/api/v1/task_factory_template'
+import { scopeSubscriptions, scopePermission } from '@/__reactnative_stone/global/permission'
 
 const ActShow = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
@@ -84,6 +89,9 @@ const ActShow = ({ navigation, route }) => {
   const collectIds = useSelector(state => state.data.collectIds)
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentFactoryTags = useSelector(state => state.data.factoryTags)
+  const currentUser = useSelector(state => state.data.currentUser)
+  const currentUserScope = useSelector(state => state.data.userScopes)
+  const canReadTaskTemplate = scopePermission('task-factory-template-read', currentUserScope)
 
   // States
   const [pickValue, setPickValue] = React.useState()
@@ -98,6 +106,30 @@ const ActShow = ({ navigation, route }) => {
   const [actRelatedFileStoreFilesCollapsed, setActRelatedFileStoreFilesCollapsed] = React.useState(true)
 
   const [stateModal, setStateModal] = React.useState(false)
+  const [stateTaskCreateModeModal, setStateTaskCreateModeModal] = React.useState(false)
+  const [stateTemplateModal, setStateTemplateModal] = React.useState(false)
+  const [stateTemplateReuseModal, setStateTemplateReuseModal] = React.useState(false)
+  const [pendingTemplate, setPendingTemplate] = React.useState(null)
+  const [templateHasTaker, setTemplateHasTaker] = React.useState(false)
+  const [templateHasSubTaskTaker, setTemplateHasSubTaskTaker] = React.useState(false)
+  const [includeSubTaskTaker, setIncludeSubTaskTaker] = React.useState(true)
+  const [includeTaskTaker, setIncludeTaskTaker] = React.useState(true)
+  const includeSubTaskTakerRef = React.useRef(true)
+  const includeTaskTakerRef = React.useRef(true)
+  const [taskTemplateFilterFields] = React.useState({
+    system_subclasses: {
+      type: 'system_subclass',
+      label: t('領域')
+    },
+    factory_tags: {
+      type: 'checkbox',
+      label: t('標籤'),
+      items: currentFactoryTags ? currentFactoryTags : [],
+      searchVisible: true,
+      selectAllVisible: false,
+      defaultSelected: false
+    },
+  })
 
   const [tags, setTags] = React.useState(currentFactoryTags ? currentFactoryTags : [])
   const [tagsSearchValue, setTagsSearchValue] = React.useState('')
@@ -406,11 +438,12 @@ const ActShow = ({ navigation, route }) => {
   };
 
   // Storage-Create-Task-Bind-Act
-  const $_setStorage = async () => {
-    const _defaultValue = {
+  const $_getActTaskDefaultValue = () => {
+    const _actSystemSubclasses = act?.system_subclasses ? act.system_subclasses : []
+    return {
       act_id: id,
       act_version: pickValue && pickValue.id ? pickValue.id : undefined,
-      system_subclasses: act?.system_subclasses ? act.system_subclasses : [],
+      system_subclasses: _actSystemSubclasses,
       redirect_routes: [
         {
           name: 'ActIndex',
@@ -423,8 +456,89 @@ const ActShow = ({ navigation, route }) => {
         }
       ]
     }
+  }
+
+  const $_setStorage = async () => {
+    const _defaultValue = $_getActTaskDefaultValue()
     const _task = JSON.stringify(_defaultValue)
     await AsyncStorage.setItem('TaskCreate', _task)
+  }
+
+  const $_createTaskFromTemplate = async (
+    _template,
+    {
+      includeSubTaskTaker,
+      includeTaskTaker
+    }
+  ) => {
+    const _taskCreateDraft = S_TaskFactoryTemplate.getTaskCreateDraftFromTemplate(_template, {
+      includeSubTaskTaker,
+      includeTaskTaker,
+      currentUser: currentUser || null
+    })
+    const _actDefaultValue = $_getActTaskDefaultValue()
+    const _templateSubclasses = Array.isArray(_taskCreateDraft?.system_subclasses)
+      ? _taskCreateDraft.system_subclasses
+      : []
+    const _actSubclasses = Array.isArray(_actDefaultValue?.system_subclasses)
+      ? _actDefaultValue.system_subclasses
+      : []
+    const _mergedSystemSubclasses = [..._templateSubclasses, ..._actSubclasses].reduce((acc, item) => {
+      if (!item) {
+        return acc
+      }
+      const _key = typeof item === 'object'
+        ? (item.id || item.name || JSON.stringify(item))
+        : String(item)
+      if (!acc._set.has(_key)) {
+        acc._set.add(_key)
+        acc._list.push(item)
+      }
+      return acc
+    }, { _set: new Set(), _list: [] })._list
+
+    await AsyncStorage.removeItem('TaskCreate')
+    await AsyncStorage.setItem('TaskCreate', JSON.stringify({
+      ..._taskCreateDraft,
+      ..._actDefaultValue,
+      system_subclasses: _mergedSystemSubclasses
+    }))
+    navigation.push('RoutesTask', {
+      screen: 'TaskCreate'
+    })
+  }
+
+  const $_onSelectTemplateForCreate = async (template) => {
+    try {
+      if (!template?.id) {
+        return
+      }
+      const _template = await S_TaskFactoryTemplate.show({
+        modelId: template.id
+      })
+      const _hasTemplateTaker = Boolean(_template?.taker)
+      const _hasSubTaskTaker = Array.isArray(_template?.subtask_factory_templates)
+        && _template.subtask_factory_templates.some(subTask => Boolean(subTask?.taker))
+      setPendingTemplate(_template)
+      setTemplateHasTaker(_hasTemplateTaker)
+      setTemplateHasSubTaskTaker(_hasSubTaskTaker)
+      setIncludeTaskTaker(_hasTemplateTaker)
+      setIncludeSubTaskTaker(_hasSubTaskTaker)
+      includeTaskTakerRef.current = _hasTemplateTaker
+      includeSubTaskTakerRef.current = _hasSubTaskTaker
+      if (!_hasTemplateTaker && !_hasSubTaskTaker) {
+        setStateTemplateModal(false)
+        await $_createTaskFromTemplate(_template, {
+          includeSubTaskTaker: false,
+          includeTaskTaker: false
+        })
+        return
+      }
+      setStateTemplateModal(false)
+      setStateTemplateReuseModal(true)
+    } catch (error) {
+      console.log(error)
+    }
   }
   // HELPER
   const $_ratio = (item) => {
@@ -1760,6 +1874,10 @@ const ActShow = ({ navigation, route }) => {
                   marginBottom: 8,
                 }}
                 onPress={async () => {
+                  if (canReadTaskTemplate) {
+                    setStateTaskCreateModeModal(true)
+                    return
+                  }
                   await $_setStorage()
                   navigation.push('RoutesTask', {
                     screen: 'TaskCreate'
@@ -1775,8 +1893,130 @@ const ActShow = ({ navigation, route }) => {
                 )}
               >
                 {t('建立任務')}
-              </WsGradientButton>
+            </WsGradientButton>
+          )}
+
+          <WsModal
+            animationType={'none'}
+            visible={stateTaskCreateModeModal}
+            onBackButtonPress={() => {
+              setStateTaskCreateModeModal(false)
+            }}
+            headerLeftOnPress={() => {
+              setStateTaskCreateModeModal(false)
+            }}
+            title={t('新增任務')}
+          >
+            <TouchableOpacity
+              style={{
+                marginTop: 8,
+                marginHorizontal: 16
+              }}
+              onPress={async () => {
+                setStateTaskCreateModeModal(false)
+                await AsyncStorage.removeItem('TaskCreate')
+                await $_setStorage()
+                navigation.push('RoutesTask', {
+                  screen: 'TaskCreate'
+                })
+              }}
+            >
+              <WsCard>
+                <WsText>{t('直接建立')}</WsText>
+              </WsCard>
+            </TouchableOpacity>
+            {canReadTaskTemplate && (
+              <TouchableOpacity
+                style={{
+                  marginTop: 8,
+                  marginHorizontal: 16
+                }}
+                onPress={() => {
+                  setStateTaskCreateModeModal(false)
+                  setStateTemplateModal(true)
+                }}
+              >
+                <WsCard>
+                  <WsText>{t('引用公版')}</WsText>
+                </WsCard>
+              </TouchableOpacity>
             )}
+          </WsModal>
+
+          <WsModal
+            animationType={'none'}
+            visible={stateTemplateModal}
+            onBackButtonPress={() => {
+              setStateTemplateModal(false)
+            }}
+            headerLeftOnPress={() => {
+              setStateTemplateModal(false)
+            }}
+            title={t('引用任務公版')}
+          >
+            <WsPageIndex
+              modelName={'task_factory_template'}
+              params={{
+                order_by: 'updated_at',
+                order_way: 'desc',
+                status: 'released'
+              }}
+              filterFields={taskTemplateFilterFields}
+              renderItem={({ item, index }) => (
+                <LlTaskTemplateCard001
+                  testID={`Act-TaskTemplateCard-${index}`}
+                  item={item}
+                  onPress={() => {
+                    $_onSelectTemplateForCreate(item)
+                  }}
+                  createTaskOnPress={() => {
+                    $_onSelectTemplateForCreate(item)
+                  }}
+                  canCreateTask={true}
+                />
+              )}
+              ListFooterComponent={() => (
+                <View
+                  style={{
+                    height: 50
+                  }}
+                />
+              )}
+            />
+          </WsModal>
+
+          <LlTaskTempalteResuePopup001
+            active={stateTemplateReuseModal}
+            onClose={() => {
+              setStateTemplateReuseModal(false)
+            }}
+            templateHasTaker={templateHasTaker}
+            templateHasSubTaskTaker={templateHasSubTaskTaker}
+            includeTaskTaker={includeTaskTaker}
+            includeSubTaskTaker={includeSubTaskTaker}
+            onChangeIncludeTaskTaker={(value) => {
+              includeTaskTakerRef.current = value
+              setIncludeTaskTaker(value)
+            }}
+            onChangeIncludeSubTaskTaker={(value) => {
+              includeSubTaskTakerRef.current = value
+              setIncludeSubTaskTaker(value)
+            }}
+            onConfirm={async () => {
+              if (!pendingTemplate) {
+                return
+              }
+              try {
+                await $_createTaskFromTemplate(pendingTemplate, {
+                  includeSubTaskTaker: includeSubTaskTakerRef.current,
+                  includeTaskTaker: includeTaskTakerRef.current
+                })
+                setStateTemplateReuseModal(false)
+              } catch (error) {
+                console.log(error)
+              }
+            }}
+          />
 
           {(act.last_version.id === pickValue.id) && (
             <WsGradientButton

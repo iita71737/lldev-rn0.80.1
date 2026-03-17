@@ -7,7 +7,19 @@ export default {
   black: '#000000',
   white: '#ffffff',
   danger: '#ce3829',
-  link: '#0585d3'
+  link: '#0585d3',
+  yellow: '#FFD500',
+  yellow11l: '#FFF7D0',
+  orange: '#f9a422',
+  orange900: '#da8400',
+  orange700: '#eb9613',
+  orange500: '#f9a422',
+  orange300: '#f6b147',
+  orange100: '#fbc674',
+  orange50: '#fbe0b6',
+  orange11l: '#fbe0b6',
+  green: '#35B487',
+  green11l: '#E7F5F0'
 
   // theme: '#96b364',
   // WsBtnColor: "#439e53",

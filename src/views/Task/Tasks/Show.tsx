@@ -50,6 +50,7 @@ import {
 import $color from '@/__reactnative_stone/global/color'
 import S_Task from '@/services/api/v1/task'
 import S_SubTask from '@/services/api/v1/sub_task'
+import S_Act from '@/services/api/v1/act'
 import AsyncStorage from '@react-native-community/async-storage'
 import moment from 'moment'
 import { useSelector } from 'react-redux'
@@ -147,7 +148,7 @@ const TaskShow = ({ navigation, route }) => {
       return t('依子領域')
     }
     if (scope === 'all') {
-      return t('全部')
+      return t('全部待辦')
     }
     return t('無')
   }, [t])
@@ -213,8 +214,34 @@ const TaskShow = ({ navigation, route }) => {
   const $_setStorage = async () => {
     const _subtasks = await S_SubTask.indexAll({ params: { task_id: id } })
     const _formatted = S_Task.transformTaskLinksToRelatedModules(task)
+    const _actId = _formatted?.act_id || _formatted?.act_version?.act?.id
+    let _actVersion = _formatted?.act_version
+    if (
+      _actId &&
+      !Array.isArray(_formatted?.act_version?.act?.system_subclasses) &&
+      !Array.isArray(_formatted?.act_version?.system_subclasses)
+    ) {
+      try {
+        const _act = await S_Act.show({ modelId: _actId })
+        if (_act?.id) {
+          _actVersion = {
+            ..._formatted?.act_version,
+            act: {
+              ..._formatted?.act_version?.act,
+              ..._act
+            },
+            system_subclasses: Array.isArray(_act?.system_subclasses)
+              ? _act.system_subclasses
+              : _formatted?.act_version?.system_subclasses
+          }
+        }
+      } catch (error) {
+        console.log(error, 'TaskShow $_setStorage act subclasses fallback')
+      }
+    }
     const _taskData = {
       ..._formatted,
+      act_version: _actVersion,
       sub_tasks: Array.isArray(_subtasks?.data) ? _subtasks.data : []
     }
     const _task = JSON.stringify(_taskData)
@@ -1168,10 +1195,10 @@ const TaskShow = ({ navigation, route }) => {
                 </>
               )}
 
-              {task.alert && (
+              {(task.alert || task.apiAlert) && (
                 <>
                   <LlRelatedAlertCard001
-                    alert={task?.alert}
+                    alert={task?.alert || task?.apiAlert}
                   ></LlRelatedAlertCard001>
                 </>
               )}

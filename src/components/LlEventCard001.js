@@ -54,7 +54,7 @@ const LlEventCard001 = props => {
             </WsTag>
             <WsTag
               style={{ marginLeft: 8 }}
-              backgroundColor={event.event_type ? '#fbe0b6' : ''}
+              backgroundColor={event.event_type ? $color.orange50 : ''}
               textColor={$color.black}>
               {event.event_type ? t(event.event_type.name) : ''}
             </WsTag>

@@ -85,6 +85,83 @@ const RoutesTask = ({ navigation }) => {
     />
   )
 
+  const $_mergeSystemSubclassesBySubTasks = (
+    subTasks = [],
+    fieldsValue = {},
+    subTaskKey = 'sub_tasks'
+  ) => {
+    const _subClassMap = new Map()
+    const _getSubClassKey = subClass => {
+      if (!subClass) {
+        return null
+      }
+      return typeof subClass === 'object'
+        ? (subClass.id || subClass.name || JSON.stringify(subClass))
+        : String(subClass)
+    }
+    const _addSubclassesToMap = (systemSubclasses) => {
+      if (!Array.isArray(systemSubclasses)) {
+        return
+      }
+      systemSubclasses.forEach(subClass => {
+        const _key = _getSubClassKey(subClass)
+        if (_key && !_subClassMap.has(_key)) {
+          _subClassMap.set(_key, subClass)
+        }
+      })
+    }
+
+    // 保留既有任務領域中「非舊待辦來源」的部分（例如相關法規領域）
+    const _currentTaskSubclasses = Array.isArray(fieldsValue?.system_subclasses)
+      ? fieldsValue.system_subclasses
+      : []
+    const _previousSubTasks = Array.isArray(fieldsValue?.[subTaskKey])
+      ? fieldsValue[subTaskKey]
+      : []
+    const _previousSubTaskKeySet = new Set()
+    _previousSubTasks.forEach(subTask => {
+      if (!Array.isArray(subTask?.system_subclasses)) {
+        return
+      }
+      subTask.system_subclasses.forEach(subClass => {
+        const _key = _getSubClassKey(subClass)
+        if (_key) {
+          _previousSubTaskKeySet.add(_key)
+        }
+      })
+    })
+    const _baseSystemSubclasses = _currentTaskSubclasses.filter(subClass => {
+      const _key = _getSubClassKey(subClass)
+      return _key && !_previousSubTaskKeySet.has(_key)
+    })
+    _addSubclassesToMap(_baseSystemSubclasses)
+
+    const _alertSystemSubclasses = fieldsValue?.apiAlert?.system_subclasses
+    if (fieldsValue?.apiAlert && Array.isArray(_alertSystemSubclasses)) {
+      _addSubclassesToMap(_alertSystemSubclasses)
+    }
+    const _actSystemSubclasses = Array.isArray(fieldsValue?.act_version?.act?.system_subclasses)
+      ? fieldsValue.act_version.act.system_subclasses
+      : (Array.isArray(fieldsValue?.act_version?.system_subclasses)
+        ? fieldsValue.act_version.system_subclasses
+        : [])
+    _addSubclassesToMap(_actSystemSubclasses)
+    subTasks.forEach(subTask => {
+      _addSubclassesToMap(subTask?.system_subclasses)
+    })
+
+    return {
+      [subTaskKey]: subTasks,
+      system_subclasses: Array.from(_subClassMap.values())
+    }
+  }
+
+  const $_recalculateTaskSystemSubclasses = (fieldsValue = {}) => {
+    const _subTasks = Array.isArray(fieldsValue?.sub_tasks) ? fieldsValue.sub_tasks : []
+    const _merged = $_mergeSystemSubclassesBySubTasks(_subTasks, fieldsValue, 'sub_tasks')
+    return Array.isArray(_merged?.system_subclasses) ? _merged.system_subclasses : []
+  }
+
   // 建立任務
   const fields = {
     name: {
@@ -109,8 +186,6 @@ const RoutesTask = ({ navigation }) => {
       modelName: 'user',
       serviceIndexKey: 'simplifyFactoryIndex',
       customizedNameKey: 'userAndEmail',
-      remind: t('可瀏覽全部待辦，不受執行者權限影響‘'),
-      remindColor: $color.danger,
     },
     roles: {
       type: 'multipleBelongstomany',
@@ -124,8 +199,6 @@ const RoutesTask = ({ navigation }) => {
         get_all: 1
       },
       searchBarVisible: true,
-      remind: t('可瀏覽全部待辦，不受執行者權限影響‘'),
-      remindColor: $color.danger,
     },
     remark: {
       type: 'text',
@@ -254,27 +327,7 @@ const RoutesTask = ({ navigation }) => {
       renderCom004Label: t('依任務來新增待辦'),
       updateValueOnChange: (event, value, field, fields) => {
         const _subTasks = Array.isArray(event) ? event : []
-        const _subClassMap = new Map()
-        _subTasks.forEach(subTask => {
-          if (!Array.isArray(subTask?.system_subclasses)) {
-            return
-          }
-          subTask.system_subclasses.forEach(subClass => {
-            if (!subClass) {
-              return
-            }
-            const _key = typeof subClass === 'object'
-              ? subClass.id
-              : String(subClass)
-            if (_key && !_subClassMap.has(_key)) {
-              _subClassMap.set(_key, subClass)
-            }
-          })
-        })
-        return {
-          sub_tasks: _subTasks,
-          system_subclasses: Array.from(_subClassMap.values())
-        }
+        return $_mergeSystemSubclassesBySubTasks(_subTasks, value, 'sub_tasks')
       },
     },
     apiAlert: {
@@ -284,6 +337,19 @@ const RoutesTask = ({ navigation }) => {
       label: t('相關警示'),
       displayCheck(fieldsValue) {
         if (fieldsValue.apiAlert) {
+          return true
+        } else {
+          return false
+        }
+      }
+    },
+    checklist_record: {
+      type: 'card',
+      cardType: 'relativeChecklistRecord',
+      info: true,
+      label: t('相關點檢記錄'),
+      displayCheck(fieldsValue) {
+        if (fieldsValue.checklist_record) {
           return true
         } else {
           return false
@@ -386,159 +452,7 @@ const RoutesTask = ({ navigation }) => {
   }
 
   // 從警示建立任務
-  const fieldsCreateFromAlert = {
-    name: {
-      label: t('主旨'),
-      placeholder: t('輸入'),
-      rules: 'required'
-    },
-    system_subclasses: {
-      type: 'modelsSystemClass',
-      label: t('領域'),
-      placeholder: t('選擇'),
-      rules: 'required',
-      disabled: true
-    },
-    sub_task_scope: {
-      ...subTaskScopeField
-    },
-    remark: {
-      type: 'text',
-      label: t('說明'),
-      placeholder: t('輸入'),
-      rules: 'required'
-    },
-    taker: {
-      type: 'belongsto',
-      label: t('負責人'),
-      placeholder: t('選擇'),
-      nameKey: 'name',
-      modelName: 'user',
-      serviceIndexKey: 'simplifyFactoryIndex',
-      customizedNameKey: 'userAndEmail',
-      rules: 'required'
-    },
-    expired_at: {
-      type: 'date',
-      placeholder: t('YYYY-MM-DD'),
-      label: t('期限'),
-      rules: 'required',
-      getMinimumDate: () => {
-        return moment().format('YYYY-MM-DD')
-      }
-    },
-    sub_tasks: {
-      rules: 'at_least|models_fields_required:taker',
-      type: 'models',
-      fields: {
-        name: {
-          text: t('新增'),
-          label: t('主旨'),
-          autoFocus: true,
-          rules: 'required',
-        },
-        remark: {
-          label: t('說明'),
-          rules: 'required',
-        },
-        taker: {
-          type: 'belongsto',
-          label: t('執行者'),
-          nameKey: 'name',
-          valueKey: 'id',
-          modelName: 'user',
-          serviceIndexKey: 'simplifyFactoryIndex',
-          customizedNameKey: 'userAndEmail',
-          rules: 'required',
-        },
-        expired_at: {
-          type: 'date',
-          label: t('期限'),
-          rules: 'requiredAndCompare',
-          testID: '期限',
-        },
-        file_attaches: {
-          modelName: 'task',
-          label: t('附件'),
-          type: 'Ll_filesAndImages',
-        },
-      },
-      renderCom: TaskSubtaskCard,
-      renderItem: ({ item, itemIndex }) => {
-        return (
-          <WsSubtaskCard
-            name={item.name}
-            modalItem={item.name}
-            fields={fields.sub_tasks.fields}
-            value={item}
-          />
-        )
-      },
-      updateValueOnChange: (event, value, field, fields) => {
-        const _subTasks = Array.isArray(event) ? event : []
-        const _subClassMap = new Map()
-        _subTasks.forEach(subTask => {
-          if (!Array.isArray(subTask?.system_subclasses)) {
-            return
-          }
-          subTask.system_subclasses.forEach(subClass => {
-            if (!subClass) {
-              return
-            }
-            const _key = typeof subClass === 'object'
-              ? subClass.id
-              : String(subClass)
-            if (_key && !_subClassMap.has(_key)) {
-              _subClassMap.set(_key, subClass)
-            }
-          })
-        })
-        return {
-          sub_tasks: _subTasks,
-          system_subclasses: Array.from(_subClassMap.values())
-        }
-      }
-    },
-    apiAlert: {
-      type: 'card',
-      cardType: 'alert',
-      info: true,
-      label: t('相關警示') ? t('相關警示') : ('相關警示'),
-      displayCheck(fieldsValue) {
-        if (fieldsValue.apiAlert) {
-          return true
-        } else {
-          return false
-        }
-      }
-    },
-    ll_broadcast: {
-      type: 'card',
-      cardType: 'broadcast',
-      info: true,
-      label: t('相關快報') ? t('相關快報') : ('相關快報'),
-      displayCheck(fieldsValue) {
-        if (fieldsValue.ll_broadcast) {
-          return true
-        } else {
-          return false
-        }
-      }
-    },
-    relationEvent: {
-      type: 'card',
-      cardType: 'relativeEvent',
-      info: true,
-      label: t('相關事件') ? t('相關事件') : ('相關事件'),
-      displayCheck(fieldsValue) {
-        if (fieldsValue.relationEvent) {
-          return true
-        } else {
-          return false
-        }
-      }
-    },
-  }
+  const fieldsCreateFromAlert = fields
 
   // 編輯任務
   const fieldsForEdit = {
@@ -561,8 +475,6 @@ const RoutesTask = ({ navigation }) => {
       modelName: 'user',
       serviceIndexKey: 'simplifyFactoryIndex',
       customizedNameKey: 'userAndEmail',
-      remind: t('可瀏覽全部待辦，不受執行者權限影響‘'),
-      remindColor: $color.danger,
     },
     roles: {
       type: 'multipleBelongstomany',
@@ -576,11 +488,6 @@ const RoutesTask = ({ navigation }) => {
         get_all: 1
       },
       searchBarVisible: true,
-      remind: t('可瀏覽全部待辦，不受執行者權限影響‘'),
-      remindColor: $color.danger,
-    },
-    sub_task_scope: {
-      ...subTaskScopeField
     },
     remark: {
       type: 'text',
@@ -621,6 +528,9 @@ const RoutesTask = ({ navigation }) => {
       type: 'Ll_relatedModule',
       label: t('相關資料'),
     },
+    sub_task_scope: {
+      ...subTaskScopeField
+    },
     sub_tasks: {
       label: t('待辦事項'),
       rules: 'at_least|models_fields_required:taker',
@@ -634,6 +544,12 @@ const RoutesTask = ({ navigation }) => {
         name: {
           label: t('主旨'),
           autoFocus: true,
+          rules: 'required',
+        },
+        system_subclasses: {
+          type: 'modelsSystemClass',
+          label: t('領域'),
+          placeholder: `${t('選擇')}`,
           rules: 'required',
         },
         remark: {
@@ -691,6 +607,10 @@ const RoutesTask = ({ navigation }) => {
       renderCom003: LlBatchEditBtn001,
       renderCom003Label: t('排序'),
       renderCom004Label: t('依任務來新增待辦'),
+      updateValueOnChange: (event, value, field, fields) => {
+        const _subTasks = Array.isArray(event) ? event : []
+        return $_mergeSystemSubclassesBySubTasks(_subTasks, value, 'sub_tasks')
+      },
     },
     apiAlert: {
       type: 'card',
@@ -699,6 +619,19 @@ const RoutesTask = ({ navigation }) => {
       label: t('相關警示'),
       displayCheck(fieldsValue) {
         if (fieldsValue.apiAlert) {
+          return true
+        } else {
+          return false
+        }
+      }
+    },
+    checklist_record: {
+      type: 'card',
+      cardType: 'relativeChecklistRecord',
+      info: true,
+      label: t('相關點檢記錄'),
+      displayCheck(fieldsValue) {
+        if (fieldsValue.checklist_record) {
           return true
         } else {
           return false
@@ -738,6 +671,19 @@ const RoutesTask = ({ navigation }) => {
       label: t('相關法條'),
       displayCheck(fieldsValue) {
         if (fieldsValue.article_version) {
+          return true
+        } else {
+          return false
+        }
+      }
+    },
+    act_version: {
+      type: 'card',
+      cardType: 'relativeAct',
+      info: true,
+      label: t('相關法規'),
+      displayCheck(fieldsValue) {
+        if (fieldsValue.act_version) {
           return true
         } else {
           return false
@@ -769,9 +715,6 @@ const RoutesTask = ({ navigation }) => {
       rules: 'required',
       disabled: true
     },
-    sub_task_scope: {
-      ...subTaskScopeField
-    },
     remark: {
       type: 'text',
       label: t('說明'),
@@ -811,6 +754,9 @@ const RoutesTask = ({ navigation }) => {
       type: 'Ll_relatedModule',
       label: t('相關資料'),
     },
+    sub_task_scope: {
+      ...subTaskScopeField
+    },
     sub_tasks: {
       label: t('待辦事項'),
       rules: 'at_least|models_fields_required:taker',
@@ -824,6 +770,12 @@ const RoutesTask = ({ navigation }) => {
         name: {
           label: t('主旨'),
           autoFocus: true,
+          rules: 'required',
+        },
+        system_subclasses: {
+          type: 'modelsSystemClass',
+          label: t('領域'),
+          placeholder: `${t('選擇')}`,
           rules: 'required',
         },
         remark: {
@@ -883,27 +835,7 @@ const RoutesTask = ({ navigation }) => {
       renderCom004Label: t('依任務來新增待辦'),
       updateValueOnChange: (event, value, field, fields) => {
         const _subTasks = Array.isArray(event) ? event : []
-        const _subClassMap = new Map()
-        _subTasks.forEach(subTask => {
-          if (!Array.isArray(subTask?.system_subclasses)) {
-            return
-          }
-          subTask.system_subclasses.forEach(subClass => {
-            if (!subClass) {
-              return
-            }
-            const _key = typeof subClass === 'object'
-              ? subClass.id
-              : String(subClass)
-            if (_key && !_subClassMap.has(_key)) {
-              _subClassMap.set(_key, subClass)
-            }
-          })
-        })
-        return {
-          sub_tasks: _subTasks,
-          system_subclasses: Array.from(_subClassMap.values())
-        }
+        return $_mergeSystemSubclassesBySubTasks(_subTasks, value, 'sub_tasks')
       },
     },
     apiAlert: {
@@ -913,6 +845,19 @@ const RoutesTask = ({ navigation }) => {
       label: t('相關警示'),
       displayCheck(fieldsValue) {
         if (fieldsValue.apiAlert) {
+          return true
+        } else {
+          return false
+        }
+      }
+    },
+    checklist_record: {
+      type: 'card',
+      cardType: 'relativeChecklistRecord',
+      info: true,
+      label: t('相關點檢記錄'),
+      displayCheck(fieldsValue) {
+        if (fieldsValue.checklist_record) {
           return true
         } else {
           return false
@@ -952,6 +897,19 @@ const RoutesTask = ({ navigation }) => {
       label: t('相關法條'),
       displayCheck(fieldsValue) {
         if (fieldsValue.article_version) {
+          return true
+        } else {
+          return false
+        }
+      }
+    },
+    act_version: {
+      type: 'card',
+      cardType: 'relativeAct',
+      info: true,
+      label: t('相關法規'),
+      displayCheck(fieldsValue) {
+        if (fieldsValue.act_version) {
           return true
         } else {
           return false
@@ -1020,6 +978,12 @@ const RoutesTask = ({ navigation }) => {
           autoFocus: true,
           rules: 'required',
         },
+        system_subclasses: {
+          type: 'modelsSystemClass',
+          label: t('領域'),
+          placeholder: `${t('選擇')}`,
+          testID: 'modelsSystemClass'
+        },
         remark: {
           label: t('說明'),
         },
@@ -1031,12 +995,6 @@ const RoutesTask = ({ navigation }) => {
           modelName: 'user',
           serviceIndexKey: 'simplifyFactoryIndex',
           customizedNameKey: 'userAndEmail',
-        },
-        system_subclasses: {
-          type: 'modelsSystemClass',
-          label: t('領域'),
-          placeholder: `${t('選擇')}`,
-          testID: 'modelsSystemClass'
         },
         links: {
           type: 'Ll_relatedModule',
@@ -1074,27 +1032,7 @@ const RoutesTask = ({ navigation }) => {
       renderCom004Label: t('依任務來新增待辦'),
       updateValueOnChange: (event, value, field, fields) => {
         const _subTasks = Array.isArray(event) ? event : []
-        const _subClassMap = new Map()
-        _subTasks.forEach(subTask => {
-          if (!Array.isArray(subTask?.system_subclasses)) {
-            return
-          }
-          subTask.system_subclasses.forEach(subClass => {
-            if (!subClass) {
-              return
-            }
-            const _key = typeof subClass === 'object'
-              ? subClass.id
-              : String(subClass)
-            if (_key && !_subClassMap.has(_key)) {
-              _subClassMap.set(_key, subClass)
-            }
-          })
-        })
-        return {
-          subtask_factory_templates: _subTasks,
-          system_subclasses: Array.from(_subClassMap.values())
-        }
+        return $_mergeSystemSubclassesBySubTasks(_subTasks, value, 'subtask_factory_templates')
       },
     },
     status: {
@@ -1127,6 +1065,7 @@ const RoutesTask = ({ navigation }) => {
             'system_subclasses',
             'sub_task_scope',
             'apiAlert',
+            'checklist_record',
             'relationEvent',
             'll_broadcast',
             'article_version',
@@ -1228,7 +1167,12 @@ const RoutesTask = ({ navigation }) => {
     currentUserId
   ) => {
     // console.log(JSON.stringify(_formattedValue), '_formattedValue--');
-    const _data = S_Task.getFormattedDataForEdit(_formattedValue, currentUserId)
+    const _recalculatedSystemSubclasses = $_recalculateTaskSystemSubclasses(_formattedValue)
+    const _valueForSubmit = {
+      ..._formattedValue,
+      system_subclasses: _recalculatedSystemSubclasses
+    }
+    const _data = S_Task.getFormattedDataForEdit(_valueForSubmit, currentUserId)
     // console.log(JSON.stringify(_data), 'submitForEdit');
     try {
       const res = await S_Task.update({
