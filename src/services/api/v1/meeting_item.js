@@ -70,5 +70,14 @@ export default {
       modelName: `meeting_item/${params?.meeting_item_id}/update/convert_attach`,
       data: params.formData
     })
-  }
+  },
+  async reParse({ data }) {
+    return base.create({
+      modelName: `meeting_item/${data?.meeting_item_id}/reparse`,
+      data: {
+        ...data,
+        ...S_Processor.getFactoryData()
+      }
+    })
+  },
 }

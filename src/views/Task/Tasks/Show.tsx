@@ -42,6 +42,7 @@ import {
   LlEventCard001,
   LlRelatedChecklistRecordCard001,
   LlRelatedESGoalBroadcastCard001,
+  LlRelatedTrainingGroupCard001,
   LlRelatedActCard001,
   LlRelatedArticleCard001,
   WsPassageCollapse,
@@ -160,6 +161,7 @@ const TaskShow = ({ navigation, route }) => {
   const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false)
 
   const [stateModalSubtask, setStateModalSubtask] = React.useState(false)
+  const [subtaskHeaderLeftLoading, setSubtaskHeaderLeftLoading] = React.useState(false)
   const [stateModalForReplySubtask, setStateModalForReplySubtask] =
     React.useState(false)
   const [stateModalForReviewSubtask, setStateModalForReviewSubtask] =
@@ -283,6 +285,9 @@ const TaskShow = ({ navigation, route }) => {
 
   // 儲存執行結果
   const $_editReply = async subTaskId => {
+    if (!subTaskId) {
+      return
+    }
     if (!reply || reply.trim() === "") {
       return
     }
@@ -292,10 +297,11 @@ const TaskShow = ({ navigation, route }) => {
         reply_attaches: replyAttaches ? S_SubTask.formattedForFileStore(replyAttaches) : [],
         reply_images: replyImages ? S_SubTask.formattedForFileStore(replyImages) : [],
       }
-      const res = await S_SubTask.subTask_reply_update({
-        modelId: subTaskId,
-        data: _data
-      }).then(res => {
+      try {
+        const res = await S_SubTask.subTask_result_update({
+          modelId: subTaskId,
+          data: _data
+        })
         setCurrentSubtask(res)
         $_setDone(subTaskId)
         $_fetchTask()
@@ -303,7 +309,15 @@ const TaskShow = ({ navigation, route }) => {
         setTimeout(() => {
           setStateModalSubtask(false);
         }, 300);
-      })
+      } catch (err) {
+        console.log('subTask_result_update error', {
+          modelId: subTaskId,
+          status: err?.response?.status,
+          responseData: err?.response?.data,
+          message: err?.message,
+          payload: _data
+        })
+      }
     }
   }
 
@@ -314,7 +328,7 @@ const TaskShow = ({ navigation, route }) => {
       review_attaches: reviewAttaches && reviewAttaches.length > 0 ? S_SubTask.formattedForFileStore(reviewAttaches) : [],
       review_images: reviewImages && reviewImages.length > 0 ? S_SubTask.formattedForFileStore(reviewImages) : []
     }
-    const res = await S_SubTask.subTask_review_update({
+    const res = await S_SubTask.subTask_result_update({
       modelId: subTaskId,
       data: _data
     }).then(res => {
@@ -330,7 +344,9 @@ const TaskShow = ({ navigation, route }) => {
       const res = await S_Task.checkTask(id)
       Alert.alert('完成審核')
       navigation.push('TaskIndex', {
-        _tabIndex: 1
+        _tabIndex: 0,
+        _taskTabIndex: 2,
+        refreshKey: Date.now()
       })
     } catch (error) {
       Alert.alert('完成審核發生異常')
@@ -361,50 +377,51 @@ const TaskShow = ({ navigation, route }) => {
   }
 
   // 待辦流程
-  const $_subTaskCardOnChange = subTask => {
-    setSubmitLoading(true)
-    if (!fields) {
-      console.log('$_subTaskCardOnChange 1');
-      $_setFields(subTask)
-    }
-    // 已經有執行結果
-    if (subTask.reply) {
-      if (subTask?.done_at) {
-        $_setUndo(subTask?.id)
-      } else if (!subTask?.done_at) {
-        $_setDone(subTask?.id)
+  const $_subTaskCardOnChange = async subTask => {
+    try {
+      if (!fields) {
+        console.log('$_subTaskCardOnChange 1');
+        $_setFields(subTask)
       }
-      setSubmitLoading(false)
-      return
-    }
-    if (currentUser &&
-      subTask &&
-      subTask.taker &&
-      ((currentUser?.id === subTask.taker?.id) || (currentUser?.id === task.taker?.id))) {
-      console.log('$_subTaskCardOnChange 3');
-      if (!subTask.done_at) {
-        setCurrentSubtask(subTask)
-        setStateModalSubtask(true)
-        console.log('setStateModalForReplySubtask');
-        setTimeout(() => {
-          setStateModalForReplySubtask(true)
-        }, 100)
+      // 已經有執行結果
+      if (subTask.reply) {
+        if (subTask?.done_at) {
+          await $_setUndo(subTask?.id)
+        } else if (!subTask?.done_at) {
+          await $_setDone(subTask?.id)
+        }
+        return
       } else {
-        $_setUndo(subTask.id)
+        if (currentUser &&
+          subTask &&
+          subTask.taker &&
+          ((currentUser?.id === subTask.taker?.id) || (currentUser?.id === task.taker?.id))) {
+          console.log('$_subTaskCardOnChange 3');
+          if (!subTask.done_at) {
+            setCurrentSubtask(subTask)
+            setStateModalSubtask(true)
+            console.log('setStateModalForReplySubtask');
+            setTimeout(() => {
+              setStateModalForReplySubtask(true)
+            }, 100)
+          } else {
+            await $_setUndo(subTask.id)
+          }
+        }
+        else if (currentUser &&
+          currentUser.id &&
+          subTask &&
+          subTask.taker &&
+          subTask.taker.id &&
+          (currentUser.id !== subTask.taker.id) &&
+          !subTask.reply
+        ) {
+          console.log('$_subTaskCardOnChange 4');
+          setIsSnackBarVisible(true)
+        }
       }
+    } finally {
     }
-    else if (currentUser &&
-      currentUser.id &&
-      subTask &&
-      subTask.taker &&
-      subTask.taker.id &&
-      (currentUser.id !== subTask.taker.id) &&
-      !subTask.reply
-    ) {
-      console.log('$_subTaskCardOnChange 4');
-      setIsSnackBarVisible(true)
-    }
-    setSubmitLoading(false)
   }
 
   const $_subtaskCardOnPress = (subTask) => {
@@ -1259,6 +1276,23 @@ const TaskShow = ({ navigation, route }) => {
                   </>
                 )}
 
+              {task.internal_training_group &&
+                task.internal_training_group.id && (
+                  <>
+                    <LlRelatedTrainingGroupCard001
+                      item={task.internal_training_group}
+                      onPress={() => {
+                        navigation.push('RoutesTraining', {
+                          screen: 'TrainingGroupShow',
+                          params: {
+                            id: task.internal_training_group.id,
+                          }
+                        })
+                      }}
+                    />
+                  </>
+                )}
+
               {task.act_version &&
                 task.act_version.id &&
                 task.act_version.act && (
@@ -1296,6 +1330,12 @@ const TaskShow = ({ navigation, route }) => {
                     ></LlRelatedGuidelineArticleVersionCard001>
                   </>
                 )}
+
+              <View
+                style={{
+                  height: 50
+                }}
+              ></View>
 
               <WsModal
                 title={t('相關內規')}
@@ -1340,35 +1380,39 @@ const TaskShow = ({ navigation, route }) => {
                       ? 'ws-filled-check-circle'
                       : 'ws-outline-check-circle-outline'
                   }
-                  headerLeftOnPress={() => {
-                    console.log('headerLeftOnPress');
-                    if (task.checked_at) {
-                      console.log('headerLeftOnPress 1');
-                      setSnackBarText(t('已完成覆核的待辦事項，不可編輯'))
-                      setIsSnackBarVisible(true)
+                  iconLeftLoading={subtaskHeaderLeftLoading}
+                  headerLeftOnPress={async () => {
+                    if (subtaskHeaderLeftLoading) {
                       return
                     }
-                    if (
-                      currentUser &&
-                      currentSubtask &&
-                      (currentUser.id === currentSubtask.taker.id)
-                    ) {
-                      console.log('headerLeftOnPress 2');
-                      $_subTaskCardOnChange(currentSubtask)
-                    } else {
-                      console.log('headerLeftOnPress 4');
-                      if (!task.done_at) {
-                        console.log('headerLeftOnPress 5');
-                        setSnackBarText(t('尚未填寫執行結果'))
+                    setSubtaskHeaderLeftLoading(true)
+                    try {
+                      await new Promise(resolve => setTimeout(resolve, 1000))
+                      if (task.checked_at) {
+                        setSnackBarText(t('已完成覆核的待辦事項，不可編輯'))
                         setIsSnackBarVisible(true)
                         return
                       }
-                      if ((currentUser.id !== currentSubtask.taker.id) && (currentUser?.id !== task.taker?.id)) {
-                        console.log('headerLeftOnPress 6');
-                        setSnackBarText(t('你無權限標記他人的待辦事項'))
-                        setIsSnackBarVisible(true)
-                        return
+                      if (
+                        currentUser &&
+                        currentSubtask &&
+                        (currentUser.id === currentSubtask.taker.id)
+                      ) {
+                        await $_subTaskCardOnChange(currentSubtask)
+                      } else {
+                        if (!task.done_at) {
+                          setSnackBarText(t('尚未填寫執行結果'))
+                          setIsSnackBarVisible(true)
+                          return
+                        }
+                        if ((currentUser.id !== currentSubtask.taker.id) && (currentUser?.id !== task.taker?.id)) {
+                          setSnackBarText(t('你無權限標記他人的待辦事項'))
+                          setIsSnackBarVisible(true)
+                          return
+                        }
                       }
+                    } finally {
+                      setSubtaskHeaderLeftLoading(false)
                     }
                   }}
                   onBackButtonPress={() => {

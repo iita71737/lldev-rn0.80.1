@@ -19,7 +19,7 @@ import moment from 'moment'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import S_ActVersion from '@/services/api/v1/act_version'
-import S_GuidelineVersionAdmin from '@/services/api/v1/guideline_version_admin'
+import S_GuidelineVersion from '@/services/api/v1/guideline_version'
 import S_GuidelineArticleVersionAdmin from '@/services/api/v1/guideline_article_version_admin'
 import S_CheckListRecord from '@/services/api/v1/checklist_record'
 import ViewGuidelineArticleShowForModal from '@/views/ActGuideline/GuidelineArticleShowForModal'
@@ -65,21 +65,35 @@ const WsStateAlertCard = props => {
 
   // 取得快報
   const $_fetchBroadcast = async () => {
-    const _id = value
-    const _broadcast = await S_Broadcast.show(_id)
-    setLlBroadcast(_broadcast)
-    setLoading(false)
+    const _id = value && value.id ? value.id : value
+    if (!_id) {
+      setLoading(false)
+      return
+    }
+    try {
+      const _broadcast = await S_Broadcast.show(_id)
+      setLlBroadcast(_broadcast)
+    } catch (e) {
+      console.log(e.message, 'broadcast error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   // 取得事件
   const $_fetchRelativeEvent = async () => {
-    const _id = value.id
+    const _id = value && value.id ? value.id : value
+    if (!_id) {
+      setLoading(false)
+      return
+    }
     try {
       const _event = await S_Event.show({ modelId: _id })
       setRelativeEvent(_event)
-      setLoading(false)
     } catch (e) {
       console.log(e.message, 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -109,26 +123,45 @@ const WsStateAlertCard = props => {
 
   // 取得相關教育訓練群組
   const $_fetchRelativeTrainingGroup = async () => {
+    const _rawValue = value !== undefined ? value : values?.internal_training_group
+    const _id = typeof _rawValue === 'object'
+      ? _rawValue?.id
+      : _rawValue
+    if (!_id) {
+      setLoading(false)
+      return
+    }
     try {
-      const res = await S_TrainingGroup.show({ modelId: values?.internal_training_group })
+      const res = await S_TrainingGroup.show({ modelId: _id })
       if (res) {
         setRelativeTrainingGroup(res)
-        setLoading(false)
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setLoading(false)
     }
   }
 
   // 取得相關內規
   const $_fetchRelativeGuidelineVersion = async () => {
-    const _versionId = value && value.id ? value.id : value ? value : undefined
-    try {
-      const _guideline = await S_GuidelineVersionAdmin.show({ modelId: _versionId })
-      setRelativeGuidelineVersion(_guideline)
+    const _versionId = (
+      (value && value.id) ||
+      (value && value.last_version && value.last_version.id) ||
+      (value && value.guideline_version && value.guideline_version.id) ||
+      values?.guideline_version
+    )
+    if (!_versionId) {
       setLoading(false)
+      return
+    }
+    try {
+      const _guideline = await S_GuidelineVersion.show({ modelId: _versionId })
+      setRelativeGuidelineVersion(_guideline)
     } catch (e) {
       console.log(e.message, 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -206,10 +239,10 @@ const WsStateAlertCard = props => {
   }, [value])
 
   React.useEffect(() => {
-    if (value && cardType === 'relativeGuidelineVersion') {
+    if (cardType === 'relativeGuidelineVersion' && (value || values?.guideline_version)) {
       $_fetchRelativeGuidelineVersion()
     }
-  }, [value])
+  }, [value, values?.guideline_version, cardType])
 
   React.useEffect(() => {
     if (values && values.guideline_article_version && cardType === 'relativeGuidelineArticle') {
@@ -712,14 +745,21 @@ const WsStateAlertCard = props => {
             relativeGuidelineVersion.id && (
               <TouchableOpacity
                 onPress={() => {
+                  const _guidelineId =
+                    values?.guideline_id ||
+                    relativeGuidelineVersion?.guideline?.id ||
+                    value?.guideline?.id ||
+                    value?.guideline_id
                   if (values) {
-                    navigation.push('RoutesAct', {
-                      screen: 'GuidelineShow',
-                      params: {
-                        id: values.guideline_id,
-                        routeByGuidelineVersion: relativeGuidelineVersion
-                      }
-                    })
+                    if (_guidelineId) {
+                      navigation.push('RoutesAct', {
+                        screen: 'GuidelineShow',
+                        params: {
+                          id: _guidelineId,
+                          routeByGuidelineVersion: relativeGuidelineVersion
+                        }
+                      })
+                    }
                   }
                 }}
                 style={{

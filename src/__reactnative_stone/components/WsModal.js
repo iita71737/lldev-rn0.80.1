@@ -29,6 +29,7 @@ const WsModal = props => {
     iconRightColor = $color[$theme].WsModalHeader.iconLeftColor,
     iconRightName,
     iconLeftName = 'md-close',
+    iconLeftLoading = false,
     iconLeftSize,
     headerLeftOnPress,
     headerRightOnPress,
@@ -87,6 +88,7 @@ const WsModal = props => {
               iconRightColor={iconRightColor}
               iconRightName={iconRightName}
               iconLeftName={iconLeftName}
+              iconLeftLoading={iconLeftLoading}
               leftOnPress={headerLeftOnPress}
               RightOnPress={headerRightOnPress}
               RightOnPressIsDisabled={RightOnPressIsDisabled}

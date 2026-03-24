@@ -268,4 +268,13 @@ export default {
       sign_in_form: []
     };
   },
+  async reParse({ data }) {
+    return base.create({
+      modelName: `meeting/${data?.meeting_id}/reparse`,
+      data: {
+        ...data,
+        ...S_Processor.getFactoryData()
+      }
+    })
+  },
 }

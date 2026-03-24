@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { View, TouchableOpacity, FlatList } from 'react-native'
+import { View, TouchableOpacity, FlatList, Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import {
   WsFlex,
@@ -8,6 +8,7 @@ import {
 import $color from '@/__reactnative_stone/global/color'
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group'
 import S_MeetingItem from '@/services/api/v1/meeting_item'
+import S_Meeting from '@/services/api/v1/meeting'
 import PDFToolDraggableList, { PDFToolDraggableListRef } from '@/views/PDFTool/PDFToolDraggableList'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import { useSelector } from 'react-redux'
@@ -137,6 +138,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
   const [meetingItemStatusByGroup, setMeetingItemStatusByGroup] = useState<Record<string, any[]>>({})
   const [loadingMeetingItems, setLoadingMeetingItems] = useState(false)
   const [meetingItemsAllRefreshKeyState, setMeetingItemsAllRefreshKeyState] = useState(0)
+  const [reParseLoading, setReParseLoading] = useState(false)
   const draggableListRef = useRef<PDFToolDraggableListRef | null>(null)
   const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const didFinalRefreshRef = useRef(false)
@@ -169,6 +171,36 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
     })
     return parts.join('|')
   }, [meetingItemGroups, meetingItemListByGroup])
+
+  const getStatusValue = useCallback((value: any) => {
+    return String(value?.name ?? value ?? '').toUpperCase()
+  }, [])
+
+  const isProcessingStatus = useCallback((value: any) => {
+    const normalized = getStatusValue(value)
+    return normalized === 'PROCESSING' || normalized === 'PENDING'
+  }, [getStatusValue])
+
+  const hasAnyProcessingStatus = useMemo(() => {
+    return meetingItemGroups.some(group => {
+      const groupItems =
+        meetingItemStatusByGroup[group.id] ??
+        meetingItemListByGroup[group.id] ??
+        (Array.isArray((group as any).meeting_items)
+          ? (group as any).meeting_items
+          : Array.isArray((group as any).meetingItems)
+            ? (group as any).meetingItems
+            : Array.isArray((group as any).articles)
+              ? (group as any).articles
+              : [])
+      if (!Array.isArray(groupItems)) return false
+      return groupItems.some(item =>
+        isProcessingStatus(item?.parse_status) || isProcessingStatus(item?.convert_status)
+      )
+    })
+  }, [meetingItemGroups, meetingItemStatusByGroup, meetingItemListByGroup, isProcessingStatus])
+
+  const actionButtonsDisabled = reParseLoading || hasAnyProcessingStatus
 
   const $_fetchMeetingItemGroups = async (meetingId: string, isMounted: () => boolean) => {
     setLoading(true)
@@ -252,14 +284,9 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
       if (!meetingItemGroups.length || mode === 'dragSort') return
       let active = true
 
-      const getStatusValue = (value: any) =>
-        String(value?.name ?? value ?? '').toUpperCase()
-
       const hasProcessingStatus = (items: any[]) =>
         items.some(item => {
-          const parseStatus = getStatusValue(item?.parse_status)
-          const convertStatus = getStatusValue(item?.convert_status)
-          return parseStatus === 'PROCESSING' || convertStatus === 'PROCESSING'
+          return isProcessingStatus(item?.parse_status) || isProcessingStatus(item?.convert_status)
         })
 
       const collectItems = (payload: any) => {
@@ -395,7 +422,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
           pollingTimerRef.current = null
         }
       }
-    }, [meeting?.id, meetingItemGroups.length, meetingItemsSignature, mode, meetingItemsAllRefreshKeyState])
+    }, [meeting?.id, meetingItemGroups.length, meetingItemsSignature, mode, meetingItemsAllRefreshKeyState, isProcessingStatus])
   )
 
   const shouldShowRemind = useMemo(() => {
@@ -494,6 +521,26 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
     }
   }
 
+  const handleReParseMeeting = async () => {
+    if (!meeting?.id) return
+    if (actionButtonsDisabled) return
+    try {
+      setReParseLoading(true)
+      await S_Meeting.reParse({
+        data: {
+          meeting_id: meeting.id,
+        }
+      })
+      requestMeetingItemsAllRefresh()
+      Alert.alert(t('已送出重新解析'))
+    } catch (err) {
+      console.log('S_Meeting.reParse error', err)
+      Alert.alert(t('重新解析失敗，請稍後再試'))
+    } finally {
+      setReParseLoading(false)
+    }
+  }
+
   const renderListHeader = () => (
     <>
       <WsFlex
@@ -506,8 +553,10 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
 
         {!!meetingItemGroups.length && canUpdateMeeting ? (
           <TouchableOpacity
-            style={{ alignItems: 'flex-start', marginRight: 8 }}
+            disabled={actionButtonsDisabled}
+            style={{ alignItems: 'flex-start', marginRight: 0 }}
             onPress={() => {
+              if (actionButtonsDisabled) return
               if (!meeting?.id) return
               navigation.navigate('RoutesPDFTool', {
                 screen: 'PDFToolAdminBatchEditMeetingItemGroup',
@@ -515,10 +564,28 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
               })
             }}
           >
-            <WsTag>{t('批次編輯議案群組')}</WsTag>
+            <WsTag
+              textColor={actionButtonsDisabled ? $color.white5d : undefined}
+            >
+              {t('批次編輯議案群組')}
+            </WsTag>
           </TouchableOpacity>
         ) : (
           <View></View>
+        )}
+
+        {canUpdateMeeting && (
+          <TouchableOpacity
+            disabled={actionButtonsDisabled}
+            style={{ alignItems: 'flex-start', marginRight: 0 }}
+            onPress={handleReParseMeeting}
+          >
+            <WsTag
+              textColor={actionButtonsDisabled ? $color.white5d : undefined}
+            >
+              {t('重新解析提案單')}
+            </WsTag>
+          </TouchableOpacity>
         )}
 
         <WsFlex style={{ marginRight: 4 }}>
@@ -526,12 +593,18 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
             <>
               {!!meetingItemGroups.length && (
                 <TouchableOpacity
+                  disabled={actionButtonsDisabled}
                   style={{ alignItems: 'flex-end', marginRight: 8 }}
                   onPress={() => {
+                    if (actionButtonsDisabled) return
                     onEnterSort()
                   }}
                 >
-                  <WsTag>{t('排序')}</WsTag>
+                  <WsTag
+                    textColor={actionButtonsDisabled ? $color.white5d : undefined}
+                  >
+                    {t('排序')}
+                  </WsTag>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -614,7 +687,7 @@ const MotionGroupTab: React.FC<MotionGroupTabProps> = ({
                     }}
                     size={12}
                     color={$color.danger}>
-                    {t('注意，排序將重新產製全部議案 (DOCX)')}
+                    {t('注意，排序將重新產生全部的調整檔 (DOCX)')}
                   </WsText>
                 </WsFlex>
               </TouchableOpacity>

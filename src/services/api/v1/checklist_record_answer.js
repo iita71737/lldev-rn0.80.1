@@ -438,8 +438,11 @@ export default {
   getTypeCustomNumAnsScore(ans, score) {
     const state = store.getState()
     const riskLevelList = state.data.constantData
+    if (!Array.isArray(riskLevelList)) {
+      return null
+    }
     // 如果 score 是 undefined，直接返回 "未答題" 對應的風險值
-    if (score === undefined && riskLevelList) {
+    if (score === undefined) {
       const noAnswerRisk = riskLevelList.find(risk => risk.code === "checklist_question_no_answer");
       return noAnswerRisk ? noAnswerRisk.value : null; // 如果找不到，返回 null
     }
@@ -467,8 +470,9 @@ export default {
           riskLevelScore = risk_level;
       })
       const foundRisk = riskLevelList.find(risk => risk.value == riskLevelScore);
-      return foundRisk.value
+      return foundRisk ? foundRisk.value : null
     }
+    return null
   },
   getAnsDataScore(ans, score) {
     // 判斷量性題目的風險值
@@ -2316,11 +2320,36 @@ export default {
   },
   async formattedQuestionsForAPI_V2(currentDraft, currentUserId) {
     let _questions = []
+    const _questionShowMap = new Map()
+    const _questionIds = Array.from(
+      new Set(
+        (Array.isArray(currentDraft) ? currentDraft : [])
+          .map(question => question?.id)
+          .filter(Boolean)
+      )
+    )
+    if (_questionIds.length > 0) {
+      const _questionShowResults = await Promise.all(
+        _questionIds.map(async (questionId) => {
+          console.log(questionId,'questionId')
+          try {
+            const _questionShow = await S_CheckListQuestion.showV2({ modelId: questionId })
+            return [questionId, _questionShow]
+          } catch (error) {
+            console.log(error, 'formattedQuestionsForAPI_V2 showV2 error')
+            return [questionId, null]
+          }
+        })
+      )
+      _questionShowResults.forEach(([questionId, questionShow]) => {
+        _questionShowMap.set(questionId, questionShow)
+      })
+    }
     for (const question of currentDraft) {
-      const _questionShow = await S_CheckListQuestion.showV2({ modelId: question.id })
-      const _formattedArticleVersions = this.transformArticleVersions(_questionShow.last_version.article_versions)
-      const _formattedActVersionAlls = this.transformActVersionAlls(_questionShow.last_version.act_version_alls)
-      const _formattedRelatedGuidelines = this.transformRelatedGuidelines(_questionShow.last_version.related_guidelines)
+      const _questionShow = _questionShowMap.get(question.id)
+      const _formattedArticleVersions = this.transformArticleVersions(_questionShow?.last_version?.article_versions || [])
+      const _formattedActVersionAlls = this.transformActVersionAlls(_questionShow?.last_version?.act_version_alls || [])
+      const _formattedRelatedGuidelines = this.transformRelatedGuidelines(_questionShow?.last_version?.related_guidelines || [])
       if (question.question_setting != null &&
         question.question_setting.checkers &&
         question.question_setting.checkers.length > 0) {

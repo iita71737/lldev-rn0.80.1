@@ -2,7 +2,8 @@ import React, { useCallback, useMemo, useRef } from 'react'
 import {
   View,
   FlatList,
-  Dimensions
+  Dimensions,
+  Platform
 } from 'react-native'
 import {
   WsInfiniteScroll,
@@ -180,8 +181,8 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
             style={{
               zIndex: 999,
               position: 'absolute',
-              bottom: 16,
-              right: 16,
+              bottom: Platform.select({ ios: 24, android: 50 }),
+              right: 24,
             }}
             onPress={() => {
               setModalVisible(true)

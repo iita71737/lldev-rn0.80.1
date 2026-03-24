@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useRef, useCallback } from 'react'
 import { View, TouchableOpacity, Linking, Alert, Dimensions } from 'react-native'
 import moment from 'moment'
 import { useTranslation } from 'react-i18next'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import { useSelector } from 'react-redux'
 import {
   WsPageIndex,
@@ -79,6 +79,7 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
   const [editTitle, setEditTitle] = useState('')
   const [editRemark, setEditRemark] = useState('')
   const [internalRefreshKey, setInternalRefreshKey] = useState(0)
+  const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const refreshKeyCombined = `${refreshKey ?? 0}-${internalRefreshKey}`
 
   const __params = useMemo(() => {
@@ -156,6 +157,68 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
       console.log('S_MeetingExport.update error', err)
     }
   }
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!meeting?.id) return
+      let active = true
+
+      const getStatusValue = (value: any) =>
+        String(value?.name ?? value ?? '').toUpperCase()
+
+      const hasPendingRecords = (items: any[]) =>
+        items.some(item => {
+          const status = getStatusValue(item?.convert_status)
+          return status === 'PENDING' || status === 'PROCESSING'
+        })
+
+      const syncPolling = (shouldPoll: boolean) => {
+        if (!active) return
+        if (shouldPoll) {
+          if (!pollingTimerRef.current) {
+            pollingTimerRef.current = setInterval(checkExportStatus, 10000)
+          }
+        } else if (pollingTimerRef.current) {
+          clearInterval(pollingTimerRef.current)
+          pollingTimerRef.current = null
+        }
+      }
+
+      const checkExportStatus = async () => {
+        console.log(meeting?.id, 'checkExportStatus')
+        try {
+          const res = await S_MeetingExport.index({
+            params: {
+              meeting: meeting.id,
+              order_by: 'created_at',
+              order_way: 'desc',
+              time_field: 'created_at',
+            }
+          })
+          if (!active) return
+          const records = Array.isArray(res?.data) ? res.data : []
+          const shouldPoll = hasPendingRecords(records)
+          syncPolling(shouldPoll)
+          if (shouldPoll) {
+            setInternalRefreshKey(prev => prev + 1)
+          }
+        } catch (err) {
+          if (!active) return
+          console.log('S_MeetingExport.index polling error', err)
+        }
+      }
+
+      checkExportStatus()
+
+      return () => {
+        active = false
+        if (pollingTimerRef.current) {
+          clearInterval(pollingTimerRef.current)
+          pollingTimerRef.current = null
+        }
+      }
+    }, [meeting?.id, refreshKey])
+  )
 
   return (
     <View style={{ flex: 1 }} key={refreshKeyCombined}>

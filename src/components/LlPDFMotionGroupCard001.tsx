@@ -24,6 +24,7 @@ import $color from '@/__reactnative_stone/global/color';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import S_MeetingItemGroup from '@/services/api/v1/meeting_item_group';
 import S_MeetingItem from '@/services/api/v1/meeting_item';
+import S_Meeting from '@/services/api/v1/meeting';
 import { pick, types } from '@react-native-documents/picker';
 import { useNavigation } from '@react-navigation/native'
 
@@ -165,6 +166,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const [meetingItemListByGroup, setMeetingItemListByGroup] = useState<Record<string, Motion[]>>({});
   const [meetingItemLoadingByGroup, setMeetingItemLoadingByGroup] = useState<Record<string, boolean>>({});
   const [meetingItemRefreshingIds, setMeetingItemRefreshingIds] = useState<Record<string, boolean>>({});
+  const [meetingItemReParsingIds, setMeetingItemReParsingIds] = useState<Record<string, boolean>>({});
   const [meetingItemRefreshTimes, setMeetingItemRefreshTimes] = useState<Record<string, string>>({});
   const [meetingItemAttachesById, setMeetingItemAttachesById] = useState<Record<string, any[]>>({});
   const [editMotionModalVisible, setEditMotionModalVisible] = useState(false);
@@ -174,6 +176,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
 
   const [updateProposalModalVisible, setUpdateProposalModalVisible] = useState(false)
   const [updateProposalTargetMotion, setUpdateProposalTargetMotion] = useState<Motion | null>(null)
+  const [updateUploadMode, setUpdateUploadMode] = useState<'proposal' | 'convert_attach'>('proposal')
   const [updateFileData, setUpdateFileData] = useState();
 
   const [updateFileOriginalName, setUpdateFileOriginalName] = useState('');
@@ -195,6 +198,17 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const [remindValue, setRemindValue] = React.useState()
 
   const openUpdateProposalModal = (group: Group, motion: Motion) => {
+    setUpdateUploadMode('proposal')
+    setUpdateProposalTargetMotion(motion)
+    setUpdateMeetingItemId(motion?.id ?? null)
+    setUpdateProposalGroupId(group?.id ?? null)
+    setUpdateFileData(undefined)
+    setUpdateFileOriginalName('')
+    setUpdateProposalModalVisible(true)
+  }
+
+  const openUpdateConvertAttachModal = (group: Group, motion: Motion) => {
+    setUpdateUploadMode('convert_attach')
     setUpdateProposalTargetMotion(motion)
     setUpdateMeetingItemId(motion?.id ?? null)
     setUpdateProposalGroupId(group?.id ?? null)
@@ -271,74 +285,12 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     }
   }
 
-  const updateConvertAttach = async (meetingItem: Motion | null) => {
+  const updateConvertAttach = (group: Group, meetingItem: Motion | null) => {
     if (!meetingItem?.id) {
       Alert.alert(t('請先選擇議案'))
       return
     }
-    try {
-      const res = await pick({
-        mode: 'import',
-        type: [types.doc, types.docx],
-      })
-      if (!res || res.length === 0) return
-
-      const rawUri = res[0].uri
-      const originalName = res[0].name || rawUri.split('/').pop() || 'file.docx'
-
-      const isWordFile = (name: string) => {
-        const lower = (name || '').toLowerCase()
-        return lower.endsWith('.doc') || lower.endsWith('.docx')
-      }
-      if (!isWordFile(originalName)) {
-        Alert.alert(t('請選擇 .doc 或 .docx 檔案'))
-        return
-      }
-
-      const fileType =
-        res[0].type ||
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-
-      const readableItemLabel =
-        typeof meetingItem?.item_label === 'string'
-          ? meetingItem?.item_label
-          : meetingItem?.item_label?.name ?? ''
-
-      const formData = new FormData()
-      if (currentFactory?.id) {
-        formData.append('factory', currentFactory.id)
-      }
-      if (readableItemLabel) {
-        formData.append('item_label', readableItemLabel)
-      }
-
-      const normalizedUri =
-        Platform.OS === 'ios' && rawUri && !rawUri.startsWith('file://')
-          ? `file:/${rawUri}`
-          : rawUri
-
-      formData.append('file', {
-        uri: normalizedUri,
-        name: originalName,
-        displayName: originalName,
-        type: fileType,
-      } as any)
-      formData.append('original_filename', originalName)
-
-      const _params = {
-        formData,
-        meeting_item_id: meetingItem.id,
-      }
-      await S_MeetingItem.updateConvertAttach({ params: _params })
-      Alert.alert(t('更新成功'))
-      onRequestMeetingItemsAll?.()
-    } catch (err: any) {
-      const isCancel =
-        err?.code === 'DOCUMENT_PICKER_CANCELED' ||
-        err?.message?.includes('user canceled') ||
-        err?.message?.includes('The operation was cancelled')
-      if (!isCancel) console.error('updateConvertAttach error', err)
-    }
+    openUpdateConvertAttachModal(group, meetingItem)
   }
 
 
@@ -377,14 +329,20 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     }
     console.log(JSON.stringify(_params), '_params_params')
     try {
-      const _res = await S_MeetingItem.updateMeetingItemWord({ params: _params })
+      const _res = updateUploadMode === 'convert_attach'
+        ? await S_MeetingItem.updateConvertAttach({ params: _params })
+        : await S_MeetingItem.updateMeetingItemWord({ params: _params })
       closeUpdateProposalModal()
       if (updateProposalGroupId) {
         console.log(updateProposalGroupId, 'updateProposalGroupId')
         await fetchMeetingItemList(updateProposalGroupId)
       }
       console.log(JSON.stringify(_res), 'S_MeetingItem update')
-      Alert.alert(t('更新成功，伺服器正在處理中，請到匯出紀錄確認處理狀態'))
+      Alert.alert(
+        updateUploadMode === 'convert_attach'
+          ? t('更新成功')
+          : t('更新成功，伺服器正在處理中，請到匯出紀錄確認處理狀態')
+      )
       setTimeout(() => {
         onRequestMeetingItemsAll?.()
       }, 300)
@@ -775,6 +733,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
   const renderListItem = (group: Group, meetingItem: Motion, meetingItemIndex: number) => {
     const isMeetingItemCollapsed = motionCollapsed[meetingItem.id] ?? true;
     const isMeetingItemRefreshing = meetingItemRefreshingIds[meetingItem.id] ?? false;
+    const isMeetingItemReParsing = meetingItemReParsingIds[meetingItem.id] ?? false;
     const meetingItemAttaches =
       meetingItemAttachesById[meetingItem.id] ??
       meetingItem?.meeting_item_attaches ??
@@ -959,33 +918,27 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                       style={{
                         paddingTop: statusTagText ? 8 : 0,
                       }}
-                      justifyContent="space-bewteen"
+                      justifyContent="space-between"
+                      alignItems="center"
                     >
-                      <WsIconBtn
-                        padding={0}
-                        name="ws-outline-cloud-upload"
-                        size={24}
-                        color={$color.primary}
-                        style={{}}
-                        onPress={() => openUpdateProposalModal(group, meetingItem)}
-                      />
-
-                      <WsIconBtn
-                        padding={0}
-                        name="ws-outline-edit-pencil"
-                        size={24}
-                        color={$color.primary}
-                        style={{ marginLeft: 8 }}
-                        onPress={() => openEditMeetingItemModal(group, meetingItem, meetingItemIndex)}
-                      />
-                      <WsIconBtn
-                        padding={0}
-                        name="ws-outline-delete"
-                        size={24}
-                        color={$color.danger}
-                        style={{ marginLeft: 8 }}
-                        onPress={() => onPressDeleteMeetingItem?.(group, meetingItem)}
-                      />
+                      <WsFlex>
+                        <WsIconBtn
+                          padding={0}
+                          name="ws-outline-edit-pencil"
+                          size={24}
+                          color={$color.primary}
+                          style={{ marginLeft: 0 }}
+                          onPress={() => openEditMeetingItemModal(group, meetingItem, meetingItemIndex)}
+                        />
+                        <WsIconBtn
+                          padding={0}
+                          name="ws-outline-delete"
+                          size={24}
+                          color={$color.danger}
+                          style={{ marginLeft: 8 }}
+                          onPress={() => onPressDeleteMeetingItem?.(group, meetingItem)}
+                        />
+                      </WsFlex>
                     </WsFlex>
                   )}
 
@@ -1043,6 +996,16 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                       </WsDialog>
                     </>
                   )}
+
+                  <View style={{ marginTop: 8 }}>
+                    <WsInfo
+                      labelWidth={80}
+                      label={t('編輯時間')}
+                      style={{ flexDirection: 'row', alignItem: 'center' }}
+                      labelColor={$color.gray}
+                      value={meetingItem.updated_at ? moment(meetingItem.updated_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
+                    />
+                  </View>
 
                   <View style={{ marginTop: 8 }}>
                     <WsInfo
@@ -1106,7 +1069,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     />
                   </View>
 
-                  {meetingItemAttachesValue.length ? (
+                  {meetingItemAttachesValue.length > 0 ? (
                     <View style={{ marginTop: 8 }}>
                       <WsInfo
                         type={'filesAndImages'}
@@ -1121,7 +1084,6 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                         labelColor={$color.gray}
                         value={meetingItemAttachesValue}
                       />
-
                     </View>
                   ) : null}
 
@@ -1133,7 +1095,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     }}
                   />
 
-                  <View style={{ marginTop: 8 }}>
+                  {/* <View style={{ marginTop: 8 }}>
                     <WsInfo
                       label={t('決議-簡述')}
                       style={{
@@ -1165,7 +1127,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                       backgroundColor: $color.white2d,
                       marginTop: 16,
                     }}
-                  />
+                  /> */}
 
                   {meetingItem?.original_attach && (
                     <View style={{ marginTop: 8 }}>
@@ -1174,6 +1136,8 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                         label={t('提案單')}
                         labelColor={$color.gray}
                         value={[meetingItem?.original_attach]}
+                        labelBtnIcon="ws-outline-cloud-upload"
+                        labelBtnOnPress={() => openUpdateProposalModal(group, meetingItem)}
                       />
                     </View>
                   )}
@@ -1192,11 +1156,11 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     <View style={{ marginTop: 8 }}>
                       <WsInfo
                         type={'filesAndImages'}
-                        label={t('議案(DOCX)')}
+                        label={t('調整檔 (DOCX)')}
                         labelColor={$color.gray}
                         value={[meetingItem?.convert_attach]}
                         labelBtnIcon="ws-outline-cloud-upload"
-                        labelBtnOnPress={() => updateConvertAttach(meetingItem)}
+                        labelBtnOnPress={() => updateConvertAttach(group, meetingItem)}
                       />
                     </View>
                   )}
@@ -1205,7 +1169,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                     <View style={{ marginTop: 8 }}>
                       <WsInfo
                         type={'filesAndImages'}
-                        label={t('議案(PDF)')}
+                        label={t('議案 (PDF)')}
                         labelColor={$color.gray}
                         value={[meetingItem?.convert_pdf_attach]}
                       />
@@ -1602,7 +1566,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             remind={t('附件加密 或 附件無法編輯 會造成匯出失敗')}
           />
 
-          <WsState
+          {/* <WsState
             type="text"
             multiline={true}
             style={{
@@ -1624,7 +1588,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             value={editMeetingItemResolutionDetails}
             onChange={value => setEditMeetingItemResolutionDetails(value ? value : "")}
             keyboardAwareRef={scrollRef}
-          />
+          /> */}
 
           <View
             style={{
@@ -1635,7 +1599,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
       </WsModal>
 
       <WsModal
-        title={t('更新提案單')}
+        title={updateUploadMode === 'convert_attach' ? t('上傳') : t('更新提案單')}
         visible={updateProposalModalVisible}
         headerLeftOnPress={closeUpdateProposalModal}
         onBackButtonPress={closeUpdateProposalModal}
@@ -1659,7 +1623,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               style={{
                 marginTop: 8,
               }}
-              label={t('已上傳提案單')}
+              label={updateUploadMode === 'convert_attach' ? t('已上傳匯出調整檔') : t('已上傳提案單')}
               value={updateFileOriginalName || decodeURI(updateFileData?.name)}
             >
             </WsInfo>
@@ -1679,78 +1643,58 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             {`${t('檔案大小限制')} ≤ 30MB`}
           </WsDes>
 
-          <TouchableOpacity
-            disabled={true}
-          >
-            <WsFlex
-              style={[false ? null : { marginTop: 4 }]}
+          {updateUploadMode !== 'convert_attach' && (
+            <TouchableOpacity
+              disabled={true}
             >
-              <WsIcon
-                name="md-info-outline"
-                color={$color.danger}
-                style={{
-                  marginRight: 6
-                }}
-                size={18}
-              />
-              <WsText
-                style={{
-                  paddingRight: 16
-                }}
-                size={12}
-                color={$color.danger}>
-                {t('注意，重新上傳提案單，會覆蓋議案 (DOCX)、標題、提案單位、報告人、列席人員、內容等​')}
-              </WsText>
-            </WsFlex>
-          </TouchableOpacity>
-          <TouchableOpacity
-            disabled={true}
-          >
-            <WsFlex
-              style={[false ? null : { marginTop: 4 }]}
+              <WsFlex
+                style={[false ? null : { marginTop: 4 }]}
+              >
+                <WsIcon
+                  name="md-info-outline"
+                  color={$color.danger}
+                  style={{
+                    marginRight: 6
+                  }}
+                  size={18}
+                />
+                <WsText
+                  style={{
+                    paddingRight: 16
+                  }}
+                  size={12}
+                  color={$color.danger}>
+                  {t('注意，重新上傳提案單，會覆蓋調整檔 (DOCX)、標題、提案單位、報告人、列席人員、內容等​')}
+                </WsText>
+              </WsFlex>
+            </TouchableOpacity>
+          )}
+          {updateUploadMode !== 'convert_attach' && (
+            <TouchableOpacity
+              disabled={true}
             >
-              <WsIcon
-                name="md-info-outline"
-                color={$color.danger}
-                style={{
-                  marginRight: 6
-                }}
-                size={18}
-              />
-              <WsText
-                style={{
-                  paddingRight: 16
-                }}
-                size={12}
-                color={$color.danger}>
-                {t('注意，提案單需與提案單範本一致​')}
-              </WsText>
-            </WsFlex>
-          </TouchableOpacity>
-          <TouchableOpacity
-            disabled={true}
-          >
-            <WsFlex
-              style={[false ? null : { marginTop: 4 }]}
-            >
-              <WsIcon
-                name="md-info-outline"
-                color={$color.danger}
-                style={{
-                  marginRight: 6
-                }}
-                size={18}
-              />
-              <WsText
-                style={{
-                  paddingRight: 16
-                }}
-                size={12}
-                color={$color.danger}>
-                {t('注意，更新提案單更新現有的議案(DOCX)​')}
-              </WsText>
-            </WsFlex>
-          </TouchableOpacity>
+              <WsFlex
+                style={[false ? null : { marginTop: 4 }]}
+              >
+                <WsIcon
+                  name="md-info-outline"
+                  color={$color.danger}
+                  style={{
+                    marginRight: 6
+                  }}
+                  size={18}
+                />
+                <WsText
+                  style={{
+                    paddingRight: 16
+                  }}
+                  size={12}
+                  color={$color.danger}>
+                  {t('注意，提案單需與提案單範本一致​')}
+                </WsText>
+              </WsFlex>
+            </TouchableOpacity>
+          )}
         </View>
       </WsModal>
     </>

@@ -243,6 +243,14 @@ export default {
       : (_postData?.apiAlert && typeof _postData?.apiAlert === 'object' && _postData?.apiAlert?.checklist_record
         ? _postData.apiAlert.checklist_record.id
         : null)
+    const _llBroadcastId = _postData?.ll_broadcast
+      ? (typeof _postData.ll_broadcast === 'object' ? _postData.ll_broadcast.id : _postData.ll_broadcast)
+      : null
+    const _eventId = _postData?.relationEvent
+      ? (typeof _postData.relationEvent === 'object' ? _postData.relationEvent.id : _postData.relationEvent)
+      : (_postData?.event
+        ? (typeof _postData.event === 'object' ? _postData.event.id : _postData.event)
+        : null)
 
     const _data = {
       done_at: _postData?.done_at
@@ -259,8 +267,8 @@ export default {
       alert: _alertId,
       audit_record: _auditRecordId,
       checklist_record: _checklistRecordId,
-      ll_broadcast: _postData?.ll_broadcast ? _postData.ll_broadcast : null,
-      event: _postData?.event ? _postData.event : null,
+      ll_broadcast: _llBroadcastId,
+      event: _eventId,
       article: _postData?.article ? _postData.article : null,
       change_version: _postData?.change_version
         ? _postData?.change_version
@@ -446,6 +454,17 @@ export default {
     return {
       ...task,
       apiAlert: task.apiAlert || task.alert || undefined,
+      relationEvent:
+        task.relationEvent ||
+        task.event ||
+        task.event_id ||
+        undefined,
+      ll_broadcast:
+        task.ll_broadcast ||
+        task.broadcast ||
+        task.ll_broadcast_id ||
+        task.broadcast_id ||
+        undefined,
       act_id: task?.act_id || task?.act_version?.act?.id || task?.act_version?.act_id,
       related_module,
       sub_tasks

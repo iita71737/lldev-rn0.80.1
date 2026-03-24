@@ -92,6 +92,46 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
     await AsyncStorage.setItem('PDFToolAdminTemplateEdit', JSON.stringify(_meetingTemplate))
   }
 
+  const $_setCopyTemplateStorage = async () => {
+    const mt = meetingTemplateRef.current
+    if (!mt?.id) {
+      Alert.alert(t('資料載入中，請稍後再試'))
+      return false
+    }
+    let wf = wordFieldsRef.current || []
+    if (!wf.length) {
+      wf = normalizeWordFields(mt?.meeting_template_items ?? [])
+      setWordFields(wf)
+      wordFieldsRef.current = wf
+    }
+    const meetingTemplateItems = (mt?.meeting_template_items ?? []).map((item, index) => {
+      if (!item || typeof item !== 'object') return item
+      const sequence = String(index + 1).padStart(4, '0')
+      return {
+        ...item,
+        id: undefined,
+        sequence
+      }
+    })
+    const _file_attaches = {
+      file: mt?.attach?.file ?? null,
+      file_version: mt?.attach?.file_version ?? null,
+      word_fields: wf ?? [],
+      meeting_template_items: meetingTemplateItems,
+    }
+    const _meetingTemplate = {
+      ...mt,
+      id: undefined,
+      is_used: 0,
+      name: `${mt?.name || ''}-複製`,
+      file_attaches: [_file_attaches],
+      meeting_template_items: meetingTemplateItems,
+    }
+    await AsyncStorage.removeItem('PDFToolAdminCreateTemplate')
+    await AsyncStorage.setItem('PDFToolAdminCreateTemplate', JSON.stringify(_meetingTemplate))
+    return true
+  }
+
   const $_setNavigationOption = () => {
     navigation.setOptions({
       headerLeft: () => {
@@ -186,6 +226,19 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
         icon: 'ws-outline-edit-pencil',
         label: t('編輯範本'),
       },
+      // canUpdateTemplate && {
+      //   icon: 'ws-outline-copy',
+      //   label: t('複製範本'),
+      //   onPress: async () => {
+      //     setIsBottomSheetActive(false)
+      //     const _ready = await $_setCopyTemplateStorage()
+      //     if (!_ready) return
+      //     navigation.navigate({
+      //       name: 'PDFToolAdminCreateTemplate',
+      //       params: {}
+      //     })
+      //   },
+      // },
       canDestroyTemplate && {
         onPress: () => {
           setDialogVisible(true)
@@ -196,7 +249,7 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
         label: t('刪除範本'),
       },
     ].filter(Boolean),
-    [canDestroyTemplate, canUpdateTemplate, id, t],
+    [canDestroyTemplate, canUpdateTemplate, id, navigation, t],
   )
   const $_onBottomSheetItemPress = item => {
     if (item.to) {

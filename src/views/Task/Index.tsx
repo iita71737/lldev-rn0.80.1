@@ -33,6 +33,9 @@ const TaskIndex: React.FC = () => {
   const { t } = useTranslation()
   const navigation = useNavigation<any>()
   const route = useRoute<any>()
+  const taskListTabIndex = typeof route?.params?._taskTabIndex === 'number'
+    ? route.params._taskTabIndex
+    : 0
 
   // REDUX
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
@@ -147,7 +150,9 @@ const TaskIndex: React.FC = () => {
         value: 'taskList',
         label: t('任務'),
         view: TaskListIndex,
-        props: {}
+        props: {
+          _tabIndex: taskListTabIndex
+        }
       }
     ]
     if (canReadTaskTemplate) {
@@ -167,7 +172,7 @@ const TaskIndex: React.FC = () => {
       )
     }
     return _tabs
-  }, [canReadTaskTemplate, t])
+  }, [canReadTaskTemplate, t, taskListTabIndex])
 
   const $_applyHeaderOptions = React.useCallback(() => {
     const isTaskListTab = tabIndex === 0

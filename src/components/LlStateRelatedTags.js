@@ -80,6 +80,7 @@ const LlStateRelatedTags = props => {
   const [tagOrder, setTagOrder] = React.useState()
   const [tagCount, setTagCount] = React.useState()
   const [loading, setLoading] = React.useState(false)
+  const [deletingTag, setDeletingTag] = React.useState(false)
 
   const [popupType, setPopupType] = React.useState('')
   const [popupActive, setPopupActive] = React.useState(false)
@@ -200,8 +201,10 @@ const LlStateRelatedTags = props => {
       const _res = await S_FactoryTag.indexV2({ params: _params })
       setTags(_res.data)
       store.dispatch(setFactoryTags(_res.data))
+      return _res
     } catch (error) {
       console.log(error, '$_factoryTags')
+      return null
     }
   }
   // 新增標籤
@@ -238,14 +241,20 @@ const LlStateRelatedTags = props => {
     }
   }
   // 刪除標籤
-  const $_onSubmitDeleteTag = async () => {
+  const $_onSubmitDeleteTag = async (_tagId = tagEditId) => {
+    if (!_tagId) {
+      return
+    }
+    setDeletingTag(true)
     try {
-      const _res = await S_FactoryTag.delete(tagEditId)
-      $_factoryTags()
+      const _res = await S_FactoryTag.delete(_tagId)
+      await $_factoryTags()
       Alert.alert('標籤刪除成功')
     } catch (error) {
       console.log(error, '$_factoryTags Delete')
       Alert.alert('標籤刪除失敗')
+    } finally {
+      setDeletingTag(false)
     }
   }
   // 搜尋標籤
@@ -263,9 +272,23 @@ const LlStateRelatedTags = props => {
       const _res = await S_FactoryTag.show({ modelId: id })
       setTagCount(_res)
       setLoading(false)
+      return _res
     } catch (error) {
+      setLoading(false)
       console.log(error, '$_factoryTags Show')
+      return null
     }
+  }
+  const $_hasAnyRelationCount = (_tagCount) => {
+    if (!_tagCount || typeof _tagCount !== 'object') {
+      return false
+    }
+    return Object.keys(_tagCount).some(key => {
+      if (!key.endsWith('_count')) {
+        return false
+      }
+      return Number(_tagCount?.[key] || 0) > 0
+    })
   }
 
   // RENDER
@@ -294,10 +317,15 @@ const LlStateRelatedTags = props => {
             testID={`ws-outline-delete-${index}`}
             name={'ws-outline-delete'}
             size={24}
-            onPress={() => {
-              setPopupActiveForDelete(true)
-              $_fetchFactoryTag(item.id)
+            disabled={deletingTag}
+            onPress={async () => {
               setTagEditId(item.id)
+              const _tag = await $_fetchFactoryTag(item.id)
+              if ($_hasAnyRelationCount(_tag)) {
+                setPopupActiveForDelete(true)
+                return
+              }
+              $_onSubmitDeleteTag(item.id)
             }}
           ></WsIconBtn>
         </WsFlex>
@@ -659,9 +687,26 @@ const LlStateRelatedTags = props => {
                 onChange={setTagsSearchValue}
               />
               <FlatList
-                data={tagsSearchValue ? $_filterTag() : tags}
+                data={deletingTag ? [] : (tagsSearchValue ? $_filterTag() : tags)}
                 keyExtractor={(item, index) => item + index}
                 renderItem={({ item, index }) => renderInnerItem002({ item, index })}
+                ListEmptyComponent={() => {
+                  if (!deletingTag) {
+                    return null
+                  }
+                  return (
+                    <View
+                      style={{
+                        width: width * 0.8,
+                        height: 160,
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <WsLoading />
+                    </View>
+                  )
+                }}
               />
               <WsPopup
                 active={popupActiveForEdit}
@@ -836,7 +881,7 @@ const LlStateRelatedTags = props => {
                             color={$color.black}
                             style={{}}
                           >
-                            {t('{number}個承攬商進廠紀錄', { number: tagCount.contractor_enter_records_count })}{' '}
+                            {t('{number}個承攬商進場記錄', { number: tagCount.contractor_enter_records_count })}{' '}
                           </WsText>
                         )}
                         {tagCount?.contractor_licenses_count > 0 && (
@@ -960,9 +1005,9 @@ const LlStateRelatedTags = props => {
                           style={{
                             width: 110,
                           }}
-                          onPress={() => {
-                            $_onSubmitDeleteTag()
+                          onPress={async () => {
                             setPopupActiveForDelete(false)
+                            await $_onSubmitDeleteTag()
                           }}>
                           {t('確定')}
                         </WsGradientButton>

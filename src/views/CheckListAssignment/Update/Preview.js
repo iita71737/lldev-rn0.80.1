@@ -9,7 +9,8 @@ import {
   Alert,
   Dimensions,
   TouchableOpacity,
-  Modal
+  Modal,
+  Platform
 } from 'react-native'
 import {
   WsTabView,
@@ -272,12 +273,14 @@ const ChecklistPreview = ({ navigation, route }) => {
   // 送出點檢答題結果
   const $_putApi = async () => {
     setSubmitLoading(true)
+    console.log('aaaaaa')
     // console.log(currentChecklistDraft,'currentChecklistDraft1');
     // 過濾填答者為自己 或 無指定答題者的題目
     const _formattedQuestions = await S_CheckListRecordAns.formattedQuestionsForAPI_V2(
       currentChecklistDraft ? currentChecklistDraft : questions,
       currentUser.id
     )
+    console.log('bbbbbb')
     // console.log(JSON.stringify(_formattedQuestions), '_formattedQuestions-');
     // 整理成送出API的格式
     const _submitValue = S_CheckListRecord.setSubmitValue(
@@ -629,33 +632,40 @@ const ChecklistPreview = ({ navigation, route }) => {
               setIndex={settabIndex}
               fixedContainerHeight={height}
             />
-            <WsModalFooter
-              btnLeftHidden={_todayDone ? true : false}
-              btnLeftText={t('不需點檢')}
-              btnLeftOnPress={() => {
-                setStateModal(true)
-              }}
-              btnRightHidden={draftId ? true : true}
-              btnRightText={t('刪除草稿')}
-              btnRightColors={[$color.danger, $color.danger5l]}
-              btnRightOnPress={() => {
-                setPopupActive002(true)
-              }}
+            <View
               style={{
-                backgroundColor: $color.white
+                backgroundColor: $color.white,
+                paddingBottom: Platform.OS === 'android' ? 32 : 0
               }}
-            />
-            <WsModalFooter
-              btnLeftHidden={_todayDone ? true : false}
-              btnLeftText={t('儲存草稿')}
-              btnLeftOnPress={() => {
-                $_saveDraft()
-              }}
-              btnRightText={_todayDone ? t('關閉') : t('送出')}
-              btnRightOnPress={() => {
-                _todayDone ? $_goBack() : $_onHeaderRightPress()
-              }}
-            />
+            >
+              <WsModalFooter
+                btnLeftHidden={_todayDone ? true : false}
+                btnLeftText={t('不需點檢')}
+                btnLeftOnPress={() => {
+                  setStateModal(true)
+                }}
+                btnRightHidden={draftId ? true : true}
+                btnRightText={t('刪除草稿')}
+                btnRightColors={[$color.danger, $color.danger5l]}
+                btnRightOnPress={() => {
+                  setPopupActive002(true)
+                }}
+                style={{
+                  backgroundColor: $color.white
+                }}
+              />
+              <WsModalFooter
+                btnLeftHidden={_todayDone ? true : false}
+                btnLeftText={t('儲存草稿')}
+                btnLeftOnPress={() => {
+                  $_saveDraft()
+                }}
+                btnRightText={_todayDone ? t('關閉') : t('送出')}
+                btnRightOnPress={() => {
+                  _todayDone ? $_goBack() : $_onHeaderRightPress()
+                }}
+              />
+            </View>
           </>
         )}
       </SafeAreaView>

@@ -109,6 +109,7 @@ const ActShow = ({ navigation, route }) => {
   const [stateTaskCreateModeModal, setStateTaskCreateModeModal] = React.useState(false)
   const [stateTemplateModal, setStateTemplateModal] = React.useState(false)
   const [stateTemplateReuseModal, setStateTemplateReuseModal] = React.useState(false)
+  const [taskCreateArticleVersionId, setTaskCreateArticleVersionId] = React.useState()
   const [pendingTemplate, setPendingTemplate] = React.useState(null)
   const [templateHasTaker, setTemplateHasTaker] = React.useState(false)
   const [templateHasSubTaskTaker, setTemplateHasSubTaskTaker] = React.useState(false)
@@ -370,9 +371,12 @@ const ActShow = ({ navigation, route }) => {
     }
   }
   // 刪除標籤
-  const $_onSubmitDeleteTag = async () => {
+  const $_onSubmitDeleteTag = async (_tagId = tagEditId) => {
+    if (!_tagId) {
+      return
+    }
     try {
-      const _res = await S_FactoryTag.delete(tagEditId)
+      const _res = await S_FactoryTag.delete(_tagId)
       $_factoryTags()
       Alert.alert('標籤刪除成功')
     } catch (error) {
@@ -395,9 +399,23 @@ const ActShow = ({ navigation, route }) => {
       const _res = await S_FactoryTag.show({ modelId: id })
       setTagCount(_res)
       setLoading(false)
+      return _res
     } catch (error) {
+      setLoading(false)
       console.log(error, '$_factoryTags Show')
+      return null
     }
+  }
+  const $_hasAnyRelationCount = (_tagCount) => {
+    if (!_tagCount || typeof _tagCount !== 'object') {
+      return false
+    }
+    return Object.keys(_tagCount).some(key => {
+      if (!key.endsWith('_count')) {
+        return false
+      }
+      return Number(_tagCount?.[key] || 0) > 0
+    })
   }
 
   // RENDER
@@ -426,10 +444,14 @@ const ActShow = ({ navigation, route }) => {
             testID={`ws-outline-delete-${index}`}
             name={'ws-outline-delete'}
             size={24}
-            onPress={() => {
-              setPopupActiveForDelete(true)
-              $_fetchFactoryTag(item.id)
+            onPress={async () => {
               setTagEditId(item.id)
+              const _tag = await $_fetchFactoryTag(item.id)
+              if ($_hasAnyRelationCount(_tag)) {
+                setPopupActiveForDelete(true)
+                return
+              }
+              $_onSubmitDeleteTag(item.id)
             }}
           ></WsIconBtn>
         </WsFlex>
@@ -438,11 +460,12 @@ const ActShow = ({ navigation, route }) => {
   };
 
   // Storage-Create-Task-Bind-Act
-  const $_getActTaskDefaultValue = () => {
+  const $_getActTaskDefaultValue = (articleVersionId) => {
     const _actSystemSubclasses = act?.system_subclasses ? act.system_subclasses : []
     return {
       act_id: id,
       act_version: pickValue && pickValue.id ? pickValue.id : undefined,
+      article_version: articleVersionId ? articleVersionId : undefined,
       system_subclasses: _actSystemSubclasses,
       redirect_routes: [
         {
@@ -458,8 +481,8 @@ const ActShow = ({ navigation, route }) => {
     }
   }
 
-  const $_setStorage = async () => {
-    const _defaultValue = $_getActTaskDefaultValue()
+  const $_setStorage = async (articleVersionId) => {
+    const _defaultValue = $_getActTaskDefaultValue(articleVersionId)
     const _task = JSON.stringify(_defaultValue)
     await AsyncStorage.setItem('TaskCreate', _task)
   }
@@ -469,14 +492,15 @@ const ActShow = ({ navigation, route }) => {
     {
       includeSubTaskTaker,
       includeTaskTaker
-    }
+    },
+    articleVersionId
   ) => {
     const _taskCreateDraft = S_TaskFactoryTemplate.getTaskCreateDraftFromTemplate(_template, {
       includeSubTaskTaker,
       includeTaskTaker,
       currentUser: currentUser || null
     })
-    const _actDefaultValue = $_getActTaskDefaultValue()
+    const _actDefaultValue = $_getActTaskDefaultValue(articleVersionId)
     const _templateSubclasses = Array.isArray(_taskCreateDraft?.system_subclasses)
       ? _taskCreateDraft.system_subclasses
       : []
@@ -531,7 +555,7 @@ const ActShow = ({ navigation, route }) => {
         await $_createTaskFromTemplate(_template, {
           includeSubTaskTaker: false,
           includeTaskTaker: false
-        })
+        }, taskCreateArticleVersionId)
         return
       }
       setStateTemplateModal(false)
@@ -1319,6 +1343,19 @@ const ActShow = ({ navigation, route }) => {
                   }}
                   navigation={navigation}
                   system_subclasses={act.system_subclasses}
+                  onTaskCreatePress={async (articleItem) => {
+                    const _articleVersionId = articleItem?.id
+                    if (canReadTaskTemplate) {
+                      setTaskCreateArticleVersionId(_articleVersionId)
+                      setStateTaskCreateModeModal(true)
+                      return
+                    }
+                    await AsyncStorage.removeItem('TaskCreate')
+                    await $_setStorage(_articleVersionId)
+                    navigation.push('RoutesTask', {
+                      screen: 'TaskCreate'
+                    })
+                  }}
                 />
               )
             }}
@@ -1739,7 +1776,7 @@ const ActShow = ({ navigation, route }) => {
                                 color={$color.black}
                                 style={{}}
                               >
-                                {t('{number}個承攬商進廠紀錄', { number: tagCount.contractor_enter_records_count })}
+                                {t('{number}個承攬商進場記錄', { number: tagCount.contractor_enter_records_count })}
                               </WsText>
                             )}
                             {tagCount?.contractor_licenses_count > 0 && (
@@ -1875,6 +1912,7 @@ const ActShow = ({ navigation, route }) => {
                 }}
                 onPress={async () => {
                   if (canReadTaskTemplate) {
+                    setTaskCreateArticleVersionId(undefined)
                     setStateTaskCreateModeModal(true)
                     return
                   }
@@ -1915,7 +1953,7 @@ const ActShow = ({ navigation, route }) => {
               onPress={async () => {
                 setStateTaskCreateModeModal(false)
                 await AsyncStorage.removeItem('TaskCreate')
-                await $_setStorage()
+                await $_setStorage(taskCreateArticleVersionId)
                 navigation.push('RoutesTask', {
                   screen: 'TaskCreate'
                 })
@@ -2010,7 +2048,7 @@ const ActShow = ({ navigation, route }) => {
                 await $_createTaskFromTemplate(pendingTemplate, {
                   includeSubTaskTaker: includeSubTaskTakerRef.current,
                   includeTaskTaker: includeTaskTakerRef.current
-                })
+                }, taskCreateArticleVersionId)
                 setStateTemplateReuseModal(false)
               } catch (error) {
                 console.log(error)

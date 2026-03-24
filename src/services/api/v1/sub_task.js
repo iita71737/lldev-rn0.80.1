@@ -128,5 +128,17 @@ export default {
       modelName: `task/${params.task_id}/sub_task/index/all`,
       params: _params,
     })
-  }
+  },
+  async subTask_result_update({ modelId, data }) {
+    const _data = {
+      ...S_Processor.getFactoryData(),
+      ...data
+    }
+    return await base.create({
+      parentName: 'sub_task',
+      parentId: modelId,
+      modelName: 'result_update',
+      data: _data
+    })
+  },
 }

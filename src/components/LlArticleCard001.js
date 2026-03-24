@@ -57,7 +57,8 @@ const LlArticleCard001 = props => {
     actVersionId,
     pickValueId,
     system_subclasses,
-    testID
+    testID,
+    onTaskCreatePress
   } = props
 
   // States
@@ -118,6 +119,15 @@ const LlArticleCard001 = props => {
         articleId: articleId,
       }
     })
+  }
+
+  const $_onPressCreateTask = async () => {
+    if (onTaskCreatePress) {
+      onTaskCreatePress(article)
+      return
+    }
+    await $_setStorage(article.id)
+    $_createTask()
   }
 
   const $_isEffect = effect => {
@@ -265,8 +275,7 @@ const LlArticleCard001 = props => {
                         marginRight: 4,
                       }}
                       onPress={() => {
-                        $_setStorage(article.id)
-                        $_createTask()
+                        $_onPressCreateTask()
                       }}>
                       <View
                         style={{
@@ -489,7 +498,7 @@ const LlArticleCard001 = props => {
                                 zIndex: 999,
                               }}
                               onPress={() => {
-                                $_createTask()
+                                $_onPressCreateTask()
                               }}>
                               <View
                                 style={{

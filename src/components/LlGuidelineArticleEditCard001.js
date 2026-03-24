@@ -75,6 +75,7 @@ const LlGuidelineArticleEditCard001 = props => {
     onPressEdit,
     onPressCreateVersion,
     onPressDelete,
+    onPressTaskCreate,
     guideline,
     guidelineVersion,
     pickValue
@@ -278,7 +279,12 @@ const LlGuidelineArticleEditCard001 = props => {
                   name="ll-nav-assignment-filled"
                   size={24}
                   style={{ marginRight: 8 }}
-                  onPress={() => {
+                  onPress={async () => {
+                    if (onPressTaskCreate) {
+                      console.log(item,'itemitemitem')
+                      onPressTaskCreate(item)
+                      return
+                    }
                     $_setStorage()
                   }}
                 />

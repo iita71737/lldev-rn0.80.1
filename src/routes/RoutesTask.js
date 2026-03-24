@@ -173,7 +173,7 @@ const RoutesTask = ({ navigation }) => {
     system_subclasses: {
       type: 'modelsSystemClass',
       label: t('領域'),
-      placeholder: `${t('待辦無領域')}`,
+      placeholder: `${t('根據「待辦領域」及「相關模組」自動代入領域')}`,
       rules: 'required',
       testID: 'modelsSystemClass',
       disabled: true
@@ -401,7 +401,7 @@ const RoutesTask = ({ navigation }) => {
       info: true,
       label: t('相關法規'),
       displayCheck(fieldsValue) {
-        if (fieldsValue.act_version) {
+        if (fieldsValue.act_version && !fieldsValue.article_version) {
           return true
         } else {
           return false
@@ -427,7 +427,7 @@ const RoutesTask = ({ navigation }) => {
       info: true,
       label: t('相關內規'),
       displayCheck(fieldsValue) {
-        if (fieldsValue.guideline_version) {
+        if (fieldsValue.guideline_version && !fieldsValue.guideline_article_version) {
           return true
         } else {
           return false
@@ -683,7 +683,46 @@ const RoutesTask = ({ navigation }) => {
       info: true,
       label: t('相關法規'),
       displayCheck(fieldsValue) {
-        if (fieldsValue.act_version) {
+        if (fieldsValue.act_version && !fieldsValue.article_version) {
+          return true
+        } else {
+          return false
+        }
+      }
+    },
+    internal_training_group: {
+      type: 'card',
+      cardType: 'relativeTrainingGroup',
+      info: true,
+      label: t('相關教育訓練群組'),
+      displayCheck(fieldsValue) {
+        if (fieldsValue.internal_training_group) {
+          return true
+        } else {
+          return false
+        }
+      }
+    },
+    guideline_version: {
+      type: 'card',
+      cardType: 'relativeGuidelineVersion',
+      info: true,
+      label: t('相關內規'),
+      displayCheck(fieldsValue) {
+        if (fieldsValue.guideline_version && !fieldsValue.guideline_article_version) {
+          return true
+        } else {
+          return false
+        }
+      }
+    },
+    guideline_article_version: {
+      type: 'card',
+      cardType: 'relativeGuidelineArticle',
+      info: true,
+      label: t('相關內規層級條文'),
+      displayCheck(fieldsValue) {
+        if (fieldsValue.guideline_article_version) {
           return true
         } else {
           return false
@@ -909,7 +948,46 @@ const RoutesTask = ({ navigation }) => {
       info: true,
       label: t('相關法規'),
       displayCheck(fieldsValue) {
-        if (fieldsValue.act_version) {
+        if (fieldsValue.act_version && !fieldsValue.article_version) {
+          return true
+        } else {
+          return false
+        }
+      }
+    },
+    internal_training_group: {
+      type: 'card',
+      cardType: 'relativeTrainingGroup',
+      info: true,
+      label: t('相關教育訓練群組'),
+      displayCheck(fieldsValue) {
+        if (fieldsValue.internal_training_group) {
+          return true
+        } else {
+          return false
+        }
+      }
+    },
+    guideline_version: {
+      type: 'card',
+      cardType: 'relativeGuidelineVersion',
+      info: true,
+      label: t('相關內規'),
+      displayCheck(fieldsValue) {
+        if (fieldsValue.guideline_version && !fieldsValue.guideline_article_version) {
+          return true
+        } else {
+          return false
+        }
+      }
+    },
+    guideline_article_version: {
+      type: 'card',
+      cardType: 'relativeGuidelineArticle',
+      info: true,
+      label: t('相關內規層級條文'),
+      displayCheck(fieldsValue) {
+        if (fieldsValue.guideline_article_version) {
           return true
         } else {
           return false
@@ -944,7 +1022,7 @@ const RoutesTask = ({ navigation }) => {
     system_subclasses: {
       type: 'modelsSystemClass',
       label: t('領域'),
-      placeholder: `${t('待辦無領域')}`,
+      placeholder: `${t('根據「待辦領域」及「相關模組」自動代入領域')}`,
       testID: 'modelsSystemClass',
       disabled: true
     },
@@ -1113,16 +1191,25 @@ const RoutesTask = ({ navigation }) => {
       const res = await S_Task.create({
         data: _data
       })
+      const _resTakerId = res?.taker?.id
+      const _currentUserId = currentUser?.id
+      const _isCurrentUserTaskTaker = Boolean(
+        _resTakerId &&
+        _currentUserId &&
+        _resTakerId === _currentUserId
+      )
       if (_postData.redirect_routes && res) {
-        // 250327-測試後可行，reset有問題
-        console.log('AAA')
-        navigation.replace('RoutesTask', {
-          screen: 'TaskShow',
-          params: {
-            id: res.id,
-            refreshKey: Date.now()
-          }
-        })
+        if (_isCurrentUserTaskTaker) {
+          navigation.replace('RoutesTask', {
+            screen: 'TaskShow',
+            params: {
+              id: res.id,
+              refreshKey: Date.now()
+            }
+          })
+        } else {
+          navigation.goBack()
+        }
         Alert.alert(t('任務已派發'))
       }
       else if (res.alert) {
@@ -1134,12 +1221,12 @@ const RoutesTask = ({ navigation }) => {
           }
         })
       } else if (res && res.id) {
-        const _resTakerId = res?.taker?.id
-        const _currentUserId = currentUser?.id
-        if (_resTakerId && _currentUserId && _resTakerId === _currentUserId) {
+        if (_isCurrentUserTaskTaker) {
+          console.log('ccc')
           $_resetToTaskShow(navigation, res.id)
           Alert.alert(t('任務已派發'))
         } else {
+          console.log('ddd')
           navigation.goBack()
           Alert.alert(t('任務已派發'))
         }
@@ -1173,7 +1260,7 @@ const RoutesTask = ({ navigation }) => {
       system_subclasses: _recalculatedSystemSubclasses
     }
     const _data = S_Task.getFormattedDataForEdit(_valueForSubmit, currentUserId)
-    // console.log(JSON.stringify(_data), 'submitForEdit');
+    console.log(JSON.stringify(_data), 'submitForEdit');
     try {
       const res = await S_Task.update({
         modelId: modelId,

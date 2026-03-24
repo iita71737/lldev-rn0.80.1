@@ -6,9 +6,11 @@ import S_Task from '@/services/api/v1/task'
 import { useSelector } from 'react-redux'
 import WsSkeleton from '__reactnative_stone/components/WsSkeleton'
 
-const TaskIndex = ({ route }) => {
+const TaskIndex = ({ route, _tabIndex: _tabIndexProp }) => {
   const { t } = useTranslation()
-  const _tabIndex = route?.params?._tabIndex
+  const _tabIndex = typeof _tabIndexProp === 'number'
+    ? _tabIndexProp
+    : route?.params?._tabIndex
 
   // REDUX
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
@@ -25,7 +27,7 @@ const TaskIndex = ({ route }) => {
     all: '0'
   })
 
-  const [tabIndex, setTabIndex] = React.useState(_tabIndex ? _tabIndex : 0)
+  const [tabIndex, setTabIndex] = React.useState(typeof _tabIndex === 'number' ? _tabIndex : 0)
 
   const [filterValue, setFilterValue] = React.useState<any>({
     order: {
@@ -134,7 +136,9 @@ const TaskIndex = ({ route }) => {
           params: {
             ...tabParams,
             done_at: 'not_null',
-            checked_at: 'not_null'
+            checked_at: 'not_null',
+            order_way: "desc",
+            order_by: "updated_at",
           },
           filterFields: filterFields,
           filterValue: filterValue,
@@ -238,6 +242,12 @@ const TaskIndex = ({ route }) => {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (typeof _tabIndex === 'number') {
+      setTabIndex(_tabIndex)
+    }
+  }, [_tabIndex])
 
   return (
     <>

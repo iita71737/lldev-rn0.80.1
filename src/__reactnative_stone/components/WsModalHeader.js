@@ -5,6 +5,7 @@ import {
   WsFlex,
   WsIconBtn,
   WsBtn,
+  WsLoading,
   // WsSwipeGestures
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
@@ -14,6 +15,7 @@ const WsModalHeader = props => {
   // Props
   const {
     leftOnPress,
+    iconLeftLoading = false,
     iconLeftName = 'ws-outline-close',
     iconLeftColor = $color[$theme].WsModalHeader.iconLeftColor,
     iconLeftSize = 24,
@@ -49,14 +51,26 @@ const WsModalHeader = props => {
             width: 56,
             marginLeft: 4,
           }}>
-          <WsIconBtn
-            testID={'WsModalClose'}
-            onPress={leftOnPress}
-            underlayColorPressIn={$color.white2d}
-            name={iconLeftName}
-            size={iconLeftSize}
-            color={iconLeftColor}
-          />
+          {iconLeftLoading ? (
+            <WsFlex
+              style={{
+                width: 40,
+                height: 40
+              }}
+              justifyContent="center"
+            >
+              <WsLoading size={20} />
+            </WsFlex>
+          ) : (
+            <WsIconBtn
+              testID={'WsModalClose'}
+              onPress={leftOnPress}
+              underlayColorPressIn={$color.white2d}
+              name={iconLeftName}
+              size={iconLeftSize}
+              color={iconLeftColor}
+            />
+          )}
         </WsFlex>
         <WsFlex
           flexDirection="column"

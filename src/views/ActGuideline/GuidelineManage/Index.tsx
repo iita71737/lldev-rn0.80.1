@@ -119,7 +119,7 @@ const GuidelineList: React.FC<ActListingProps> = ({ route }) => {
             color={$color.white}
             size={24}
             style={{
-              marginRight: 4
+              marginRight: 4,
             }}
             onPress={() => {
               setIsBottomSheetActive(true)

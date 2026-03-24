@@ -16,7 +16,8 @@ import {
   LlBtn002,
   WsFlex,
   WsIcon,
-  LlMySubtaskTaskCard
+  LlMySubtaskTaskCard,
+  WsLoading
 } from '@/components'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
@@ -91,9 +92,11 @@ const MySubtasks = (props) => {
   const [stateModalForReplySubtask, setStateModalForReplySubtask] =
     React.useState(false)
   const [fields, setFields] = React.useState()
+  const [replySubmitLoading, setReplySubmitLoading] = React.useState(false)
 
   // Fields
   const $_setFields = subtask => {
+    // console.log(subtask,'subtasksubtask')
     if (!currentFactory) {
       return
     }
@@ -341,12 +344,14 @@ const MySubtasks = (props) => {
   const $_setDone = async id => {
     try {
       if (!reply) {
-        return
+        return null
       }
       const res = await S_SubTask.done(id)
       setCurrentSubtask(res)
+      return res
     } catch (e) {
       console.error(e);
+      return null
     } finally {
       $_getExpired()
       $_getUpcoming()
@@ -357,8 +362,10 @@ const MySubtasks = (props) => {
     try {
       const res = await S_SubTask.undo(id)
       setCurrentSubtask(res)
+      return res
     } catch (e) {
       console.error(e);
+      return null
     } finally {
       $_getExpired()
       $_getUpcoming()
@@ -366,34 +373,48 @@ const MySubtasks = (props) => {
   }
   // 儲存執行結果
   const $_editReply = async (subTaskId) => {
+    if (!subTaskId) {
+      return
+    }
     if (!reply || reply.trim() === "") {
       return
     }
     if (reply && reply !== '') {
-      const _data = {
-        ...currentSubtask,
-        reply: reply,
-        reply_attaches: replyAttaches ? S_SubTask.formattedForFileStore(replyAttaches) : [],
-        reply_images: replyImages ? S_SubTask.formattedForFileStore(replyImages) : [],
-      }
-      if (!currentSubtask.done_at) {
-        $_setDone(currentSubtask.id)
-      } else if (currentSubtask.done_at) {
-        $_setUndo(currentSubtask.id)
-      }
+      setReplySubmitLoading(true)
       try {
-        const res = await S_SubTask.subTask_reply_update({
+        if (!currentSubtask.done_at) {
+          await $_setDone(currentSubtask.id)
+        } else if (currentSubtask.done_at) {
+          await $_setUndo(currentSubtask.id)
+        }
+        const _data = {
+          reply: reply,
+          reply_attaches: replyAttaches ? S_SubTask.formattedForFileStore(replyAttaches) : [],
+          reply_images: replyImages ? S_SubTask.formattedForFileStore(replyImages) : []
+        }
+        const res = await S_SubTask.subTask_result_update({
           modelId: subTaskId,
           data: _data
-        }).then(res => {
-          setCurrentSubtask($_helperFunc(res))
-          $_getExpired()
-          $_getUpcoming()
-          setStateModalSubtask(false)
-          setStateModalForReplySubtask(false)
         })
+        setCurrentSubtask($_helperFunc(res))
+        $_getExpired()
+        $_getUpcoming()
+        setStateModalSubtask(false)
+        setStateModalForReplySubtask(false)
       } catch (err) {
-        console.log(err, 'error')
+        console.log('subTask_result_update error', {
+          modelId: subTaskId,
+          status: err?.response?.status,
+          responseData: err?.response?.data,
+          message: err?.message,
+          payload: {
+            reply: reply,
+            reply_attaches: replyAttaches ? S_SubTask.formattedForFileStore(replyAttaches) : [],
+            reply_images: replyImages ? S_SubTask.formattedForFileStore(replyImages) : []
+          }
+        })
+      } finally {
+        setReplySubmitLoading(false)
       }
     }
   }
@@ -405,7 +426,7 @@ const MySubtasks = (props) => {
         review_attaches: reviewAttaches ? S_SubTask.formattedForFileStore(reviewAttaches) : [],
         review_images: reviewImages ? S_SubTask.formattedForFileStore(reviewImages) : []
       }
-      const res = await S_SubTask.subTask_review_update({
+      const res = await S_SubTask.subTask_result_update({
         modelId: subTaskId,
         data: _data
       }).then(res => {
@@ -539,7 +560,6 @@ const MySubtasks = (props) => {
             visible={isSnackBarVisible}
             quickHidden={true}
           />
-
           {currentSubtask && currentTask && fields && (
             <WsModal
               style={{
@@ -599,6 +619,9 @@ const MySubtasks = (props) => {
                 onBackButtonPress={() => {
                 }}
                 headerLeftOnPress={() => {
+                  if (replySubmitLoading) {
+                    return
+                  }
                   // https://gitlab.com/ll_esh/ll_esh_lobby/ll_esh_lobby_app_issue/-/issues/1712
                   // if (currentSubtask.done_at) {
                   //   const _value = { ...currentSubtask }
@@ -612,56 +635,82 @@ const MySubtasks = (props) => {
                   setStateModalForReplySubtask(false)
                 }}
                 headerRightOnPress={() => {
+                  if (replySubmitLoading) {
+                    return
+                  }
                   $_editReply(currentSubtask.id)
                 }}
-                RightOnPressIsDisabled={reply ? false : true}
+                RightOnPressIsDisabled={replySubmitLoading || !reply}
                 headerRightText={t('儲存')}
                 title={t('我的待辦-回覆執行結果')}
               >
-                <ScrollView
-                  testID={'ScrollView'}
+                <View
+                  style={{
+                    flex: 1
+                  }}
                 >
-                  <WsPaddingContainer>
-                    <WsState
+                  <ScrollView
+                    testID={'ScrollView'}
+                  >
+                    <WsPaddingContainer>
+                      <WsState
+                        style={{
+                          marginVertical: 8,
+                        }}
+                        stateStyle={{
+                          borderColor: reply == '' || reply == undefined ? $color.danger : $color.black
+                        }}
+                        label={t('回覆執行結果') ? t('回覆執行結果') : '回覆執行結果'}
+                        placeholder={t('請輸入執行結果...')}
+                        multiline={true}
+                        value={reply}
+                        onChange={(e) => {
+                          setReply(e)
+                        }}
+                        rules={'required'}
+                      />
+                      <WsState
+                        style={{
+                          marginVertical: 8,
+                        }}
+                        type="Ll_filesAndImages"
+                        label={t('圖片')}
+                        value={replyImages}
+                        onChange={setReplyImages}
+                        modelName="sub_task"
+                      // uploadUrl={`factory/${currentFactory.id}/sub_task/reply_image`}
+                      />
+                      <WsState
+                        style={{
+                          marginVertical: 8,
+                        }}
+                        type="Ll_filesAndImages"
+                        label={t('回覆執行結果附件') ? t('回覆執行結果附件') : '回覆執行結果附件'}
+                        value={replyAttaches}
+                        onChange={setReplyAttaches}
+                        modelName="sub_task"
+                      // uploadUrl={`factory/${currentFactory.id}/sub_task/reply_attach`}
+                      />
+                    </WsPaddingContainer>
+                  </ScrollView>
+                  {replySubmitLoading && (
+                    <View
                       style={{
-                        marginVertical: 8,
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        left: 0,
+                        backgroundColor: 'rgba(0,0,0,0.35)',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: 99
                       }}
-                      stateStyle={{
-                        borderColor: reply == '' || reply == undefined ? $color.danger : $color.black
-                      }}
-                      label={t('回覆執行結果') ? t('回覆執行結果') : '回覆執行結果'}
-                      placeholder={t('請輸入執行結果...')}
-                      multiline={true}
-                      value={reply}
-                      onChange={(e) => {
-                        setReply(e)
-                      }}
-                      rules={'required'}
-                    />
-                    <WsState
-                      style={{
-                        marginVertical: 8,
-                      }}
-                      type="Ll_filesAndImages"
-                      label={t('圖片')}
-                      value={replyImages}
-                      onChange={setReplyImages}
-                      modelName="sub_task"
-                    // uploadUrl={`factory/${currentFactory.id}/sub_task/reply_image`}
-                    />
-                    <WsState
-                      style={{
-                        marginVertical: 8,
-                      }}
-                      type="Ll_filesAndImages"
-                      label={t('回覆執行結果附件') ? t('回覆執行結果附件') : '回覆執行結果附件'}
-                      value={replyAttaches}
-                      onChange={setReplyAttaches}
-                      modelName="sub_task"
-                    // uploadUrl={`factory/${currentFactory.id}/sub_task/reply_attach`}
-                    />
-                  </WsPaddingContainer>
-                </ScrollView>
+                    >
+                      <WsLoading size={30} />
+                    </View>
+                  )}
+                </View>
               </WsModal>
 
               <WsModal

@@ -589,15 +589,19 @@ const RoutesPDFTool = () => {
     const _data = S_Meeting.formattedDataForEdit(_formattedValue)
     console.log(JSON.stringify(_data), 'submitForEditMeeting');
     try {
-      const stored = await AsyncStorage.getItem('PDFToolAdminUpdate')
-      const prev = stored ? JSON.parse(stored) : null
-      const prevContentsId = prev?.contents_template ?? prev?.contents_template
-      const prevMeetingId = prev?.meeting_template ?? prev?.meeting_template
-      const nextContentsId = _formattedValue?.contents_template ?? _formattedValue?.contents_template
-      const nextMeetingId = _formattedValue?.meeting_template ?? _formattedValue?.meeting_template
+      const $_getTemplateId = (value) => {
+        if (!value) return null
+        if (typeof value === 'object') return value?.id ?? null
+        return value
+      }
+      const currentMeeting = await S_Meeting.show({ modelId })
+      const prevContentsId = $_getTemplateId(currentMeeting?.contents_template)
+      const prevMeetingId = $_getTemplateId(currentMeeting?.meeting_template)
+      const nextContentsId = $_getTemplateId(_formattedValue?.contents_template)
+      const nextMeetingId = $_getTemplateId(_formattedValue?.meeting_template)
       const isTemplateChanged =
-        (prevContentsId && nextContentsId && prevContentsId !== nextContentsId) ||
-        (prevMeetingId && nextMeetingId && prevMeetingId !== nextMeetingId)
+        prevContentsId !== nextContentsId ||
+        prevMeetingId !== nextMeetingId
       const res = await S_Meeting.update({
         modelId: modelId,
         data: _data

@@ -24,6 +24,7 @@ import {
 import {
   WsFlex,
   WsTag,
+  WsCard,
   WsCardPassage,
   WsText,
   WsDes,
@@ -69,7 +70,9 @@ import {
   LlGuidelineRelatedDocs001,
   LlGuidelineRelatedTask001,
   LlGuidelineRelatedActs001,
-  LlGuidelineRelatedGuidelines001
+  LlGuidelineRelatedGuidelines001,
+  LlTaskTemplateCard001,
+  LlTaskTempalteResuePopup001
 } from '@/components'
 import moment from 'moment'
 import $color from '@/__reactnative_stone/global/color'
@@ -94,6 +97,7 @@ import S_GuidelineAdmin from '@/services/api/v1/guideline_admin'
 import S_GuidelineVersionAdmin from '@/services/api/v1/guideline_version_admin'
 import S_GuidelineArticleVersionAdmin from '@/services/api/v1/guideline_article_version_admin'
 import S_GuidelineArticleAdmin from '@/services/api/v1/guideline_article_admin'
+import S_TaskFactoryTemplate from '@/services/api/v1/task_factory_template'
 import { actions, RichEditor, RichToolbar } from "react-native-pell-rich-editor";
 import IonIcon from 'react-native-vector-icons/Ionicons'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
@@ -111,6 +115,7 @@ import { Table, Row, Rows, TableWrapper } from 'react-native-table-component';
 import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
 import FileViewer from "react-native-file-viewer";
 import _ from 'lodash';
+import { scopePermission } from '@/__reactnative_stone/global/permission'
 
 const GuidelineAdminShow = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
@@ -128,6 +133,9 @@ const GuidelineAdminShow = ({ navigation, route }) => {
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentFactoryTags = useSelector(state => state.data.factoryTags)
   const currentActStatus = useSelector(state => state.data.actStatus)
+  const currentUser = useSelector(state => state.data.currentUser)
+  const currentUserScope = useSelector(state => state.data.userScopes)
+  const canReadTaskTemplate = scopePermission('task-factory-template-read', currentUserScope)
 
   // FOR ARTICLE CREATE
   const scrollViewRef = React.useRef();
@@ -231,6 +239,31 @@ const GuidelineAdminShow = ({ navigation, route }) => {
   const [batchArticleData, setBatchArticleData] = useState([]);
   const [importExcelStep, setImportExcelStep] = useState(1);
   const [importModels, setImportModels] = React.useState()
+  const [stateTaskCreateModeModal, setStateTaskCreateModeModal] = React.useState(false)
+  const [taskCreateGuidelineArticleVersionId, setTaskCreateGuidelineArticleVersionId] = React.useState()
+  const [stateTemplateModal, setStateTemplateModal] = React.useState(false)
+  const [stateTemplateReuseModal, setStateTemplateReuseModal] = React.useState(false)
+  const [pendingTemplate, setPendingTemplate] = React.useState(null)
+  const [templateHasTaker, setTemplateHasTaker] = React.useState(false)
+  const [templateHasSubTaskTaker, setTemplateHasSubTaskTaker] = React.useState(false)
+  const [includeSubTaskTaker, setIncludeSubTaskTaker] = React.useState(true)
+  const [includeTaskTaker, setIncludeTaskTaker] = React.useState(true)
+  const includeSubTaskTakerRef = React.useRef(true)
+  const includeTaskTakerRef = React.useRef(true)
+  const [taskTemplateFilterFields] = React.useState({
+    system_subclasses: {
+      type: 'system_subclass',
+      label: t('領域')
+    },
+    factory_tags: {
+      type: 'checkbox',
+      label: t('標籤'),
+      items: currentFactoryTags ? currentFactoryTags : [],
+      searchVisible: true,
+      selectAllVisible: false,
+      defaultSelected: false
+    },
+  })
 
   // Option
   const $_setNavigationOption = () => {
@@ -260,7 +293,7 @@ const GuidelineAdminShow = ({ navigation, route }) => {
                       marginRight: 4
                     }}
                     onPress={() => {
-                      $_onPressTaskCreate(guideline)
+                      $_onPressTaskCreate()
                     }}
                   />
                 )}
@@ -1148,10 +1181,15 @@ const GuidelineAdminShow = ({ navigation, route }) => {
     }
   }
   // 內規建立任務
-  const $_onPressTaskCreate = async () => {
-    const _data = {
-      guideline_id: guideline.id,
-      guideline_version: guidelineVersion.id,
+  const $_getGuidelineTaskDefaultValue = (guidelineArticleVersionId) => {
+    const _guidelineSubclasses = Array.isArray(guideline?.system_subclasses)
+      ? guideline.system_subclasses
+      : []
+    return {
+      guideline_id: guideline?.id,
+      guideline_version: guidelineVersion?.id,
+      guideline_article_version: guidelineArticleVersionId ? guidelineArticleVersionId : undefined,
+      system_subclasses: _guidelineSubclasses,
       redirect_routes: [
         {
           name: 'GuidelineAdminIndex',
@@ -1159,14 +1197,105 @@ const GuidelineAdminShow = ({ navigation, route }) => {
         {
           name: 'GuidelineAdminShow',
           params: {
-            id: guideline.id,
+            id: guideline?.id,
             refreshKey: Date.now()
           }
         },
       ]
     }
+  }
+
+  const $_setTaskCreateStorage = async (guidelineArticleVersionId) => {
+    const _data = $_getGuidelineTaskDefaultValue(guidelineArticleVersionId)
     const _value = JSON.stringify(_data)
     await AsyncStorage.setItem('TaskCreate', _value)
+  }
+
+  const $_createTaskFromTemplate = async (
+    _template,
+    {
+      includeSubTaskTaker,
+      includeTaskTaker
+    },
+    guidelineArticleVersionId
+  ) => {
+    const _taskCreateDraft = S_TaskFactoryTemplate.getTaskCreateDraftFromTemplate(_template, {
+      includeSubTaskTaker,
+      includeTaskTaker,
+      currentUser: currentUser || null
+    })
+    const _guidelineDefaultValue = $_getGuidelineTaskDefaultValue(guidelineArticleVersionId)
+    const _templateSubclasses = Array.isArray(_taskCreateDraft?.system_subclasses)
+      ? _taskCreateDraft.system_subclasses
+      : []
+    const _guidelineSubclasses = Array.isArray(_guidelineDefaultValue?.system_subclasses)
+      ? _guidelineDefaultValue.system_subclasses
+      : []
+    const _mergedSystemSubclasses = [..._templateSubclasses, ..._guidelineSubclasses].reduce((acc, item) => {
+      if (!item) {
+        return acc
+      }
+      const _key = typeof item === 'object'
+        ? (item.id || item.name || JSON.stringify(item))
+        : String(item)
+      if (!acc._set.has(_key)) {
+        acc._set.add(_key)
+        acc._list.push(item)
+      }
+      return acc
+    }, { _set: new Set(), _list: [] })._list
+
+    await AsyncStorage.removeItem('TaskCreate')
+    await AsyncStorage.setItem('TaskCreate', JSON.stringify({
+      ..._taskCreateDraft,
+      ..._guidelineDefaultValue,
+      system_subclasses: _mergedSystemSubclasses
+    }))
+    navigation.push('RoutesTask', {
+      screen: 'TaskCreate',
+    })
+  }
+
+  const $_onSelectTemplateForCreate = async (template) => {
+    try {
+      if (!template?.id) {
+        return
+      }
+      const _template = await S_TaskFactoryTemplate.show({
+        modelId: template.id
+      })
+      const _hasTemplateTaker = Boolean(_template?.taker)
+      const _hasSubTaskTaker = Array.isArray(_template?.subtask_factory_templates)
+        && _template.subtask_factory_templates.some(subTask => Boolean(subTask?.taker))
+      setPendingTemplate(_template)
+      setTemplateHasTaker(_hasTemplateTaker)
+      setTemplateHasSubTaskTaker(_hasSubTaskTaker)
+      setIncludeTaskTaker(_hasTemplateTaker)
+      setIncludeSubTaskTaker(_hasSubTaskTaker)
+      includeTaskTakerRef.current = _hasTemplateTaker
+      includeSubTaskTakerRef.current = _hasSubTaskTaker
+      if (!_hasTemplateTaker && !_hasSubTaskTaker) {
+        setStateTemplateModal(false)
+        await $_createTaskFromTemplate(_template, {
+          includeSubTaskTaker: false,
+          includeTaskTaker: false
+        }, taskCreateGuidelineArticleVersionId)
+        return
+      }
+      setStateTemplateModal(false)
+      setStateTemplateReuseModal(true)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const $_onPressTaskCreate = async (guidelineArticleVersionId) => {
+    setTaskCreateGuidelineArticleVersionId(guidelineArticleVersionId)
+    if (canReadTaskTemplate) {
+      setStateTaskCreateModeModal(true)
+      return
+    }
+    await $_setTaskCreateStorage(guidelineArticleVersionId)
     navigation.push('RoutesTask', {
       screen: 'TaskCreate',
     })
@@ -2128,6 +2257,9 @@ const GuidelineAdminShow = ({ navigation, route }) => {
                       setInitSequencePayload(newPayload)
                       await $_fetchShow(item)
                       setPopupDelete(true)
+                    }}
+                    onPressTaskCreate={(articleItem) => {
+                      $_onPressTaskCreate(articleItem?.id)
                     }}
                   />
                 </>
@@ -5742,6 +5874,128 @@ const GuidelineAdminShow = ({ navigation, route }) => {
         </>
       </WsPopup >
 
+      <WsModal
+        animationType={'none'}
+        visible={stateTaskCreateModeModal}
+        onBackButtonPress={() => {
+          setStateTaskCreateModeModal(false)
+        }}
+        headerLeftOnPress={() => {
+          setStateTaskCreateModeModal(false)
+        }}
+        title={t('新增任務')}
+      >
+        <TouchableOpacity
+          style={{
+            marginTop: 8,
+            marginHorizontal: 16
+          }}
+          onPress={async () => {
+            setStateTaskCreateModeModal(false)
+            await AsyncStorage.removeItem('TaskCreate')
+            await $_setTaskCreateStorage(taskCreateGuidelineArticleVersionId)
+            navigation.push('RoutesTask', {
+              screen: 'TaskCreate'
+            })
+          }}
+        >
+          <WsCard>
+            <WsText>{t('直接建立')}</WsText>
+          </WsCard>
+        </TouchableOpacity>
+        {canReadTaskTemplate && (
+          <TouchableOpacity
+            style={{
+              marginTop: 8,
+              marginHorizontal: 16
+            }}
+            onPress={() => {
+              setStateTaskCreateModeModal(false)
+              setStateTemplateModal(true)
+            }}
+          >
+            <WsCard>
+              <WsText>{t('引用公版')}</WsText>
+            </WsCard>
+          </TouchableOpacity>
+        )}
+      </WsModal>
+
+      <WsModal
+        animationType={'none'}
+        visible={stateTemplateModal}
+        onBackButtonPress={() => {
+          setStateTemplateModal(false)
+        }}
+        headerLeftOnPress={() => {
+          setStateTemplateModal(false)
+        }}
+        title={t('引用任務公版')}
+      >
+        <WsPageIndex
+          modelName={'task_factory_template'}
+          params={{
+            order_by: 'updated_at',
+            order_way: 'desc',
+            status: 'released'
+          }}
+          filterFields={taskTemplateFilterFields}
+          renderItem={({ item, index }) => (
+            <LlTaskTemplateCard001
+              testID={`Guideline-TaskTemplateCard-${index}`}
+              item={item}
+              onPress={() => {
+                $_onSelectTemplateForCreate(item)
+              }}
+              createTaskOnPress={() => {
+                $_onSelectTemplateForCreate(item)
+              }}
+              canCreateTask={true}
+            />
+          )}
+          ListFooterComponent={() => (
+            <View
+              style={{
+                height: 50
+              }}
+            />
+          )}
+        />
+      </WsModal>
+
+      <LlTaskTempalteResuePopup001
+        active={stateTemplateReuseModal}
+        onClose={() => {
+          setStateTemplateReuseModal(false)
+        }}
+        templateHasTaker={templateHasTaker}
+        templateHasSubTaskTaker={templateHasSubTaskTaker}
+        includeTaskTaker={includeTaskTaker}
+        includeSubTaskTaker={includeSubTaskTaker}
+        onChangeIncludeTaskTaker={(value) => {
+          includeTaskTakerRef.current = value
+          setIncludeTaskTaker(value)
+        }}
+        onChangeIncludeSubTaskTaker={(value) => {
+          includeSubTaskTakerRef.current = value
+          setIncludeSubTaskTaker(value)
+        }}
+        onConfirm={async () => {
+          if (!pendingTemplate) {
+            return
+          }
+          try {
+            await $_createTaskFromTemplate(pendingTemplate, {
+              includeSubTaskTaker: includeSubTaskTakerRef.current,
+              includeTaskTaker: includeTaskTakerRef.current
+            }, taskCreateGuidelineArticleVersionId)
+            setStateTemplateReuseModal(false)
+          } catch (error) {
+            console.log(error)
+          }
+        }}
+      />
+
       <WsBottomSheet
         isActive={isBottomSheetActive}
         onDismiss={() => {
@@ -5757,7 +6011,7 @@ const GuidelineAdminShow = ({ navigation, route }) => {
             $_onPressEdit(guideline)
           }
           else if (e.to?.name === 'TaskCreate') {
-            $_onPressTaskCreate(guideline)
+            $_onPressTaskCreate()
           }
           else {
             e.onPress()

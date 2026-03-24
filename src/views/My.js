@@ -6,6 +6,7 @@ import {
   Alert,
   Linking,
   // SafeAreaView
+  TouchableOpacity
 } from 'react-native'
 import {
   WsNavButton,
@@ -13,6 +14,10 @@ import {
 import {
   WsGrid,
   WsText,
+  WsCard,
+  WsModal,
+  WsPageIndex,
+  LlTaskTempalteResuePopup001,
   WsPaddingContainer,
   WsIconBtn,
   WsBadgeButton,
@@ -40,6 +45,7 @@ import S_Init from '@/__reactnative_stone/services/app/Init'
 import { setIdleCounter } from '@/store/data';
 import { useNavigationState } from '@react-navigation/native';
 import S_QRcode from '@/services/api/v1/qrcode'
+import S_TaskFactoryTemplate from '@/services/api/v1/task_factory_template'
 import MyTaskTabs from '@/sections/MyKanban/MyTaskTabs';
 import {
   setInitUrlFromQRcode
@@ -55,6 +61,7 @@ const My = ({ route }) => {
 
   // Redux
   const currentUserScope = useSelector(state => state.data.userScopes)
+  const currentUser = useSelector(state => state.data.currentUser)
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentIdleCounter = useSelector(state => state.data.idleCounter)
   const currentViewMode = useSelector(state => state.data.currentViewMode)
@@ -72,6 +79,16 @@ const My = ({ route }) => {
 
   const [checklistNum, setChecklistNum] = React.useState()
   const [mainMenu, setMainMenu] = React.useState([])
+  const [stateModal, setStateModal] = React.useState(false)
+  const [stateTemplateModal, setStateTemplateModal] = React.useState(false)
+  const [stateTemplateReuseModal, setStateTemplateReuseModal] = React.useState(false)
+  const [pendingTemplate, setPendingTemplate] = React.useState(null)
+  const [templateHasTaker, setTemplateHasTaker] = React.useState(false)
+  const [templateHasSubTaskTaker, setTemplateHasSubTaskTaker] = React.useState(false)
+  const [includeSubTaskTaker, setIncludeSubTaskTaker] = React.useState(true)
+  const [includeTaskTaker, setIncludeTaskTaker] = React.useState(true)
+  const includeSubTaskTakerRef = React.useRef(true)
+  const includeTaskTakerRef = React.useRef(true)
   const [tabFocus, setTabFocus] = useState()
   const [toggleTabs, setToggleTabs] = useState([
     {
@@ -83,6 +100,59 @@ const My = ({ route }) => {
       label: t('我的任務'),
     },
   ])
+  const canReadTaskTemplate = scopePermission('task-factory-template-read', currentUserScope)
+
+  const $_createTaskFromTemplate = async (
+    _template,
+    {
+      includeSubTaskTaker,
+      includeTaskTaker
+    }
+  ) => {
+    const _taskCreateDraft = S_TaskFactoryTemplate.getTaskCreateDraftFromTemplate(_template, {
+      includeSubTaskTaker,
+      includeTaskTaker,
+      currentUser: currentUser || null
+    })
+    await AsyncStorage.removeItem('TaskCreate')
+    await AsyncStorage.setItem('TaskCreate', JSON.stringify(_taskCreateDraft))
+    navigation.push('RoutesTask', {
+      screen: 'TaskCreate'
+    })
+  }
+
+  const $_onSelectTemplateForCreate = async (template) => {
+    try {
+      if (!template?.id) {
+        return
+      }
+      const _template = await S_TaskFactoryTemplate.show({
+        modelId: template.id
+      })
+      const _hasTemplateTaker = Boolean(_template?.taker)
+      const _hasSubTaskTaker = Array.isArray(_template?.subtask_factory_templates)
+        && _template.subtask_factory_templates.some(subTask => Boolean(subTask?.taker))
+      setPendingTemplate(_template)
+      setTemplateHasTaker(_hasTemplateTaker)
+      setTemplateHasSubTaskTaker(_hasSubTaskTaker)
+      setIncludeTaskTaker(_hasTemplateTaker)
+      setIncludeSubTaskTaker(_hasSubTaskTaker)
+      includeTaskTakerRef.current = _hasTemplateTaker
+      includeSubTaskTakerRef.current = _hasSubTaskTaker
+      if (!_hasTemplateTaker && !_hasSubTaskTaker) {
+        setStateTemplateModal(false)
+        await $_createTaskFromTemplate(_template, {
+          includeSubTaskTaker: false,
+          includeTaskTaker: false
+        })
+        return
+      }
+      setStateTemplateModal(false)
+      setStateTemplateReuseModal(true)
+    } catch (error) {
+      console.log(error)
+    }
+  }
 
   // Services
   const $_fetchChecklist = async () => {
@@ -155,9 +225,16 @@ const My = ({ route }) => {
         icon: "ll-nav-add-assignment",
         name: t("建立任務"),
         onPress: async () => {
+          if (canReadTaskTemplate) {
+            setStateModal(true)
+            return
+          }
           await AsyncStorage.removeItem('TaskCreate')
+          await AsyncStorage.setItem('TaskCreate', JSON.stringify({
+            sub_task_scope: 'taker'
+          }))
           navigation.push('RoutesTask', {
-            screen: 'TaskCreateFromMy'
+            screen: 'TaskCreate'
           })
         },
         permission: scopePermission('task-create', currentUserScope)
@@ -380,6 +457,124 @@ const My = ({ route }) => {
 
         </ScrollView>
       </SafeAreaView>
+
+      <WsModal
+        animationType={'none'}
+        visible={stateModal}
+        onBackButtonPress={() => {
+          setStateModal(false)
+        }}
+        headerLeftOnPress={() => {
+          setStateModal(false)
+        }}
+        title={t('新增任務')}
+      >
+        <TouchableOpacity
+          style={{
+            marginTop: 8,
+            marginHorizontal: 16
+          }}
+          onPress={async () => {
+            setStateModal(false)
+            await AsyncStorage.removeItem('TaskCreate')
+            await AsyncStorage.setItem('TaskCreate', JSON.stringify({
+              sub_task_scope: 'taker'
+            }))
+            navigation.push('RoutesTask', {
+              screen: 'TaskCreate'
+            })
+          }}
+        >
+          <WsCard>
+            <WsText>{t('直接建立')}</WsText>
+          </WsCard>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{
+            marginTop: 8,
+            marginHorizontal: 16
+          }}
+          onPress={() => {
+            setStateModal(false)
+            setStateTemplateModal(true)
+          }}
+        >
+          <WsCard>
+            <WsText>{t('引用公版')}</WsText>
+          </WsCard>
+        </TouchableOpacity>
+      </WsModal>
+
+      <WsModal
+        animationType={'none'}
+        visible={stateTemplateModal}
+        onBackButtonPress={() => {
+          setStateTemplateModal(false)
+        }}
+        headerLeftOnPress={() => {
+          setStateTemplateModal(false)
+        }}
+        title={t('引用任務公版')}
+      >
+        <WsPageIndex
+          modelName={'task_factory_template'}
+          params={{
+            order_by: 'updated_at',
+            order_way: 'desc',
+            status: 'released'
+          }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={{
+                marginTop: 8,
+                marginHorizontal: 16
+              }}
+              onPress={async () => {
+                await $_onSelectTemplateForCreate(item)
+              }}
+            >
+              <WsCard>
+                <WsText>{item?.name || t('未命名公版')}</WsText>
+              </WsCard>
+            </TouchableOpacity>
+          )}
+          emptyTitle={t('目前尚無資料')}
+        />
+      </WsModal>
+
+      <LlTaskTempalteResuePopup001
+        active={stateTemplateReuseModal}
+        onClose={() => {
+          setStateTemplateReuseModal(false)
+        }}
+        templateHasTaker={templateHasTaker}
+        templateHasSubTaskTaker={templateHasSubTaskTaker}
+        includeTaskTaker={includeTaskTaker}
+        includeSubTaskTaker={includeSubTaskTaker}
+        onChangeIncludeTaskTaker={(value) => {
+          includeTaskTakerRef.current = value
+          setIncludeTaskTaker(value)
+        }}
+        onChangeIncludeSubTaskTaker={(value) => {
+          includeSubTaskTakerRef.current = value
+          setIncludeSubTaskTaker(value)
+        }}
+        onConfirm={async () => {
+          if (!pendingTemplate) {
+            return
+          }
+          try {
+            await $_createTaskFromTemplate(pendingTemplate, {
+              includeSubTaskTaker: includeSubTaskTakerRef.current,
+              includeTaskTaker: includeTaskTakerRef.current
+            })
+            setStateTemplateReuseModal(false)
+          } catch (error) {
+            console.log(error)
+          }
+        }}
+      />
     </>
   )
 }

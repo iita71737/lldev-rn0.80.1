@@ -380,6 +380,7 @@ import LlRelatedAlertCard001 from './LlRelatedAlertCard001'
 import LlContentTextCard001 from './LlContentTextCard001'
 import LlRelatedChecklistRecordCard001 from './LlRelatedChecklistRecordCard001'
 import LlRelatedESGoalBroadcastCard001 from './LlRelatedESGoalBroadcastCard001'
+import LlRelatedTrainingGroupCard001 from './LlRelatedTrainingGroupCard001'
 import LlRelatedActCard001 from './LlRelatedActCard001'
 import LlRelatedArticleCard001 from './LlRelatedArticleCard001'
 import LlArticleCheckCard001 from './LlArticleCheckCard001'
@@ -775,6 +776,7 @@ export {
   LlContentTextCard001,
   LlRelatedChecklistRecordCard001,
   LlRelatedESGoalBroadcastCard001,
+  LlRelatedTrainingGroupCard001,
   LlRelatedActCard001,
   LlRelatedArticleCard001,
   LlArticleCheckCard001,

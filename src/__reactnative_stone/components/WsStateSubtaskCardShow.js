@@ -14,13 +14,16 @@ import {
   WsIcon,
   WsIconCircle,
   WsFlex,
-  WsInfoForm
+  WsInfoForm,
+  WsLoading
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
 
 const WsStateSubtaskCardShow = props => {
   const { t, i18n } = useTranslation()
+  const [doneLoading, setDoneLoading] = React.useState(false)
+  const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 
   // Props
   const {
@@ -48,8 +51,20 @@ const WsStateSubtaskCardShow = props => {
     testID
   } = props
 
-  const $_doneOnPress = () => {
-    onChange(value)
+  const $_doneOnPress = async () => {
+    console.log('$_doneOnPress')
+    if (doneLoading) {
+      return
+    }
+    setDoneLoading(true)
+    try {
+      await Promise.all([
+        Promise.resolve(onChange?.(value)),
+        delay(1000)
+      ])
+    } finally {
+      setDoneLoading(false)
+    }
   }
 
   // Render
@@ -68,21 +83,42 @@ const WsStateSubtaskCardShow = props => {
               style={{
                 zIndex: 1
               }}
-              onPress={() => {
-                $_doneOnPress()
-              }}>
-              <WsIconCircle
-                name="ws-outline-check"
-                size={30}
-                color={value.done_at ? $color.white : $color.gray}
-                gradientColor={
-                  value.done_at
-                    ? [$color.primary, $color.primary3l]
-                    : [$color.white, $color.white]
-                }
-                isGradient={true}
-                gradientBorder={value.done_at ? 0 : 1}
-              />
+              disabled={doneLoading}
+              onPress={$_doneOnPress}>
+              <View
+                style={{
+                  position: 'relative',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}
+              >
+                <WsIconCircle
+                  name="ws-outline-check"
+                  size={30}
+                  color={value.done_at ? $color.white : $color.gray}
+                  gradientColor={
+                    value.done_at
+                      ? [$color.primary, $color.primary3l]
+                      : [$color.white, $color.white]
+                  }
+                  isGradient={true}
+                  gradientBorder={value.done_at ? 0 : 1}
+                  style={{
+                    opacity: doneLoading ? 0 : 1
+                  }}
+                />
+                {doneLoading && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <WsLoading size={16} />
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
             <View
               style={[
