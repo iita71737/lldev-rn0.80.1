@@ -35,6 +35,7 @@ const WsInfoFile = props => {
     lazyUri,
     exportAttachmentName,
     hasFrame,
+    framePosition,
     is_compress,
     onPressFile,
     fileItem,
@@ -446,20 +447,43 @@ const WsInfoFile = props => {
                       alignItems: 'center',
                     }}
                   />
-                  <WsInfo
-                    labelWidth={120}
-                    label={t('匯出附件名稱')}
-                    labelColor={$color.gray}
-                    value={
-                      exportAttachmentName ? `${exportAttachmentName}` : null
-                    }
+                  <View
                     style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      marginVertical: 8
+                      marginTop: 8
                     }}
-                  />
+                  >
+                    <WsInfo
+                      labelWidth={120}
+                      label={t('匯出附件名稱')}
+                      labelColor={$color.gray}
+                      value={
+                        exportAttachmentName ? `${exportAttachmentName}` : null
+                      }
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                      }}
+                    />
+                  </View>
+                  <View
+                    style={{
+                      marginTop: 8,
+                      marginBottom: 8
+                    }}
+                  >
+                    <WsInfo
+                      labelWidth={120}
+                      label={t('附件名稱位置')}
+                      labelColor={$color.gray}
+                      value={framePosition ?? '-'}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                      }}
+                    />
+                  </View>
                 </>
               )}
 

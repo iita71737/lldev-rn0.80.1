@@ -24,6 +24,7 @@ import { useNavigation } from '@react-navigation/native'
 import LlFilesAndImagesPickerModal from '@/views/File/LlFilesAndImagesPickerModal'
 import S_File from '@/services/api/v1/file'
 import S_FileVersion from '@/services/api/v1/file_version'
+import S_MeetingTemplateField from '@/services/api/v1/meeting_template_field'
 import DraggableFlatList from 'react-native-draggable-flatlist'
 import { useSelector } from 'react-redux'
 
@@ -99,11 +100,46 @@ const LlFilesAndImagesPicker = props => {
       .sort((a, b) => String(a?.sequence || '').localeCompare(String(b?.sequence || '')))
   }, [])
 
+  const normalizePlaceholderToken = useCallback((input) => {
+    return String(input ?? '')
+      .normalize('NFKC')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/\s+/g, '')
+      .replace(/\u3000/g, '')
+      .replace(/\$\{/g, '')
+      .replace(/\}/g, '')
+      .toLowerCase()
+  }, [])
+
+  const buildPlaceholderCandidates = useCallback((rawToken) => {
+    const normalized = normalizePlaceholderToken(rawToken)
+    if (!normalized) return []
+    const set = new Set([normalized])
+    if (normalized.includes('time')) {
+      set.add(normalized.replace(/time/g, 'date'))
+    }
+    if (normalized.includes('date')) {
+      set.add(normalized.replace(/date/g, 'time'))
+    }
+    return Array.from(set)
+  }, [normalizePlaceholderToken])
+
+  const toTemplateFieldOption = (field) => {
+    if (!field?.id) return null
+    return {
+      id: field.id,
+      name: field?.name ?? field?.value ?? '',
+      value: field?.value,
+      data_field: field?.data_field,
+    }
+  }
+
   // 用 meeting_template_items 反推 wordFieldSettings（編輯模式）
   const buildSettingsFromMeetingTemplateItems = (items = []) => {
-    const next = {}
+    const byValue = {}
+    const byNormalized = {}
       ; (Array.isArray(items) ? items : []).forEach(it => {
-        const key = it?.value // "${meeting_time}"
+        const key = it?.value
         if (!key) return
 
         const mtf = it?.meeting_template_field
@@ -113,25 +149,122 @@ const LlFilesAndImagesPicker = props => {
             ? (mtf?.name ?? mtf?.value ?? '')
             : (it?.name ?? '')
 
-        next[key] = {
+        const setting = {
           name: it?.name ?? '',
           esgoal_field: mtfId ? { id: mtfId, name: mtfName } : null,
         }
+
+        byValue[key] = setting
+        const normalizedKey = normalizePlaceholderToken(key)
+        if (normalizedKey && !byNormalized[normalizedKey]) {
+          byNormalized[normalizedKey] = setting
+        }
       })
-    return next
+    return { byValue, byNormalized }
   }
 
   const [wordFields, setWordFields] = useState([])
   const [wordFieldSettings, setWordFieldSettings] = useState({})
+  const [meetingTemplateFieldOptions, setMeetingTemplateFieldOptions] = useState([])
 
   const prevValueLenRef = React.useRef(Array.isArray(value) ? value.length : 0)
   const wordFieldsFileIdRef = React.useRef(null)
   const lastCommittedSigRef = React.useRef({})
   const valueRef = React.useRef(value)
   const didInitFromValueRef = React.useRef(false)
+  const lastMeetingTemplateItemsRef = React.useRef([])
+
+  const findTemplateFieldByTokens = useCallback((candidateTokens = []) => {
+    if (!Array.isArray(meetingTemplateFieldOptions) || meetingTemplateFieldOptions.length === 0) {
+      return null
+    }
+    const tokens = (Array.isArray(candidateTokens) ? candidateTokens : []).filter(Boolean)
+    if (tokens.length === 0) return null
+
+    return meetingTemplateFieldOptions.find(option => {
+      const optionValue = normalizePlaceholderToken(option?.value)
+      const optionName = normalizePlaceholderToken(option?.name)
+      if (optionValue && tokens.includes(optionValue)) return true
+      if (!optionName) return false
+      return tokens.some(token => optionName.includes(token) || token.includes(optionName))
+    }) ?? null
+  }, [meetingTemplateFieldOptions, normalizePlaceholderToken])
+
+  const findAutoMatchedTemplateField = useCallback((valueToken, nameToken, mapByValue = {}, mapByName = {}) => {
+    const normalizedValue = normalizePlaceholderToken(valueToken)
+    const normalizedName = normalizePlaceholderToken(nameToken)
+    const candidateTokens = [
+      ...buildPlaceholderCandidates(normalizedValue),
+      ...buildPlaceholderCandidates(normalizedName),
+    ].filter(Boolean)
+
+    return (
+      mapByValue?.[normalizedValue] ??
+      mapByName?.[normalizedName] ??
+      findTemplateFieldByTokens(candidateTokens)
+    )
+  }, [normalizePlaceholderToken, buildPlaceholderCandidates, findTemplateFieldByTokens])
+
+  const resolveTemplateFieldOption = useCallback((candidate) => {
+    if (!candidate) return null
+    if (!Array.isArray(meetingTemplateFieldOptions) || meetingTemplateFieldOptions.length === 0) {
+      return null
+    }
+    const candidateId = typeof candidate === 'string' ? candidate : candidate?.id
+    if (candidateId) {
+      const hit = meetingTemplateFieldOptions.find(option => option?.id === candidateId)
+      if (hit) return toTemplateFieldOption(hit)
+    }
+    const candidateValue = normalizePlaceholderToken(
+      typeof candidate === 'string' ? candidate : candidate?.value
+    )
+    if (candidateValue) {
+      const valueCandidates = buildPlaceholderCandidates(candidateValue)
+      const hitByValue = findTemplateFieldByTokens(valueCandidates)
+      if (hitByValue) return toTemplateFieldOption(hitByValue)
+    }
+    const candidateName = normalizePlaceholderToken(
+      typeof candidate === 'object' ? candidate?.name : null
+    )
+    if (candidateName) {
+      const hitByName = findTemplateFieldByTokens([candidateName])
+      if (hitByName) return toTemplateFieldOption(hitByName)
+    }
+    return null
+  }, [meetingTemplateFieldOptions, normalizePlaceholderToken, buildPlaceholderCandidates, findTemplateFieldByTokens])
+
+  useEffect(() => {
+    if (modelName !== 'meeting_template') return
+    let mounted = true
+    const fetchTemplateFieldOptions = async () => {
+      try {
+        const res = await S_MeetingTemplateField.index({
+          params: {
+            order_by: 'sequence',
+            order_way: 'asc',
+          }
+        })
+        if (!mounted) return
+        const list = Array.isArray(res?.data) ? res.data : []
+        setMeetingTemplateFieldOptions(list)
+      } catch (err) {
+        if (!mounted) return
+        console.log('[LlFilesAndImagesPicker] init meeting_template_field.index failed', err)
+        setMeetingTemplateFieldOptions([])
+      }
+    }
+    fetchTemplateFieldOptions()
+    return () => {
+      mounted = false
+    }
+  }, [modelName])
 
   useEffect(() => {
     valueRef.current = value
+    const first = pickFirstItem(value)
+    if (Array.isArray(first?.meeting_template_items) && first.meeting_template_items.length > 0) {
+      lastMeetingTemplateItemsRef.current = first.meeting_template_items
+    }
   }, [value])
 
   // ✅ 編輯模式：value 已帶 word_fields / meeting_template_items，直接初始化 UI
@@ -158,7 +291,14 @@ const LlFilesAndImagesPicker = props => {
     const settingsFromItems = buildSettingsFromMeetingTemplateItems(first?.meeting_template_items)
 
     setWordFieldSettings(prev => {
-      const next = { ...prev, ...settingsFromItems }
+      const presetByValue = {}
+      Object.entries(settingsFromItems?.byValue ?? {}).forEach(([key, setting]) => {
+        presetByValue[key] = {
+          ...setting,
+          esgoal_field: resolveTemplateFieldOption(setting?.esgoal_field),
+        }
+      })
+      const next = { ...prev, ...presetByValue }
 
       normalized.forEach(wf => {
         const key = wf?.value
@@ -180,10 +320,10 @@ const LlFilesAndImagesPicker = props => {
 
       return next
     })
-  }, [value, modelName, normalizeWordFields])
+  }, [value, modelName, normalizeWordFields, resolveTemplateFieldOption])
 
   // ✅ 抽共用：抓 word fields + 初始化 UI（local/fileStore/other 都用）
-  const fetchAndInitMeetingTemplateWordFields = useCallback(async (fileVersionId, fileType, fileId) => {
+  const fetchAndInitMeetingTemplateWordFields = useCallback(async (fileVersionId, fileType, fileId, sourceMeetingTemplateItems) => {
     if (!fileVersionId) return
     try {
       console.log(fileId, '=fileId=')
@@ -200,30 +340,78 @@ const LlFilesAndImagesPicker = props => {
       }
       // console.log(res, 'res--')
       const fields = normalizeWordFields(res?.data ?? res)
-      const prevFields = Array.isArray(wordFields) ? wordFields : []
-      const prevNameByValue = new Map(
-        prevFields.map(item => [item?.value, item?.name ?? ''])
-      )
 
       wordFieldsFileIdRef.current = fileId ?? fileVersionId
       lastCommittedSigRef.current = {}
       didInitFromValueRef.current = true // 進入上傳後就不再用 value 初始化蓋掉使用者編輯
 
       setWordFields(fields)
+      const firstItemFromValue = pickFirstItem(valueRef.current)
+      const sourceItems =
+        (Array.isArray(sourceMeetingTemplateItems) && sourceMeetingTemplateItems.length > 0)
+          ? sourceMeetingTemplateItems
+          : (Array.isArray(firstItemFromValue?.meeting_template_items) && firstItemFromValue.meeting_template_items.length > 0)
+            ? firstItemFromValue.meeting_template_items
+            : lastMeetingTemplateItemsRef.current
+
+      let defaultFieldMapByValue = {}
+      let defaultFieldMapByName = {}
+      if (!Array.isArray(sourceItems) || sourceItems.length === 0) {
+        const fieldList = Array.isArray(meetingTemplateFieldOptions) ? meetingTemplateFieldOptions : []
+        fieldList.forEach(field => {
+          const option = toTemplateFieldOption(field)
+          const normalizedValue = normalizePlaceholderToken(field?.value)
+          if (normalizedValue && !defaultFieldMapByValue[normalizedValue]) {
+            defaultFieldMapByValue[normalizedValue] = option
+          }
+          const normalizedName = normalizePlaceholderToken(field?.name)
+          if (normalizedName && !defaultFieldMapByName[normalizedName]) {
+            defaultFieldMapByName[normalizedName] = option
+          }
+        })
+      }
+      const settingsFromItems = buildSettingsFromMeetingTemplateItems(
+        sourceItems
+      )
       setWordFieldSettings(prev => {
         const next = {}
         fields.forEach(f => {
           const key = f.value
           const defaultName = f?.name ?? '' // ✅ 原封不動
           if (!key) return
-          const prevName = prevNameByValue.get(key)
-          const nameChanged =
-            prevName !== undefined && String(prevName ?? '') !== String(defaultName ?? '')
-          const isNewField = prevName === undefined
-          if (isNewField || nameChanged) {
-            next[key] = { name: defaultName, esgoal_field: null }
+
+          const normalizedKey = normalizePlaceholderToken(key)
+          const preset =
+            settingsFromItems?.byValue?.[key] ??
+            settingsFromItems?.byNormalized?.[normalizedKey]
+
+          if (preset) {
+            const resolvedPresetField = resolveTemplateFieldOption(preset?.esgoal_field)
+            if (resolvedPresetField) {
+              next[key] = {
+                ...preset,
+                esgoal_field: resolvedPresetField,
+                name: defaultName || preset?.name || undefined,
+              }
+              return
+            }
+          }
+
+          // 自動預設優先序：1) value 2) name 3) 無
+          const autoMatchedField = findAutoMatchedTemplateField(
+            normalizedKey,
+            defaultName,
+            defaultFieldMapByValue,
+            defaultFieldMapByName
+          )
+          if (autoMatchedField?.id) {
+            next[key] = {
+              name: defaultName || autoMatchedField?.name || undefined,
+              esgoal_field: toTemplateFieldOption(autoMatchedField),
+            }
             return
           }
+
           if (prev?.[key]) {
             next[key] = {
               ...prev[key],
@@ -238,7 +426,39 @@ const LlFilesAndImagesPicker = props => {
     } catch (err) {
       console.warn('[LlFilesAndImagesPicker] getWordFields failed:', err)
     }
-  }, [normalizeWordFields, wordFields])
+  }, [normalizeWordFields, normalizePlaceholderToken, meetingTemplateFieldOptions, resolveTemplateFieldOption, findAutoMatchedTemplateField])
+
+  useEffect(() => {
+    if (modelName !== 'meeting_template') return
+    if (!Array.isArray(meetingTemplateFieldOptions) || meetingTemplateFieldOptions.length === 0) return
+    if (!Array.isArray(wordFields) || wordFields.length === 0) return
+
+    setWordFieldSettings(prev => {
+      let changed = false
+      const next = { ...(prev || {}) }
+
+      wordFields.forEach(field => {
+        const key = field?.value
+        if (!key) return
+
+        const current = next?.[key] || {}
+        if (current?.esgoal_field?.id) return
+
+        const hit = findAutoMatchedTemplateField(key, field?.name)
+
+        if (hit?.id) {
+          changed = true
+          next[key] = {
+            ...(current || {}),
+            name: current?.name ?? field?.name ?? '',
+            esgoal_field: toTemplateFieldOption(hit),
+          }
+        }
+      })
+
+      return changed ? next : prev
+    })
+  }, [modelName, meetingTemplateFieldOptions, wordFields, findAutoMatchedTemplateField])
 
   // ✅ 把 wordFields + settings 組成 meeting_template_items，塞回 value
   const commitWordFieldSettingsToValue = useCallback((settings) => {
@@ -389,11 +609,12 @@ const LlFilesAndImagesPicker = props => {
 
   // ✅ Local：上傳後如果 meeting_template → 打 getWordFields
   const onUploadFromLocalComplete = async (file) => {
+    const prevItems = pickFirstItem(valueRef.current)?.meeting_template_items
     if (modelName === 'meeting_template') {
       const fileId = file?.id || file?.file?.id
       const fileVersionId = file?.file?.last_version?.id
       const fileType = file?.file_type || file?.file?.file_type
-      await fetchAndInitMeetingTemplateWordFields(fileVersionId, fileType, fileId)
+      await fetchAndInitMeetingTemplateWordFields(fileVersionId, fileType, fileId, prevItems)
     }
 
     if (!oneFile) {
@@ -407,6 +628,7 @@ const LlFilesAndImagesPicker = props => {
 
   // ✅ FileStore：選檔後如果 meeting_template → 對「新增的第一個檔」打 getWordFields
   const onUploadFromFileStoreComplete = async (files, relatedVersion) => {
+    const prevItems = pickFirstItem(valueRef.current)?.meeting_template_items
     const toUrls = (files || []).map(item => {
       if (relatedVersion === 'latest') {
         return { file: { ...item } }
@@ -443,12 +665,13 @@ const LlFilesAndImagesPicker = props => {
     }
 
     if (modelName === 'meeting_template' && pickedFileId) {
-      await fetchAndInitMeetingTemplateWordFields(pickedFileId, pickedFileType, pickedFileId)
+      await fetchAndInitMeetingTemplateWordFields(pickedFileId, pickedFileType, pickedFileId, prevItems)
     }
   }
 
   // ✅ OtherFileStore：同上
   const onUploadFromOtherFileStoreComplete = async (files, relatedVersion) => {
+    const prevItems = pickFirstItem(valueRef.current)?.meeting_template_items
     const toUrls = (files || []).map(item => {
       if (relatedVersion === 'latest') {
         return { file: { ...item } }
@@ -485,7 +708,7 @@ const LlFilesAndImagesPicker = props => {
     }
 
     if (modelName === 'meeting_template' && pickedFileId) {
-      await fetchAndInitMeetingTemplateWordFields(pickedFileId, pickedFileType, pickedFileId)
+      await fetchAndInitMeetingTemplateWordFields(pickedFileId, pickedFileType, pickedFileId, prevItems)
     }
   }
 

@@ -199,9 +199,8 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
           const records = Array.isArray(res?.data) ? res.data : []
           const shouldPoll = hasPendingRecords(records)
           syncPolling(shouldPoll)
-          if (shouldPoll) {
-            setInternalRefreshKey(prev => prev + 1)
-          }
+          // 每次狀態檢查成功都刷新列表，避免輪詢停止當下畫面仍是舊狀態
+          setInternalRefreshKey(prev => prev + 1)
         } catch (err) {
           if (!active) return
           console.log('S_MeetingExport.index polling error', err)

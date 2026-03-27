@@ -245,14 +245,28 @@ const WsStateFileItem = props => {
     typeof value?.export_attachment_name_enabled === 'boolean'
       ? value?.export_attachment_name_enabled
       : exportAttachmentName ?? false
+  const exportAttachmentPositionValue =
+    value?.export_attachment_name_position ?? 'top-right'
+  const shouldShowExportAttachmentSettings =
+    modelName === 'meeting' &&
+    orderMode !== 'sort' &&
+    exportAttachmentName
 
   // Render
   return (
-    <>
+    <View
+      style={
+        shouldShowExportAttachmentSettings
+          ? {
+            borderWidth: 0.3,
+            padding: 16,
+            borderRadius: 10
+          }
+          : undefined
+      }
+    >
       {
-        modelName === 'meeting' &&
-        orderMode !== 'sort' &&
-        exportAttachmentName && (
+        shouldShowExportAttachmentSettings && (
           <>
             <WsState
               style={
@@ -267,6 +281,25 @@ const WsStateFileItem = props => {
                 onItemChange?.({ export_attachment_name_enabled: $event })
               }}
             />
+            {exportAttachmentValue && (
+              <WsState
+                style={
+                  [
+                    { marginBottom: 8, marginTop: itemIndex === 0 ? 0 : 16 }
+                  ]
+                }
+                type="radio"
+                items={[
+                  { label: t('右上'), value: 'top-right' },
+                  { label: t('左上'), value: 'top-left' },
+                ]}
+                label={t('附件名稱位置')}
+                value={exportAttachmentPositionValue}
+                onChange={$event => {
+                  onItemChange?.({ export_attachment_name_position: $event })
+                }}
+              />
+            )}
             <WsState
               style={
                 [
@@ -350,7 +383,7 @@ const WsStateFileItem = props => {
           </View>
         )}
       </WsFlex>
-    </>
+    </View>
   )
 }
 

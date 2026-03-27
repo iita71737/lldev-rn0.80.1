@@ -102,11 +102,13 @@ export default {
       }
       // meeting_template_items：從 attaches 裡的 meeting_template_items 取
       if (_attach?.meeting_template_items && _attach.meeting_template_items.length > 0) {
-        _data.meeting_template_items = _attach.meeting_template_items.map(item => {
+        _data.meeting_template_items = _attach.meeting_template_items.map((item, index) => {
+          const sequence =
+            item?.sequence ?? String(index + 1).padStart(4, '0')
           return {
             name: item?.name,
             value: item?.value,
-            sequence: item?.sequence,
+            sequence,
             meeting_template_field: this.getMeetingTemplateFieldId(item?.meeting_template_field),
             factory: item?.factory ?? _data.factory,
             has_line_break: item?.has_line_break ?? undefined
@@ -120,11 +122,13 @@ export default {
       _postData?.meeting_template_items &&
       _postData.meeting_template_items.length > 0
     ) {
-      _data.meeting_template_items = _postData.meeting_template_items.map(item => {
+      _data.meeting_template_items = _postData.meeting_template_items.map((item, index) => {
+        const sequence =
+          item?.sequence ?? String(index + 1).padStart(4, '0')
         return {
           name: item?.name,
           value: item?.value,
-          sequence: item?.sequence,
+          sequence,
           meeting_template_field: this.getMeetingTemplateFieldId(item?.meeting_template_field),
           factory: item?.factory ?? _data.factory
         }

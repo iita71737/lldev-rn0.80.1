@@ -83,6 +83,7 @@ const WsInfo = props => {
     textSize = 14,
     exportAttachmentName,
     hasFrame,
+    framePosition,
     onPressFile,
     useWebView,
     labelBtnTextSize = 14,
@@ -255,6 +256,7 @@ const WsInfo = props => {
               emptyText={emptyText}
               exportAttachmentName={exportAttachmentName}
               hasFrame={hasFrame}
+              framePosition={framePosition}
               onPressFile={onPressFile}
               useWebView={useWebView}
             />

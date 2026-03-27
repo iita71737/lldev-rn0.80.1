@@ -749,6 +749,16 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
         .map(attach => attach?.name)
       : [];
 
+    const meetingItemExportAttachFramePosition = Array.isArray(meetingItemAttaches)
+      ? meetingItemAttaches
+        .map(attach => {
+          const position = attach?.frame_position ?? attach?.export_attachment_name_position
+          if (position === 'top-right') return t('右上')
+          if (position === 'top-left') return t('左上')
+          return position ?? '-'
+        })
+      : [];
+
     const meetingItemAttachesValue = Array.isArray(meetingItemAttaches)
       ? meetingItemAttaches
         .map(attach => attach?.original_attach)
@@ -1075,6 +1085,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
                         type={'filesAndImages'}
                         hasFrame={meetingItemExportAttachHasFrame}
                         exportAttachmentName={meetingItemExportAttachName ? meetingItemExportAttachName : ''}
+                        framePosition={meetingItemExportAttachFramePosition}
                         style={{
                           flexDirection: 'row',
                           alignItem: 'center',

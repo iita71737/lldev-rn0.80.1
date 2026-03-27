@@ -226,19 +226,19 @@ const PDFToolAdminTemplateShow = ({ navigation, route }) => {
         icon: 'ws-outline-edit-pencil',
         label: t('編輯範本'),
       },
-      // canUpdateTemplate && {
-      //   icon: 'ws-outline-copy',
-      //   label: t('複製範本'),
-      //   onPress: async () => {
-      //     setIsBottomSheetActive(false)
-      //     const _ready = await $_setCopyTemplateStorage()
-      //     if (!_ready) return
-      //     navigation.navigate({
-      //       name: 'PDFToolAdminCreateTemplate',
-      //       params: {}
-      //     })
-      //   },
-      // },
+      canUpdateTemplate && {
+        icon: 'ws-outline-copy',
+        label: t('複製範本'),
+        onPress: async () => {
+          setIsBottomSheetActive(false)
+          const _ready = await $_setCopyTemplateStorage()
+          if (!_ready) return
+          navigation.navigate({
+            name: 'PDFToolAdminCreateTemplate',
+            params: {}
+          })
+        },
+      },
       canDestroyTemplate && {
         onPress: () => {
           setDialogVisible(true)

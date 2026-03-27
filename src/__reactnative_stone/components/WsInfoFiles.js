@@ -18,6 +18,7 @@ const WsInfoFiles = props => {
     emptyText,
     exportAttachmentName,
     hasFrame,
+    framePosition,
     useWebView,
     onPressFile,
   } = props
@@ -88,6 +89,11 @@ const WsInfoFiles = props => {
                   Array.isArray(hasFrame)
                     ? hasFrame[itemIndex]
                     : hasFrame
+                }
+                framePosition={
+                  Array.isArray(framePosition)
+                    ? framePosition[itemIndex]
+                    : framePosition
                 }
                 is_compress={
                   value[itemIndex]?.file_version?.is_compressed == 0 ? t('轉檔中') :

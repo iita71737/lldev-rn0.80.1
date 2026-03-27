@@ -105,65 +105,65 @@ const RoutesPDFTool = () => {
       let isMounted = true
       const prepareSampleFiles = async () => {
         try {
-        const fileItems = [
-          {
-            fileName: 'schedule_template_sample.xlsx',
-            displayName: t('時序表範本樣本'),
-            fileType: 'xlsx',
-          },
-          {
-            fileName: 'agenda_template_sample.docx',
-            displayName: t('議程表範本樣本'),
-            fileType: 'docx',
-          },
-          {
-            fileName: 'attach_cover_template_sample.docx',
-            displayName: t('附件封面範本樣本'),
-            fileType: 'docx',
-          },
-          {
-            fileName: 'cover_template_sample.docx',
-            displayName: t('封面範本樣本'),
-            fileType: 'docx',
-          },
-          {
-            fileName: 'index_template_sample.docx',
-            displayName: t('目錄範本樣本'),
-            fileType: 'docx',
-          },
-          {
-            fileName: 'proposal_template_sample.docx',
-            displayName: t('提案單範本樣本'),
-            fileType: 'docx',
-          },
-        ]
-
-        const uris = []
-        for (const item of fileItems) {
-          const destPath = `${RNFS.DocumentDirectoryPath}/${item.fileName}`
-          const destUri = `file://${destPath}`
-          const exists = await RNFS.exists(destPath)
-          if (!exists) {
-            if (Platform.OS === 'ios') {
-              const bundlePath = `${RNFS.MainBundlePath}/${item.fileName}`
-              const bundleExists = await RNFS.exists(bundlePath)
-              if (bundleExists) {
-                await RNFS.copyFile(bundlePath, destPath)
-              } else {
-                console.warn('[RoutesPDFTool] sample file missing in bundle:', bundlePath)
-              }
-            } else {
-              await RNFS.copyFileAssets(`meetingTemplate/${item.fileName}`, destPath)
-            }
-          }
-          uris.push({
-            file: {
-              name: item.displayName,
-              file_type: item.fileType,
-              source_url: destUri,
+          const fileItems = [
+            {
+              fileName: 'schedule_template_sample.xlsx',
+              displayName: t('時序表範本樣本'),
+              fileType: 'xlsx',
             },
-          })
-        }
+            {
+              fileName: 'agenda_template_sample.docx',
+              displayName: t('議程表範本樣本'),
+              fileType: 'docx',
+            },
+            {
+              fileName: 'attach_cover_template_sample.docx',
+              displayName: t('附件封面範本樣本'),
+              fileType: 'docx',
+            },
+            {
+              fileName: 'cover_template_sample.docx',
+              displayName: t('封面範本樣本'),
+              fileType: 'docx',
+            },
+            {
+              fileName: 'index_template_sample.docx',
+              displayName: t('目錄範本樣本'),
+              fileType: 'docx',
+            },
+            {
+              fileName: 'proposal_template_sample.docx',
+              displayName: t('提案單範本樣本'),
+              fileType: 'docx',
+            },
+          ]
+
+          const uris = []
+          for (const item of fileItems) {
+            const destPath = `${RNFS.DocumentDirectoryPath}/${item.fileName}`
+            const destUri = `file://${destPath}`
+            const exists = await RNFS.exists(destPath)
+            if (!exists) {
+              if (Platform.OS === 'ios') {
+                const bundlePath = `${RNFS.MainBundlePath}/${item.fileName}`
+                const bundleExists = await RNFS.exists(bundlePath)
+                if (bundleExists) {
+                  await RNFS.copyFile(bundlePath, destPath)
+                } else {
+                  console.warn('[RoutesPDFTool] sample file missing in bundle:', bundlePath)
+                }
+              } else {
+                await RNFS.copyFileAssets(`meetingTemplate/${item.fileName}`, destPath)
+              }
+            }
+            uris.push({
+              file: {
+                name: item.displayName,
+                file_type: item.fileType,
+                source_url: destUri,
+              },
+            })
+          }
 
           if (isMounted) {
             setSampleFileUris(uris)
@@ -406,13 +406,13 @@ const RoutesPDFTool = () => {
       serviceIndexKey: 'index',
       hasMeta: false,
       rules: 'required',
-      displayCheck(fieldsValue) {
-        if (fieldsValue?.is_used !== 1) {
-          return true
-        } else {
-          return false
-        }
-      },
+      // displayCheck(fieldsValue) {
+      //   if (fieldsValue?.is_used !== 1) {
+      //     return true
+      //   } else {
+      //     return false
+      //   }
+      // },
       updateValueOnChange: (event, value, field, fields) => {
         if (event?.value != undefined && event?.value === 'schedule') {
           fields.file_attaches.disabled = false
@@ -522,13 +522,13 @@ const RoutesPDFTool = () => {
           </>
         )
       },
-      displayCheck(fieldsValue) {
-        if (fieldsValue?.is_used !== 1) {
-          return true
-        } else {
-          return false
-        }
-      },
+      // displayCheck(fieldsValue) {
+      //   if (fieldsValue?.is_used !== 1) {
+      //     return true
+      //   } else {
+      //     return false
+      //   }
+      // },
       updateValueOnChange: (event, value, field, fields) => {
         if (value?.file_attaches && value.file_attaches.length > 0) {
           fields.file_attaches.disabled = false
@@ -699,7 +699,10 @@ const RoutesPDFTool = () => {
       Alert.alert(t('範本建立異常'))
       console.error(e.message, 'submitForCreateTemplate')
       navigation.navigate('RoutesPDFTool', {
-        screen: 'PDFToolAdminIndex'
+        screen: 'PDFToolAdminIndex',
+        params: {
+          initTabIndex: 1
+        }
       })
     }
   }
