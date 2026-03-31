@@ -165,6 +165,11 @@ const ActListing: React.FC<ActListingProps> = props => {
         params={params}
         filterFields={filterFields}
         defaultFilterValue={defaultFilterValue}
+        // filterMode={'FAB'}
+        // FABItems={[
+        //   { label: '重新整理', onPress: () => { } },
+        //   { label: '匯出', onPress: () => { } },
+        // ]}
         renderItem={({ item, index, isLastItem }) => {
           return (
             <>

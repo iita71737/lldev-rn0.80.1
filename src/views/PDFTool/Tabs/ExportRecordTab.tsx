@@ -80,6 +80,7 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
   const [editRemark, setEditRemark] = useState('')
   const [internalRefreshKey, setInternalRefreshKey] = useState(0)
   const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const statusSignatureRef = useRef('')
   const refreshKeyCombined = `${refreshKey ?? 0}-${internalRefreshKey}`
 
   const __params = useMemo(() => {
@@ -172,6 +173,11 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
           return status === 'PENDING' || status === 'PROCESSING'
         })
 
+      const buildStatusSignature = (items: any[]) =>
+        items
+          .map(item => `${item?.id ?? ''}:${getStatusValue(item?.convert_status)}`)
+          .join('|')
+
       const syncPolling = (shouldPoll: boolean) => {
         if (!active) return
         if (shouldPoll) {
@@ -199,8 +205,11 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
           const records = Array.isArray(res?.data) ? res.data : []
           const shouldPoll = hasPendingRecords(records)
           syncPolling(shouldPoll)
-          // 每次狀態檢查成功都刷新列表，避免輪詢停止當下畫面仍是舊狀態
-          setInternalRefreshKey(prev => prev + 1)
+          const nextSignature = buildStatusSignature(records)
+          if (nextSignature !== statusSignatureRef.current) {
+            statusSignatureRef.current = nextSignature
+            setInternalRefreshKey(prev => prev + 1)
+          }
         } catch (err) {
           if (!active) return
           console.log('S_MeetingExport.index polling error', err)
@@ -211,6 +220,7 @@ const ExportRecordTab: React.FC<ExportRecordTabProps> = ({ meeting, refreshKey }
 
       return () => {
         active = false
+        statusSignatureRef.current = ''
         if (pollingTimerRef.current) {
           clearInterval(pollingTimerRef.current)
           pollingTimerRef.current = null

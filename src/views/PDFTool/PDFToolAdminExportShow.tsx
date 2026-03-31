@@ -403,7 +403,13 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
     const labelText = item.subLabel ? `${item.label}  ${item.subLabel}` : item.label
     const isChecked = isExportItemChecked(item)
     return (
-      <React.Fragment key={item.id}>
+      <View
+        key={item.id}
+        style={{
+          paddingRight: 16,
+          flexWrap: 'nowrap',
+        }}
+      >
         <CheckboxRow
           label={labelText}
           checked={isChecked}
@@ -411,7 +417,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
           indent={level * 24}
         />
         {item.children?.map(child => renderExportItem(child, level + 1))}
-      </React.Fragment>
+      </View>
     )
   }
 
@@ -492,7 +498,8 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
     t
   ])
 
-  const handleDownloadExport = async () => {
+  const handleDownloadExport = async (options?: { refreshAfterDownload?: boolean }) => {
+    const refreshAfterDownload = options?.refreshAfterDownload ?? true
     console.log('S_MeetingExport.download')
     if (!meetingExport?.id) return
     try {
@@ -510,7 +517,9 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
       console.log('S_MeetingExport.download error', err)
       Alert.alert(t('下載失敗，請稍後再試'))
     } finally {
-      setDownloadRecordRefreshKey(prev => prev + 1)
+      if (refreshAfterDownload) {
+        setDownloadRecordRefreshKey(prev => prev + 1)
+      }
     }
   }
 
@@ -554,7 +563,8 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
   }
 
   const onPressFile = async () => {
-    handleDownloadExport()
+    console.log('onPressFile')
+    await handleDownloadExport({ refreshAfterDownload: false })
   }
 
   const updateConvertAttach = async () => {
@@ -821,44 +831,44 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                   </View>
                 )}
 
+                {!isExportFailed &&
+                  meetingExport?.convert_attach &&
+                  meetingExport?.attach_location_type === 'item-attach-seperate' && (
+                    <View
+                      style={{
+                        marginTop: 8
+                      }}
+                    >
+                      <WsInfo
+                        type="filesAndImages"
+                        label={meetingExport?.type === 'schedule' ? t('時序表') : t('附件彙整 (PDF)')}
+                        value={[
+                          meetingExport?.convert_attach
+                        ]}
+                        onPressFile={onPressFile}
+                        useWebView={Platform.OS === 'ios' ? true : false}
+                      />
+                    </View>
+                  )}
+
+
                 {!isExportFailed && meetingExport?.convert_pdf_attach && (
-                  <View
-                    style={{
-                      marginTop: 8
-                    }}
-                  >
-                    <WsInfo
-                      type="filesAndImages"
-                      label={meetingExport?.type === 'schedule' ? t('時序表') : t('附件彙整 (PDF)')}
-                      value={[
-                        meetingExport?.convert_pdf_attach
-                      ]}
-                      onPressFile={onPressFile}
-                      useWebView={Platform.OS === 'ios' ? true : false}
-                    />
-                  </View>
-                )}
-
-
-                {!isExportFailed && meetingExport?.attach_location_type === 'item-attach-seperate' && (
                   <>
-                    {meetingExport?.convert_attach && (
-                      <View
-                        style={{
-                          marginTop: 8
-                        }}
-                      >
-                        <WsInfo
-                          type="filesAndImages"
-                          label={t('完整匯出檔案')}
-                          value={[
-                            meetingExport?.convert_attach
-                          ].filter(Boolean)}
-                          onPressFile={onPressFile}
-                          useWebView={Platform.OS === 'ios' ? true : false}
-                        />
-                      </View>
-                    )}
+                    <View
+                      style={{
+                        marginTop: 8
+                      }}
+                    >
+                      <WsInfo
+                        type="filesAndImages"
+                        label={t('完整匯出檔案')}
+                        value={[
+                          meetingExport?.convert_pdf_attach
+                        ].filter(Boolean)}
+                        onPressFile={onPressFile}
+                        useWebView={Platform.OS === 'ios' ? true : false}
+                      />
+                    </View>
                   </>
                 )}
 
@@ -918,7 +928,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
                   paddingHorizontal: 16,
                 }}
               >
-                <WsText fontWeight={600}>{t('下載紀錄')}</WsText>
+                <WsText fontWeight={600}>{t('下載記錄')}</WsText>
               </WsPaddingContainer>
             </>
           )
@@ -973,6 +983,7 @@ const PDFToolAdminExportShow = ({ navigation, route }) => {
             </TouchableOpacity>
           )
         }}
+        ListFooterComponent={() => <View style={{ height: 80 }} />}
       />
 
       <WsModal

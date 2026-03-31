@@ -240,17 +240,21 @@ const WsStateFileItem = props => {
     }
   }, [needUpload])
 
+  console.log(value,'valuevaluevaluevalue')
+
   const exportName = value?.export_attachment_name ?? $_getFileName()
   const exportAttachmentValue =
     typeof value?.export_attachment_name_enabled === 'boolean'
       ? value?.export_attachment_name_enabled
       : exportAttachmentName ?? false
   const exportAttachmentPositionValue =
-    value?.export_attachment_name_position ?? 'top-right'
+    value?.frame_position ?? 'top-right'
   const shouldShowExportAttachmentSettings =
     modelName === 'meeting' &&
     orderMode !== 'sort' &&
     exportAttachmentName
+
+    console.log(exportAttachmentPositionValue,'exportAttachmentPositionValueQQ')
 
   // Render
   return (
@@ -296,7 +300,7 @@ const WsStateFileItem = props => {
                 label={t('附件名稱位置')}
                 value={exportAttachmentPositionValue}
                 onChange={$event => {
-                  onItemChange?.({ export_attachment_name_position: $event })
+                  onItemChange?.({ frame_position: $event })
                 }}
               />
             )}

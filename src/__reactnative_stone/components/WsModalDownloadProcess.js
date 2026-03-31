@@ -1,8 +1,6 @@
 import React from 'react'
 import { Modal, Platform, Alert, View, PermissionsAndroid } from 'react-native'
 import { WsLoading, WsFlex, WsIcon, WsText } from '@/components'
-import moment from 'moment'
-import S_Wasa from '@/__reactnative_stone/services/wasa'
 import RNBlobUtil from 'react-native-blob-util';
 import { useTranslation } from 'react-i18next'
 import { CameraRoll } from '@react-native-camera-roll/camera-roll'
@@ -13,10 +11,11 @@ import $color from '@/__reactnative_stone/global/color'
 import { Linking } from 'react-native';
 import { request, check, RESULTS, PERMISSIONS, openSettings } from 'react-native-permissions';
 import { saveDocuments } from '@react-native-documents/picker';
+import S_url from '__reactnative_stone/services/app/url'
 
 const WsModalDownloadProcess = props => {
   // i18n
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
 
   // Props
   const {
@@ -30,6 +29,84 @@ const WsModalDownloadProcess = props => {
   // State
   const [savedVisible, setSavedVisible] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
+  const [saveSucceeded, setSaveSucceeded] = React.useState(false)
+  const successTimeoutRef = React.useRef(null)
+
+  const clearSuccessTimeout = () => {
+    if (successTimeoutRef.current) {
+      clearTimeout(successTimeoutRef.current)
+      successTimeoutRef.current = null
+    }
+  }
+
+  const resetSaveState = () => {
+    setSavedVisible(false)
+    setSaveSucceeded(false)
+  }
+
+  const closeWithoutSaved = () => {
+    resetSaveState()
+    onComplete?.()
+  }
+
+  const showSavedThenClose = (delay = 500) => {
+    setSaveSucceeded(true)
+    setSavedVisible(true)
+    successTimeoutRef.current = setTimeout(() => {
+      onComplete?.()
+      setSavedVisible(false)
+      setSaveSucceeded(false)
+      successTimeoutRef.current = null
+    }, delay)
+  }
+
+  const isCanceledShareResult = (result) => {
+    if (!result) return false
+    if (result?.dismissedAction) return true
+    if (result?.success === false) return true
+    if (typeof result?.message === 'string' && /(cancel|dismiss)/i.test(result.message)) {
+      return true
+    }
+    return false
+  }
+
+  const isCanceledShareError = (error) => {
+    const msg = String(error?.message || error || '')
+    return /cancel/i.test(msg)
+  }
+
+  const isLikelyPhotoPermissionError = (error) => {
+    const msg = String(error?.message || error || '')
+    return /PHPhotosErrorDomain|permission|denied|not authorized|3311/i.test(msg)
+  }
+
+  const promptOpenSettingsForPhotoPermission = () => {
+    Alert.alert(
+      t('無法儲存至相簿'),
+      t('請前往設定開啟照片權限'),
+      [
+        {
+          text: t('取消'),
+          style: 'cancel',
+          onPress: () => {
+            closeWithoutSaved()
+          }
+        },
+        {
+          text: t('前往設定'),
+          onPress: async () => {
+            try {
+              await openSettings()
+            } catch (err) {
+              console.log('openSettings error', err)
+            } finally {
+              closeWithoutSaved()
+            }
+          }
+        }
+      ]
+    )
+  }
 
   // Function
   const $_checkAndroidPermission = async () => {
@@ -74,22 +151,50 @@ const WsModalDownloadProcess = props => {
     }
   }
 
-  // HELPER
-  const isVideoOrImage = (url) => {
-    if (!url) {
-      return
+  const $_getFileType = (input = source) => {
+    if (fileType) {
+      return String(fileType).toLowerCase()
     }
-    const fileExtension = url.split('.').pop().toLowerCase().replace(/\?.*$/, '').toLowerCase();
-    const videoExtensions = ['mp4', 'avi', 'mov', 'mkv', 'wmv'];
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
-    if (videoExtensions.includes(fileExtension)) {
-      return 'video';
-    } else if (imageExtensions.includes(fileExtension)) {
-      return 'image';
-    } else {
-      return 'image';
+    if (!input) return ''
+    if (typeof input === 'string') {
+      const cleaned = input.split('?')[0]
+      const ext = cleaned.substring(cleaned.lastIndexOf('.') + 1)
+      return String(ext || '').toLowerCase()
     }
+    if (Array.isArray(input)) {
+      return String(
+        input?.[0]?.file_version?.file_type ??
+        input?.[0]?.file?.file_type ??
+        ''
+      ).toLowerCase()
+    }
+    return String(
+      input?.file_version?.file_type ??
+      input?.file?.file_type ??
+      ''
+    ).toLowerCase()
   }
+
+  const $_getSourceUrl = (input = source) => {
+    if (!input) return null
+    if (typeof input === 'string') return input
+    if (Array.isArray(input)) {
+      return (
+        input?.[0]?.file_version?.source_url ??
+        input?.[0]?.file?.source_url ??
+        null
+      )
+    }
+    if (typeof input === 'object') {
+      return (
+        input?.file_version?.source_url ??
+        input?.file?.source_url ??
+        null
+      )
+    }
+    return null
+  }
+
   const sanitizeFilename = (filename = '') => {
     return String(filename || '').replace(/[\/\?<>\\:\*\|"]/g, '').replace(/\s+/g, '_');
   }
@@ -126,142 +231,210 @@ const WsModalDownloadProcess = props => {
     if (value === 'odt') return 'application/vnd.oasis.opendocument.text'
     return 'application/octet-stream'
   }
-  const $_onSave = async () => {
-    setLoading(true)
+
+  const $_ensureIOSPhotoLibraryPermission = async () => {
+    if (Platform.OS !== 'ios') return true
     try {
-      const resultCheck = await check(PERMISSIONS.IOS.PHOTO_LIBRARY_ADD_ONLY)
-      if (Platform.OS === 'android') {
-        await $_checkAndroidPermission()
+      const status = await check(PERMISSIONS.IOS.PHOTO_LIBRARY_ADD_ONLY)
+      if (status === RESULTS.GRANTED || status === RESULTS.LIMITED) {
+        return true
       }
-      if (['mp4', 'mov', 'mkv'].includes(fileType)) {
-        downloadAndSaveVideo(source, 'ESGoal-dev', fileName)
-      }
-      if (Platform.OS === 'android' && ['avi'].includes(fileType)) {
-        downloadAndSaveVideo(source, 'ESGoal-dev', fileName)
-      }
-      if (Platform.OS === 'ios' && ['avi'].includes(fileType)) {
-        downloadVideo(source)
-      }
-      if (['wmv'].includes(fileType)) {
-        downloadVideo(source)
-      }
-      if (['png', 'jpg', 'gif', 'jpeg', 'svg', 'PNG', 'JPG', 'GIF', 'JPEG', 'SVG'].includes(fileType)) {
-        let _source
-        if (typeof source === 'string') {
-          _source = source
-        } else if (typeof source === 'object') {
-          _source = source.file_version?.source_url ? source.file_version?.source_url : source.file?.source_url
-        }
-        try {
-          const ext = _source.split('.').pop()?.split('?')[0]; // 安全地取得副檔名
-          const res = await RNBlobUtil.config({
-            fileCache: true,
-            appendExt: ext,
-          }).fetch('GET', _source);
-          const localPath = res.path();
-          console.log(localPath, 'localPath--RNBlobUtil');
-          // 保存至相册
-          CameraRoll.save(localPath, { type: "photo", album: "ESGoal-Dev" })
-            .then(uri => {
-              console.log(uri, 'CameraRoll.save uri');
-              setSavedVisible(true)
-              setTimeout(() => {
-                onComplete();
-                setSavedVisible(false);
-              }, 1000);
-            })
-        } catch (error) {
-          console.error('儲存失敗:', error);
-          setTimeout(() => {
-            onComplete();
-            setSavedVisible(false);
-          }, 500);
+      if (status === RESULTS.DENIED) {
+        const requestStatus = await request(PERMISSIONS.IOS.PHOTO_LIBRARY_ADD_ONLY)
+        if (requestStatus === RESULTS.GRANTED || requestStatus === RESULTS.LIMITED) {
+          return true
         }
       }
 
-      if (['pdf', 'xlsx', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'csv', 'ods', 'odt'].includes(fileType)) {
-        const url = source
-        const rawFileName = normalizeFileName($_getFileName(source))
-        const fileNameWithExt = sanitizeFilename(ensureExtension(rawFileName, fileType))
-        let filePath
-        if (Platform.OS === 'ios') {
-          filePath = `${RNFS.DocumentDirectoryPath}/${fileNameWithExt}`;
-        } else {
-          filePath = `${RNFS.DocumentDirectoryPath}/${fileNameWithExt}`;
+      Alert.alert(
+        t('無法儲存至相簿'),
+        t('請開啟應用程式照片權限'),
+        [
+          {
+            text: t('取消'),
+            style: 'cancel',
+            onPress: () => {
+              onComplete?.()
+            }
+          },
+          {
+            text: t('前往設定'),
+            onPress: async () => {
+              try {
+                await openSettings()
+              } catch (error) {
+                console.log('openSettings error', error)
+              } finally {
+                onComplete?.()
+              }
+            }
+          }
+        ]
+      )
+      return false
+    } catch (error) {
+      console.error('iOS 相簿權限檢查失敗', error)
+      return false
+    }
+  }
+
+  const $_onSave = async () => {
+    clearSuccessTimeout()
+    resetSaveState()
+    setLoading(true)
+    try {
+      const resolvedFileType = $_getFileType(source)
+      const resolvedSourceUrl = $_getSourceUrl(source)
+      const isImageType = ['png', 'jpg', 'gif', 'jpeg', 'svg'].includes(resolvedFileType)
+      const isVideoTypeNeedCameraRoll = ['mp4', 'mov', 'mkv'].includes(resolvedFileType)
+
+      if (Platform.OS === 'ios' && (isImageType || isVideoTypeNeedCameraRoll)) {
+        const permissionGranted = await $_ensureIOSPhotoLibraryPermission()
+        if (!permissionGranted) {
+          return
         }
+      }
+
+      if (Platform.OS === 'android') {
+        await $_checkAndroidPermission()
+      }
+      if (!resolvedSourceUrl) {
+        closeWithoutSaved()
+        return
+      }
+      if (['mp4', 'mov', 'mkv'].includes(resolvedFileType)) {
+        downloadAndSaveVideo(resolvedSourceUrl, 'ESGoal-dev', fileName)
+      }
+      if (Platform.OS === 'android' && ['avi'].includes(resolvedFileType)) {
+        downloadAndSaveVideo(resolvedSourceUrl, 'ESGoal-dev', fileName)
+      }
+      if (Platform.OS === 'ios' && ['avi'].includes(resolvedFileType)) {
+        downloadVideo(resolvedSourceUrl)
+      }
+      if (['wmv'].includes(resolvedFileType)) {
+        downloadVideo(resolvedSourceUrl)
+      }
+      if (['png', 'jpg', 'gif', 'jpeg', 'svg'].includes(resolvedFileType)) {
+        if (resolvedFileType === 'svg') {
+          Alert.alert(t('此圖片格式不支援儲存至相簿'))
+          closeWithoutSaved()
+          return
+        }
+        try {
+          const ext = resolvedSourceUrl.split('.').pop()?.split('?')[0]; // 安全地取得副檔名
+          const res = await RNBlobUtil.config({
+            fileCache: true,
+            appendExt: ext,
+          }).fetch('GET', resolvedSourceUrl);
+          const localPath = res.path();
+          console.log(localPath, 'localPath--RNBlobUtil');
+          const savePath = localPath.startsWith('file://') ? localPath : `file://${localPath}`
+          const uri = await CameraRoll.save(savePath, { type: "auto", album: "ESGoal-Dev" })
+          console.log(uri, 'CameraRoll.save uri');
+          showSavedThenClose(1000)
+        } catch (error) {
+          console.error('儲存失敗:', error);
+          if (Platform.OS === 'ios' && isLikelyPhotoPermissionError(error)) {
+            promptOpenSettingsForPhotoPermission()
+            return
+          }
+          closeWithoutSaved()
+        }
+        return
+      }
+
+      if (['pdf', 'xlsx', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'csv', 'ods', 'odt'].includes(resolvedFileType)) {
+        const url = resolvedSourceUrl
+        const rawFileName = normalizeFileName($_getFileName(source))
+        const fileNameWithExt = sanitizeFilename(ensureExtension(rawFileName, resolvedFileType))
+        const filePath = `${RNFS.DocumentDirectoryPath}/${fileNameWithExt}`
         // Android權限請求
         if (Platform.OS === 'android') {
           let deviceVersion = DeviceInfo.getSystemVersion();
-          let granted = PermissionsAndroid.RESULTS.DENIED;
           console.log(deviceVersion, 'deviceVersion');
           if (deviceVersion >= 13) {
             request(PERMISSIONS.WRITE_EXTERNAL_STORAGE).then((result) => {
               // console.log(result,'result');
             });
           } else {
-            granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE);
+            await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE);
           }
         }
-        await RNFS.downloadFile({
-          fromUrl: url,
-          toFile: filePath,
-          background: Platform.OS === 'ios' ? true : false, // Enable downloading in the background (iOS only)
-          discretionary: Platform.OS === 'ios' ? true : false, // Allow the OS to control the timing and speed (iOS only)
-          progress: (res) => {
-            const progress = (res.bytesWritten / res.contentLength) * 100;
-            console.log(`Progress: ${progress.toFixed(2)}%`);
-          },
-        })
-          .promise.then(async () => {
-            const targetPath =
-              Platform.OS === 'android' && RNFS.ExternalDirectoryPath
-                ? `${RNFS.ExternalDirectoryPath}/${fileNameWithExt}`
-                : null
-            if (targetPath) {
-              RNFS.moveFile(filePath, targetPath)
-                .then(() => console.log('File moved successfully'))
-                .catch((err) => console.error('Error moving file:', err));
-            }
-            const finalPath = targetPath || filePath
-            if (Platform.OS === 'android') {
-              try {
-                const sourceUri = encodeURI(`file://${finalPath}`)
-                await saveDocuments({
-                  sourceUris: [sourceUri],
-                  mimeType: getMimeType(fileType),
-                  fileName: fileNameWithExt,
-                  copy: true,
-                })
-              } catch (error) {
-                console.log('saveDocuments error', error)
-              }
-            } else if (Platform.OS === 'ios') {
-              try {
-                await Share.open({
-                  url: `file://${finalPath}`,
-                  filename: fileNameWithExt,
-                  type: getMimeType(fileType),
-                  saveToFiles: true,
-                  failOnCancel: false,
-                })
-              } catch (error) {
-                console.log('Share.open error', error)
-              }
-            }
-            setSavedVisible(true)
-            setTimeout(() => {
-              onComplete()
-              setSavedVisible(false)
-            }, 500)
-          })
-          .catch((err) => {
-            alert('檔案下載失敗');
-            console.error(err);
-          });
+        try {
+          await RNFS.downloadFile({
+            fromUrl: url,
+            toFile: filePath,
+            background: Platform.OS === 'ios' ? true : false, // Enable downloading in the background (iOS only)
+            discretionary: Platform.OS === 'ios' ? true : false, // Allow the OS to control the timing and speed (iOS only)
+            progress: (res) => {
+              const progress = (res.bytesWritten / res.contentLength) * 100;
+              console.log(`Progress: ${progress.toFixed(2)}%`);
+            },
+          }).promise
+        } catch (err) {
+          Alert.alert(t('檔案下載失敗'));
+          console.error(err);
+          closeWithoutSaved()
+          return
+        }
+
+        const targetPath =
+          Platform.OS === 'android' && RNFS.ExternalDirectoryPath
+            ? `${RNFS.ExternalDirectoryPath}/${fileNameWithExt}`
+            : null
+        if (targetPath) {
+          try {
+            await RNFS.moveFile(filePath, targetPath)
+            console.log('File moved successfully')
+          } catch (err) {
+            console.error('Error moving file:', err)
+          }
+        }
+
+        const finalPath = targetPath || filePath
+        let isSaveSuccess = false
+        if (Platform.OS === 'android') {
+          try {
+            const sourceUri = encodeURI(`file://${finalPath}`)
+            await saveDocuments({
+              sourceUris: [sourceUri],
+              mimeType: getMimeType(resolvedFileType),
+              fileName: fileNameWithExt,
+              copy: true,
+            })
+            isSaveSuccess = true
+          } catch (error) {
+            console.log('saveDocuments error', error)
+          }
+        } else if (Platform.OS === 'ios') {
+          try {
+            const shareResult = await Share.open({
+              url: `file://${finalPath}`,
+              filename: fileNameWithExt,
+              type: getMimeType(resolvedFileType),
+              saveToFiles: true,
+              failOnCancel: true,
+            })
+            console.log('Share.open result', shareResult)
+            isSaveSuccess = !isCanceledShareResult(shareResult)
+          } catch (error) {
+            console.log('Share.open error', error)
+            setSavedVisible(false)
+          }
+        }
+
+        if (isSaveSuccess) {
+          showSavedThenClose(500)
+        } else {
+          closeWithoutSaved()
+        }
       }
     } catch (error) {
       console.error('儲存時發生錯誤：', error);
-      Alert.alert('儲存失敗', error.message);
+      if (!isCanceledShareError(error)) {
+        Alert.alert(t('儲存失敗'), error.message);
+      }
+      closeWithoutSaved()
     } finally {
       setLoading(false)
     }
@@ -273,15 +446,7 @@ const WsModalDownloadProcess = props => {
       const supported = await Linking.canOpenURL(url);
       if (supported) {
         await Linking.openURL(url);
-
-        setTimeout(() => {
-          setSavedVisible(true)
-        }, 100)
-
-        setTimeout(() => {
-          onComplete()
-          setSavedVisible(false)
-        }, 500)
+        showSavedThenClose(500)
       } else {
         console.log("Can't open URL:", url);
       }
@@ -296,18 +461,17 @@ const WsModalDownloadProcess = props => {
     try {
       // 解析副檔名
       const extension = url.split('.').pop().split('?')[0].toLowerCase();
-      const videoName = sanitizeFilename(_videoName);
       const fullFileName = videoName.endsWith(`.${extension}`) ? videoName : `${videoName}.${extension}`;
       const albumDirectory = `${RNFS.DocumentDirectoryPath}/${albumName}`;
       await RNFS.mkdir(albumDirectory);
 
       // DOWNLOAD TO TEMP FOLDER
       const tempVideoPath = `${albumDirectory}/${fullFileName}`;
-      const downloadResult = await RNFS.downloadFile({
+      await RNFS.downloadFile({
         fromUrl: url,
         toFile: tempVideoPath,
       })
-        .promise.then(async (response) => {
+        .promise.then(async () => {
           // SAVE TO CAMERA ROLL
           try {
             console.log(`file://${tempVideoPath}`, 'file://${tempVideoPath}');
@@ -325,11 +489,7 @@ const WsModalDownloadProcess = props => {
           } catch (error) {
             console.log(error.message, 'error.messageQAQ');
           } finally {
-            setSavedVisible(true)
-            setTimeout(() => {
-              onComplete()
-              setSavedVisible(false)
-            }, 500)
+            showSavedThenClose(500)
             if (Platform.OS === 'ios') {
               Alert.alert(t('已儲存'))
             }
@@ -338,10 +498,9 @@ const WsModalDownloadProcess = props => {
           console.log('Download error:', error.message);
         });
     } catch (error) {
-      Alert.alert('影像儲存失敗', error.message);
+      Alert.alert(t('影像儲存失敗'), error.message);
       setTimeout(() => {
-        onComplete()
-        setSavedVisible(false)
+        closeWithoutSaved()
       }, 500)
     }
   };
@@ -349,14 +508,24 @@ const WsModalDownloadProcess = props => {
   React.useEffect(() => {
     if (visible) {
       $_onSave()
+    } else {
+      clearSuccessTimeout()
+      setLoading(false)
+      resetSaveState()
     }
   }, [visible])
+
+  React.useEffect(() => {
+    return () => {
+      clearSuccessTimeout()
+    }
+  }, [])
 
   // Render
   return (
     <>
       <Modal
-        visible={loading || savedVisible}
+        visible={visible && (loading || (savedVisible && saveSucceeded))}
         animationType="fade"
         transparent={true}
       >
@@ -370,7 +539,7 @@ const WsModalDownloadProcess = props => {
           >
             <WsLoading color={$color.white} />
           </View>
-        ) : (
+        ) : (savedVisible && saveSucceeded) ? (
           <WsFlex
             style={{ flex: 1 }}
             alignItems="center"
@@ -396,7 +565,8 @@ const WsModalDownloadProcess = props => {
               </WsText>
             </View>
           </WsFlex>
-        )}
+        ) : null
+        }
       </Modal>
     </>
   )

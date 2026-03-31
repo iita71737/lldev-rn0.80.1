@@ -168,6 +168,7 @@ const LlCheckListCard005 = props => {
           )}
           {time_period && (
             <WsSpec
+              labelWidth={64}
               style={{
                 marginTop: 8,
               }}
@@ -236,7 +237,7 @@ const LlCheckListCard005 = props => {
                             }}
                           >
                             <WsText
-                              size={12}
+                              size={14}
                               style={{
                                 paddingLeft: 8
                               }}
@@ -278,7 +279,7 @@ const LlCheckListCard005 = props => {
           {reviewers && reviewers.length > 0 && (
             <WsInfo
               avatarSize={42}
-              labelWidth={60}
+              labelWidth={68}
               labelSize={12}
               style={{
                 flexDirection: 'row',

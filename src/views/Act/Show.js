@@ -1441,7 +1441,7 @@ const ActShow = ({ navigation, route }) => {
                     ></WsIcon>
                     <WsText
                       style={{
-                        marginLeft: 8
+                        marginLeft: 8,
                       }}
                     >
                       {t('新增標籤')}
@@ -2061,7 +2061,7 @@ const ActShow = ({ navigation, route }) => {
               testID={'新增標籤'}
               borderRadius={25}
               style={{
-                marginBottom: 16,
+                marginBottom: Platform.OS === 'ios' ? 16 : 36
               }}
               onPress={() => {
                 setStateModal(true)
@@ -2072,7 +2072,7 @@ const ActShow = ({ navigation, route }) => {
                   name={'ws-outline-edit-pencil'}
                   size={24}
                   style={{
-                    marginRight: 8
+                    marginRight: 8,
                   }}
                 />
               )}

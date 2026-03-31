@@ -81,6 +81,7 @@ const LlStateRelatedTags = props => {
   const [tagCount, setTagCount] = React.useState()
   const [loading, setLoading] = React.useState(false)
   const [deletingTag, setDeletingTag] = React.useState(false)
+  const [deleteChecking, setDeleteChecking] = React.useState(false)
 
   const [popupType, setPopupType] = React.useState('')
   const [popupActive, setPopupActive] = React.useState(false)
@@ -317,15 +318,24 @@ const LlStateRelatedTags = props => {
             testID={`ws-outline-delete-${index}`}
             name={'ws-outline-delete'}
             size={24}
-            disabled={deletingTag}
+            disabled={deletingTag || deleteChecking}
             onPress={async () => {
-              setTagEditId(item.id)
-              const _tag = await $_fetchFactoryTag(item.id)
-              if ($_hasAnyRelationCount(_tag)) {
-                setPopupActiveForDelete(true)
+              if (deletingTag || deleteChecking) {
                 return
               }
-              $_onSubmitDeleteTag(item.id)
+              console.log('delete check')
+              setTagEditId(item.id)
+              setDeleteChecking(true)
+              try {
+                const _tag = await $_fetchFactoryTag(item.id)
+                if ($_hasAnyRelationCount(_tag)) {
+                  setPopupActiveForDelete(true)
+                  return
+                }
+                await $_onSubmitDeleteTag(item.id)
+              } finally {
+                setDeleteChecking(false)
+              }
             }}
           ></WsIconBtn>
         </WsFlex>
@@ -523,7 +533,7 @@ const LlStateRelatedTags = props => {
             ></WsIcon>
             <WsText
               style={{
-                marginLeft: 8
+                marginLeft: 8,
               }}
             >
               {t('新增標籤')}
@@ -630,16 +640,7 @@ const LlStateRelatedTags = props => {
                     $_onSubmitAddTag()
                     setPopupActive(false)
                   }}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'center',
-                      alignItems: 'center'
-                    }}>
-                    <WsText color={$color.white} size={14}>
-                      {t('送出')}
-                    </WsText>
-                  </View>
+                  {t('送出')}
                 </WsGradientButton>
               </WsFlex>
             </View>
@@ -780,17 +781,7 @@ const LlStateRelatedTags = props => {
                         $_onSubmitEditTag()
                         setPopupActiveForEdit(false)
                       }}>
-                      <View
-                        style={{
-                          paddingTop: 8,
-                          flexDirection: 'row',
-                          justifyContent: 'center',
-                          alignItems: 'center'
-                        }}>
-                        <WsText color={$color.white} size={14}>
-                          {t('送出')}
-                        </WsText>
-                      </View>
+                      {t('送出')}
                     </WsGradientButton>
                   </WsFlex>
                 </View>
@@ -1016,6 +1007,24 @@ const LlStateRelatedTags = props => {
                   )}
                 </View>
               </WsPopup>
+
+              {deleteChecking && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 9999,
+                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}
+                >
+                  <WsLoading />
+                </View>
+              )}
 
             </View>
           )}

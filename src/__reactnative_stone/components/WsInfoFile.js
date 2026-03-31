@@ -250,7 +250,6 @@ const WsInfoFile = props => {
 
     try {
       if (onPressFile && Platform.OS === 'android') {
-        console.log('$_onCardPress')
         await onPressFile(fileItem || value)
       }
 

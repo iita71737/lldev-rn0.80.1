@@ -863,22 +863,6 @@ ${demoData?.end_time ? moment(demoData?.end_time).format('YYYY-MM-DD HH:mm:ss') 
                       <WsText>{block.title}</WsText>
                     </WsFlex>
 
-                    {/* 動作列 */}
-                    {/* <WsFlex flexWrap="wrap" style={{ marginTop: 6 }}>
-                      <TouchableOpacity style={{ marginLeft: 8 }} onPress={() => setModalActiveFormula(true)}>
-                        <WsTag>{t('編輯')}</WsTag>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={{ marginLeft: 8 }} onPress={() => console.log('預覽', block)}>
-                        <WsTag>{t('預覽')}</WsTag>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={{ marginLeft: 8 }} onPress={() => console.log('刪除', block.id)}>
-                        <WsTag>{t('刪除')}</WsTag>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={{ marginLeft: 8 }} onPress={() => console.log('匯出', block)}>
-                        <WsTag>{t('匯出')}</WsTag>
-                      </TouchableOpacity>
-                    </WsFlex> */}
-
                     {/* 明細敘述 */}
                     <WsFlex flexWrap="wrap" style={{ marginTop: 8 }}>
                       {block.lines.map((line, idx) => (

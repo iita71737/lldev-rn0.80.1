@@ -66,8 +66,6 @@ const IntroductionTemp = ({ navigation, route }) => {
     linkId
   } = route.params
 
-  console.log(linkId,'=linkId=');
-
   // States
   const [RightOnPressIsDisabled, setRightOnPressIsDisabled] = React.useState(true)
   const [noNeedToCheckBtnDisable, setNoNeedToCheckBtnDisable] = React.useState(true)

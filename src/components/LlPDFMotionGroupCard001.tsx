@@ -373,6 +373,9 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
             item?.file?.last_version?.id ??
             item?.file_version ??
             null
+          const framePosition =
+            item?.frame_position ??
+            'top-right'
           return {
             factory: currentFactory?.id ?? null,
             sequence: String(index + 1).padStart(4, '0'),
@@ -386,6 +389,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
               item?.file?.name ??
               '',
             has_frame: item?.export_attachment_name_enabled ?? true,
+            frame_position: framePosition,
           }
         })
         .filter(Boolean)
@@ -707,6 +711,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
           file: attach?.original_attach?.file ?? null,
           file_version: attach?.original_attach?.file_version ?? null,
           export_attachment_name: attach?.name ?? '',
+          frame_position: attach?.frame_position ?? 'top-right',
         }))
       : [];
     setMotionFiles(normalizedMotionFiles)
@@ -752,7 +757,7 @@ const LlPDFMotionGroupCard001: React.FC<Props> = ({
     const meetingItemExportAttachFramePosition = Array.isArray(meetingItemAttaches)
       ? meetingItemAttaches
         .map(attach => {
-          const position = attach?.frame_position ?? attach?.export_attachment_name_position
+          const position = attach?.frame_position
           if (position === 'top-right') return t('右上')
           if (position === 'top-left') return t('左上')
           return position ?? '-'

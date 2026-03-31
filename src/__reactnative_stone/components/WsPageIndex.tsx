@@ -16,6 +16,7 @@ import {
   WsFlex,
   WsInfiniteScrollPagination
 } from '@/components'
+import WsPageIndexFloatingActions, { WsPageIndexFloatingActionItem } from '@/__reactnative_stone/components/WsPageIndexFloatingActions'
 import i18next from 'i18next'
 import Services from '@/services/api/v1/index'
 import S_Processor from '@/services/app/processor'
@@ -43,6 +44,8 @@ interface WsPageIndexProps {
   ListFooterComponent: any;
   onRefresh: ($event: any) => void;
   searchLabel: string;
+  filterMode?: 'FAB';
+  FABItems?: WsPageIndexFloatingActionItem[];
 }
 
 const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
@@ -74,6 +77,8 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
     searchVisible,
     onScroll,
     searchLabel,
+    filterMode,
+    FABItems,
     ListFooterComponent,
     scrollToTargetIndex,
     onRefresh,
@@ -167,28 +172,38 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
     };
   }, [filterVisible, delayMs]);
 
+  const useFabGroup = filterMode === 'FAB'
+  const canShowFloatingAction = showFilterBtn && mode !== 'pagination'
+
   return (
     <>
-      {showFilterBtn &&
-        mode !== 'pagination' && (
-          <WsIconBtn
-            testID={'WsFilter002'}
-            name="bih-filter"
-            underlayColor={$color.primary}
-            underlayColorPressIn={$color.primary2d}
-            color={$color.white}
-            size={24}
-            style={{
-              zIndex: 999,
-              position: 'absolute',
-              bottom: Platform.select({ ios: 24, android: 50 }),
-              right: 24,
-            }}
-            onPress={() => {
-              setModalVisible(true)
-            }}
-          />
-        )}
+      {canShowFloatingAction && !useFabGroup && (
+        <WsIconBtn
+          testID={'WsFilter002'}
+          name="bih-filter"
+          underlayColor={$color.primary}
+          underlayColorPressIn={$color.primary2d}
+          color={$color.white}
+          size={24}
+          style={{
+            zIndex: 999,
+            position: 'absolute',
+            bottom: Platform.select({ ios: 24, android: 50 }),
+            right: 24,
+          }}
+          onPress={() => {
+            setModalVisible(true)
+          }}
+        />
+      )}
+      <WsPageIndexFloatingActions
+        canShowFloatingAction={canShowFloatingAction}
+        useFabGroup={useFabGroup}
+        FABItems={FABItems}
+        onFilterPress={() => {
+          setModalVisible(true)
+        }}
+      />
       <WsFilter002
         visible={modalVisible}
         setModalVisible={setModalVisible}

@@ -1,5 +1,5 @@
 import React from 'react'
-import { ScrollView, Pressable, View, Dimensions } from 'react-native'
+import { ScrollView, Pressable, View, Dimensions, Platform } from 'react-native'
 import {
   WsFlex,
   WsBtn,
@@ -490,6 +490,7 @@ const AlertShow = ({ route, navigation }) => {
 
           <WsFlex
             style={{
+              paddingBottom: Platform.OS === 'ios' ? 0 : 36,
               paddingVertical: 12,
               paddingHorizontal: 16,
               backgroundColor: $color.white,

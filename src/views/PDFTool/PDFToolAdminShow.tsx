@@ -224,6 +224,8 @@ const PDFToolAdminShow = ({ navigation, route }) => {
   const [exportRemark, setExportRemark] = useState('')
   const [exportChecked, setExportChecked] = useState<{ [key: string]: boolean }>({})
   const [exportAttachmentPosition, setExportAttachmentPosition] = useState('item-attach-together')
+  const [exportHasPage, setExportHasPage] = useState(true)
+  const [exportPagePosition, setExportPagePosition] = useState('bottom-center')
   const [exportItems, setExportItems] = useState<ExportItem[]>([])
   const [isAgendaExportMode, setIsAgendaExportMode] = useState(false)
   const [exportRecordRefreshKey, setExportRecordRefreshKey] = useState(0)
@@ -235,6 +237,8 @@ const PDFToolAdminShow = ({ navigation, route }) => {
     setExportTitle('')
     setExportRemark('')
     setExportAttachmentPosition('followingMeetingItem')
+    setExportHasPage(true)
+    setExportPagePosition('bottom-center')
   }
 
   const openScheduleExportModal = () => {
@@ -1163,7 +1167,11 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       : item.label
 
     return (
-      <React.Fragment key={item.id}>
+      <View
+        style={{
+          // borderWidth: 1,
+        }}
+      >
         <CheckboxRow
           label={labelText}
           checked={isChecked}
@@ -1174,7 +1182,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
 
         {/* 有子節點就遞迴 */}
         {item.children?.map(child => renderExportItem(child, level + 1))}
-      </React.Fragment>
+      </View>
     )
   }
 
@@ -1248,6 +1256,8 @@ const PDFToolAdminShow = ({ navigation, route }) => {
       name: exportTitle,
       remark: exportRemark,
       attach_location_type: exportAttachmentPosition,
+      has_page: exportHasPage,
+      page_position: exportPagePosition,
       meeting_export_items: meetingExportItems,
     }
   }
@@ -1280,6 +1290,8 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             name: exportTitle,
             remark: exportRemark,
             attach_location_type: exportAttachmentPosition,
+            has_page: exportHasPage,
+            page_position: exportPagePosition,
           },
         })
       } else {
@@ -1329,7 +1341,7 @@ const PDFToolAdminShow = ({ navigation, route }) => {
           setIndex={setIndex}
           fixedContainerHeight={height - 220}
         />
-      ):(
+      ) : (
         <WsSkeleton></WsSkeleton>
       )}
 
@@ -1425,6 +1437,37 @@ const PDFToolAdminShow = ({ navigation, route }) => {
                   })
                 }
               }}
+              style={{
+                marginTop: 16,
+              }}
+            />
+          )}
+
+          <WsState
+            type={"radio"}
+            label={t('頁碼')}
+            items={[
+              { label: t('顯示'), value: true },
+              { label: t('不顯示'), value: false },
+            ]}
+            value={exportHasPage}
+            onChange={val => setExportHasPage(val === true || val === 'true')}
+            style={{
+              marginTop: 16,
+            }}
+          />
+
+          {exportHasPage && (
+            <WsState
+              type={"radio"}
+              label={t('頁碼位置')}
+              items={[
+                { label: t('左下'), value: 'bottom-left' },
+                { label: t('中下'), value: 'bottom-center' },
+                { label: t('右下'), value: 'bottom-right' },
+              ]}
+              value={exportPagePosition}
+              onChange={val => setExportPagePosition(val)}
               style={{
                 marginTop: 16,
               }}
@@ -1537,18 +1580,18 @@ const PDFToolAdminShow = ({ navigation, route }) => {
             </View>
           )}
 
-            <WsGradientButton
-              style={{
-                width: 110,
-                alignSelf: 'flex-end',
-                marginTop: 8,
-              }}
-              onPress={() => {
-                setPopupExportWarningVisible(false)
-              }}
-            >
-              {t('確定')}
-            </WsGradientButton>
+          <WsGradientButton
+            style={{
+              width: 110,
+              alignSelf: 'flex-end',
+              marginTop: 8,
+            }}
+            onPress={() => {
+              setPopupExportWarningVisible(false)
+            }}
+          >
+            {t('確定')}
+          </WsGradientButton>
         </View>
       </WsPopup>
 
