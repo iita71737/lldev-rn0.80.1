@@ -19,6 +19,10 @@ import S_GuidelineAdmin from '@/services/api/v1/guideline_admin'
 import S_GuidelineVersionAdmin from '@/services/api/v1/guideline_version_admin'
 import S_Checklist from '@/services/api/v1/checklist'
 import S_AuditRequest from '@/services/api/v1/audit_request'
+import S_MeetingTemplate from '@/services/api/v1/meeting_template'
+import S_TaskFactoryTemplete from '@/services/api/v1/task_factory_template'
+import S_Meeting from '@/services/api/v1/meeting'
+
 
 export default {
   async index({ params }) {
@@ -48,10 +52,14 @@ export default {
       },
     });
   },
-  async redirectByAPIParams(payload, navigation) {
+  async redirectByAPIParams(payload = {}, navigation) {
     const state = store.getState()
     const currentFactory = state.data.currentFactory
     const currentUser = state.data.currentUser
+
+    if (!navigation || typeof navigation.push !== 'function' || typeof navigation.navigate !== 'function') {
+      return '404'
+    }
 
     console.log(payload, 'payloadQAQ');
 
@@ -61,7 +69,7 @@ export default {
         navigation.push('RoutesAudit', {
           screen: 'AuditIndex',
           params: {
-            tabIndex: payload.params?.tabIndex
+            tabIndex: payload?.params?.tabIndex
           }
         })
         return
@@ -827,6 +835,7 @@ export default {
         })
         return
 
+      // 編輯任務
       case 'TaskUpdate':
         try {
           const id = payload?.modelId
@@ -875,10 +884,34 @@ export default {
         }
         return
 
+      // 建立任務
       case 'TaskCreate':
         navigation.push('RoutesTask', {
           screen: 'TaskCreate'
         })
+        return
+
+      // 建立任務公版
+      case 'TaskTemplateCreate':
+        navigation.push('RoutesTask', {
+          screen: 'TaskCreate'
+        })
+        return
+
+      // 編輯任務公版
+      case 'TaskTemplateUpdate':
+        try {
+          const res = await S_TaskFactoryTemplete.show({ modelId: payload?.params?.id });
+          await AsyncStorage.setItem('TaskTemplateUpdate', JSON.stringify(res))
+          navigation.push('RoutesTask', {
+            screen: 'TaskTemplateUpdate',
+            params: {
+              id: payload?.params?.id
+            }
+          })
+        } catch (e) {
+          return e
+        }
         return
 
       case 'AlertShow':
@@ -933,11 +966,22 @@ export default {
         })
         return
 
+      // 任務列表
       case 'TaskIndex':
         navigation.navigate('RoutesTask', {
           screen: 'TaskIndex',
           params: {
             tabIndex: payload?.params?.tabIndex
+          }
+        })
+        return
+
+      // 任務公版內頁
+      case 'TaskTemplateShow':
+        navigation.navigate('RoutesTask', {
+          screen: 'TaskTemplateShow',
+          params: {
+            id: payload?.params?.id
           }
         })
         return
@@ -1126,6 +1170,180 @@ export default {
         navigation.push('RoutesOrganization', {
           screen: 'FactoryDashboardShow',
           params: {
+          }
+        })
+        return
+
+      // 聯盟列表
+      case 'Homepage':
+        navigation.push('RoutesFactory', {
+          screen: 'Homepage',
+          params: {
+          }
+        })
+        return
+
+      // 新訊列表
+      case 'ViewAnnouncement':
+        navigation.push('RoutesApp', {
+          screen: 'ViewAnnouncement',
+          params: {
+          }
+        })
+        return
+
+      // 新訊內頁
+      case 'ViewAnnouncementShow':
+        navigation.push('RoutesApp', {
+          screen: 'ViewAnnouncementShow',
+          params: {
+            id: payload?.params?.id,
+          }
+        })
+        return
+
+      // 議事列表
+      case 'PDFToolAdminIndex':
+        navigation.push('RoutesPDFTool', {
+          screen: 'PDFToolAdminIndex',
+          params: {
+            initTabIndex: payload?.params?.tabIndex
+          }
+        })
+        return
+
+      // 議事內頁
+      case 'PDFToolAdminShow':
+        navigation.push('RoutesPDFTool', {
+          screen: 'PDFToolAdminShow',
+          params: {
+            id: payload?.params?.id,
+          }
+        })
+        return
+
+      // 議事建立頁
+      case 'PDFToolAdminCreate':
+        navigation.push('RoutesPDFTool', {
+          screen: 'PDFToolAdminCreate',
+          params: {
+          }
+        })
+        return
+
+      // 議事編輯頁
+      case 'PDFToolAdminUpdate':
+        try {
+          const meeting = await S_Meeting.show({
+            modelId: payload?.params?.id,
+          })
+          const _defaultValue = S_Meeting.formattedMeetingForEdit(meeting)
+          if (_defaultValue?.meeting_date && moment(_defaultValue.meeting_date).isValid()) {
+            _defaultValue.meeting_date = moment.utc(_defaultValue.meeting_date).format('YYYY-MM-DD HH:mm')
+          }
+          const payload = JSON.stringify(_defaultValue)
+          await AsyncStorage.setItem('PDFToolAdminUpdate', payload)
+
+          const _defaultValue002 = S_Meeting.formattedMeetingForCopyCreate(meeting)
+          const payload002 = JSON.stringify(_defaultValue002)
+          await AsyncStorage.setItem('PDFToolAdminCreate', payload002);
+        } catch (e) {
+          console.log('Error setting PDFToolAdminUpdate:', e)
+        }
+        navigation.push('RoutesPDFTool', {
+          screen: 'PDFToolAdminUpdate',
+          params: {
+            id: payload?.params?.id,
+          }
+        })
+        return
+
+      // 議事複製頁
+      case 'PDFToolAdminCreate':
+        try {
+          const meeting = await S_Meeting.show({
+            modelId: payload?.params?.id,
+          })
+          const _defaultValue = S_Meeting.formattedMeetingForEdit(meeting)
+          if (_defaultValue?.meeting_date && moment(_defaultValue.meeting_date).isValid()) {
+            _defaultValue.meeting_date = moment.utc(_defaultValue.meeting_date).format('YYYY-MM-DD HH:mm')
+          }
+          const payload = JSON.stringify(_defaultValue)
+          await AsyncStorage.setItem('PDFToolAdminUpdate', payload)
+
+          const _defaultValue002 = S_Meeting.formattedMeetingForCopyCreate(meeting)
+          const payload002 = JSON.stringify(_defaultValue002)
+          await AsyncStorage.setItem('PDFToolAdminCreate', payload002);
+        } catch (e) {
+          console.log('Error setting PDFToolAdminUpdate:', e)
+        }
+        navigation.push('RoutesPDFTool', {
+          screen: 'PDFToolAdminCreate',
+          params: {
+          }
+        })
+        return
+
+      // 議事批次編輯議案群組頁
+      case 'PDFToolAdminBatchEditMeetingItemGroup':
+        navigation.push('RoutesPDFTool', {
+          screen: 'PDFToolAdminBatchEditMeetingItemGroup',
+          params: {
+            id: payload?.params?.id,
+          }
+        })
+        return
+
+      // 議事範本內頁
+      case 'PDFToolAdminTemplateShow':
+        navigation.push('RoutesPDFTool', {
+          screen: 'PDFToolAdminTemplateShow',
+          params: {
+            id: payload?.params?.id,
+          }
+        })
+        return
+
+      // 議事範本建立頁
+      case 'PDFToolAdminCreateTemplate':
+        navigation.push('RoutesPDFTool', {
+          screen: 'PDFToolAdminCreateTemplate',
+          params: {
+          }
+        })
+        return
+
+      // 議事範本編輯頁
+      case 'PDFToolAdminTemplateEdit':
+        navigation.push('RoutesPDFTool', {
+          screen: 'PDFToolAdminTemplateShow',
+          params: {
+            id: payload?.params?.id,
+          }
+        })
+        return
+
+      // 議事範本複製頁
+      case 'PDFToolAdminCreateTemplate':
+        try {
+          const res = await S_MeetingTemplate.show({ modelId: payload?.params?.id });
+          await AsyncStorage.setItem('PDFToolAdminCreateTemplate', JSON.stringify(res))
+          navigation.push('RoutesPDFTool', {
+            screen: 'PDFToolAdminCreateTemplate',
+            params: {
+            }
+          })
+        } catch (e) {
+          return e
+        }
+        return
+
+      // 議事匯出紀錄內頁
+      case 'PDFToolAdminExportShow':
+        navigation.push('RoutesPDFTool', {
+          screen: 'PDFToolAdminExportShow',
+          params: {
+            id: payload?.params?.id,
           }
         })
         return
