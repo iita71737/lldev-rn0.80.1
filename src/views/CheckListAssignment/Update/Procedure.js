@@ -110,6 +110,7 @@ const Procedure = ({ route, navigation }) => {
   }
 
   const $_backPreview = () => {
+    console.log(questions[currentTabIndex],'questions[currentTabIndex]')
     $_setDraftToRedux()
     navigation.goBack()
   }
@@ -261,6 +262,7 @@ const Procedure = ({ route, navigation }) => {
               <WsBtn
                 testID={'返回題目列表'}
                 onPress={() => {
+                  console.log('_backPreview_backPreview')
                   $_backPreview()
                 }}>
                 {t('返回')}

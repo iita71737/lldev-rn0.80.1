@@ -406,7 +406,7 @@ const CheckListAssignmentStep = props => {
                 {question_type &&
                   question_type.value === 'date' && (
                     <>
-                      <WsText>{'觀測時間'}</WsText>
+                      <WsText>{t('觀測時間')}</WsText>
                       <WsState
                         testID={'日期'}
                         style={{
@@ -437,7 +437,7 @@ const CheckListAssignmentStep = props => {
                 {question_type &&
                   question_type.value === 'text' && (
                     <>
-                      <WsText>{'觀測內容'}</WsText>
+                      <WsText>{t('觀測內容')}</WsText>
                       <WsState
                         testID={'文字題'}
                         style={{
@@ -458,7 +458,7 @@ const CheckListAssignmentStep = props => {
                 {question_type &&
                   question_type.value === 'num' && (
                     <>
-                      <WsText>{'觀測值'}</WsText>
+                      <WsText>{t('觀測值')}</WsText>
                       <WsFlex>
                         <WsState
                           testID={'數值題'}
@@ -486,7 +486,7 @@ const CheckListAssignmentStep = props => {
                 {question_type &&
                   question_type.value === 'single-choice' && (
                     <>
-                      <WsText>{'選項'}</WsText>
+                      <WsText>{t('選項')}</WsText>
                       <WsState
                         stateStyle={{
                           height: 64,
@@ -536,15 +536,15 @@ const CheckListAssignmentStep = props => {
               </WsPaddingContainer>
 
               <WsDialog
-                contentHeight={256}
+                contentHeight={268}
                 dialogVisible={visible}
                 setDialogVisible={() => {
                   setVisible(false)
                 }}
-                contentStyle={{
-                  justifyContent: 'center',
+                childrenStyle={{
+                  justifyContent: 'flex-start',
                   alignItems: 'center',
-                  width: width * 0.9,
+                  marginTop: 16,
                 }}
               >
                 <WsState
@@ -552,11 +552,13 @@ const CheckListAssignmentStep = props => {
                     backgroundColor: 'rgba(242, 248, 253, 1)',
                     height: 64,
                     width: width * 0.7,
+                    alignSelf: 'center',
+                    marginBottom: 8,
                     borderWidth: 0,
                     shadowColor: 'rgba(0, 0, 0, 0.3)',
                     shadowOpacity: 0.6,
                     shadowOffset: {
-                      width: 4,
+                      width: 0,
                       height: 4
                     },
                   }}

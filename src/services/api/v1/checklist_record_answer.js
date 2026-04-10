@@ -1365,7 +1365,10 @@ export default {
     const userQuestions = questions.filter(question =>
       question.question_setting &&
       Array.isArray(question.question_setting.checkers) &&
-      question.question_setting.checkers.some(checker => checker.id === currentUser.id)
+      (
+        question.question_setting.checkers.length === 0 ||
+        question.question_setting.checkers.some(checker => checker.id === currentUser.id)
+      )
     );
 
     // 如果過濾後沒有題目，那就不用驗證，或根據需求返回 true 或 false
@@ -1374,11 +1377,12 @@ export default {
       return true;
     }
 
+    // console.log(JSON.stringify(userQuestions),'userQuestions')
+
     // Step 1: 檢查是否有任一題 is_in_stats為1 但不具有 risk_level ，就返回 true 可以送出
     const hasRiskLevel = userQuestions.some(question => {
       return question.is_in_stats == 1 && (question.risk_level == null || question.risk_level == undefined);
     });
-    console.log(hasRiskLevel, 'hasRiskLevel222');
     if (hasRiskLevel) {
       return true;
     }
@@ -1677,6 +1681,12 @@ export default {
     }
   },
   validationRemark(answer) {
+    if (
+      Array.isArray(answer.question_setting_items) &&
+      answer.question_setting_items.some(item => item?.has_remark == 1)
+    ) {
+      return true
+    }
     const _questionType = answer.question_type_setting?.value
     const _answer_setting = answer.answer_setting?.type
     if (

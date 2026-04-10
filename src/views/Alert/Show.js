@@ -490,7 +490,7 @@ const AlertShow = ({ route, navigation }) => {
 
           <WsFlex
             style={{
-              paddingBottom: Platform.OS === 'ios' ? 0 : 36,
+              paddingBottom: Platform.OS === 'ios' ? 16 : 36,
               paddingVertical: 12,
               paddingHorizontal: 16,
               backgroundColor: $color.white,

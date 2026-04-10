@@ -279,7 +279,7 @@ const LlCheckListRecordAnswerCard001 = props => {
               paddingTop: 8,
             }}
           >
-            <WsIcon name={$_setIcon()} size={20} color={$_setIconColor()} />
+            <WsIcon name={$_setIcon()} size={24} color={$_setIconColor()} />
             <WsText
               style={{
                 marginLeft: 4,

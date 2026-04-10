@@ -17,7 +17,6 @@ import {
 } from 'react-native'
 import {
   WsState,
-  WsStepsTab,
   WsText,
   WsSkeleton,
   WsTabView,

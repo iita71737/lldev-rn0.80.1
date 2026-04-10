@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, View, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native'
+import { Text, View, ScrollView, TouchableOpacity, Alert, Modal, Platform } from 'react-native'
 import {
   WsPaddingContainer,
   WsText,
@@ -358,7 +358,7 @@ const Introduction = ({ navigation, route }) => {
           </ScrollView>
           <View
             style={{
-              paddingBottom: 16,
+              paddingBottom: Platform.OS === 'ios' ? 16 : 32,
               backgroundColor: $color.white
             }}>
             {!todayDone && (

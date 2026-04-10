@@ -141,11 +141,11 @@ const LlArticleCard001 = props => {
 
   const _articleHierarchyTitles = React.useMemo(() => {
     const _levels = [
-      { key: 'part', text: article?.part },
-      { key: 'chapter', text: article?.chapter },
-      { key: 'division', text: article?.division },
-      { key: 'section', text: article?.section },
-      { key: 'sub_section', text: article?.sub_section }
+      { key: 'part', text: article?.part }, // 篇
+      { key: 'chapter', text: article?.chapter }, // 章
+      { key: 'division', text: article?.division }, // 部
+      { key: 'section', text: article?.section }, // 節
+      { key: 'sub_section', text: article?.sub_section } // 子節
     ]
 
     let _depth = 0

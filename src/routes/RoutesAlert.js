@@ -33,6 +33,7 @@ import $color from '@/__reactnative_stone/global/color'
 import ViewDashboardAlert from '@/views/DashboardFactory/Alert'
 import ViewDashboardAlertList from '@/views/DashboardFactory/DashboardAlertListTab'
 const StackSetting = createStackNavigator()
+import { scopeFilterScreen } from '@/__reactnative_stone/global/scopes'
 
 const RoutesAlert = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
@@ -263,7 +264,7 @@ const RoutesAlert = ({ navigation, route }) => {
       >
         <StackSetting.Screen
           name="AlertIndex"
-          component={ViewAlertIndex}
+          component={scopeFilterScreen(['alert-read'], ViewAlertIndex)}
           initialParams={{
             defaultTabIndex: defaultTabIndex,
           }}
@@ -288,7 +289,7 @@ const RoutesAlert = ({ navigation, route }) => {
         />
         <StackSetting.Screen
           name="AlertShow"
-          component={ViewAlertShow}
+          component={scopeFilterScreen(['alert-read'], ViewAlertShow)}
           options={{
             title: t('警示'),
             ...gOption.headerOption,

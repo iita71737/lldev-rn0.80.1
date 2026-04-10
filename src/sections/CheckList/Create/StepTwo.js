@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { Pressable, ScrollView } from 'react-native'
 import {
   WsBtn,
-  WsStepsTab,
   WsText,
   WsPageScrollView,
   LlCheckListQuestionCard001

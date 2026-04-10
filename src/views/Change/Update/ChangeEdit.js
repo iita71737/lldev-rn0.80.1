@@ -1,6 +1,8 @@
 import React from 'react'
 import { View, Dimensions } from 'react-native'
-import { WsStepsTab, WsStateFormView } from '@/components'
+import { 
+  WsStateFormView 
+} from '@/components'
 import ChangeCreateStep from '@/sections/Change/Create/CreateStep'
 import S_ChangeAssignment from '@/services/api/v1/change_assignment'
 import S_ChangeVersion from '@/services/api/v1/change_version'

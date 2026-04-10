@@ -16,7 +16,6 @@ import {
   Button
 } from 'react-native'
 import {
-  WsStepsTab,
   WsTabView,
   WsText,
   WsPaddingContainer,

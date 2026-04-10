@@ -32,6 +32,7 @@ const WsDialog = props => {
     btnBorderWidth = 0.3,
     headerStyle,
     contentStyle,
+    childrenStyle,
     backgroundColor = $color.white,
     title,
     contentHeight,
@@ -40,6 +41,7 @@ const WsDialog = props => {
     contentWidth = width * 0.8,
     mode = 1,
   } = props
+  const headerStyleNoTitle = title ? headerStyle : [{ margin: 0 }, headerStyle]
 
   // Render
   return (
@@ -48,7 +50,7 @@ const WsDialog = props => {
         <Dialog.Container
           visible={dialogVisible}
           onBackdropPress={setDialogVisible}
-          headerStyle={headerStyle}
+          headerStyle={headerStyleNoTitle}
           blurComponentIOS={<View />}
           contentStyle={[
             {
@@ -93,7 +95,15 @@ const WsDialog = props => {
               {children}
             </Dialog.Description>
           ) : (
-            <View>
+            <View
+              style={[
+                {
+                  flex: 1,
+                  justifyContent: 'flex-start',
+                },
+                childrenStyle
+              ]}
+            >
               {children}
             </View>
           )}
@@ -214,7 +224,7 @@ const WsDialog = props => {
         <Dialog.Container
           visible={dialogVisible}
           onBackdropPress={setDialogVisible}
-          headerStyle={headerStyle}
+          headerStyle={headerStyleNoTitle}
           blurComponentIOS={<View />}
           contentStyle={[
             {
@@ -259,7 +269,7 @@ const WsDialog = props => {
               {children}
             </Dialog.Description>
           ) : (
-            <View style={{ flexShrink: 1 }}>
+            <View style={[{ flexShrink: 1 }, childrenStyle]}>
               {children}
             </View>
           )}

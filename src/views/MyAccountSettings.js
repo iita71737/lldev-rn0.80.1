@@ -8,7 +8,6 @@ import {
   Alert
 } from 'react-native'
 import {
-  WsStepsTab,
   WsTabView,
   WsText,
   WsPaddingContainer,

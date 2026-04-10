@@ -255,6 +255,7 @@ const ChecklistPreview = ({ navigation, route }) => {
     }
     // console.log(JSON.stringify(currentChecklistDraft), 'currentChecklistDraft--');
     const _validation = S_CheckListRecordAns.validationQuestionSubmitV2(currentChecklistDraft ? currentChecklistDraft : questions, currentUser)
+    // console.log(_validation,'_validation')
     if (_validation === false) {
       Alert.alert(t(`所有題目都必須答題，才能送出結果`))
       return
@@ -523,14 +524,12 @@ const ChecklistPreview = ({ navigation, route }) => {
 
   React.useEffect(() => {
     if (currentChecklistDraft) {
-      // $_submitValidation()
       $_setNavigationOptions()
     }
   }, [currentChecklistDraft, remark])
 
   React.useEffect(() => {
     if (answersRiskHeader) {
-      // $_submitValidation()
       $_setNavigationOptions()
     }
   }, [answersRiskHeader])

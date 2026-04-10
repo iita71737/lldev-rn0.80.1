@@ -175,6 +175,9 @@ const WsStepsTab = props => {
         submitText={submitText}
         onSubmit={() => onSubmit(tabItemsState)}
         setPopupActive={setPopupActive}
+
+        topRightBtn={() => { console.log(tabItemsState ,'topRightBtn') }}
+        topLeftBtn={() => { console.log(tabItemsState ,'topLeftBtn') }}
       />
     </>
   )

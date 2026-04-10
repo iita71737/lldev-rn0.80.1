@@ -18,7 +18,7 @@ import S_ConstantData from '@/services/api/v1/constant_data'
 import { useTranslation } from 'react-i18next'
 
 const CheckListResultSort = props => {
-   const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigation = useNavigation()
 
   // Props
@@ -81,13 +81,15 @@ const CheckListResultSort = props => {
               {answersWithEffect.map((item, itemIndex) => {
                 return (
                   <View key={itemIndex}>
-                    <WsFlex>
-                      <WsIcon name={item.icon} size={24} color={item.color} />
+                    <WsFlex
+                      style={{
+                        paddingTop: 8,
+                        paddingBottom: 4,
+                        paddingHorizontal: 8,
+                      }}
+                    >
+                      <WsIcon name={item.icon} size={24} color={item.color} style={{ marginRight: 4 }} />
                       <WsText
-                        style={{
-                          paddingVertical: 8,
-                          paddingHorizontal: 8
-                        }}
                         fontWeight="bold">
                         {`${item.title} ${t('共{number}題', { number: item.ans?.length })}`}
                       </WsText>
@@ -100,7 +102,7 @@ const CheckListResultSort = props => {
                           key={answerIndex}
                           style={{
                             paddingHorizontal: 8,
-                            marginTop: 8
+                            marginTop: answerIndex != 0 ? 8 : 0
                           }}
                           cardColor={$color.white}
                           score={answer.score}

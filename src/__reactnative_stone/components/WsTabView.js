@@ -48,7 +48,9 @@ const WsTabView = props => {
     onSubmit,
     setPopupActive,
     tabStyle,
-    pointerVisible = false
+    pointerVisible = false,
+    topRightBtn,
+    topLeftBtn
   } = props
 
   const formatTabNum = (value) => {
@@ -85,6 +87,9 @@ const WsTabView = props => {
               color={$color.gray5d}
               onPress={() => {
                 jumpTo(routes[index - 1].key)
+                if (topLeftBtn) {
+                  topLeftBtn()
+                }
               }}
             />
           </>
@@ -101,6 +106,9 @@ const WsTabView = props => {
             color="transparent"
             onPress={() => {
               setPopupActive(true)
+              if (topLeftBtn) {
+                topLeftBtn()
+              }
             }}
           >
             {t('回上頁')}
@@ -142,6 +150,9 @@ const WsTabView = props => {
             color={$color.gray5d}
             onPress={() => {
               jumpTo(routes[index + 1].key)
+              if (topRightBtn) {
+                topRightBtn()
+              }
             }}
           />
         )}
