@@ -31,6 +31,7 @@ const CheckListResultSort = props => {
   // Services
   const $_fetchCheckListRecordAns = async () => {
     try {
+      console.log('S_CheckListRecordAns.indexV2-4')
       const res = await S_CheckListRecordAns.indexV2({
         parentId: id
       });

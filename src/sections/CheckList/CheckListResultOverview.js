@@ -93,6 +93,7 @@ const CheckListResultOverview = (props) => {
   }
 
   const $_fetchAnswers = async () => {
+    console.log('S_CheckListRecordAns.indexV2-3')
     const res = await S_CheckListRecordAns.indexV2({ parentId: id })
     if (res.data) {
       setAnswers(res.data)

@@ -95,8 +95,8 @@ export default {
             checklist_record_draft: undefined,
             get_all: 1
           }
-          // console.log(_params, 'IndexByScheduleSetting Params');
-          const _checklistQuestionVersion = await S_CheckListQuestion.IndexByScheduleSetting({
+          console.log(_params, 'IndexByScheduleSettingV2 Params');
+          const _checklistQuestionVersion = await S_CheckListQuestion.IndexByScheduleSettingV2({
             params: _params
           })
           // VALIDATE CAN RECORD OR NOT

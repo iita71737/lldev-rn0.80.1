@@ -32,6 +32,7 @@ const CheckListAssignmentQuestionSort = props => {
     setRecord(res)
   }
   const $_fetchAnswers = async () => {
+    console.log('S_CheckListRecordAns.indexV2-1')
     const res = await S_CheckListRecordAns.indexV2({
       parentId: id
     })

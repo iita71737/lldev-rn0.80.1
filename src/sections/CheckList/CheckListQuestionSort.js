@@ -25,7 +25,7 @@ const CheckListQuestionSort = props => {
   // Services
   const $_fetchCheckListRecordAns = async () => {
     try {
-      const res = await S_CheckListRecordAns.index({
+      const res = await S_CheckListRecordAns.indexV2({
         parentId: id
       })
       const record = await S_CheckListRecord.show({ modelId: id })

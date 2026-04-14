@@ -24,7 +24,6 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import S_Checklist from '@/services/api/v1/checklist'
 import S_CheckListVersion from '@/services/api/v1/checklist_version'
 import S_CheckListQuestion from '@/services/api/v1/checklist_question'
-import S_CheckListQuestionVersion from '@/services/api/v1/checklist_question_version';
 import { setCurrentChecklistRecordDraft, setCurrentCheckListQuestions } from '@/store/data'
 import S_ChecklistAssignment from '@/services/api/v1/checklist_assignment'
 import S_CheckListRecord from '@/services/api/v1/checklist_record'
@@ -109,7 +108,7 @@ const Introduction = ({ navigation, route }) => {
           checklist_record_draft: draftId ? draftId : undefined,
           get_all: 1
         }
-        console.log(_params, 'IndexByScheduleSetting Params');
+        console.log(_params, 'IndexByScheduleSettingV3 Params');
         const _checklistQuestionVersion = await S_CheckListQuestion.IndexByScheduleSettingV3({
           params: _params
         })

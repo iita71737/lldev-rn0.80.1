@@ -416,7 +416,6 @@ const CheckListShow = ({ route }) => {
   }
 
   // 抽檢
-  // Functions
   const $_onSubmit = async () => {
     const formattedForFileStore = (attaches) => {
       return attaches.map(item => {

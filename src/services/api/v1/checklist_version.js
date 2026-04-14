@@ -197,20 +197,4 @@ export default {
     })
     return _questions
   },
-  // 230830-rm
-  // async getQuestionsByCheckListVersion(versionId) {
-  //   const _params = {
-  //     checklist_versions: versionId,
-  //     is_select: 1
-  //   }
-  //   const questions = await S_ChecklistQuestion.index(_params)
-
-  //   const _questions = questions.data.map(ques => {
-  //     return {
-  //       ...ques.last_version,
-  //       ...ques,
-  //     }
-  //   })
-  //   return _questions
-  // }
 }

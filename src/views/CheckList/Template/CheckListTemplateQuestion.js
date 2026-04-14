@@ -24,7 +24,6 @@ import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import gColor from '@/__reactnative_stone/global/color'
 import $color from '@/__reactnative_stone/global/color'
-import S_CheckListQuestionVersion from '@/services/api/v1/checklist_question_version';
 import { useSelector } from 'react-redux'
 import store from '@/store'
 import { setCurrentCheckListQuestions } from '@/store/data'

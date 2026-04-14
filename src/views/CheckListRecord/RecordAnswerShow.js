@@ -24,7 +24,6 @@ import {
 import { LlInfoContainer001, LlIconCard001 } from '@/components'
 import { WsPreviewImage001 } from '@/components/seed'
 import S_CheckListQuestion from '@/services/api/v1/checklist_question'
-import S_CheckListQuestionVersion from '@/services/api/v1/checklist_question_version';
 import S_url from '@/__reactnative_stone/services/app/url'
 import gColor from '@/__reactnative_stone/global/color'
 import $color from '@/__reactnative_stone/global/color'

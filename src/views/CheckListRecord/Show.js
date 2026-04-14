@@ -17,7 +17,6 @@ import {
   LlRelatedAlertCard001,
   LlTaskCard002
 } from '@/components'
-import CheckListQuestionSort from '@/sections/CheckList/CheckListQuestionSort'
 import CheckListResultSort from '@/sections/CheckList/CheckListResultSort'
 import S_CheckListRecord from '@/services/api/v1/checklist_record'
 import S_CheckListRecordAns from '@/services/api/v1/checklist_record_answer'
@@ -52,7 +51,8 @@ const CheckListRecord = ({ navigation, route }) => {
 
   const $_fetchCheckListAnswers = async () => {
     try {
-      const res = await S_CheckListRecordAns.index({ parentId: id })
+      console.log('S_CheckListRecordAns indexV2 11')
+      const res = await S_CheckListRecordAns.indexV2({ parentId: id })
       setAnswers(res.data)
     } catch (e) {
       console.error(e);

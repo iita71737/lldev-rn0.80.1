@@ -61,7 +61,6 @@ export default {
 
       case 'ChecklistRecordCreated':
         navigation.push('RoutesCheckList', {
-          // screen: 'CheckListReviewResultShow',
           screen: 'CheckListAssignmentShow',
           params: {
             id: data.id,

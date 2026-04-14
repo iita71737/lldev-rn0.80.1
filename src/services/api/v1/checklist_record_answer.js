@@ -8,7 +8,6 @@ import S_CheckListRecordAns from '@/services/api/v1/checklist_record_answer';
 import $color from '@/__reactnative_stone/global/color';
 import i18next from 'i18next';
 import { useTranslation } from 'react-i18next'
-
 import S_Keychain from '@/__reactnative_stone/services/app/keychain'
 import $config from '@/__config'
 import axios from 'axios'
@@ -18,18 +17,6 @@ import moment from 'moment'
 import RNBlobUtil from 'react-native-blob-util'
 
 export default {
-  async index({ parentId, params }) {
-    return base.index({
-      parentId: parentId,
-      parentName: 'checklist_record',
-      modelName: 'checklist_record_answer',
-      params: {
-        ...params,
-        ...S_Processor.getFactoryParams(),
-        ...S_Processor.getLocaleParams()
-      },
-    });
-  },
   async indexV2({ parentId, params }) {
     return base.index({
       parentId: parentId,

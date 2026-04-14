@@ -29,7 +29,6 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import S_Checklist from '@/services/api/v1/checklist'
 import S_CheckListVersion from '@/services/api/v1/checklist_version'
 import S_CheckListQuestion from '@/services/api/v1/checklist_question'
-import S_CheckListQuestionVersion from '@/services/api/v1/checklist_question_version';
 import {
   setCurrentLatLng,
   setCurrentChecklistRecordDraft,

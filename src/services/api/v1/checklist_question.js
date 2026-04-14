@@ -451,11 +451,22 @@ export default {
       }
     })
   },
-  async IndexByScheduleSetting({ params }) {
+  // async IndexByScheduleSetting({ params }) {
+  //   const _checklist_version_id = params.checklist_version_id
+  //   const _schedule_setting_id = params.schedule_setting_id
+  //   return base.index({
+  //     modelName: `v2/checklist_version/${_checklist_version_id}/schedule_setting/${_schedule_setting_id}/checklist_question`,
+  //     params: {
+  //       ...params,
+  //       ...S_Processor.getFactoryParams()
+  //     }
+  //   })
+  // },
+  async IndexByScheduleSettingV2({ params }) {
     const _checklist_version_id = params.checklist_version_id
     const _schedule_setting_id = params.schedule_setting_id
     return base.index({
-      modelName: `v2/checklist_version/${_checklist_version_id}/schedule_setting/${_schedule_setting_id}/checklist_question`,
+      modelName: `v3/checklist_version/${_checklist_version_id}/schedule_setting/${_schedule_setting_id}/checklist_question`,
       params: {
         ...params,
         ...S_Processor.getFactoryParams()

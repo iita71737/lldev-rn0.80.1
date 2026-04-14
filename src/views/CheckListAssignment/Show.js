@@ -122,6 +122,7 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
     setRecord(res)
   }
   const $_fetchSortedQuestionsByResult = async () => {
+    console.log('S_CheckListRecordAns.indexV2-5')
     const answersApi = await S_CheckListRecordAns.indexV2({ parentId: id });
     const _formattedAnswers = S_CheckListRecordAns.getFormatV2(answersApi.data);
     setAnswers(_formattedAnswers)

@@ -31,6 +31,8 @@ const GeneralScheduleSettingShow = ({ route }) => {
   const { width, height } = Dimensions.get('window')
   const { t, i18n } = useTranslation()
 
+  console.log('GeneralScheduleSettingShow')
+
   // Params
   const { id, checklistVersionId } = route.params
 
@@ -40,6 +42,8 @@ const GeneralScheduleSettingShow = ({ route }) => {
     checklist_version_id: checklistVersionId,
     schedule_setting_id: id,
   })
+
+  console.log(params,'params')
 
   // Services
   const $_fetchSchedule = async () => {
@@ -80,7 +84,7 @@ const GeneralScheduleSettingShow = ({ route }) => {
     <>
       <WsInfiniteScroll
         service={S_CheckListQuestion}
-        serviceIndexKey={'IndexByScheduleSetting'}
+        serviceIndexKey={'IndexByScheduleSettingV2'}
         params={params}
         renderItem={({ item, index }) => {
           return (

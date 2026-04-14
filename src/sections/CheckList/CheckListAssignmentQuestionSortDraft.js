@@ -444,7 +444,8 @@ const CheckListAssignmentQuestionSortDraft = props => {
                   }
                 }}
                 style={{
-                  marginTop: 8
+                  marginTop: 8,
+                  // borderWidth:1,
                 }}
                 no={index + 1}
                 answer={item}

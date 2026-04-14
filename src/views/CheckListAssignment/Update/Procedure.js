@@ -110,7 +110,6 @@ const Procedure = ({ route, navigation }) => {
   }
 
   const $_backPreview = () => {
-    console.log(questions[currentTabIndex],'questions[currentTabIndex]')
     $_setDraftToRedux()
     navigation.goBack()
   }
@@ -153,10 +152,6 @@ const Procedure = ({ route, navigation }) => {
       question.answer_value = $event
       question.risk_level = $event
     }
-    if ($event == null && stateKey == 'clear_answer_value') {
-      question.answer_value = $event
-      question.risk_level = $event
-    }
     if ($event != undefined && stateKey == 'itemsToggleBtnSelected') {
       question.itemsToggleBtnSelected = $event
     }
@@ -173,40 +168,6 @@ const Procedure = ({ route, navigation }) => {
       question.latLng = $event
     }
   }
-
-  // VALIDATION
-  const $_stepValidation = React.useMemo(() => {
-    if (
-      questions[currentTabIndex].quesType == 2 ||
-      questions[currentTabIndex].questionType == 2 ||
-      questions[currentTabIndex].question_type == 2
-    ) {
-      if (
-        questions[currentTabIndex].score == 25 ||
-        (questions[currentTabIndex].score != 25 &&
-          questions[currentTabIndex].remark)
-      ) {
-        return false
-      } else {
-        return true
-      }
-    }
-    if (
-      questions[currentTabIndex].quesType == 1 ||
-      questions[currentTabIndex].questionType == 1 ||
-      questions[currentTabIndex].question_type == 1
-    ) {
-      const _score = S_CheckListRecordAns.getAnsDataScore(
-        questions[currentTabIndex],
-        questions[currentTabIndex].score
-      )
-      if (_score == 25 || (_score < 25 && questions[currentTabIndex].remark)) {
-        return false
-      } else {
-        return true
-      }
-    }
-  }, [questions, currentTabIndex])
 
   React.useEffect(() => {
     if (allQuestions) {

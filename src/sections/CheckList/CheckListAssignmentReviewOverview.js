@@ -104,6 +104,7 @@ const CheckListAssignmentReviewOverview = (props) => {
       if (res) {
         setPassRate(res.pass_rate)
       }
+      console.log('S_CheckListRecordAns.indexV2-2')
       const res2 = await S_CheckListRecordAns.indexV2({ parentId: id })
       setAnswers(res2.data)
       Promise.all([res, res2])
