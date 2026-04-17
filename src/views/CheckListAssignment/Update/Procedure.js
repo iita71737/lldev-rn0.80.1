@@ -5,6 +5,7 @@ import {
   SafeAreaView,
   View,
   StatusBar,
+  Platform,
 } from 'react-native'
 import { WsBtn, WsStepsTab, WsTabView, WsSkeleton } from '@/components'
 import CheckListAssignmentStep from '@/sections/CheckList/CheckListAssignmentProcedure/Step'
@@ -30,13 +31,16 @@ const Procedure = ({ route, navigation }) => {
     questionId,
     allQuestions,
     clearIndex,
-    clearIsNeedCheckAnsIndex
+    clearIsNeedCheckAnsIndex,
+    checklistRecordId
   } = route.params
 
   // Redux
   const currentChecklistDraft = useSelector(
     state => state.data.currentChecklistRecordDraft
   )
+  const currentFactory = useSelector(state => state.data.currentFactory)
+  const currentLatLng = useSelector(state => state.data.currentLatLng)
 
   // States
   const [loading, setLoading] = React.useState(true)
@@ -46,13 +50,20 @@ const Procedure = ({ route, navigation }) => {
   const [tabItems, setTabItems] = React.useState([])
 
   // Services
+  const $_findQuestionIndex = (_questions = [], _questionId) => {
+    const _targetId = String(_questionId)
+    const _idx = (_questions || []).findIndex(question => {
+      const _checklistQuestionId = question?.checklist_question?.id
+      const _questionVersionId = question?.id
+      return String(_checklistQuestionId) === _targetId || String(_questionVersionId) === _targetId
+    })
+    return _idx >= 0 ? _idx : 0
+  }
+
   const $_fetchQuestions = async () => {
-    if (currentChecklistDraft) {
-      setQuestions(currentChecklistDraft)
-    }
-    setCurrentTabIndex(
-      allQuestions.findIndex(question => question.id === questionId)
-    )
+    const _sourceQuestions = currentChecklistDraft || allQuestions || []
+    setQuestions(_sourceQuestions)
+    setCurrentTabIndex($_findQuestionIndex(_sourceQuestions, questionId))
     setLoading(false)
   }
 
@@ -100,18 +111,113 @@ const Procedure = ({ route, navigation }) => {
     setTabItems(_items)
   }
 
-  const $_setDraftToRedux = () => {
-    store.dispatch(setCurrentChecklistRecordDraft(questions))
+  const $_cloneQuestions = (_questions = []) => {
+    return (_questions || []).map(item => ({ ...item }))
   }
 
-  const $_onSubmit = () => {
-    $_setDraftToRedux()
+  const $_setDraftToRedux = (_questions = questions) => {
+    const _clonedQuestions = $_cloneQuestions(_questions)
+    store.dispatch(setCurrentChecklistRecordDraft(_clonedQuestions))
+  }
+
+  const $_onSubmit = async () => {
+    const _latestQuestions = await $_onTopBtnPress()
+    $_setDraftToRedux(_latestQuestions)
     navigation.goBack()
   }
 
-  const $_backPreview = () => {
-    $_setDraftToRedux()
+  const $_backPreview = async () => {
+    const _latestQuestions = await $_onTopBtnPress()
+    $_setDraftToRedux(_latestQuestions)
     navigation.goBack()
+  }
+
+  const $_onTopBtnPress = async (tabItemsState = []) => {
+    const _currentQuestions = questions || []
+    try {
+      const _question = questions?.[currentTabIndex]
+      if (!_question) return _currentQuestions
+
+      const _checklistRecord = route.params?.checklistRecordId
+        || _question?.checklist_record_id
+        || _question?.checklist_record?.id
+
+      if (!_checklistRecord) {
+        console.warn('Missing checklist_record for S_CheckListRecordAns.create')
+        return _currentQuestions
+      }
+
+      const _questionValue = typeof _question?.answer_value === 'string'
+        ? _question.answer_value
+        : _question?.answer_value && typeof _question.answer_value === 'object'
+          ? [_question.answer_value?.id]
+          : _question?.answer_value
+
+      const _riskLevel = S_CheckListRecordAns.getRiskLevelScore(
+        _question,
+        _question?.answer_value
+      )
+
+      const _params = {
+        checklist_record: _checklistRecord,
+        question_value: _questionValue,
+        score: _question?.score,
+        risk_level: _riskLevel,
+        remark: _question?.remark,
+        factory: currentFactory?.id,
+        lat: _question?.latLng?.latitude ?? currentLatLng?.latitude,
+        lng: _question?.latLng?.longitude ?? currentLatLng?.longitude,
+        ip: _question?.ip,
+        checklist_question_version: _question?.checklist_question_version
+          || _question?.checklist_question_version_id
+          || _question?.last_version?.id,
+        checklist_question: _question?.checklist_question?.id || _question?.id
+      }
+      const _recordAnsId = _question?.recordAnsId
+      let _res
+      if (_recordAnsId) {
+        const _updateData = {
+          question_value: _params.question_value,
+          score: _params.score,
+          risk_level: _params.risk_level,
+          remark: _params.remark,
+          factory: _params.factory,
+          lat: _params.lat,
+          lng: _params.lng,
+          ip: _params.ip,
+          checklist_question_version: _params.checklist_question_version,
+          checklist_question: _params.checklist_question
+        }
+        console.log(_recordAnsId, '_recordAnsId')
+        console.log(_updateData, 'S_CheckListRecordAns.update')
+        _res = await S_CheckListRecordAns.update({
+          modelId: _recordAnsId,
+          data: _updateData
+        })
+      } else {
+        console.log(_params, 'S_CheckListRecordAns.create')
+        _res = await S_CheckListRecordAns.create({ params: _params })
+      }
+      const _nextRecordAnsId = _res?.id || _res?.data?.id || _recordAnsId
+      if (_nextRecordAnsId) {
+        const _updatedQuestions = questions.map((question, questionIndex) => {
+          if (questionIndex === currentTabIndex) {
+            return {
+              ...question,
+              recordAnsId: _nextRecordAnsId
+            }
+          }
+          return question
+        })
+        setQuestions(_updatedQuestions)
+        store.dispatch(setCurrentChecklistRecordDraft(_updatedQuestions))
+        return _updatedQuestions
+      }
+      return _currentQuestions
+    } catch (error) {
+      console.error('S_CheckListRecordAns.create/update failed in top button callback', error)
+      return _currentQuestions
+    }
   }
 
   const $_onChange = (itemIndex, $event, stateKey, question) => {
@@ -167,6 +273,7 @@ const Procedure = ({ route, navigation }) => {
     if ($event != undefined && stateKey == 'latLng') {
       question.latLng = $event
     }
+    setQuestions(prev => prev ? [...prev] : prev)
   }
 
   React.useEffect(() => {
@@ -215,6 +322,9 @@ const Procedure = ({ route, navigation }) => {
               }}
               viewComponent={CheckListAssignmentStep}
               backBtnOnPress={() => $_backPreview()}
+              topRightBtn={$_onTopBtnPress}
+              topLeftBtn={$_onTopBtnPress}
+              _onIndexChange={$_onTopBtnPress}
             />
           )}
           <SafeAreaView>
@@ -223,9 +333,12 @@ const Procedure = ({ route, navigation }) => {
               <WsBtn
                 testID={'返回題目列表'}
                 onPress={() => {
-                  console.log('_backPreview_backPreview')
                   $_backPreview()
-                }}>
+                }}
+                style={{
+                  marginBottom: Platform.OS === 'ios' ? 0 : 48,
+                }}
+              >
                 {t('返回')}
               </WsBtn>
             )}

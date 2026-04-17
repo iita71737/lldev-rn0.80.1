@@ -26,7 +26,6 @@ import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
-import CheckListAssignmentStep from '@/sections/CheckList/CheckListAssignmentProcedure/Step'
 
 const WsStepsTab = props => {
   const navigation = useNavigation()
@@ -49,7 +48,10 @@ const WsStepsTab = props => {
     btnRightDisable,
     btnSubmitDisable,
     backBtnOnPress,
-    swipeEnabled = true
+    swipeEnabled = true,
+    topRightBtn,
+    topLeftBtn,
+    _onIndexChange
   } = props
 
   // State
@@ -176,8 +178,21 @@ const WsStepsTab = props => {
         onSubmit={() => onSubmit(tabItemsState)}
         setPopupActive={setPopupActive}
 
-        topRightBtn={() => { console.log(tabItemsState ,'topRightBtn') }}
-        topLeftBtn={() => { console.log(tabItemsState ,'topLeftBtn') }}
+        topRightBtn={() => {
+          if (typeof topRightBtn === 'function') {
+            topRightBtn(tabItemsState)
+          }
+        }}
+        topLeftBtn={() => {
+          if (typeof topLeftBtn === 'function') {
+            topLeftBtn(tabItemsState)
+          }
+        }}
+        _onIndexChange={() => {
+          if (typeof _onIndexChange === 'function') {
+            _onIndexChange(tabItemsState)
+          }
+        }}
       />
     </>
   )

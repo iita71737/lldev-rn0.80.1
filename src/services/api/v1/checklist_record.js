@@ -1224,5 +1224,52 @@ export default {
     }
     const endDate = `${year}-${month.toString().padStart(2, '0')}-${daysInMonth.toString().padStart(2, '0')}`;
     return { startDate, endDate };
-  }
+  },
+  async store({ params }) {
+    return base.create({
+      modelName: `checklist/${params.checklist}/checklist_record`,
+      data: {
+        ...params,
+        ...S_Processor.getFactoryData()
+      }
+    })
+  },
+  async noChecklist({ params }) {
+    return base.update({
+      modelName: `checklist_record/${params.checklist_record_id}/no_checklist`,
+      data: {
+        ...params,
+        ...S_Processor.getFactoryData()
+      }
+    })
+  },
+  async authTempUndoIndex({ params }) {
+    const unit = params?.factory
+    return await base.index({
+      preUrl: S_Processor.getFactoryPreUrl(unit),
+      modelName: `checklist_record/auth/temp/undo`,
+      params: {
+        ...params,
+        ...S_Processor.getLocaleParams(unit)
+      }
+    })
+  },
+  async complete({ params }) {
+    const res = await base.patch({
+      modelName: `checklist_record/${params.checklist_record_id}/complete`,
+      data: {
+        ...params,
+        ...S_Processor.getFactoryParams(),
+        ...S_Processor.getLocaleParams()
+      }
+    })
+    return res
+  },
+  async delete({ modelId }) {
+    return base.delete({
+      modelName: 'checklist_record',
+      modelId: modelId,
+      params: S_Processor.getFactoryParams()
+    })
+  },
 }

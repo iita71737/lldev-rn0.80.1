@@ -105,11 +105,9 @@ const CheckListAssignmentList = props => {
       },
       {
         value: 'CheckListAssignmentHasDraftList',
-        label: t('草稿'),
+        label: t('臨時點檢'),
         view: CheckListAssignmentHasDraftList,
         props: {
-          record_draft: 'not_null',
-
           subTabIndex: tabIndex ? tabIndex : 0
         }
       },

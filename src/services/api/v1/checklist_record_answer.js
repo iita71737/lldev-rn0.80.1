@@ -457,9 +457,10 @@ export default {
           riskLevelScore = risk_level;
       })
       const foundRisk = riskLevelList.find(risk => risk.value == riskLevelScore);
-      return foundRisk ? foundRisk.value : null
+      // 自訂條件式未命中時，視為「不涉及風險」
+      return foundRisk ? foundRisk.value : 20
     }
-    return null
+    return 20
   },
   getAnsDataScore(ans, score) {
     // 判斷量性題目的風險值
@@ -1348,15 +1349,17 @@ export default {
     return allTrue
   },
   validationQuestionSubmitV2(questions = [], currentUser) {
-    // 先篩選出 question_setting.checkers 包含 currentUser.id 題目
-    const userQuestions = questions.filter(question =>
-      question.question_setting &&
-      Array.isArray(question.question_setting.checkers) &&
-      (
-        question.question_setting.checkers.length === 0 ||
-        question.question_setting.checkers.some(checker => checker.id === currentUser.id)
-      )
-    );
+    // 先篩選出屬於 currentUser 可作答的題目
+    const userQuestions = questions.filter(question => {
+      if (!question.question_setting) {
+        return true
+      }
+      return Array.isArray(question.question_setting.checkers) &&
+        (
+          question.question_setting.checkers.length === 0 ||
+          question.question_setting.checkers.some(checker => checker.id === currentUser?.id)
+        )
+    });
 
     // 如果過濾後沒有題目，那就不用驗證，或根據需求返回 true 或 false
     if (userQuestions.length === 0) {
@@ -1364,29 +1367,31 @@ export default {
       return true;
     }
 
-    // console.log(JSON.stringify(userQuestions),'userQuestions')
+    // [保留觀望] 舊邏輯：當 is_in_stats=1 且 risk_level 缺值時，直接允許送出
+    // const hasRiskLevel = userQuestions.some(question => {
+    //   return question.is_in_stats == 1 && (question.risk_level == null || question.risk_level == undefined);
+    // });
+    // if (hasRiskLevel) {
+    //   return true;
+    // }
 
-    // Step 1: 檢查是否有任一題 is_in_stats為1 但不具有 risk_level ，就返回 true 可以送出
-    const hasRiskLevel = userQuestions.some(question => {
-      return question.is_in_stats == 1 && (question.risk_level == null || question.risk_level == undefined);
-    });
-    if (hasRiskLevel) {
-      return true;
-    }
-
-    // Step 2: 確認是否有任一題 isNeedCheckAns 為 true
+    // Step 1: 確認是否有任一題 isNeedCheckAns 為 true
     const hasNeedCheckAns = userQuestions.some(question => question.isNeedCheckAns === true);
     if (hasNeedCheckAns) {
       return false;
     }
-    // Step 3: 確認每一題都具有 answer_value
-    const allHaveAnswerValues = userQuestions.every(
-      question => question.answer_value !== null && question.answer_value !== undefined
-    );
-    if (!allHaveAnswerValues) {
+
+    // Step 2: 只要任一題尚未有 answer_value，就不可送出
+    const hasMissingAnswerValue = userQuestions.some(question =>
+      question.answer_value === null ||
+      question.answer_value === undefined ||
+      question.answer_value === ''
+    )
+    if (hasMissingAnswerValue) {
       return false;
     }
-    // Step 4: 確認每個 answer_value 通過 validationRemark 驗證
+
+    // Step 3: 確認每個 answer_value 通過 validationRemark 驗證
     const validationRemark = userQuestions.every(
       question => !this.validationRemark(question) || (this.validationRemark(question) && question.remark)
     );
@@ -1418,7 +1423,8 @@ export default {
       _questionType === 'num' && _answer_setting === 'custom-num'
     ) {
       const _score = this.getTypeCustomNumAnsScore(answer, answer.answer_value)
-      return parseInt(_score)
+      console.log(_score, '_score custom-num')
+      return _score
     }
     if (
       _questionType === 'single-choice' &&
@@ -1668,12 +1674,38 @@ export default {
     }
   },
   validationRemark(answer) {
-    if (
-      Array.isArray(answer.question_setting_items) &&
-      answer.question_setting_items.some(item => item?.has_remark == 1)
-    ) {
-      return true
+    const _getSelectedAnswerId = () => {
+      const _answerValue = answer?.answer_value
+      if (Array.isArray(_answerValue)) {
+        return _answerValue[0]?.id || _answerValue[0]
+      }
+      if (_answerValue && typeof _answerValue === 'object') {
+        return _answerValue.id
+      }
+      return _answerValue
     }
+    const _findQuestionSettingItem = (items, targetId) => {
+      if (!Array.isArray(items) || items.length === 0 || !targetId) {
+        return null
+      }
+      for (const item of items) {
+        if (item?.id === targetId) {
+          return item
+        }
+        const _found = _findQuestionSettingItem(item?.question_setting_items, targetId)
+        if (_found) {
+          return _found
+        }
+      }
+      return null
+    }
+
+    const _selectedAnswerId = _getSelectedAnswerId()
+    const _selectedSettingItem = _findQuestionSettingItem(answer?.question_setting_items, _selectedAnswerId)
+    if (_selectedSettingItem) {
+      return _selectedSettingItem?.has_remark == 1
+    }
+
     const _questionType = answer.question_type_setting?.value
     const _answer_setting = answer.answer_setting?.type
     if (
@@ -1808,7 +1840,7 @@ export default {
         : _score == 26
           ? 'md-check-circle'
           : _score == 20
-            ? 'ws-filled-cancel'
+            ? 'md-check-circle'
             : _score == 21 || _score == 22 || _score == 23
               ? 'ws-filled-warning'
               : 'ws-filled-help'
@@ -1823,7 +1855,7 @@ export default {
         : _score == 26
           ? 'md-check-circle'
           : _score == 20
-            ? 'ws-filled-cancel'
+            ? 'md-check-circle'
             : _score == 21 || _score == 22 || _score == 23
               ? 'ws-filled-warning'
               : 'ws-filled-help'
@@ -2328,7 +2360,7 @@ export default {
     if (_questionIds.length > 0) {
       const _questionShowResults = await Promise.all(
         _questionIds.map(async (questionId) => {
-          console.log(questionId,'questionId')
+          console.log(questionId, 'questionId')
           try {
             const _questionShow = await S_CheckListQuestion.showV2({ modelId: questionId })
             return [questionId, _questionShow]
@@ -2592,5 +2624,24 @@ export default {
       }
     }
     return _questions
+  },
+  async create({ params }) {
+    return base.create({
+      modelName: `checklist_record/${params.checklist_record}/checklist_record_answer`,
+      data: {
+        ...params
+      }
+    })
+  },
+  async update({ modelId, data }) {
+    const _data = {
+      ...S_Processor.getFactoryData(),
+      ...data
+    }
+    return await base.update({
+      modelName: 'checklist_record_answer',
+      modelId: modelId,
+      data: _data
+    })
   },
 }

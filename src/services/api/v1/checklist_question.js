@@ -519,7 +519,7 @@ export default {
           ...question.last_version,
           question_qualified_standard: question.last_version.remark,
           ...question,
-          remark: '',
+          remark: undefined,
         }
       }
     });
@@ -581,7 +581,7 @@ export default {
           ...detailedQuestion.last_version,
           question_qualified_standard: detailedQuestion.last_version.remark,
           ...question,
-          remark: '',
+          remark: undefined,
         }
       }
     });
@@ -646,6 +646,71 @@ export default {
       })
     });
     return formattedQuestions
+  },
+  async formattedQuestionWithIndexV2(answer = [], _questions = []) {
+    const formattedQuestions = Array.isArray(_questions)
+      ? _questions.map(question => ({ ...question }))
+      : []
+
+    const answerByQuestionVersionId = new Map()
+    if (Array.isArray(answer)) {
+      answer.forEach(ans => {
+        const versionId = ans?.checklist_question_version?.id || ans?.checklist_question_version_id
+        if (versionId) {
+          answerByQuestionVersionId.set(versionId, ans)
+        }
+      })
+    }
+
+    return formattedQuestions.map(question => {
+      const ans = answerByQuestionVersionId.get(question.id)
+      if (!ans) {
+        return question
+      }
+      const mergedMissingFields = Object.keys(ans || {}).reduce((acc, key) => {
+        if (question?.[key] === undefined) {
+          acc[key] = ans[key]
+        }
+        return acc
+      }, {})
+
+      let mergedAnswerValue = ans.answer_value
+      if (
+        Array.isArray(ans.answer_value) &&
+        ans.answer_value.length === 1 &&
+        ans.question_type_setting?.value === 'single-choice'
+      ) {
+        mergedAnswerValue = {
+          id: ans.answer_value[0]?.id,
+          label: ans.answer_value[0]?.name,
+          value: ans.answer_value[0]?.risk_level
+        }
+      }
+
+      const hasLat = ans?.lat !== null && ans?.lat !== undefined && ans?.lat !== ''
+      const hasLng = ans?.lng !== null && ans?.lng !== undefined && ans?.lng !== ''
+      const latNum = hasLat ? Number(ans?.lat) : NaN
+      const lngNum = hasLng ? Number(ans?.lng) : NaN
+      const mergedLatLng = Number.isFinite(latNum) && Number.isFinite(lngNum)
+        ? { latitude: latNum, longitude: lngNum }
+        : question.latLng
+
+      return {
+        ...question,
+        ...mergedMissingFields,
+        recordAnsId: ans.id ?? question.recordAnsId,
+        answer_value: mergedAnswerValue,
+        question_value: ans.question_value ?? question.question_value,
+        risk_level: ans.risk_level,
+        remark: ans.remark,
+        images: ans.images ?? question.images,
+        updated_user: ans.updated_user ?? question.updated_user,
+        updated_at: ans.updated_at ?? question.updated_at,
+        answer_updated_at: ans.updated_at ?? question.answer_updated_at,
+        sequence: ans.sequence ?? question.sequence,
+        latLng: mergedLatLng
+      }
+    })
   },
   getFormattedMyQuestionSortedByResult(answers, userId) {
     let _answer = []

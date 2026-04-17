@@ -108,5 +108,14 @@ export default {
   async existedQuestionsCreateVersion(questions) {
     const _questions = this.getExistedQuestionsFromChapters(questions)
     return await this.createAll(_questions)
-  }
+  },
+  async indexByChecklistVersion({ params }) {
+    return base.index({
+      modelName: `checklist_version/${params.checklist_version_id}/checklist_question_version`,
+      params: {
+        ...params,
+        ...S_Processor.getFactoryParams()
+      }
+    })
+  },
 }

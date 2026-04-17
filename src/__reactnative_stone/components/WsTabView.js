@@ -50,7 +50,8 @@ const WsTabView = props => {
     tabStyle,
     pointerVisible = false,
     topRightBtn,
-    topLeftBtn
+    topLeftBtn,
+    _onIndexChange
   } = props
 
   const formatTabNum = (value) => {
@@ -167,12 +168,16 @@ const WsTabView = props => {
             textColor={$color.black}
             isFullWidth={false}
             color="transparent"
-            onPress={onSubmit}
+            onPress={() => {
+              onSubmit?.()
+              topRightBtn?.()
+            }}
           >
             {submitText}
           </WsBtn>
-        )}
-      </View>
+        )
+        }
+      </View >
     );
   };
 
@@ -275,6 +280,9 @@ const WsTabView = props => {
             if ($event == 9223372036854776000) {
               console.log($event, '$event');
               return
+            }
+            if (_onIndexChange) {
+              _onIndexChange()
             }
             C_setIndex($event)
             setIndex($event)

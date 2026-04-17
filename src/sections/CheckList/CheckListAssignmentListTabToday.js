@@ -54,6 +54,8 @@ const CheckListAssignmentListTabToday = props => {
     return params
   }, [currentRefreshCounter, checklistId, currentConnectionState, navigation]);
 
+  console.log(_params,'_params')
+
 
   // 已下載的離線作業
   const renderEmptyList = () => {

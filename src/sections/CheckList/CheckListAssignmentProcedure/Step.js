@@ -286,7 +286,7 @@ const CheckListAssignmentStep = props => {
     try {
       setLoading(true)
       const res = await S_CheckListQuestion.showV2({
-        modelId: question.id
+        modelId: question?.checklist_question?.id
       });
       setQuestionShow(res)
       if (res) {
@@ -332,7 +332,6 @@ const CheckListAssignmentStep = props => {
       setPopupActive003(true)
     }
   }
-
 
   React.useEffect(() => {
     $_fetchCheckListQuestion()
@@ -591,6 +590,8 @@ const CheckListAssignmentStep = props => {
                   onChange={$event => {
                     onChange($event, 'remark', question, 'question')
                   }}
+                  remind={Number(question?.question_setting_items[0]?.has_remark) === 1 ? t('選答時要求必填備註') : undefined}
+                  remindColor={Number(question?.question_setting_items[0]?.has_remark) === 1 ? $color.danger : undefined}
                 />
                 <WsState
                   style={{

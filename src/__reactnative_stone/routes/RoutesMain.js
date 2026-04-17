@@ -147,14 +147,36 @@ const RoutesMain = ({ navigation }) => {
   const $_checkoutFactory = async (current_factory) => {
     try {
       const _id = current_factory?.id
+      if (!_id) {
+        return false
+      }
       const _factory = await S_Factory.show({ modelId: _id })
       store.dispatch(setCurrentFactory(_factory))
+      return true
     } catch (e) {
       console.error(e);
+      return false
     }
   }
 
-  const $_currentFactorySet = () => {
+  // 因為有可能使用者的 current_factory 在 API 取得失敗，或是使用者上次登入的單位沒有權限，所以加了這個 fallback 的機制，確保至少會有一個可用的單位被設定，避免畫面沒有 currentFactory 而出錯。
+  const $_checkoutFactoryWithFallback = async (factories = []) => {
+    for (const factory of factories) {
+      const _success = await $_checkoutFactory(factory)
+      if (_success) {
+        return true
+      }
+    }
+    const _firstValidFactory = factories.find(factory => factory?.id)
+    if (_firstValidFactory) {
+      // API 取得失敗時，至少保留可用單位避免畫面無 currentFactory
+      store.dispatch(setCurrentFactory(_firstValidFactory))
+      return true
+    }
+    return false
+  }
+
+  const $_currentFactorySet = async () => {
     // is_administrator
     if (currentUser?.is_administrator === 1) {
       $_checkoutFactory(currentUser?.factories[0])
@@ -191,6 +213,7 @@ const RoutesMain = ({ navigation }) => {
     const _allScopesUnit = s_user_factory_roles.concat(s_user_factory_scopes, s_user_factory_role_template)
     const hasMatch = _allScopesUnit.some(unit => unit.factory?.id === initFactory?.id) //250624-issue
     if (initFactory && _allScopesUnit && hasMatch) {
+      console.log('A1')
       const _initScope = _allScopesUnit.find(unit => {
         if (unit.factory && unit.factory.scope && unit.factory.scope.includes('app-apply')) {
           return unit.factory.id == initFactory.id
@@ -223,15 +246,22 @@ const RoutesMain = ({ navigation }) => {
       // }
     }
     else if (currentUser && currentUser?.current_factory && currentUser?.current_factory?.id) {
+      console.log('B1')
       // 確認使用者上次登入的單位現在是否有權限-250731-issue
       const hasMatch2 = _allScopesUnit.some(unit => unit.factory?.id === currentUser?.current_factory?.id) //250731-issue
+      console.log('hasMatch2')
+      const _fallbackFactory = _allScopesUnit[0]?.factory
       if (hasMatch2) {
-        $_checkoutFactory(currentUser?.current_factory)
+        $_checkoutFactoryWithFallback([
+          currentUser?.current_factory,
+          _fallbackFactory
+        ])
       } else {
-        $_checkoutFactory(_allScopesUnit[0]?.factory)
+        $_checkoutFactoryWithFallback([_fallbackFactory])
       }
     }
     else {
+      console.log('C1')
       const hasCommonFactory = currentUser.factories.find(factory => s_user_factory_scopes.some(scope => factory.id == scope.factory.id && scope.scopes.includes('app-apply')));
       if (hasCommonFactory) {
         store.dispatch(setCurrentFactory(hasCommonFactory))

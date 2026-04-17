@@ -4,7 +4,8 @@ import {
   View,
   StatusBar,
   SafeAreaView,
-  FlatList
+  FlatList,
+  Alert
 } from 'react-native'
 import {
   WsBtn,
@@ -46,6 +47,7 @@ const CheckListAssignmentResultSortDraft = props => {
   const {
     id,
     versionId,
+    checklistRecordId,
     answers,
     questions,
     setQuestions,
@@ -107,9 +109,108 @@ const CheckListAssignmentResultSortDraft = props => {
 
   // 提交批次全部合格並整理成要送出的格式
   const $_SubmitBatchQualified = () => {
-    const _questions = S_CheckListQuestion.getQualifiedMyQuestions(questions, checkedQuestions, currentUser.id, 25)
-    setQuestions(_questions)
-    store.dispatch(setCurrentChecklistRecordDraft(_questions))
+    const $_submit = async () => {
+      setBatchQualifiedLoading?.(true)
+      try {
+        const _myCheckedQuestionIds = checkedQuestions.filter(questionId => {
+          const _question = questions.find(item => item?.id === questionId)
+          const _checkers = _question?.question_setting?.checkers
+          if (!_question?.question_setting) {
+            return true
+          }
+          if (Array.isArray(_checkers) && _checkers.length === 0) {
+            return true
+          }
+          return Array.isArray(_checkers) && _checkers.some(checker => String(checker?.id) === String(currentUser?.id))
+        })
+
+        const _questions = S_CheckListQuestion.getQualifiedMyQuestions(questions, _myCheckedQuestionIds, currentUser.id, 25)
+        setQuestions(_questions)
+        store.dispatch(setCurrentChecklistRecordDraft(_questions))
+
+        if (!checklistRecordId) {
+          console.log(t('缺少點檢記錄ID，無法送出批次合格'))
+          return
+        }
+
+        const _targetQuestions = _questions.filter(item => _myCheckedQuestionIds.includes(item.id))
+        const _results = await Promise.allSettled(
+          _targetQuestions.map(async item => {
+            const _questionValue = typeof item?.answer_value === 'string'
+              ? item.answer_value
+              : Array.isArray(item?.answer_value)
+                ? item.answer_value.map(ans => ans?.id).filter(Boolean)
+                : item?.answer_value && typeof item.answer_value === 'object'
+                  ? [item.answer_value?.id]
+                  : item?.answer_value
+
+            const _riskLevel = S_CheckListRecordAns.getRiskLevelScore(item, item?.answer_value)
+            const _riskLevelNum = Number(_riskLevel)
+
+            const _params = {
+              checklist_record: checklistRecordId,
+              question_value: _questionValue,
+              score: item?.score,
+              risk_level: Number.isFinite(_riskLevelNum) ? _riskLevelNum : null,
+              remark: item?.remark,
+              factory: factory?.id,
+              lat: item?.latLng?.latitude,
+              lng: item?.latLng?.longitude,
+              ip: item?.ip,
+              checklist_question_version: item?.checklist_question_version
+                || item?.checklist_question_version_id
+                || item?.id
+                || item?.last_version?.id,
+              checklist_question: item?.checklist_question?.id
+            }
+            if (item?.recordAnsId) {
+              const _updateData = {
+                question_value: _params.question_value,
+                score: _params.score,
+                risk_level: _params.risk_level,
+                remark: _params.remark,
+                factory: _params.factory,
+                lat: _params.lat,
+                lng: _params.lng,
+                ip: _params.ip,
+                checklist_question_version: _params.checklist_question_version,
+                checklist_question: _params.checklist_question
+              }
+              return S_CheckListRecordAns.update({
+                modelId: item.recordAnsId,
+                data: _updateData
+              })
+            }
+            return S_CheckListRecordAns.create({ params: _params })
+          })
+        )
+
+        const _recordAnsIdByQuestionId = {}
+        _results.forEach((result, idx) => {
+          if (result.status === 'fulfilled') {
+            const _questionId = _targetQuestions[idx]?.id
+            const _recordAnsId = result.value?.id || result.value?.data?.id || _targetQuestions[idx]?.recordAnsId
+            if (_questionId && _recordAnsId) {
+              _recordAnsIdByQuestionId[_questionId] = _recordAnsId
+            }
+          }
+        })
+        const _questionsWithRecordAnsId = _questions.map(item => ({
+          ...item,
+          recordAnsId: _recordAnsIdByQuestionId[item.id] || item.recordAnsId
+        }))
+        setQuestions(_questionsWithRecordAnsId)
+        store.dispatch(setCurrentChecklistRecordDraft(_questionsWithRecordAnsId))
+
+        const _failedCount = _results.filter(result => result.status === 'rejected').length
+        if (_failedCount > 0) {
+          console.log(t('批次合格送出失敗{number}題', { number: _failedCount }))
+        }
+      } finally {
+        setBatchQualifiedLoading?.(false)
+      }
+    }
+    $_submit()
   }
 
   // 核選欲加入批次合格的清單
@@ -124,7 +225,6 @@ const CheckListAssignmentResultSortDraft = props => {
 
   // 全選
   const $_addAllToBatchQualified = () => {
-    console.log('$_addAllToBatchQualified');
     const _checkedAllQuestions = S_CheckListQuestion.checkedAllMyQuestions(questions, currentUser.id)
     setCheckedQuestioned(_checkedAllQuestions)
   }
@@ -189,7 +289,8 @@ const CheckListAssignmentResultSortDraft = props => {
                                   params: {
                                     id: id,
                                     versionId: versionId,
-                                    questionId: item.id,
+                                    checklistRecordId: checklistRecordId,
+                                    questionId: item?.checklist_question?.id,
                                     allQuestions: questions
                                   }
                                 })

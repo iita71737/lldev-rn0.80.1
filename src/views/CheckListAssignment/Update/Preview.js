@@ -30,7 +30,8 @@ import {
   WsGradientButton,
   WsTag,
   WsPopup,
-  WsLoading
+  WsLoading,
+  WsIcon
 } from '@/components'
 import { useTranslation } from 'react-i18next'
 import CheckListAssignmentQuestionSortDraft from '@/sections/CheckList/CheckListAssignmentQuestionSortDraft'
@@ -50,23 +51,18 @@ import {
   setCurrentChecklistRecordDraft,
   setCurrentCheckListQuestions,
   setPreloadChecklistAssignmentDraft,
-  setOfflineMsg,
   setPreloadChecklistAssignment
 } from '@/store/data'
 import CheckListAssignmentOverview from '@/sections/CheckList/CheckListAssignmentOverview'
-import AsyncStorage from '@react-native-community/async-storage';
-import S_CheckListRecordDraft from '@/services/api/v1/checklist_record_draft'
 
 const ChecklistPreview = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
   const { width, height } = Dimensions.get('window')
-  const _stack = navigation.getState().routes
 
   // Params
   const {
     id,
     versionId,
-    _checklist_assignment_id,
     _reviewers,
     _checkers,
     _questions,
@@ -77,7 +73,8 @@ const ChecklistPreview = ({ navigation, route }) => {
     assignment,
     index, // 離線作業用
     questionFilteredBtnVisible,
-    linkId
+    linkId,
+    checklistRecordId
   } = route.params
 
   // Redux
@@ -86,21 +83,9 @@ const ChecklistPreview = ({ navigation, route }) => {
   const currentChecklistDraft = useSelector(state => state.data.currentChecklistRecordDraft)
   const currentPreloadChecklistAssignment = useSelector(state => state.data.preloadChecklistAssignment)
   const currentPreloadChecklistAssignmentDraft = useSelector(state => state.data.preloadChecklistAssignmentDraft)
-  const offlineMsg = useSelector(state => state.data.offlineMsg);
-
-  // STORAGE
-  const storeData = async (value) => {
-    try {
-      const jsonValue = JSON.stringify(value);
-      AsyncStorage.setItem('offlineTempMsg', jsonValue);
-    } catch (e) {
-    }
-  };
-
   // States
   const [stateModal, setStateModal] = React.useState(false)
   const [RightOnPressIsDisabled, setRightOnPressIsDisabled] = React.useState(true)
-  const [popupActive002, setPopupActive002] = React.useState(false)
 
   const [batchQualifiedLoading, setBatchQualifiedLoading] = React.useState(false)
 
@@ -108,7 +93,6 @@ const ChecklistPreview = ({ navigation, route }) => {
   const [popupActive, setPopupActive] = React.useState(false)
 
   const [reviewers, setReviews] = React.useState(_reviewers ? _reviewers : [])
-  const [checklistAssignmentId, setChecklistAssignmentId] = React.useState(_checklist_assignment_id ? _checklist_assignment_id : null)
 
   const [remark, setRemark] = React.useState()
   const [remarkImages, setRemarkImages] = React.useState()
@@ -137,6 +121,7 @@ const ChecklistPreview = ({ navigation, route }) => {
       props: {
         id: id,
         versionId: versionId,
+        checklistRecordId: checklistRecordId,
       }
     },
     {
@@ -146,9 +131,27 @@ const ChecklistPreview = ({ navigation, route }) => {
       props: {
         id: id,
         versionId: versionId,
+        checklistRecordId: checklistRecordId,
       }
     }
   ])
+
+  const $_getRefreshCounter = () => Math.floor(Math.random() * (100 - 1 + 1)) + 1
+  const $_resetToCheckListAssignment = (_routeParams = {}) => {
+    navigation.reset({
+      index: 0,
+      routes: [
+        {
+          name: 'CheckListAssignment',
+          params: {
+            refreshCounter: $_getRefreshCounter(),
+            ..._routeParams
+          }
+        }
+      ],
+      key: null
+    })
+  }
 
   // Function
   const $_refreshTabItems = () => {
@@ -176,7 +179,8 @@ const ChecklistPreview = ({ navigation, route }) => {
           todayDone: _todayDone,
           questionFilteredBtnVisible: questionFilteredBtnVisible,
           batchQualifiedLoading: batchQualifiedLoading,
-          setBatchQualifiedLoading: setBatchQualifiedLoading
+          setBatchQualifiedLoading: setBatchQualifiedLoading,
+          checklistRecordId: checklistRecordId,
         }
       },
       {
@@ -192,13 +196,13 @@ const ChecklistPreview = ({ navigation, route }) => {
           questionFilteredBtnVisible: questionFilteredBtnVisible,
           batchQualifiedLoading: batchQualifiedLoading,
           setBatchQualifiedLoading: setBatchQualifiedLoading,
+          checklistRecordId: checklistRecordId,
         }
       }
     ]
     setTabItems(_tabItems)
   }
 
-  // Services
   // 取得當前點檢表
   const $_fetchChecklist = async () => {
     try {
@@ -247,15 +251,51 @@ const ChecklistPreview = ({ navigation, route }) => {
     }
   }
 
+  // 不需點檢
+  const $_noChecklist = async () => {
+    try {
+      let _checklistRecordId = checklistRecordId
+      if (!_checklistRecordId) {
+        const _createRecordParams = {
+          checklist: id,
+          checklist_version: versionId ? versionId : checklist?.last_version?.id,
+          factory: currentFactory?.id,
+          reviewers: reviewers ? reviewers.map(item => item.id) : [],
+          from_module_link_id: linkId ? linkId : undefined,
+        }
+        const _createdRecord = await S_CheckListRecord.store({ params: _createRecordParams })
+        if (!_createdRecord?.id) {
+          throw new Error('Failed to create checklist record before noChecklist')
+        }
+        _checklistRecordId = _createdRecord.id
+      }
+
+      const _nochecklistParams = {
+        checklist_record_id: _checklistRecordId,
+        remark: remark,
+        images: remarkImages ? remarkImages.map(item => item.id) : [],
+      }
+      await S_CheckListRecord.noChecklist({ params: _nochecklistParams })
+      store.dispatch(setCurrentChecklistRecordDraft(null))
+      $_resetToCheckListAssignment({ initTabIndex: 2 })
+      Alert.alert(t('作業已送出'))
+    } catch (error) {
+      console.error('noChecklist failed', error)
+      Alert.alert(t('不需點檢送出失敗'))
+    } finally {
+      setSubmitLoading(false)
+    }
+  }
+
   // SUBMIT
-  const $_onHeaderRightPress = () => {
+  const $_onHeaderRightPress = async () => {
     if (status == 1) {
-      $_putApi()
+      await $_noChecklist()
       return
     }
-    // console.log(JSON.stringify(currentChecklistDraft), 'currentChecklistDraft--');
+    // console.log(JSON.stringify(currentChecklistDraft ? currentChecklistDraft : questions), 'currentChecklistDraft--');
     const _validation = S_CheckListRecordAns.validationQuestionSubmitV2(currentChecklistDraft ? currentChecklistDraft : questions, currentUser)
-    // console.log(_validation,'_validation')
+    // console.log(_validation, '_validation')
     if (_validation === false) {
       Alert.alert(t(`所有題目都必須答題，才能送出結果`))
       return
@@ -274,184 +314,39 @@ const ChecklistPreview = ({ navigation, route }) => {
   // 送出點檢答題結果
   const $_putApi = async () => {
     setSubmitLoading(true)
-    console.log('aaaaaa')
-    // console.log(currentChecklistDraft,'currentChecklistDraft1');
-    // 過濾填答者為自己 或 無指定答題者的題目
-    const _formattedQuestions = await S_CheckListRecordAns.formattedQuestionsForAPI_V2(
-      currentChecklistDraft ? currentChecklistDraft : questions,
-      currentUser.id
-    )
-    console.log('bbbbbb')
-    // console.log(JSON.stringify(_formattedQuestions), '_formattedQuestions-');
-    // 整理成送出API的格式
-    const _submitValue = S_CheckListRecord.setSubmitValue(
-      checklist,
-      currentUser.id,
-      currentFactory.id,
-      currentChecklistDraft,
-      versionId,
-      questions,
-      _formattedQuestions,
-      draftId,
-      checklistAssignmentId,
-      remark,
-      status,
-      remarkImages,
-      reviewers,
-      linkId
-    )
-    console.log(checklist.id, 'checklist_id');
-    console.log(JSON.stringify(_submitValue), '_submitValue');
+    console.log('$_putApi')
+    let _shouldNavigate = false
     try {
-      const res = await S_CheckListRecordAns.batchStoreV2({ params: _submitValue });
+      const COMPLETE_TIMEOUT_MS = 15000
+      const _params = {
+        checklist_record_id: checklistRecordId,
+      }
+      console.log(_params, 'S_CheckListRecord.complete _params--')
+      const _completePromise = S_CheckListRecord.complete({ params: _params })
+      const _timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), COMPLETE_TIMEOUT_MS)
+      })
+      const res = await Promise.race([_completePromise, _timeoutPromise])
+      console.log(res, 'resresres')
       if (draftId && _checkers && currentUser && _checkers.length > 1) {
         Alert.alert(t(`請注意，若部分題號已經有人答題，本次送出將不會覆蓋他人先前已送出的答案。`));
       }
       store.dispatch(setCurrentChecklistRecordDraft(null));
+      setQuestions([])
+      _shouldNavigate = true
       Alert.alert(t('作業已送出'))
     } catch (e) {
-      console.error(e);
+      console.error(e)
+      Alert.alert(t('作業送出失敗，請稍後再試'))
+    } finally {
+      setSubmitLoading(false)
     }
-    setSubmitLoading(false)
-    navigation.reset({
-      index: 0,
-      routes: [
-        {
-          name: 'CheckListAssignment',
-          params: {
-            refreshCounter: Math.floor(Math.random() * (100 - 1 + 1)) + 1,
-            subTabIndex: draftId ? 1 : subTabIndex ? subTabIndex : 0
-          }
-        }
-      ],
-      key: null
-    })
-  }
 
-  // 儲存點檢草稿
-  const $_saveDraft = async () => {
-    setSubmitLoading(true)
-    const _formattedQuestions = await S_CheckListRecordAns.formattedQuestionsForAPI_V2(
-      currentChecklistDraft ? currentChecklistDraft : questions,
-      currentUser.id
-    )
-    const _submitValue = S_CheckListRecordDraft.setSubmitForDraftV2(
-      checklist,
-      currentUser.id,
-      currentFactory.id,
-      currentChecklistDraft,
-      versionId,
-      questions,
-      _formattedQuestions,
-      draftId,
-      checklistAssignmentId,
-      remark,
-      status,
-      reviewers,
-    )
-    // console.log(draftId, 'draftId=');
-    // console.log(JSON.stringify(_submitValue), '_submitValue=');
-    if (draftId) {
-      try {
-        const res = await S_CheckListRecordDraft.updateDraftV2({
-          modelId: draftId,
-          params: _submitValue
-        })
-          .then(res => {
-            Alert.alert(t('更新草稿成功'))
-            store.dispatch(setCurrentChecklistRecordDraft(null))
-            navigation.reset({
-              index: 0,
-              routes: [
-                {
-                  name: 'CheckListAssignment',
-                  params: {
-                    refreshCounter: Math.floor(Math.random() * (100 - 1 + 1)) + 1,
-                    subTabIndex: 1
-                  }
-                }
-              ],
-              key: null
-            })
-          })
-      } catch (e) {
-        console.error(e.message, '更新草稿發生錯誤')
-        const _offlineTempMsg = {
-          service: `checklist_record`,
-          method: `updateDraft`,
-          modelId: draftId,
-          data: _submitValue
-        }
-        offlineMsg.push(_offlineTempMsg)
-        storeData(offlineMsg)
-        store.dispatch(setOfflineMsg(offlineMsg))
-        Alert.alert(`${offlineMsg?.length}筆資料等待上傳中`)
-      }
-    } else {
-      try {
-        const res = await S_CheckListRecordDraft.createDraftV2({ params: _submitValue })
-          .then(res => {
-            Alert.alert(t('儲存新草稿成功'))
-            setSubmitLoading(false)
-            store.dispatch(setCurrentChecklistRecordDraft(null))
-            navigation.reset({
-              index: 0,
-              routes: [
-                {
-                  name: 'CheckListAssignment',
-                  params: {
-                    refreshCounter: Math.floor(Math.random() * (100 - 1 + 1)) + 1
-                  }
-                }
-              ],
-              key: null
-            })
-          })
-      } catch (e) {
-        Alert.alert(t('儲存新草稿異常'))
-        if (index != undefined && currentPreloadChecklistAssignment && currentPreloadChecklistAssignment[index]?.questions) {
-          currentPreloadChecklistAssignment[index].questions = currentChecklistDraft
-        }
-        navigation.reset({
-          index: 0,
-          routes: [
-            {
-              name: 'CheckListAssignment',
-              params: {
-                refreshCounter: Math.floor(Math.random() * (100 - 1 + 1)) + 1,
-                subTabIndex: draftId ? 1 : subTabIndex ? subTabIndex : 0
-              }
-            }
-          ],
-          key: null
-        })
-      }
+    if (_shouldNavigate) {
+      $_resetToCheckListAssignment({ initTabIndex: 2 })
     }
   }
 
-  // 刪除草稿
-  const $_deleteChecklistDraft = async () => {
-    try {
-      const _res = await S_CheckListRecordDraft.delete({ modelId: draftId })
-    } catch (error) {
-      console.log(error, 'S_CheckListRecordDraft.delete')
-    }
-    navigation.reset({
-      index: 0,
-      routes: [
-        {
-          name: 'CheckListAssignment',
-          params: {
-            refreshCounter: Math.floor(Math.random() * (100 - 1 + 1)) + 1,
-            subTabIndex: draftId ? 1 : subTabIndex ? subTabIndex : 0
-          }
-        }
-      ],
-      key: null
-    })
-  }
-
-  // Options
   const $_setNavigationOptions = () => {
     navigation.setOptions({
       headerLeft: () => (
@@ -469,8 +364,26 @@ const ChecklistPreview = ({ navigation, route }) => {
       )
     })
   }
+
   const $_onHeaderLeftPress = () => {
     store.dispatch(setCurrentChecklistRecordDraft(null))
+    setQuestions([])
+    const _routes = navigation.getState()?.routes || []
+    const _prevRoute = _routes[_routes.length - 2]
+    if (
+      _prevRoute?.name === 'CheckListAssignmentIntroduction' ||
+      _prevRoute?.name === 'CheckListAssignmentIntroductionTemp'
+    ) {
+      navigation.navigate({
+        name: _prevRoute.name,
+        params: {
+          ...(_prevRoute.params || {}),
+          refreshCounter: Date.now()
+        },
+        merge: true
+      })
+      return
+    }
     navigation.goBack()
   }
 
@@ -510,9 +423,7 @@ const ChecklistPreview = ({ navigation, route }) => {
 
   React.useEffect(() => {
     if (currentChecklistDraft) {
-      if (_questions && currentChecklistDraft.length == _questions.length) {
-        setQuestions(currentChecklistDraft)
-      }
+      setQuestions(currentChecklistDraft)
     }
   }, [currentChecklistDraft])
 
@@ -544,11 +455,7 @@ const ChecklistPreview = ({ navigation, route }) => {
   }, [navigation, currentChecklistDraft]);
 
   React.useEffect(() => {
-    if (remark && remark.trim()) {
-      setRightOnPressIsDisabled(false)
-    } else {
-      setRightOnPressIsDisabled(true);
-    }
+    setRightOnPressIsDisabled(!(remark && remark.trim()))
   }, [remark]);
 
   return (
@@ -643,23 +550,7 @@ const ChecklistPreview = ({ navigation, route }) => {
                 btnLeftOnPress={() => {
                   setStateModal(true)
                 }}
-                btnRightHidden={draftId ? true : true}
-                btnRightText={t('刪除草稿')}
-                btnRightColors={[$color.danger, $color.danger5l]}
-                btnRightOnPress={() => {
-                  setPopupActive002(true)
-                }}
-                style={{
-                  backgroundColor: $color.white
-                }}
-              />
-              <WsModalFooter
-                btnLeftHidden={_todayDone ? true : false}
-                btnLeftText={t('儲存草稿')}
-                btnLeftOnPress={() => {
-                  $_saveDraft()
-                }}
-                btnRightText={_todayDone ? t('關閉') : t('送出')}
+                btnRightText={_todayDone ? t('關閉') : t('完成')}
                 btnRightOnPress={() => {
                   _todayDone ? $_goBack() : $_onHeaderRightPress()
                 }}
@@ -668,74 +559,6 @@ const ChecklistPreview = ({ navigation, route }) => {
           </>
         )}
       </SafeAreaView>
-      <WsPopup
-        active={popupActive002}
-        onClose={() => {
-          setPopupActive002(false)
-        }}>
-        <View
-          style={{
-            width: width * 0.9,
-            height: height * 0.2,
-            backgroundColor: $color.white,
-            borderRadius: 10,
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-          <WsText
-            size={18}
-            color={$color.black}
-            style={{
-              position: 'absolute',
-              left: 16,
-              top: 16
-            }}
-          >{t('確定刪除嗎？')}
-          </WsText>
-          <WsFlex
-            style={{
-              position: 'absolute',
-              right: 16,
-              bottom: 16,
-            }}
-          >
-            <TouchableOpacity
-              style={{
-                paddingHorizontal: 16,
-                borderColor: $color.gray,
-                borderRadius: 25,
-                borderWidth: 1,
-                alignItems: 'center',
-                width: 110,
-                height: 48,
-                paddingVertical: 9,
-              }}
-              onPress={() => {
-                setPopupActive002(false)
-              }}>
-              <WsText
-                style={{
-                }}
-                size={14}
-                color={$color.gray}
-              >{t('取消')}
-              </WsText>
-            </TouchableOpacity>
-            <WsGradientButton
-              btnColor={[$color.danger, $color.danger5l]}
-              style={{
-                width: 110,
-              }}
-              onPress={() => {
-                $_deleteChecklistDraft()
-                setPopupActive002(false)
-              }}>
-              {t('確除')}
-            </WsGradientButton>
-          </WsFlex>
-        </View>
-      </WsPopup>
 
       <WsPopup
         active={popupActive}
@@ -807,14 +630,21 @@ const ChecklistPreview = ({ navigation, route }) => {
         onRequestClose={() => {
         }}
       >
-        <WsLoading
-          type={'b'}
+        <View
           style={{
             flex: 1,
-            zIndex: 9999
+            zIndex: 9999,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            justifyContent: 'center',
+            alignItems: 'center'
           }}
-        ></WsLoading>
+        >
+          <WsLoading
+            type={'b'}
+          />
+        </View>
       </Modal >
+
       <WsModal
         visible={stateModal}
         onBackButtonPress={() => {
@@ -831,6 +661,31 @@ const ChecklistPreview = ({ navigation, route }) => {
         }}
         animationType="slide"
       >
+        <WsFlex style={[
+          {
+            flexWrap: 'nowrap',
+            paddingTop: 16,
+            paddingHorizontal: 16,
+            maxWidth: width * 0.9,
+          }
+        ]}
+        >
+          <WsIcon
+            name="md-info-outline"
+            color={$color.danger}
+            style={{
+              marginRight: 6
+            }}
+            size={24}
+          />
+          <WsText
+            color={$color.danger}
+            style={{
+            }}
+            size={14}
+          >{t('注意，送出後，將移除已回答題目的所有內容')}</WsText>
+        </WsFlex>
+
         <WsState
           label={t('輸入備註')}
           labelIcon={'ws-outline-edit-pencil'}
@@ -839,7 +694,6 @@ const ChecklistPreview = ({ navigation, route }) => {
             padding: 16
           }}
           placeholder={t('請寫下不需點檢的原因與細部說明...')}
-          // placeholderTextColor={'rgba(255, 0, 0, 1)'}
           value={remark}
           onChange={$event => {
             setRemark($event)

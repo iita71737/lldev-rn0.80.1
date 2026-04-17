@@ -120,6 +120,20 @@ const LlCheckListQuestionCard002 = props => {
     return S_CheckListRecordAns.validationRemark(answer)
   }
 
+  const $_displaySequence = () => {
+    if (answer?.sequence) return answer.sequence
+    if (no != null) return String(no).padStart(4, '0')
+    return ''
+  }
+
+  const $_displayTitle = () => {
+    return answer?.title
+      || answer?.name
+      || answer?.last_version?.title
+      || answer?.checklist_question?.title
+      || t('未命名題目')
+  }
+
   // Functions
   const fetchQuestion = useCallback(async () => {
     if (done) {
@@ -128,7 +142,8 @@ const LlCheckListQuestionCard002 = props => {
     }
     if (answer?.id) {
       try {
-        const res = await S_CheckListQuestion.showV2({ modelId: answer.id });
+        const _questionId = answer?.checklist_question?.id
+        const res = await S_CheckListQuestion.showV2({ modelId: _questionId });
         if (res) {
           setQuestion(res);
           setActs(res?.last_version?.article_versions || []);
@@ -147,6 +162,28 @@ const LlCheckListQuestionCard002 = props => {
       fetchQuestion();
     }
   }, [isCollapsed, fetchQuestion])
+
+  const checkers = answer?.question_setting?.checkers
+  const hasQuestionSetting = answer?.question_setting != null
+  const isCheckerUnrestricted = !hasQuestionSetting || (Array.isArray(checkers) && checkers.length === 0)
+  const isCurrentUserChecker = Array.isArray(checkers) && checkers.some(checker => checker.id === currentUser?.id)
+  const canEditByChecker = isCheckerUnrestricted || isCurrentUserChecker
+  const canEditByUpdater = !answer?.updated_user || answer?.updated_user?.id === currentUser?.id
+  const canGoToAnswerPage = (
+    !!answer &&
+    !!currentUser &&
+    !answer?.is_completed &&
+    canEditByUpdater &&
+    canEditByChecker
+  )
+  const hasAnswerLatLng = (
+    answer?.latLng?.latitude !== null &&
+    answer?.latLng?.latitude !== undefined &&
+    answer?.latLng?.latitude !== '' &&
+    answer?.latLng?.longitude !== null &&
+    answer?.latLng?.longitude !== undefined &&
+    answer?.latLng?.longitude !== ''
+  )
 
   return (
     <>
@@ -233,16 +270,7 @@ const LlCheckListQuestionCard002 = props => {
             </WsFlex>
 
             {
-              !answer.updated_user &&
-              !done &&
-              answer &&
-              currentUser &&
-              ((answer.question_setting &&
-                currentUser &&
-                answer.question_setting.checkers &&
-                answer.question_setting?.checkers.some(checker => checker.id === currentUser.id) || answer.question_setting == null) ||
-                answer.question_setting?.checkers && answer.question_setting?.checkers.length === 0) &&
-              (
+              canGoToAnswerPage && (
                 <WsFlex
                   style={{
                   }}>
@@ -286,11 +314,11 @@ const LlCheckListQuestionCard002 = props => {
                 flex: 1,
               }}>
               <WsText fontWeight="bold" size={14} style={{ marginRight: 8 }}>
-                {answer.sequence}
+                {$_displaySequence()}
                 {' .'}
               </WsText>
               <WsText fontWeight="bold" size={14} style={{ maxWidth: width * 0.7 }}>
-                {answer.title}
+                {$_displayTitle()}
               </WsText>
             </WsFlex>
           </WsFlex>
@@ -354,9 +382,7 @@ const LlCheckListQuestionCard002 = props => {
           </WsFlex>
 
 
-          {answer?.latLng &&
-            answer?.latLng?.latitude &&
-            answer?.latLng?.longitude && (
+          {hasAnswerLatLng && (
               <View
                 style={{
                   marginTop: 8
@@ -505,7 +531,8 @@ const LlCheckListQuestionCard002 = props => {
               </>
             )}
 
-          {$_checkRemark() &&
+          {
+            $_checkRemark() &&
             !answer.remark &&
             (
               <>
@@ -562,7 +589,7 @@ const LlCheckListQuestionCard002 = props => {
               }}>
               {question &&
                 question.last_version &&
-                question.last_version.remark && (
+                Boolean(question.last_version.remark) && (
                   <WsInfo
                     style={{
                       marginTop: 8
@@ -592,7 +619,7 @@ const LlCheckListQuestionCard002 = props => {
 
               {question &&
                 question.last_version &&
-                question.last_version.ocap_remark && (
+                Boolean(question.last_version.ocap_remark) && (
                   <WsInfo
                     labelWidth={60}
                     style={{
@@ -621,7 +648,7 @@ const LlCheckListQuestionCard002 = props => {
                   />
                 )}
 
-              {answer.remark && (
+              {Boolean(answer.remark) && (
                 <WsInfo
                   style={{
                     marginTop: 8

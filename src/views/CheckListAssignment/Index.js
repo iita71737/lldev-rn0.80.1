@@ -18,13 +18,14 @@ const CheckListAssignment = ({ route }) => {
   let checklistId
   const checkListId = route.params?.checkListId;
   const refreshCounter = route.params?.refreshCounter;
+  const initTabIndex = route.params?.initTabIndex
   const subTabIndex = route.params?.subTabIndex
   if (checkListId) {
     checklistId = route.params.checkListId
   }
 
   // STATE
-  const [tabIndex, settabIndex] = React.useState(0)
+  const [tabIndex, settabIndex] = React.useState(initTabIndex ? initTabIndex : 0)
   const [tabItems, setTabItems] = React.useState([
     {
       value: 'CheckListAssignmentList',

@@ -22,7 +22,6 @@ const CheckListAssignmentHasDraftList = props => {
 
   // Props
   const {
-    record_draft,
     subTabIndex
   } = props
 
@@ -36,7 +35,8 @@ const CheckListAssignmentHasDraftList = props => {
   // MEMO
   const _params = React.useMemo(() => {
     const params = {
-      checker: currentUser && currentUser.id ? currentUser.id : null
+      // checker: currentUser && currentUser.id ? currentUser.id : null
+      factory_id: factory ? factory.id : null,
     }
     return params
   }, [currentRefreshCounter, currentUser.id]);
@@ -124,8 +124,8 @@ const CheckListAssignmentHasDraftList = props => {
       ) : (
         <WsInfiniteScroll
           padding={16}
-          service={S_CheckListRecordDraft}
-          serviceIndexKey={'index'}
+          service={S_CheckListRecord}
+          serviceIndexKey={'authTempUndoIndex'}
           params={_params}
           renderItem={({ item, index }) => {
             return (
@@ -170,17 +170,20 @@ const CheckListAssignmentHasDraftList = props => {
                   deadline={item.checklist_assignment?.record_at ? moment(item.checklist_assignment?.record_at).format('YYYY-MM-DD') : '無'}
                   onPress={() => {
                     if (item.checklist_assignment) {
+                      console.log(item, 'AAAA')
                       navigation.push('CheckListAssignmentIntroduction', {
                         id: item.checklist_assignment && item.checklist_assignment.id ? item.checklist_assignment.id : null,
                         draftId: item.id,
                         subTabIndex: subTabIndex,
                       })
                     } else {
+                      console.log(item, 'BBBB')
                       navigation.push('CheckListAssignmentIntroductionTemp', {
                         id: item.checklist.id,
                         draftId: item.id,
                         subTabIndex: subTabIndex,
-                        index: index
+                        index: index,
+                        _reviewers: item.reviewers
                       })
                     }
                   }}

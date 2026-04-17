@@ -39,9 +39,9 @@ import S_CheckListRecordAns from '@/services/api/v1/checklist_record_answer'
 import S_CheckListVersion from '@/services/api/v1/checklist_version'
 import S_UserCheckList from '@/services/api/v1/user_checklist'
 import store from '@/store'
-import { 
-  setCurrentChecklistRecordDraft, 
-  setCurrentLatLng 
+import {
+  setCurrentChecklistRecordDraft,
+  setCurrentLatLng
 } from '@/store/data'
 import { useTranslation } from 'react-i18next'
 import $color from '@/__reactnative_stone/global/color'
@@ -67,11 +67,14 @@ const CheckListAssignmentQuestionSortDraft = props => {
     versionId,
     questions,
     drafts,
+    checklistRecordId,
     setQuestions,
     todayDone,
     questionFilteredBtnVisible = true,
     setBatchQualifiedLoading,
   } = props
+
+  // console.log(JSON.stringify(questions),'questionsquestions')
 
   // 判斷是否為臨時點檢作業
   const hasQuestionSettingEverywhere = questions.every(question => "question_setting" in question);
@@ -87,7 +90,9 @@ const CheckListAssignmentQuestionSortDraft = props => {
   const [popupActive003, setPopupActive003] = React.useState(false)
 
   const [checkedQuestions, setCheckedQuestioned] = React.useState([])
-  const [questionFiltered, setQuestionFiltered] = React.useState(hasQuestionSettingEverywhere ? true : false)
+  const [questionFiltered, setQuestionFiltered] = React.useState(
+    questionFilteredBtnVisible && hasQuestionSettingEverywhere ? true : false
+  )
   const [myQuestions, setMyQuestions] = React.useState()
   const [loading, setLoading] = React.useState(true)
   const [questionsCopy, setQuestionsCopy] = React.useState(questions) // 240508-prevent-tab-view-re-render-issue
@@ -299,19 +304,123 @@ const CheckListAssignmentQuestionSortDraft = props => {
   }
   // FORMATTED
   const $_SubmitBatchQualified = () => {
-    const _questions = S_CheckListQuestion.getQualifiedMyQuestions(questions, checkedQuestions, currentUser.id, 25).map((item, index) => {
-      return {
-        ...item,
-        latLng: {
-          latitude: currentLatLng?.latitude,
-          longitude: currentLatLng?.longitude
+    const $_submit = async () => {
+      setBatchQualifiedLoading?.(true)
+      try {
+        const _myCheckedQuestionIds = checkedQuestions.filter(questionId => {
+          const _question = questions.find(item => item?.id === questionId)
+          const _checkers = _question?.question_setting?.checkers
+          if (!_question?.question_setting) {
+            return true
+          }
+          if (Array.isArray(_checkers) && _checkers.length === 0) {
+            return true
+          }
+          return Array.isArray(_checkers) && _checkers.some(checker => String(checker?.id) === String(currentUser?.id))
+        })
+
+        const _questions = S_CheckListQuestion.getQualifiedMyQuestions(questions, _myCheckedQuestionIds, currentUser.id, 25).map(item => {
+          return {
+            ...item,
+            latLng: {
+              latitude: currentLatLng?.latitude,
+              longitude: currentLatLng?.longitude
+            }
+          };
+        })
+        setQuestions(_questions)
+        setQuestionsCopy(_questions)
+        store.dispatch(setCurrentChecklistRecordDraft(_questions))
+
+        if (!checklistRecordId) {
+          console.log(t('缺少點檢記錄ID，無法送出批次合格'))
+          return
         }
-      };
-    })
-    setQuestions(_questions)
-    setQuestionsCopy(_questions)
-    store.dispatch(setCurrentChecklistRecordDraft(_questions))
+
+        const _targetQuestions = _questions.filter(item => _myCheckedQuestionIds.includes(item.id))
+        console.log(JSON.stringify(_targetQuestions),'_targetQuestions')
+        const _results = await Promise.allSettled(
+          _targetQuestions.map(async item => {
+            const _questionValue = typeof item?.answer_value === 'string'
+              ? item.answer_value
+              : Array.isArray(item?.answer_value)
+                ? item.answer_value.map(ans => ans?.id).filter(Boolean)
+                : item?.answer_value && typeof item.answer_value === 'object'
+                  ? [item.answer_value?.id]
+                  : item?.answer_value
+
+            const _riskLevel = S_CheckListRecordAns.getRiskLevelScore(item, item?.answer_value)
+            const _riskLevelNum = Number(_riskLevel)
+
+            const _params = {
+              checklist_record: checklistRecordId,
+              question_value: _questionValue,
+              score: item?.score,
+              risk_level: Number.isFinite(_riskLevelNum) ? _riskLevelNum : null,
+              remark: item?.remark,
+              factory: currentFactory?.id,
+              lat: item?.latLng?.latitude ?? currentLatLng?.latitude,
+              lng: item?.latLng?.longitude ?? currentLatLng?.longitude,
+              ip: item?.ip,
+              checklist_question_version: item?.checklist_question_version
+                || item?.checklist_question_version_id
+                || item?.id
+                || item?.last_version?.id,
+              checklist_question: item?.checklist_question?.id
+            }
+            if (item?.recordAnsId) {
+              const _updateData = {
+                question_value: _params.question_value,
+                score: _params.score,
+                risk_level: _params.risk_level,
+                remark: _params.remark,
+                factory: _params.factory,
+                lat: _params.lat,
+                lng: _params.lng,
+                ip: _params.ip,
+                checklist_question_version: _params.checklist_question_version,
+                checklist_question: _params.checklist_question
+              }
+              console.log(_updateData,'update _updateData')
+              return S_CheckListRecordAns.update({
+                modelId: item.recordAnsId,
+                data: _updateData
+              })
+            }
+            console.log(_params,'create _params')
+            return S_CheckListRecordAns.create({ params: _params })
+          })
+        )
+
+        const _recordAnsIdByQuestionId = {}
+        _results.forEach((result, idx) => {
+          if (result.status === 'fulfilled') {
+            const _questionId = _targetQuestions[idx]?.id
+            const _recordAnsId = result.value?.id || result.value?.data?.id || _targetQuestions[idx]?.recordAnsId
+            if (_questionId && _recordAnsId) {
+              _recordAnsIdByQuestionId[_questionId] = _recordAnsId
+            }
+          }
+        })
+        const _questionsWithRecordAnsId = _questions.map(item => ({
+          ...item,
+          recordAnsId: _recordAnsIdByQuestionId[item.id] || item.recordAnsId
+        }))
+        setQuestions(_questionsWithRecordAnsId)
+        setQuestionsCopy(_questionsWithRecordAnsId)
+        store.dispatch(setCurrentChecklistRecordDraft(_questionsWithRecordAnsId))
+
+        const _failedCount = _results.filter(result => result.status === 'rejected').length
+        if (_failedCount > 0) {
+          console.log(t('批次合格送出失敗{number}題', { number: _failedCount }))
+        }
+      } finally {
+        setBatchQualifiedLoading?.(false)
+      }
+    }
+    $_submit()
   }
+
   // ADD_TO_FOR_BATCH
   const $_addToBatchQualified = (answer) => {
     if (answer.checked) {
@@ -321,6 +430,7 @@ const CheckListAssignmentQuestionSortDraft = props => {
       setCheckedQuestioned(updatedItems);
     }
   }
+  
   // 全選
   const $_addAllToBatchQualified = () => {
     const _checkedAllQuestions = S_CheckListQuestion.checkedAllMyQuestions(questions, currentUser?.id)
@@ -388,6 +498,9 @@ const CheckListAssignmentQuestionSortDraft = props => {
 
   // 我的題目狀態下送批次合格RE-RENDER
   React.useEffect(() => {
+    if (questions) {
+      setQuestionsCopy(questions)
+    }
     if (questionFilteredBtnVisible && questions && questionFiltered && currentUser) {
       const _answer = S_CheckListQuestion.getFormattedMyQuestionSortedBySequence(questions, currentUser.id)
       setMyQuestions(_answer)
@@ -406,7 +519,11 @@ const CheckListAssignmentQuestionSortDraft = props => {
       ) : (
         <FlatList
           testID={'flatList'}
-          data={questionFiltered ? myQuestions : questionsCopy ? questionsCopy : []}
+          data={
+            questionFiltered
+              ? (myQuestions || questionsCopy || [])
+              : (questionsCopy || [])
+          }
           keyExtractor={(item, index) => item.id}
           renderItem={({ item, index }) => {
             return (
@@ -436,8 +553,9 @@ const CheckListAssignmentQuestionSortDraft = props => {
                       params: {
                         id: id,
                         versionId: versionId,
-                        questionId: item.id,
-                        drafts: drafts,
+                        checklistRecordId: checklistRecordId,
+                        questionId: item?.checklist_question?.id,
+                        // drafts: drafts,
                         allQuestions: questionsCopy
                       }
                     })
@@ -653,7 +771,8 @@ const CheckListAssignmentQuestionSortDraft = props => {
                   params: {
                     id: id,
                     versionId: versionId,
-                    questionId: selectedItem.id,
+                    checklistRecordId: checklistRecordId,
+                    questionId: selectedItem?.checklist_question?.id || selectedItem?.id,
                     drafts: drafts,
                     allQuestions: questionsCopy,
                     clearIsNeedCheckAnsIndex: selectedIndex
@@ -681,7 +800,8 @@ const CheckListAssignmentQuestionSortDraft = props => {
                   params: {
                     id: id,
                     versionId: versionId,
-                    questionId: selectedItem.id,
+                    checklistRecordId: checklistRecordId,
+                    questionId: selectedItem?.checklist_question?.id || selectedItem?.id,
                     drafts: drafts,
                     allQuestions: questionsCopy,
                     clearIndex: selectedIndex

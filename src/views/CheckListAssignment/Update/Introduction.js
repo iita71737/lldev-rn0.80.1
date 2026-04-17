@@ -1,44 +1,52 @@
 import React from 'react'
-import { Text, View, ScrollView, TouchableOpacity, Alert, Modal, Platform } from 'react-native'
+import { 
+  View, 
+  ScrollView, 
+  TouchableOpacity, 
+  Alert, 
+  Modal, 
+  Platform,
+  Dimensions
+ } from 'react-native'
 import {
   WsPaddingContainer,
   WsText,
   WsInfo,
   WsTag,
   WsFlex,
-  WsBtn,
-  WsBottomSheet,
   WsGradientButton,
   WsModal,
   WsState,
   WsSpec,
   WsLoading,
-  WsSkeleton
+  WsSkeleton,
+  WsIcon
 } from '@/components'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
 import $color from '@/__reactnative_stone/global/color'
 import store from '@/store'
 import moment from 'moment'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import S_Checklist from '@/services/api/v1/checklist'
-import S_CheckListVersion from '@/services/api/v1/checklist_version'
 import S_CheckListQuestion from '@/services/api/v1/checklist_question'
-import { setCurrentChecklistRecordDraft, setCurrentCheckListQuestions } from '@/store/data'
+import { setCurrentChecklistRecordDraft, setCurrentCheckListQuestions, setCurrentLatLng } from '@/store/data'
 import S_ChecklistAssignment from '@/services/api/v1/checklist_assignment'
 import S_CheckListRecord from '@/services/api/v1/checklist_record'
 import S_CheckListRecordAns from '@/services/api/v1/checklist_record_answer'
 import S_ConstantData from '@/services/api/v1/constant_data'
+import S_ChecklistQuestionVersion from '@/services/api/v1/checklist_question_version'
+import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
+import { getLocation } from '@/__reactnative_stone/global/location'
+import { getDistance } from 'geolib';
 
 const Introduction = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
-  const _stack = navigation.getState().routes
   const currentLang = i18n.language
+  const { width, height } = Dimensions.get('window')
 
   // Redux
   const currentUser = useSelector(state => state.stone_auth.currentUser)
   const currentFactory = useSelector(state => state.data.currentFactory)
-  const currentChecklistDraft = useSelector(state => state.data.currentChecklistRecordDraft)
   const currentPreloadChecklistAssignment = useSelector(state => state.data.preloadChecklistAssignment)
 
   // Params
@@ -47,7 +55,8 @@ const Introduction = ({ navigation, route }) => {
     draftId,
     todayDone,
     subTabIndex,
-    index
+    index,
+    refreshCounter
   } = route.params
 
   // State
@@ -65,6 +74,28 @@ const Introduction = ({ navigation, route }) => {
   const [factoryTags, setFactoryTags] = React.useState()
   const [questions, setQuestions] = React.useState()
   const [loading, setLoading] = React.useState(true)
+  const hasShownLocationReminderRef = React.useRef(false)
+
+  const $_getRefreshCounter = () => Math.floor(Math.random() * (100 - 1 + 1)) + 1
+  const $_resetToCheckListAssignment = () => {
+    navigation.reset({
+      index: 0,
+      routes: [
+        {
+          name: 'CheckListAssignment',
+          params: {
+            refreshCounter: $_getRefreshCounter(),
+          }
+        }
+      ],
+      key: null
+    })
+  }
+  const $_getNoChecklistParams = () => ({
+    checklist_record_id: assignment && assignment.checklist_record ? assignment.checklist_record.id : null,
+    remark: remark,
+    images: remarkImages ? remarkImages.map(item => item.id) : [],
+  })
 
   // 取得存於API的RiskLevel & Score
   const $_fetchConstantData = async () => {
@@ -101,112 +132,174 @@ const Introduction = ({ navigation, route }) => {
           _checklistDetail.factory_tags.length > 0) {
           setFactoryTags(_checklistDetail.factory_tags)
         }
+
         const _params = {
-          checklist_assignment: id,
           checklist_version_id: res.checklist_version.id,
-          schedule_setting_id: res.general_schedule_setting.id,
-          checklist_record_draft: draftId ? draftId : undefined,
-          get_all: 1
+          general_schedule_setting: res.general_schedule_setting.id,
         }
-        console.log(_params, 'IndexByScheduleSettingV3 Params');
-        const _checklistQuestionVersion = await S_CheckListQuestion.IndexByScheduleSettingV3({
-          params: _params
-        })
-        // VALIDATE CAN RECORD OR NOT
+        console.log(_params, 'indexByChecklistVersion-params');
+        const _checklistQuestionVersion = await S_ChecklistQuestionVersion.indexByChecklistVersion({ params: _params })
+
         let _validateNoNeedToCheck = S_CheckListQuestion.validateNoNeedToCheck(_checklistQuestionVersion.data)
         setNoNeedToCheckBtnDisable(_validateNoNeedToCheck)
-        // FORMATTED FOR VIEW
-        let _formattedQuestions = await S_CheckListQuestion.formattedQuestion001(_checklistQuestionVersion.data)
+
+        let _formattedQuestions = _checklistQuestionVersion.data
         setQuestions(_formattedQuestions)
+
+        let _recordDraftId = res && res.checklist_record ? res.checklist_record.id : null
+        if (_recordDraftId) {
+          console.log(_recordDraftId, '_recordDraftId')
+          try {
+            const _checklistRecordAnswerDraft = await S_CheckListRecordAns.indexV2({ parentId: _recordDraftId })
+            let _formattedQuestionsWithDraft = await S_CheckListQuestion.formattedQuestionWithIndexV2(
+              _checklistRecordAnswerDraft.data,
+              _formattedQuestions
+            )
+            setQuestions(_formattedQuestionsWithDraft)
+          } catch (e) {
+            console.error(e, 'e');
+          }
+        }
+
         setLoading(false)
       }
     } catch (e) {
-      // 251103
       Alert.alert(t('伺服器忙碌中，請稍候再試'))
       navigation.goBack()
       console.error(e, 'e');
-      // if (currentPreloadChecklistAssignment && currentPreloadChecklistAssignment[index] && currentPreloadChecklistAssignment[index].assignment) {
-      //   const _assignment = currentPreloadChecklistAssignment[index].assignment
-      //   setAssignment(_assignment)
-      //   setLoading(false)
-      // }
     }
   }
 
   // FUNC
   const $_onProcedurePress = () => {
-    navigation.push('RoutesCheckList', {
-      screen: 'CheckListAssignmentPreview',
-      params: {
-        id: assignment && assignment.checklist ? assignment.checklist.id : null,
-        versionId: assignment && assignment.checklist && assignment.checklist.last_version ? assignment.checklist.last_version.id : null,
-        _checklist_assignment_id: id,
-        _reviewers: assignment.reviewers ? assignment.reviewers : null,
-        _checkers: assignment.checkers ? assignment.checkers : null,
-        assignment: assignment,
-        _questions: questions ? questions : currentPreloadChecklistAssignment && currentPreloadChecklistAssignment[index] && currentPreloadChecklistAssignment[index]?.questions ? currentPreloadChecklistAssignment[index].questions : [],
-        _draftId: draftId ? draftId : null,
-        _todayDone: todayDone ? true : false,
-        _constantData: constantData ? constantData : null,
-        subTabIndex: subTabIndex ? subTabIndex : 0,
-        index: index
-      }
+    navigation.navigate('CheckListAssignmentPreview', {
+      id: assignment && assignment.checklist ? assignment.checklist.id : null,
+      versionId: assignment && assignment.checklist && assignment.checklist.last_version ? assignment.checklist.last_version.id : null,
+      _checklist_assignment_id: id,
+      _reviewers: assignment.reviewers ? assignment.reviewers : null,
+      _checkers: assignment.checkers ? assignment.checkers : null,
+      assignment: assignment,
+      _questions: questions ? questions : currentPreloadChecklistAssignment && currentPreloadChecklistAssignment[index] && currentPreloadChecklistAssignment[index]?.questions ? currentPreloadChecklistAssignment[index].questions : [],
+      _draftId: draftId ? draftId : null,
+      _todayDone: todayDone ? true : false,
+      _constantData: constantData ? constantData : null,
+      subTabIndex: subTabIndex ? subTabIndex : 0,
+      index: index,
+      checklistRecordId: assignment && assignment.checklist_record ? assignment.checklist_record.id : null
     })
   }
 
   // SUBMIT
   const $_onHeaderRightPress = async () => {
-    // 過濾填答者為自己 或 無指定答題者的題目
-    const _formattedQuestions = await S_CheckListRecord.formattedQuestionsForAPI(
-      currentChecklistDraft ? currentChecklistDraft : questions,
-      currentUser.id
-    )
-    // 整理成送出API的格式
-    const _submitValue = S_CheckListRecord.setSubmitValue(
-      assignment.checklist,
-      currentUser.id,
-      currentFactory.id,
-      currentChecklistDraft,
-      assignment.checklist.last_version,
-      questions,
-      _formattedQuestions,
-      draftId,
-      assignment.id,
-      remark,
-      status,
-      remarkImages,
-      assignment.reviewers,
-    )
-    console.log(JSON.stringify(_submitValue), '_submitValue=');
+    const _nochecklistParams = $_getNoChecklistParams()
+    let _canContinue = false
     try {
-      const res = await S_CheckListRecordAns.batchStoreV2({ params: _submitValue })
-        .then(res => {
-          // Alert.alert(res, t('作業送出成功'))
-          store.dispatch(setCurrentChecklistRecordDraft(null))
-        })
-        .catch(err => {
-          Alert.alert(t('作業送出發生錯誤'))
-        })
-    } catch (e) {
-      console.error(e);
-      Alert.alert(t('作業送出發生錯誤'))
-      store.dispatch(setCurrentChecklistRecordDraft(null))
+      console.log(_nochecklistParams, '_nochecklistParams')
+      await S_CheckListRecord.noChecklist({ params: _nochecklistParams })
+      _canContinue = true
+    } catch (error) {
+      const _message = error?.response?.data?.message || error?.message
+      if (_message === 'Record is already completed') {
+        console.warn('noChecklist skipped: record already completed')
+        _canContinue = true
+      } else {
+        console.error(error)
+        Alert.alert(t('作業送出發生錯誤'))
+      }
+    } finally {
+      setSubmitLoading(false)
     }
-    setSubmitLoading(false)
-    navigation.reset({
-      index: 0,
-      routes: [
+
+    if (!_canContinue) {
+      return
+    }
+
+    $_resetToCheckListAssignment()
+  }
+
+  // LatLng
+  const $_remindLocationPermission = () => {
+    if (hasShownLocationReminderRef.current) {
+      return
+    }
+    hasShownLocationReminderRef.current = true
+    Alert.alert(
+      t('定位權限未開啟'),
+      t('未開啟定位權限仍可繼續作業，若需定位資訊可至系統設定開啟。'),
+      [
         {
-          name: 'CheckListAssignment',
+          text: t('取消'),
+          style: 'cancel'
+        },
+        {
+          text: t('前往設定'),
+          onPress: async () => {
+            try {
+              await openSettings()
+            } catch (error) {
+              console.error(error)
+            }
+          }
         }
-      ],
-      key: null
-    })
+      ]
+    )
+  }
+
+  const $_requestLocationPermission = async () => {
+    let permission;
+    if (Platform.OS === 'ios') {
+      permission = PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
+    } else if (Platform.OS === 'android') {
+      permission = PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
+    }
+    const result = await check(permission);
+    if (result === RESULTS.GRANTED) {
+      return true;
+    }
+    if (result === RESULTS.DENIED || result === RESULTS.LIMITED) {
+      const requestResult = await request(permission);
+      if (requestResult === RESULTS.GRANTED) {
+        return true
+      }
+      $_remindLocationPermission()
+      return false
+    }
+    if (result === RESULTS.BLOCKED) {
+      $_remindLocationPermission()
+      return false;
+    }
+    // unavailable 或其他情況
+    $_remindLocationPermission()
+    return false;
+  };
+
+  const $_getLocation = async () => {
+    const granted = await $_requestLocationPermission();
+    if (!granted) {
+      console.log('使用者未授權定位');
+      return;
+    }
+    try {
+      const myLocation = await getLocation()
+      store.dispatch(setCurrentLatLng(myLocation))
+      if (currentFactory?.lat && currentFactory?.lng) {
+        const targetLocation = {
+          latitude: currentFactory?.lat,
+          longitude: currentFactory?.lng,
+        };
+        const distance = getDistance(myLocation, targetLocation);
+        console.log(`距離目前單位約 ${distance} 公尺`);
+      }
+    } catch (e) {
+      console.log(e, 'e');
+      $_remindLocationPermission()
+    }
   }
 
   React.useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       console.log('進入Intro頁');
+      $_getLocation()
       $_fetchConstantData()
       $_fetchApi()
     });
@@ -215,11 +308,14 @@ const Introduction = ({ navigation, route }) => {
   }, [navigation, id]);
 
   React.useEffect(() => {
-    if (remark && remark.trim()) {
-      setRightOnPressIsDisabled(false)
-    } else {
-      setRightOnPressIsDisabled(true);
+    if (refreshCounter) {
+      $_fetchConstantData()
+      $_fetchApi()
     }
+  }, [refreshCounter])
+
+  React.useEffect(() => {
+    setRightOnPressIsDisabled(!(remark && remark.trim()))
   }, [remark]);
 
   return (
@@ -404,7 +500,7 @@ const Introduction = ({ navigation, route }) => {
             headerLeftOnPress={() => {
               setStateModal(false)
             }}
-            headerRightText={t('送出')}
+            headerRightText={t('完成')}
             RightOnPressIsDisabled={RightOnPressIsDisabled}
             headerRightOnPress={() => {
               setSubmitLoading(true)
@@ -413,6 +509,31 @@ const Introduction = ({ navigation, route }) => {
             }}
             animationType="slide"
           >
+            <WsFlex style={[
+              {
+                flexWrap: 'nowrap',
+                paddingTop: 16,
+                paddingHorizontal: 16,
+                maxWidth: width * 0.9,
+              }
+            ]}
+            >
+              <WsIcon
+                name="md-info-outline"
+                color={$color.danger}
+                style={{
+                  marginRight: 6
+                }}
+                size={24}
+              />
+              <WsText
+                color={$color.danger}
+                style={{
+                }}
+                size={14}
+              >{t('注意，送出後，將移除已回答題目的所有內容')}</WsText>
+            </WsFlex>
+
             <WsState
               label={t('輸入備註')}
               labelIcon={'ws-outline-edit-pencil'}
@@ -439,7 +560,6 @@ const Introduction = ({ navigation, route }) => {
                 setRemarkImages($event)
               }}
               modelName="checklist_record_answer"
-            // uploadUrl={`factory/${currentFactory.id}/checklist_record_answer/image`}
             />
           </WsModal>
         </>

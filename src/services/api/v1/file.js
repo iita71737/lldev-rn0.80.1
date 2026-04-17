@@ -1,6 +1,8 @@
 import base from '@/__reactnative_stone/services/wasaapi/v1/__base'
 import S_LicenseTemVer from '@/services/api/v1/license_template_version'
 import S_Processor from '@/services/app/processor'
+import axios from 'axios'
+import { Platform } from 'react-native'
 
 export default {
   async index({ params }) {
@@ -22,11 +24,48 @@ export default {
     })
   },
   async storeSystemFile({ params }) {
-    // const _filename = encodeURIComponent(params.filename)
-    return base.createWithFormData({
-      modelName: `file/store_system_file/${params.filename}`,
-      data: params.formData
-    })
+    const encodedFilename = encodeURIComponent(params.filename || '')
+    const modelName = `file/store_system_file/${encodedFilename}`
+    try {
+      return await base.createWithFormData({
+        modelName,
+        data: params.formData
+      })
+    } catch (err) {
+      const isAndroidNetworkError =
+        Platform.OS === 'android' &&
+        (err?.message?.includes('Network Error') || err?.code === 'ERR_NETWORK')
+
+      if (!isAndroidNetworkError) {
+        throw err
+      }
+
+      // Android + Axios + FormData occasionally throws ERR_NETWORK; retry with fetch.
+      const baseURL = (axios.defaults.baseURL || '').replace(/\/+$/, '')
+      const url = `${baseURL}/${modelName}`
+      const authToken = axios.defaults.headers?.common?.Authorization
+      const headers = authToken ? { Authorization: authToken } : undefined
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: params.formData
+      })
+
+      let json
+      try {
+        json = await response.json()
+      } catch (_jsonErr) {
+        json = null
+      }
+
+      if (!response.ok) {
+        const message = json?.message || `storeSystemFile failed (${response.status})`
+        throw new Error(message)
+      }
+
+      return json?.data
+    }
   },
   async indexFromShare({ params }) {
     return base.index({

@@ -27,8 +27,8 @@ import {
 } from '@/store/data'
 import store from '@/store'
 import moment from 'moment'
-import S_CheckListRecordDraft from '@/services/api/v1/checklist_record_draft'
 import { useNavigation } from '@react-navigation/native'
+import S_CheckListRecord from '@/services/api/v1/checklist_record'
 
 const LlCheckListCard002 = props => {
   const { t, i18n } = useTranslation()
@@ -93,23 +93,13 @@ const LlCheckListCard002 = props => {
   // 刪除草稿
   const $_deleteChecklistDraft = async () => {
     try {
-      const _res = await S_CheckListRecordDraft.delete({ modelId: item.id })
+      await S_CheckListRecord.delete({ modelId: item.id })
+      setPopupActive002(false)
+      store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
     } catch (error) {
       console.log(error, 'S_CheckListRecordDraft.delete')
+      Alert.alert(t('刪除草稿失敗'))
     }
-    navigation.reset({
-      index: 0,
-      routes: [
-        {
-          name: 'CheckListAssignment',
-          params: {
-            subTabIndex: 1
-          }
-        }
-      ],
-      key: null
-    })
-    store.dispatch(setRefreshCounter(currentRefreshCounter + 1))
   }
 
   return (
@@ -288,11 +278,12 @@ const LlCheckListCard002 = props => {
             <WsInfo
               testID={'覆核者'}
               avatarSize={42}
-              labelWidth={60}
+              labelWidth={68}
               labelSize={12}
               style={{
                 flexDirection: 'row',
-                marginTop: 8
+                marginTop: 8,
+                // borderWidth:1
               }}
               label={t('覆核者')}
               labelFontWeight={300}
