@@ -250,6 +250,13 @@ const ChecklistPreview = ({ navigation, route }) => {
       setBtnRightDisable(false)
     }
   }
+  const $_getRemarkImagesForPayload = (_images = []) => {
+    if (!Array.isArray(_images)) return []
+    return _images
+      .map(item => item?.id || item?.file?.id)
+      .filter(Boolean)
+      .map(fileId => ({ file: fileId }))
+  }
 
   // 不需點檢
   const $_noChecklist = async () => {
@@ -273,12 +280,12 @@ const ChecklistPreview = ({ navigation, route }) => {
       const _nochecklistParams = {
         checklist_record_id: _checklistRecordId,
         remark: remark,
-        images: remarkImages ? remarkImages.map(item => item.id) : [],
+        images: $_getRemarkImagesForPayload(remarkImages),
       }
       await S_CheckListRecord.noChecklist({ params: _nochecklistParams })
       store.dispatch(setCurrentChecklistRecordDraft(null))
-      $_resetToCheckListAssignment({ initTabIndex: 2 })
       Alert.alert(t('作業已送出'))
+      $_resetToCheckListAssignment({ initTabIndex: 2 })
     } catch (error) {
       console.error('noChecklist failed', error)
       Alert.alert(t('不需點檢送出失敗'))
@@ -327,14 +334,14 @@ const ChecklistPreview = ({ navigation, route }) => {
         setTimeout(() => reject(new Error('Request timeout')), COMPLETE_TIMEOUT_MS)
       })
       const res = await Promise.race([_completePromise, _timeoutPromise])
-      console.log(res, 'resresres')
+      // console.log(res, 'resresres')
       if (draftId && _checkers && currentUser && _checkers.length > 1) {
         Alert.alert(t(`請注意，若部分題號已經有人答題，本次送出將不會覆蓋他人先前已送出的答案。`));
       }
       store.dispatch(setCurrentChecklistRecordDraft(null));
       setQuestions([])
-      _shouldNavigate = true
       Alert.alert(t('作業已送出'))
+      _shouldNavigate = true
     } catch (e) {
       console.error(e)
       Alert.alert(t('作業送出失敗，請稍後再試'))
@@ -355,7 +362,9 @@ const ChecklistPreview = ({ navigation, route }) => {
             testID="backButton"
             name={'md-arrow-back'}
             onPress={() => {
-              setPopupActive(true)
+              // setPopupActive(true)
+              // 260417-opt
+              $_onHeaderLeftPress()
             }}
             size={22}
             color={$color.white}
@@ -503,11 +512,12 @@ const ChecklistPreview = ({ navigation, route }) => {
               <WsPaddingContainer
                 backgroundColor={$color.white}
                 style={{
+                  paddingTop:8,
                   paddingBottom: 0,
                 }}
               >
                 <WsText size={24}
-                  style={{ marginBottom: 8 }}>
+                  style={{ marginBottom: 4 }}>
                   {assignment.checklist.name}
                 </WsText>
                 <WsFlex
@@ -554,6 +564,7 @@ const ChecklistPreview = ({ navigation, route }) => {
                 btnRightOnPress={() => {
                   _todayDone ? $_goBack() : $_onHeaderRightPress()
                 }}
+                remind={t('注意，『完成』送出前，作業狀態維持『進行中』')}
               />
             </View>
           </>

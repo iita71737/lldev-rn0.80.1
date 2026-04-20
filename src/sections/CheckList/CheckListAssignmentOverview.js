@@ -41,6 +41,8 @@ import moment from 'moment'
 import store from '@/store'
 import { setCurrentChecklistRecordDraft, setCurrentCheckListQuestions } from '@/store/data'
 
+const SKELETON_MIN_SHOW_MS = 180
+
 const CheckListAssignmentOverview = (props) => {
   const { t, i18n } = useTranslation()
   const { width, height } = Dimensions.get('window')
@@ -49,6 +51,24 @@ const CheckListAssignmentOverview = (props) => {
     answersRiskHeader,
     passRate,
   } = props
+  
+  const [loading, setLoading] = React.useState(true)
+  const stableAnswersRiskHeader = React.useMemo(
+    () => (Array.isArray(answersRiskHeader) ? answersRiskHeader : []),
+    [answersRiskHeader]
+  )
+  const stableRecord = React.useMemo(
+    () => ({ pass_rate: passRate }),
+    [passRate]
+  )
+
+  React.useEffect(() => {
+    setLoading(true)
+    const timer = setTimeout(() => {
+      setLoading(false)
+    }, SKELETON_MIN_SHOW_MS)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Functions
   const $_filterChecklistChecker = checkers => {
@@ -58,25 +78,27 @@ const CheckListAssignmentOverview = (props) => {
 
   return (
     <>
-      <ScrollView>
-        <WsPaddingContainer
-          style={{
-            backgroundColor: $color.white,
-            marginVertical: 16
-          }}>
-          <LlRiskHeaderCalc
-            answers={answersRiskHeader ? answersRiskHeader : []}
-            record= {
-              {
-                pass_rate: passRate
-              }
-            }
-          />
-          <LlEffectWithCheckListCalc
-            answers={answersRiskHeader ? answersRiskHeader : []}
-          />
-        </WsPaddingContainer>
-      </ScrollView>
+      {loading ? (
+        <SafeAreaView>
+          <WsSkeleton />
+        </SafeAreaView>
+      ) : (
+        <ScrollView>
+          <WsPaddingContainer
+            style={{
+              backgroundColor: $color.white,
+              marginVertical: 16
+            }}>
+            <LlRiskHeaderCalc
+              answers={stableAnswersRiskHeader}
+              record={stableRecord}
+            />
+            <LlEffectWithCheckListCalc
+              answers={stableAnswersRiskHeader}
+            />
+          </WsPaddingContainer>
+        </ScrollView>
+      )}
     </>
   )
 }

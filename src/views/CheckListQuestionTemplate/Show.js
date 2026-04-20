@@ -43,8 +43,6 @@ const CheckListQuestionTemplateShow = ({ navigation, route, id: propsId }) => {
   const id = propsId || route?.params?.id;
   const simplifyInfo = route?.params?.simplifyInfo
 
-  console.log(simplifyInfo, 'simplifyInfo---');
-
   // State
   const [relatedTemplateCollapsed, setRelatedTemplateCollapsed] = React.useState(true)
   const [checkListQuestion, setCheckListQuestion] = React.useState(null)

@@ -32,6 +32,7 @@ const WsModalFooter = props => {
     remind,
     remindColor = $color.danger,
     remindBtnDisabled = false,
+    remindOnPress,
     autoFocus = false,
   } = props
 
@@ -42,31 +43,39 @@ const WsModalFooter = props => {
         <>
           <TouchableOpacity
             onPress={() => {
-              if (!remindBtnDisabled) {
-                setVisible(true)
+              if (!remindBtnDisabled && typeof remindOnPress === 'function') {
+                remindOnPress()
               }
             }}
             style={{
-              top: 8,
-              alignSelf: 'flex-end',
+              width: '100%',
+              paddingTop: 8,
+              paddingHorizontal: 16,
+              marginBottom: 8,
               zIndex: 999,
-              // backgroundColor:'pink'
+              borderTopWidth: 0.5,
+              borderTopColor: $color.gray2l,
             }}
           >
             <WsFlex
-              style={{}}
+              justifyContent="flex-end"
+              style={{
+                width: '100%',
+                // flexWrap: 'wrap' //260420-checklist-record-issue
+              }}
             >
               <WsIcon
                 name="md-info-outline"
                 color={remindColor}
                 style={{
-                  marginRight: 6
+                  marginRight: 4
                 }}
                 size={20}
               />
               <WsText
                 style={{
-                  paddingRight: 16,
+                  flexShrink: 1,
+                  // textAlign: 'right' //260420-checklist-record-issue
                 }}
                 size={12}
                 color={remindColor}>
@@ -85,7 +94,6 @@ const WsModalFooter = props => {
             borderTopWidth: 0.5,
             borderTopColor: $color.gray2l,
             // borderWidth:2,
-            // backgroundColor:'pink',
           },
           style
         ]}

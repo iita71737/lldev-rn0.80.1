@@ -63,6 +63,7 @@ const LlCheckListCard002 = props => {
 
   const [onPressPreloadLoading, setOnPressPreloadLoading] = React.useState(false)
   const [downloaded, setDownloaded] = React.useState(currentPreloadChecklistAssignmentDraft.some(_item => _item.id === item.id))
+  const hasPeriod = !!item?.checklist_assignment?.start_time && !!item?.checklist_assignment?.end_time
 
   // 離線作業下載(草稿)
   const $_preloadDraft = async (draftId) => {
@@ -157,8 +158,11 @@ const LlCheckListCard002 = props => {
 
           <WsFlex>
             <WsText
+              size={16}
+              fontWeight="400"
               testID={name}
               style={{
+                // borderWidth:1
               }}
             >{`${name}`}</WsText>
             {tagIcon && tagText && (
@@ -172,37 +176,49 @@ const LlCheckListCard002 = props => {
             )}
           </WsFlex>
 
-          <WsSpec
-            labelWidth={64}
-            style={{
-              marginTop: 8
-            }}
-            title={t('時段')}>
-            {item.checklist_assignment?.start_time ? `${moment(item.checklist_assignment?.start_time).format('HH:mm')}-${moment(item.checklist_assignment?.end_time).format('HH:mm')}` : '無'}
-          </WsSpec>
-          <WsSpec
-            labelWidth={64}
-            style={{
-              marginTop: 8
-            }}
-            title={t('期限')}>
-            {deadline ? deadline : '無'}
-          </WsSpec>
+          {hasPeriod && (
+            <WsSpec
+              colorText={$color.black}
+              titleSize={14}
+              fontSize={14}
+              labelWidth={64}
+              style={{
+                marginTop: 8
+              }}
+              title={t('時段')}>
+              {`${moment(item.checklist_assignment?.start_time).format('HH:mm')}-${moment(item.checklist_assignment?.end_time).format('HH:mm')}`}
+            </WsSpec>
+          )}
+
+          {deadline && (
+            <WsSpec
+              colorText={$color.black}
+              titleSize={14}
+              fontSize={14}
+              labelWidth={64}
+              style={{
+                marginTop: 8,
+                // borderWidth:1,
+              }}
+              title={t('期限')}>
+              {deadline}
+            </WsSpec>
+          )}
 
           <View
             style={{
               flexDirection: 'row',
-              // alignItems: 'center'
               marginTop: 8,
             }}
           >
-            <WsText size={12}
-              fontWeight="300"
+            <WsText 
+              size={14}
+              fontWeight="400"
               color={$color.gray3d}
               style={[
                 {
                   marginRight: 8,
-                  width: 64,
+                  width: 72,
                 },
               ]}
             >
@@ -235,7 +251,7 @@ const LlCheckListCard002 = props => {
                           >
                             <WsText
                               testID={`答題者-${index}`}
-                              size={12}
+                              size={14}
                               style={{
                                 paddingLeft: 8
                               }}
@@ -278,8 +294,8 @@ const LlCheckListCard002 = props => {
             <WsInfo
               testID={'覆核者'}
               avatarSize={42}
-              labelWidth={68}
-              labelSize={12}
+              labelWidth={80}
+              labelSize={14}
               style={{
                 flexDirection: 'row',
                 marginTop: 8,
@@ -292,6 +308,20 @@ const LlCheckListCard002 = props => {
               value={reviewers ? reviewers : []}
             />
           )}
+
+          <WsInfo
+            labelWidth={84}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+            labelSize={14}
+            labelFontWeight={400}
+            labelColor={$color.gray3d}
+            label={t('建立時間')}
+            value={moment(item.created_at).format('YYYY-MM-DD HH:mm')}
+            type="dateTime"
+          />
 
           <LlBtn001
             style={{

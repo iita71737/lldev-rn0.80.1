@@ -8,7 +8,8 @@ import {
   WsInfoUser,
   WsCenter,
   LlCheckListRecordCard002,
-  LlRiskHeaderCalc
+  LlRiskHeaderCalc,
+  WsSkeleton
 } from '@/components'
 import { useSelector } from 'react-redux'
 import S_CheckListRecordAns from '@/services/api/v1/checklist_record_answer'
@@ -21,6 +22,7 @@ const LlEffectWithCheckListCalc = props => {
 
   // State
   const [riskWithEffect, setRiskWithEffect] = React.useState()
+  const [loading, setLoading] = React.useState(true)
 
   // Redux
   const currentUser = useSelector(state => state.data.currentUser)
@@ -28,6 +30,9 @@ const LlEffectWithCheckListCalc = props => {
 
   // Services
   const $fetchRiskWithEffect = async () => {
+    if (!currentFactory?.id || !Array.isArray(answers)) {
+      return
+    }
     const effects = await S_Effect.index({
       factory: currentFactory.id,
       lang: currentUser?.locale?.code ? currentUser?.locale?.code : 'tw'
@@ -41,18 +46,42 @@ const LlEffectWithCheckListCalc = props => {
       effects: _effects,
       answers: answers
     })
-    Promise.all([effects, res]).then(setRiskWithEffect(res))
+    setRiskWithEffect(res)
   }
 
   React.useEffect(() => {
-    $fetchRiskWithEffect()
-  }, [answers])
+    let isMounted = true
+    const run = async () => {
+      if (!Array.isArray(answers) || !currentFactory?.id) {
+        if (isMounted) {
+          setLoading(true)
+        }
+        return
+      }
+      if (isMounted) {
+        setLoading(true)
+      }
+      try {
+        await $fetchRiskWithEffect()
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
+      }
+    }
+    run()
+    return () => {
+      isMounted = false
+    }
+  }, [answers, currentFactory?.id, currentUser?.locale?.code])
 
   return (
     <>
-      {riskWithEffect && (
+      {loading ? (
+        <WsSkeleton />
+      ) : (
         <>
-          {riskWithEffect.map((risk, riskIndex) => {
+          {(riskWithEffect || []).map((risk, riskIndex) => {
             return (
               <LlCheckListRecordCard002
                 key={riskIndex}

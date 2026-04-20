@@ -53,7 +53,8 @@ const CheckListAssignmentResultSort = props => {
                     <WsFlex
                       style={{
                         paddingVertical: 8,
-                        paddingHorizontal: 16
+                        paddingHorizontal: 16,
+                        // borderWidth:1,
                       }}>
                       <WsIcon
                         name={item.icon}

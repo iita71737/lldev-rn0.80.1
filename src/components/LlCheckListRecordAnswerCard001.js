@@ -523,7 +523,7 @@ const LlCheckListRecordAnswerCard001 = props => {
             <View
               style={{
               }}>
-              {question &&
+              {/* {question &&
                 question.remark && (
                   <WsInfo
                     style={{
@@ -536,7 +536,7 @@ const LlCheckListRecordAnswerCard001 = props => {
                         : t('無')
                     }
                   />
-                )}
+                )} */}
 
               {/* 250523-issue */}
               {question &&
@@ -590,6 +590,20 @@ const LlCheckListRecordAnswerCard001 = props => {
                   value={answer.remark ? answer.remark : t('無')}
                 />
               )}
+
+              {/* 260420-issue */}
+              {answer &&
+                answer.file_images &&
+                answer.file_images.length > 0 && (
+                  <WsInfo
+                    label={t('附件')}
+                    type="filesAndImages"
+                    style={{
+                      marginTop: 8
+                    }}
+                    value={answer.file_images}
+                  />
+                )}
 
               {answer.images && answer.images.length > 0 && (
                 <WsFlex

@@ -77,6 +77,13 @@ const IntroductionTemp = ({ navigation, route }) => {
   const hasShownLocationReminderRef = React.useRef(false)
 
   const $_getReviewerIdsForPayload = () => reviewers ? reviewers.map(item => item.id) : []
+  const $_getRemarkImagesForPayload = (_images = []) => {
+    if (!Array.isArray(_images)) return []
+    return _images
+      .map(item => item?.id || item?.file?.id)
+      .filter(Boolean)
+      .map(fileId => ({ file: fileId }))
+  }
   const $_getChecklistRecordCreateParams = (_checklistVersionId) => ({
     checklist: id,
     checklist_version: _checklistVersionId,
@@ -231,14 +238,15 @@ const IntroductionTemp = ({ navigation, route }) => {
       const _nochecklistParams = {
         checklist_record_id: _result.id,
         remark: remark,
-        images: remarkImages ? remarkImages.map(item => item.id) : [],
+        images: $_getRemarkImagesForPayload(remarkImages),
       }
+      console.log(_nochecklistParams, '_nochecklistParams')
       await S_CheckListRecord.noChecklist({ params: _nochecklistParams })
       store.dispatch(setCurrentChecklistRecordDraft(null))
       $_resetToCheckListAssignment()
+      Alert.alert(t('作業已送出'))
     } catch (error) {
       console.error('Failed to create checklist record draft:', error)
-      Alert.alert(t('建立點檢記錄失敗'))
     } finally {
       setSubmitLoading(false)
     }
@@ -471,6 +479,7 @@ const IntroductionTemp = ({ navigation, route }) => {
               borderRadius={30}
               onPress={$_onProcedurePress}
               style={{
+                marginBottom: Platform.OS === 'ios' ? 16 : 48,
               }}
             >
               {t('開始')}

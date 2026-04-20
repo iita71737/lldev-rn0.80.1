@@ -31,15 +31,23 @@ const CheckListAssignmentHasDraftList = props => {
   const currentConnectionState = useSelector(state => state.data.connectionState)
   const currentPreloadChecklistAssignmentDraft = useSelector(state => state.data.preloadChecklistAssignmentDraft)
   const currentRefreshCounter = useSelector(state => state.data.refreshCounter)
+  const fallbackCurrentUserChecker = currentUser ? [
+    {
+      avatar: currentUser.avatar,
+      id: currentUser.id,
+      name: currentUser.name
+    }
+  ] : []
 
   // MEMO
   const _params = React.useMemo(() => {
     const params = {
-      // checker: currentUser && currentUser.id ? currentUser.id : null
       factory_id: factory ? factory.id : null,
+      order_by: 'updated_at',
+      order_way: 'desc',
     }
     return params
-  }, [currentRefreshCounter, currentUser.id]);
+  }, [currentRefreshCounter, currentUser?.id, factory?.id]);
 
   // helper
   const $_setFrequency = (frequency, expired_before_days) => {
@@ -57,7 +65,7 @@ const CheckListAssignmentHasDraftList = props => {
     return (
       <FlatList
         data={currentPreloadChecklistAssignmentDraft}
-        keyExtractor={(item) => item}
+        keyExtractor={(item, index) => String(item?.id || item?.assignment?.id || index)}
         renderItem={({ item, index }) => {
           return (
             <View key={item.assignment?.id} >
@@ -75,7 +83,7 @@ const CheckListAssignmentHasDraftList = props => {
                 name={item.assignment?.name}
                 tagIcon={item.assignment?.tagIcon}
                 tagText={item.assignment?.tagText}
-                checkers={item.checklist_assignment?.checkers ? item.checklist_assignment?.checkers : currentUser ? currentUser : []}
+                checkers={item?.checklist_assignment?.checkers ? item.checklist_assignment.checkers : fallbackCurrentUserChecker}
                 reviewers={
                   item.assignment?.reviewers
                     ? item.assignment.reviewers
@@ -94,9 +102,13 @@ const CheckListAssignmentHasDraftList = props => {
                   item.assignment?.expired_before_days
                 )}
                 onPress={() => {
-                  if (item.assignment?.checklist_assignment) {
+                  const _assignmentId =
+                    item?.checklist_assignment?.id ||
+                    item?.assignment?.checklist_assignment?.id ||
+                    null
+                  if (_assignmentId) {
                     navigation.push('CheckListAssignmentIntroduction', {
-                      id: item.checklist_assignment && item.checklist_assignment.id ? item.checklist_assignment.id : null,
+                      id: _assignmentId,
                       draftId: item.assignment?.id,
                       subTabIndex: subTabIndex,
                     })
@@ -129,7 +141,9 @@ const CheckListAssignmentHasDraftList = props => {
           params={_params}
           renderItem={({ item, index }) => {
             return (
-              <View key={item.id} >
+              <View
+                key={item.id}
+              >
                 <LlCheckListCard002
                   testID={`LlCheckListCard002-${index}`}
                   key={item.id}
@@ -140,46 +154,40 @@ const CheckListAssignmentHasDraftList = props => {
                       : {
                         marginTop: 12
                       }
-                  ]}
-                  draft={true}
-                  name={item.checklist.name}
-                  tagIcon={item.tagIcon}
-                  tagText={item.tagText}
-                  checkers={
-                    item.checklist_assignment?.checkers ? item.checklist_assignment.checkers :
-                      currentUser ? [
-                        {
-                          avatar: currentUser.avatar,
-                          id: currentUser.id,
-                          name: currentUser.name
-                        }
-                      ] : []}
-                  reviewers={
-                    item.assignment?.reviewers
-                      ? item.assignment.reviewers
-                      : item.reviewers ?
+                ]}
+                draft={true}
+                name={item?.checklist?.name}
+                tagIcon={item.tagIcon}
+                tagText={item.tagText}
+                checkers={
+                  item.checklist_assignment?.checkers ? item.checklist_assignment.checkers :
+                    fallbackCurrentUserChecker}
+                reviewers={
+                  item.assignment?.reviewers
+                    ? item.assignment.reviewers
+                    : item.reviewers ?
                         item.reviewers : []
-                  }
-                  owner={
-                    item.checklist.owner ? item.checklist.owner.name : t('無')
-                  }
-                  frequency={$_setFrequency(
-                    item.checklist.frequency,
-                    item.checklist.expired_before_days
-                  )}
-                  deadline={item.checklist_assignment?.record_at ? moment(item.checklist_assignment?.record_at).format('YYYY-MM-DD') : '無'}
+                }
+                owner={
+                  item?.checklist?.owner ? item.checklist.owner.name : t('無')
+                }
+                  // frequency={$_setFrequency(
+                  //   item.checklist.frequency,
+                  //   item.checklist.expired_before_days
+                  // )}
+                  // deadline={item.checklist_assignment?.record_at ? moment(item.checklist_assignment?.record_at).format('YYYY-MM-DD') : '無'}
                   onPress={() => {
                     if (item.checklist_assignment) {
-                      console.log(item, 'AAAA')
+                      // console.log(item, 'AAAA')
                       navigation.push('CheckListAssignmentIntroduction', {
                         id: item.checklist_assignment && item.checklist_assignment.id ? item.checklist_assignment.id : null,
                         draftId: item.id,
                         subTabIndex: subTabIndex,
                       })
                     } else {
-                      console.log(item, 'BBBB')
+                      // console.log(item, 'BBBB')
                       navigation.push('CheckListAssignmentIntroductionTemp', {
-                        id: item.checklist.id,
+                        id: item?.checklist?.id,
                         draftId: item.id,
                         subTabIndex: subTabIndex,
                         index: index,

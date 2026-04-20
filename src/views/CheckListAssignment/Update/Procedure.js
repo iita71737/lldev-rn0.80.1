@@ -48,6 +48,7 @@ const Procedure = ({ route, navigation }) => {
 
   const [currentTabIndex, setCurrentTabIndex] = React.useState(0)
   const [tabItems, setTabItems] = React.useState([])
+  const topBtnSubmitPromiseRef = React.useRef(null)
 
   // Services
   const $_findQuestionIndex = (_questions = [], _questionId) => {
@@ -133,91 +134,115 @@ const Procedure = ({ route, navigation }) => {
   }
 
   const $_onTopBtnPress = async (tabItemsState = []) => {
-    const _currentQuestions = questions || []
-    try {
-      const _question = questions?.[currentTabIndex]
-      if (!_question) return _currentQuestions
-
-      const _checklistRecord = route.params?.checklistRecordId
-        || _question?.checklist_record_id
-        || _question?.checklist_record?.id
-
-      if (!_checklistRecord) {
-        console.warn('Missing checklist_record for S_CheckListRecordAns.create')
-        return _currentQuestions
-      }
-
-      const _questionValue = typeof _question?.answer_value === 'string'
-        ? _question.answer_value
-        : _question?.answer_value && typeof _question.answer_value === 'object'
-          ? [_question.answer_value?.id]
-          : _question?.answer_value
-
-      const _riskLevel = S_CheckListRecordAns.getRiskLevelScore(
-        _question,
-        _question?.answer_value
-      )
-
-      const _params = {
-        checklist_record: _checklistRecord,
-        question_value: _questionValue,
-        score: _question?.score,
-        risk_level: _riskLevel,
-        remark: _question?.remark,
-        factory: currentFactory?.id,
-        lat: _question?.latLng?.latitude ?? currentLatLng?.latitude,
-        lng: _question?.latLng?.longitude ?? currentLatLng?.longitude,
-        ip: _question?.ip,
-        checklist_question_version: _question?.checklist_question_version
-          || _question?.checklist_question_version_id
-          || _question?.last_version?.id,
-        checklist_question: _question?.checklist_question?.id || _question?.id
-      }
-      const _recordAnsId = _question?.recordAnsId
-      let _res
-      if (_recordAnsId) {
-        const _updateData = {
-          question_value: _params.question_value,
-          score: _params.score,
-          risk_level: _params.risk_level,
-          remark: _params.remark,
-          factory: _params.factory,
-          lat: _params.lat,
-          lng: _params.lng,
-          ip: _params.ip,
-          checklist_question_version: _params.checklist_question_version,
-          checklist_question: _params.checklist_question
-        }
-        console.log(_recordAnsId, '_recordAnsId')
-        console.log(_updateData, 'S_CheckListRecordAns.update')
-        _res = await S_CheckListRecordAns.update({
-          modelId: _recordAnsId,
-          data: _updateData
-        })
-      } else {
-        console.log(_params, 'S_CheckListRecordAns.create')
-        _res = await S_CheckListRecordAns.create({ params: _params })
-      }
-      const _nextRecordAnsId = _res?.id || _res?.data?.id || _recordAnsId
-      if (_nextRecordAnsId) {
-        const _updatedQuestions = questions.map((question, questionIndex) => {
-          if (questionIndex === currentTabIndex) {
-            return {
-              ...question,
-              recordAnsId: _nextRecordAnsId
-            }
-          }
-          return question
-        })
-        setQuestions(_updatedQuestions)
-        store.dispatch(setCurrentChecklistRecordDraft(_updatedQuestions))
-        return _updatedQuestions
-      }
-      return _currentQuestions
-    } catch (error) {
-      console.error('S_CheckListRecordAns.create/update failed in top button callback', error)
-      return _currentQuestions
+    if (topBtnSubmitPromiseRef.current) {
+      return topBtnSubmitPromiseRef.current
     }
+
+    topBtnSubmitPromiseRef.current = (async () => {
+      const _currentQuestions = questions || []
+      try {
+        const _question = questions?.[currentTabIndex]
+        if (!_question) return _currentQuestions
+
+        const _checklistRecord = route.params?.checklistRecordId
+          || _question?.checklist_record_id
+          || _question?.checklist_record?.id
+
+        if (!_checklistRecord) {
+          console.warn('Missing checklist_record for S_CheckListRecordAns.create')
+          return _currentQuestions
+        }
+
+        const _questionValue = typeof _question?.answer_value === 'string'
+          ? _question.answer_value
+          : _question?.answer_value && typeof _question.answer_value === 'object'
+            ? [_question.answer_value?.id]
+            : _question?.answer_value
+
+        const _riskLevel = S_CheckListRecordAns.getRiskLevelScore(
+          _question,
+          _question?.answer_value
+        )
+
+        const _params = {
+          checklist_record: _checklistRecord,
+          question_value: _questionValue,
+          score: _question?.score,
+          risk_level: _riskLevel,
+          remark: _question?.remark,
+          images: _question?.images ? S_CheckListRecordAns.formattedForFileStore(_question.images) : [],
+          factory: currentFactory?.id,
+          lat: _question?.latLng?.latitude ?? currentLatLng?.latitude,
+          lng: _question?.latLng?.longitude ?? currentLatLng?.longitude,
+          ip: _question?.ip,
+          checklist_question_version: _question?.checklist_question_version
+            || _question?.checklist_question_version_id
+            || _question?.last_version?.id,
+          checklist_question: _question?.checklist_question?.id || _question?.id
+        }
+        if (Array.isArray(_params.question_value)) {
+          _params.question_value = _params.question_value.filter(value => {
+            return value !== null && value !== undefined && value !== ''
+          })
+        }
+        const _hasQuestionValue = Array.isArray(_params.question_value)
+          ? _params.question_value.length > 0
+          : _params.question_value !== null && _params.question_value !== undefined && _params.question_value !== ''
+        console.log(_hasQuestionValue, '_hasQuestionValue')
+        if (!_hasQuestionValue) {
+          return _currentQuestions
+        }
+        const _recordAnsId = _question?.recordAnsId
+        let _res
+        if (_recordAnsId) {
+          const _updateData = {
+            question_value: _params.question_value,
+            score: _params.score,
+            risk_level: _params.risk_level,
+            remark: _params.remark,
+            images: _params.images,
+            factory: _params.factory,
+            lat: _params.lat,
+            lng: _params.lng,
+            ip: _params.ip,
+            checklist_question_version: _params.checklist_question_version,
+            checklist_question: _params.checklist_question
+          }
+          console.log(_recordAnsId, '_recordAnsId')
+          console.log(_updateData, 'S_CheckListRecordAns.update')
+          _res = await S_CheckListRecordAns.update({
+            modelId: _recordAnsId,
+            data: _updateData
+          })
+        } else {
+          console.log(_params, 'S_CheckListRecordAns.create')
+          _res = await S_CheckListRecordAns.create({ params: _params })
+        }
+        const _nextRecordAnsId = _res?.id || _res?.data?.id || _recordAnsId
+        if (_nextRecordAnsId) {
+          const _updatedQuestions = questions.map((question, questionIndex) => {
+            if (questionIndex === currentTabIndex) {
+              return {
+                ...question,
+                recordAnsId: _nextRecordAnsId
+              }
+            }
+            return question
+          })
+          setQuestions(_updatedQuestions)
+          store.dispatch(setCurrentChecklistRecordDraft(_updatedQuestions))
+          return _updatedQuestions
+        }
+        return _currentQuestions
+      } catch (error) {
+        console.error('S_CheckListRecordAns.create/update failed in top button callback', error)
+        return _currentQuestions
+      } finally {
+        topBtnSubmitPromiseRef.current = null
+      }
+    })()
+
+    return topBtnSubmitPromiseRef.current
   }
 
   const $_onChange = (itemIndex, $event, stateKey, question) => {

@@ -103,11 +103,23 @@ const RelatedChecklistAssignment = ({ route }) => {
                 }
                 onPress={() => {
                   navigation.push('CheckListAssignmentIntroduction', {
-                    id: item.id,
+                    id: item?.id,
                   })
                 }}
               />
             </View>
+          )
+        }}
+        ListFooterComponent={() => {
+          return (
+            <>
+              <View
+                style={{
+                  height: 60,
+                }}
+              >
+              </View>
+            </>
           )
         }}
       />

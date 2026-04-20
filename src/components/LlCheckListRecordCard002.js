@@ -61,7 +61,7 @@ const LlCheckListRecordCard002 = props => {
             letterSpacing={1}
             size={14}
             style={{
-              width: 30
+              // width: 30
             }}>
             {num}
           </WsText>
@@ -106,7 +106,6 @@ const LlCheckListRecordCard002 = props => {
               </WsText>
               <WsText
                 style={{
-                  width: 30
                 }}>
                 {item.num}
               </WsText>

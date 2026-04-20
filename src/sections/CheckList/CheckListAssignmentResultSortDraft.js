@@ -39,6 +39,8 @@ import CheckBox from '@react-native-community/checkbox'
 import moment from 'moment'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 
+const SKELETON_MIN_SHOW_MS = 180
+
 const CheckListAssignmentResultSortDraft = props => {
   const { t, i18n } = useTranslation()
   const navigation = useNavigation()
@@ -62,6 +64,7 @@ const CheckListAssignmentResultSortDraft = props => {
 
   // STATE
   const [checkedQuestions, setCheckedQuestioned] = React.useState([])
+  const [loading, setLoading] = React.useState(true)
 
   const [questionFiltered, setQuestionFiltered] = React.useState(false)
   const [myQuestions, setMyQuestions] = React.useState()
@@ -153,6 +156,7 @@ const CheckListAssignmentResultSortDraft = props => {
               score: item?.score,
               risk_level: Number.isFinite(_riskLevelNum) ? _riskLevelNum : null,
               remark: item?.remark,
+              images: item?.images ? S_CheckListRecordAns.formattedForFileStore(item.images) : [],
               factory: factory?.id,
               lat: item?.latLng?.latitude,
               lng: item?.latLng?.longitude,
@@ -169,6 +173,7 @@ const CheckListAssignmentResultSortDraft = props => {
                 score: _params.score,
                 risk_level: _params.risk_level,
                 remark: _params.remark,
+                images: _params.images,
                 factory: _params.factory,
                 lat: _params.lat,
                 lng: _params.lng,
@@ -231,6 +236,14 @@ const CheckListAssignmentResultSortDraft = props => {
 
   // 我的題目狀態下送批次合格RE-RENDER
   React.useEffect(() => {
+    setLoading(true)
+    const timer = setTimeout(() => {
+      setLoading(false)
+    }, SKELETON_MIN_SHOW_MS)
+    return () => clearTimeout(timer)
+  }, [props])
+
+  React.useEffect(() => {
     if (answers && questionFiltered && currentUser) {
       const _answer = S_CheckListQuestion.getFormattedMyQuestionSortedByResult(answers, currentUser.id)
       setMyQuestions(_answer)
@@ -242,8 +255,13 @@ const CheckListAssignmentResultSortDraft = props => {
   return (
     <>
       <StatusBar barStyle={'dark-content'} />
-      <>
-        {answers && questions && (
+      {loading ? (
+        <SafeAreaView>
+          <WsSkeleton />
+        </SafeAreaView>
+      ) : (
+        <>
+          {answers && questions && (
           <>
             <FlatList
               data={questionFiltered ? myQuestions : answers}
@@ -367,8 +385,9 @@ const CheckListAssignmentResultSortDraft = props => {
               }
             />
           </>
-        )}
-      </>
+          )}
+        </>
+      )}
     </>
   )
 }

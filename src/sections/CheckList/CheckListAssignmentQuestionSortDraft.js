@@ -55,6 +55,8 @@ import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native
 import AndroidOpenSettings from 'react-native-android-open-settings'
 import { getLocation, getGeocode } from '@/__reactnative_stone/global/location'
 
+const SKELETON_MIN_SHOW_MS = 180
+
 const CheckListAssignmentQuestionSortDraft = props => {
   const { width, height } = Dimensions.get('window')
   const { t, i18n } = useTranslation()
@@ -73,8 +75,6 @@ const CheckListAssignmentQuestionSortDraft = props => {
     questionFilteredBtnVisible = true,
     setBatchQualifiedLoading,
   } = props
-
-  // console.log(JSON.stringify(questions),'questionsquestions')
 
   // 判斷是否為臨時點檢作業
   const hasQuestionSettingEverywhere = questions.every(question => "question_setting" in question);
@@ -338,7 +338,7 @@ const CheckListAssignmentQuestionSortDraft = props => {
         }
 
         const _targetQuestions = _questions.filter(item => _myCheckedQuestionIds.includes(item.id))
-        console.log(JSON.stringify(_targetQuestions),'_targetQuestions')
+        console.log(JSON.stringify(_targetQuestions), '_targetQuestions')
         const _results = await Promise.allSettled(
           _targetQuestions.map(async item => {
             const _questionValue = typeof item?.answer_value === 'string'
@@ -358,6 +358,7 @@ const CheckListAssignmentQuestionSortDraft = props => {
               score: item?.score,
               risk_level: Number.isFinite(_riskLevelNum) ? _riskLevelNum : null,
               remark: item?.remark,
+              images: item?.images ? S_CheckListRecordAns.formattedForFileStore(item.images) : [],
               factory: currentFactory?.id,
               lat: item?.latLng?.latitude ?? currentLatLng?.latitude,
               lng: item?.latLng?.longitude ?? currentLatLng?.longitude,
@@ -374,6 +375,7 @@ const CheckListAssignmentQuestionSortDraft = props => {
                 score: _params.score,
                 risk_level: _params.risk_level,
                 remark: _params.remark,
+                images: _params.images,
                 factory: _params.factory,
                 lat: _params.lat,
                 lng: _params.lng,
@@ -381,13 +383,13 @@ const CheckListAssignmentQuestionSortDraft = props => {
                 checklist_question_version: _params.checklist_question_version,
                 checklist_question: _params.checklist_question
               }
-              console.log(_updateData,'update _updateData')
+              console.log(_updateData, 'update _updateData')
               return S_CheckListRecordAns.update({
                 modelId: item.recordAnsId,
                 data: _updateData
               })
             }
-            console.log(_params,'create _params')
+            console.log(_params, 'create _params')
             return S_CheckListRecordAns.create({ params: _params })
           })
         )
@@ -430,7 +432,7 @@ const CheckListAssignmentQuestionSortDraft = props => {
       setCheckedQuestioned(updatedItems);
     }
   }
-  
+
   // 全選
   const $_addAllToBatchQualified = () => {
     const _checkedAllQuestions = S_CheckListQuestion.checkedAllMyQuestions(questions, currentUser?.id)
@@ -490,10 +492,14 @@ const CheckListAssignmentQuestionSortDraft = props => {
   );
 
   React.useEffect(() => {
+    setLoading(true)
     if (questionFilteredBtnVisible) {
       $_filterMyQuestions()
     }
-    setLoading(false)
+    const timer = setTimeout(() => {
+      setLoading(false)
+    }, SKELETON_MIN_SHOW_MS)
+    return () => clearTimeout(timer)
   }, [props])
 
   // 我的題目狀態下送批次合格RE-RENDER
@@ -532,6 +538,7 @@ const CheckListAssignmentQuestionSortDraft = props => {
                 key={item.id}
                 done={todayDone}
                 checkboxVisible={todayDone ? false : true}
+                checkboxVisible={true}
                 checked={checkedQuestions.includes(item.id)}
                 checkboxOnPress={(answer) => {
                   $_addToBatchQualified(answer)
@@ -578,10 +585,12 @@ const CheckListAssignmentQuestionSortDraft = props => {
               <>
                 <WsFlex
                   justifyContent="flex-end"
+                  style={{
+                    marginTop: 12
+                  }}
                 >
                   <WsGradientButton
                     style={{
-                      marginTop: 16,
                       marginRight: 16,
                       alignSelf: 'flex-end',
                       width: 120,
@@ -594,7 +603,6 @@ const CheckListAssignmentQuestionSortDraft = props => {
                   </WsGradientButton>
                   <WsGradientButton
                     style={{
-                      marginTop: 16,
                       marginRight: 16,
                       alignSelf: 'flex-end',
                       width: 120,
@@ -607,19 +615,48 @@ const CheckListAssignmentQuestionSortDraft = props => {
                   </WsGradientButton>
                 </WsFlex>
 
-                {myQuestions && myQuestions.length > 0 && (
-                  <WsText
-                    style={{
-                      paddingVertical: 8,
-                      paddingHorizontal: 16
-                    }}
-                    fontWeight="bold">
-                    {i18next.t('題目')}
-                    {'（ '}
-                    {questionFiltered ? t('共{number}題', { number: myQuestions.length }) : t('共{number}題', { number: questions.length })}
-                    {' ）'}
-                  </WsText>
-                )}
+                <WsFlex
+                  justifyContent="space-between"
+                  style={{ marginTop: 12 }}
+                >
+                  {myQuestions && myQuestions.length > 0 && (
+                    <WsText
+                      style={{
+                        paddingVertical: 8,
+                        paddingHorizontal: 16
+                      }}
+                      fontWeight="bold">
+                      {i18next.t('題目')}
+                      {'（ '}
+                      {questionFiltered ? t('共{number}題', { number: myQuestions.length }) : t('共{number}題', { number: questions.length })}
+                      {' ）'}
+                    </WsText>
+                  )}
+
+                  {questionFilteredBtnVisible && (
+                    <TouchableOpacity
+                      style={{
+                        marginRight: 16,
+                        alignItems: 'flex-start',
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        backgroundColor: $color.white,
+                        borderColor: $color.primary,
+                        borderWidth: 1,
+                        borderRadius: 25,
+                      }}
+                      disabled={!currentUser || !questions || questions.length === 0}
+                      onPress={() => {
+                        $_filterMyQuestions()
+                      }}>
+                      <WsText
+                        color={$color.primary}
+                      >
+                        {questionFiltered ? t('顯示全部題目') : t('只顯示我的題目')}
+                      </WsText>
+                    </TouchableOpacity>
+                  )}
+                </WsFlex>
               </>
             )
           }}

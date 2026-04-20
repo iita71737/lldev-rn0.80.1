@@ -141,14 +141,14 @@ const LlCheckListResultCard = prop => {
                       marginTop: 8,
                     }}
                   >
-                    <WsText size={12} style={{ width: 90 }} fontWeight={600}>{t('結果')}</WsText>
+                    <WsText size={14} style={{ width: 90 }} fontWeight={400}>{t('結果')}</WsText>
                     <WsIcon name={riskStyle.icon} size={20} color={riskStyle.color} style={{}} />
                     <WsText
                       style={{
                         marginLeft: 4
                       }}
                       color={riskStyle.color}
-                      size={12}
+                      size={14}
                       fontWeight="400"
                     >
                       {riskStyle.title}
@@ -162,13 +162,13 @@ const LlCheckListResultCard = prop => {
                     marginTop: 8
                   }}
                 >
-                  <WsText size={12} style={{ width: 90 }} fontWeight={600}>{t('結果')}</WsText>
+                  <WsText size={14} style={{ width: 90 }} fontWeight={400}>{t('結果')}</WsText>
                   <WsIcon name={'ws-filled-approved'} size={20} color={$color.gray} style={{}} />
                   <WsText
                     style={{
                       marginLeft: 4
                     }}
-                    size={12}
+                    size={14}
                     fontWeight="400"
                   >
                     {t('不需點檢')}
@@ -184,9 +184,9 @@ const LlCheckListResultCard = prop => {
                     }}
                   >
                     <WsText
-                      size={12}
+                      size={14}
                       style={{ width: 90 }}
-                      fontWeight={600}
+                      fontWeight={400}
                     >
                       {t('結果')}
                     </WsText>
@@ -195,7 +195,7 @@ const LlCheckListResultCard = prop => {
                       style={{
                         marginLeft: 4
                       }}
-                      size={12}
+                      size={14}
                       fontWeight="400"
                     >
                       {t('不涉及風險或不列入統計')}
@@ -216,7 +216,8 @@ const LlCheckListResultCard = prop => {
                       alignItems: 'center',
                     }}
                     label={passRate != undefined ? t('填表日期') : t('填表日期')}
-                    labelSize={12}
+                    labelSize={14}
+                    labelFontWeight={400}
                     type='date'
                     value={date ? date : t('無')}
                   />
@@ -236,7 +237,8 @@ const LlCheckListResultCard = prop => {
                       alignItems: 'center',
                     }}
                     label={t('合規率')}
-                    labelSize={12}
+                    labelSize={14}
+                    labelFontWeight={400}
                     value={passRate != undefined ? `${passRate}%` : t('無')}
                   />
                 </View>
@@ -255,7 +257,8 @@ const LlCheckListResultCard = prop => {
                       alignItems: 'center',
                     }}
                     label={t('合規率')}
-                    labelSize={12}
+                    labelSize={14}
+                    labelFontWeight={400}
                     value={`${t('不需點檢')}`}
                   />
                 </View>
@@ -294,14 +297,13 @@ const LlCheckListResultCard = prop => {
                 <View
                   style={{
                     flexDirection: 'row',
-                    // alignItems: 'center',
                     marginTop: 16,
                     // borderWidth: 1,
                   }}
                 >
                   <WsText
-                    size={12}
-                    fontWeight="600"
+                    labelSize={14}
+                    labelFontWeight={400}
                     style={[
                       {
                         width: 90,
@@ -342,7 +344,7 @@ const LlCheckListResultCard = prop => {
                                 >
                                   <WsFlex>
                                     <WsText
-                                      size={12}
+                                      size={14}
                                       style={{
                                         marginRight: 4
                                       }}
@@ -424,8 +426,8 @@ const LlCheckListResultCard = prop => {
                       >
                         <WsText
                           testID={`覆核者`}
-                          size={12}
-                          fontWeight="600"
+                          labelSize={14}
+                          labelFontWeight={400}
                           style={[
                             {
                               width: 90,
@@ -462,7 +464,7 @@ const LlCheckListResultCard = prop => {
                                   >
                                     <WsFlex>
                                       <WsText
-                                        size={12}
+                                        size={14}
                                         style={{
                                           marginRight: 4
                                           // borderWidth:1,
@@ -501,7 +503,7 @@ const LlCheckListResultCard = prop => {
                           ListEmptyComponent={() => {
                             return (
                               <WsText
-                                size={12}
+                                size={14}
                                 style={{
                                 }}
                               >
@@ -549,7 +551,7 @@ const LlCheckListResultCard = prop => {
                               alignItems: 'center',
                             }}
                             label={t('尚未作答')}
-                            labelSize={12}
+                            labelSize={14}
                             value={t(' ')}
                           />
                         </View>

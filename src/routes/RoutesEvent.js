@@ -369,6 +369,7 @@ const RoutesEvent = ({ navigation }) => {
   // 編輯事件
   const submitEventEdit = async (data, modelId, versionId, navigation) => {
     const _data = await S_Event.getFormattedData(data, currentUser)
+    console.log(_data, '_Event.update')
     try {
       await S_Event.update({
         data: _data,

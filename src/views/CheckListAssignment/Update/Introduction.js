@@ -77,6 +77,14 @@ const Introduction = ({ navigation, route }) => {
   const hasShownLocationReminderRef = React.useRef(false)
 
   const $_getRefreshCounter = () => Math.floor(Math.random() * (100 - 1 + 1)) + 1
+  const $_getRemarkImagesForPayload = (_images = []) => {
+    if (!Array.isArray(_images)) return []
+    return _images
+      .map(item => item?.id || item?.file?.id)
+      .filter(Boolean)
+      .map(fileId => ({ file: fileId }))
+      .filter(Boolean)
+  }
   const $_resetToCheckListAssignment = () => {
     navigation.reset({
       index: 0,
@@ -94,7 +102,7 @@ const Introduction = ({ navigation, route }) => {
   const $_getNoChecklistParams = () => ({
     checklist_record_id: assignment && assignment.checklist_record ? assignment.checklist_record.id : null,
     remark: remark,
-    images: remarkImages ? remarkImages.map(item => item.id) : [],
+    images: $_getRemarkImagesForPayload(remarkImages),
   })
 
   // 取得存於API的RiskLevel & Score

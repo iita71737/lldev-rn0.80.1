@@ -114,16 +114,26 @@ export default {
       }
     })
   },
-  async factoryIndex({ params }) {
+  async factoryIndex({ params, signal }) {
     const unit = params?.factory
-    return await base.index({
-      preUrl: S_Processor.getFactoryPreUrl(unit),
-      modelName: 'checklist_record',
-      params: {
-        ...params,
-        ...S_Processor.getLocaleParams(unit)
+    const _startMs = Date.now()
+      console.log(`[API][checklist_record.factoryIndex]_startMs`)
+    try {
+      return await base.index({
+        preUrl: S_Processor.getFactoryPreUrl(unit),
+        modelName: 'checklist_record',
+        params: {
+          ...params,
+          ...S_Processor.getLocaleParams(unit)
+        },
+        signal
+      })
+    } finally {
+      if (__DEV__) {
+        const _costMs = Date.now() - _startMs
+        console.log(`[API][checklist_record.factoryIndex] ${_costMs}ms`)
       }
-    })
+    }
   },
   async analysisIndex({ params }) {
     return await base.index({

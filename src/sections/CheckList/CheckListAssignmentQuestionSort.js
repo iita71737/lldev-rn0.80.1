@@ -32,11 +32,26 @@ const CheckListAssignmentQuestionSort = props => {
     setRecord(res)
   }
   const $_fetchAnswers = async () => {
-    console.log('S_CheckListRecordAns.indexV2-1')
+    // console.log(id, 'S_CheckListRecordAns.indexV2-checklist_record_id')
     const res = await S_CheckListRecordAns.indexV2({
       parentId: id
     })
-    setAnswers(res.data)
+    const _sortedAnswers = [...(res?.data || [])].sort((a, b) => {
+      const seqA = a?.sequence
+      const seqB = b?.sequence
+      const numA = Number(seqA)
+      const numB = Number(seqB)
+      const hasNumA = Number.isFinite(numA)
+      const hasNumB = Number.isFinite(numB)
+      if (hasNumA && hasNumB) return numA - numB
+      if (hasNumA) return -1
+      if (hasNumB) return 1
+      return String(seqA ?? '').localeCompare(String(seqB ?? ''), undefined, {
+        numeric: true,
+        sensitivity: 'base'
+      })
+    })
+    setAnswers(_sortedAnswers)
   }
 
   React.useEffect(() => {

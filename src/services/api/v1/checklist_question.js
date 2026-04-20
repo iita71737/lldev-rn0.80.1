@@ -765,26 +765,35 @@ export default {
         item.question_type_setting?.value === 'single-choice' &&
         checkedQuestions.includes(item.id);
 
-      // 尋找 risk_level === 25 的選項（包含巢狀）
+      // 尋找 risk_level === 25 的選項（包含巢狀），並記錄主/次索引
       let matchedAnswer = null;
+      let matchedMainIndex = null;
+      let matchedMinorIndex = null;
       if (Array.isArray(item.question_setting_items)) {
-        for (const qsi of item.question_setting_items) {
+        for (let mainIndex = 0; mainIndex < item.question_setting_items.length; mainIndex++) {
+          const qsi = item.question_setting_items[mainIndex];
           if (qsi.risk_level === 25) {
             matchedAnswer = {
               id: qsi.id,
               label: qsi.name || '',
               value: 25,
             };
+            matchedMainIndex = null;
+            matchedMinorIndex = null;
             break;
           }
           if (Array.isArray(qsi.question_setting_items)) {
-            for (const sub of qsi.question_setting_items) {
+            for (let minorIndex = 0; minorIndex < qsi.question_setting_items.length; minorIndex++) {
+              const sub = qsi.question_setting_items[minorIndex];
               if (sub.risk_level === 25) {
                 matchedAnswer = {
                   id: sub.id,
                   label: sub.name || '',
                   value: 25,
                 };
+                // 二層選項在答題頁需要依賴這兩個索引，才能預設高亮主選項
+                matchedMainIndex = mainIndex;
+                matchedMinorIndex = minorIndex;
                 break;
               }
             }
@@ -808,6 +817,8 @@ export default {
           },
           risk_level: scoreToAdd,
           answer_value: matchedAnswer ?? {},
+          itemsToggleBtnSelected: matchedMainIndex,
+          minorToggleBtnSelected: matchedMinorIndex,
 
         };
       } else {

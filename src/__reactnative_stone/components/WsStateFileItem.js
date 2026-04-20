@@ -240,8 +240,6 @@ const WsStateFileItem = props => {
     }
   }, [needUpload])
 
-  console.log(value,'valuevaluevaluevalue')
-
   const exportName = value?.export_attachment_name ?? $_getFileName()
   const exportAttachmentValue =
     typeof value?.export_attachment_name_enabled === 'boolean'
@@ -253,8 +251,6 @@ const WsStateFileItem = props => {
     modelName === 'meeting' &&
     orderMode !== 'sort' &&
     exportAttachmentName
-
-    console.log(exportAttachmentPositionValue,'exportAttachmentPositionValueQQ')
 
   // Render
   return (

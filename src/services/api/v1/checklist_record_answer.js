@@ -244,6 +244,26 @@ export default {
   },
 
   getFormatV2(answers, _titleWithScore) {
+    const $_sortBySequence = (items = []) => {
+      return [...items].sort((a, b) => {
+        const seqA = a?.sequence
+        const seqB = b?.sequence
+        const numA = Number(seqA)
+        const numB = Number(seqB)
+        const hasNumA = Number.isFinite(numA)
+        const hasNumB = Number.isFinite(numB)
+
+        if (hasNumA && hasNumB) return numA - numB
+        if (hasNumA) return -1
+        if (hasNumB) return 1
+
+        return String(seqA ?? '').localeCompare(String(seqB ?? ''), undefined, {
+          numeric: true,
+          sensitivity: 'base'
+        })
+      })
+    }
+
     let titleWithScore = [
       {
         title: i18next.t('高風險'),
@@ -349,7 +369,7 @@ export default {
         score: item.score,
         keypoint: item.keypoint,
         images: item.images,
-        ans: _ans,
+        ans: $_sortBySequence(_ans),
       };
     });
     return data;
@@ -1525,7 +1545,12 @@ export default {
     const _is_in_stats = answer.is_in_stats
     const _score = answer.risk_level
     const _unit = answer.unit
-    return answer.answer_value == null || Number.isNaN(answer.answer_value)
+    const _answerValue = answer?.answer_value
+    const _isUnanswered =
+      _answerValue == null ||
+      Number.isNaN(_answerValue) ||
+      (typeof _answerValue === 'string' && _answerValue.trim() === '')
+    return _isUnanswered
       ? `${t('未答題')}`
       : _score == 21 ?
         `${t('低風險')}`
@@ -1762,6 +1787,9 @@ export default {
     }
   },
   getScoreRemarkColor(answer) {
+    if (Number(answer?.question_setting_items?.[0]?.has_remark) === 1) {
+      return '#ce3829'
+    }
     const _questionType = answer.question_type_setting?.value
     const _answer_setting = answer.answer_setting?.type
     if (

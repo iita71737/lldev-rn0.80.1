@@ -148,6 +148,19 @@ const CheckListResultOverview = (props) => {
                     label={t('不需點檢原因')}
                     value={record.remark ? record.remark : t('')}
                   />
+                  {/* 260420-issue */}
+                  {record &&
+                    record.file_images &&
+                    record.file_images.length > 0 && (
+                      <WsInfo
+                        label={t('附件')}
+                        type="filesAndImages"
+                        style={{
+                          marginTop: 8
+                        }}
+                        value={record.file_images}
+                      />
+                    )}
                 </WsPaddingContainer>
               )}
 
@@ -220,7 +233,7 @@ const CheckListResultOverview = (props) => {
               <WsPaddingContainer
                 padding={0}
                 style={{
-                  marginTop:16,
+                  marginTop: 16,
                   paddingTop: 16,
                   paddingHorizontal: 16,
                   backgroundColor: $color.white,

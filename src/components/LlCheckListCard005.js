@@ -142,6 +142,8 @@ const LlCheckListCard005 = props => {
 
           <WsFlex>
             <WsText
+              size={16}
+              fontWeight="400"
               style={{
               }}
             >{`${name}`}</WsText>
@@ -158,6 +160,9 @@ const LlCheckListCard005 = props => {
 
           {deadline && (
             <WsSpec
+              colorText={$color.black}
+              titleSize={14}
+              fontSize={14}
               labelWidth={64}
               style={{
                 marginTop: 8,
@@ -168,6 +173,9 @@ const LlCheckListCard005 = props => {
           )}
           {time_period && (
             <WsSpec
+              colorText={$color.black}
+              titleSize={14}
+              fontSize={14}
               labelWidth={64}
               style={{
                 marginTop: 8,
@@ -182,6 +190,9 @@ const LlCheckListCard005 = props => {
             item.end_time && (
               <>
                 <WsSpec
+                  colorText={$color.black}
+                  titleSize={14}
+                  fontSize={14}
                   labelWidth={64}
                   style={{
                     marginTop: 8,
@@ -199,8 +210,9 @@ const LlCheckListCard005 = props => {
               marginTop: 8
             }}
           >
-            <WsText size={12}
-              fontWeight="300"
+            <WsText
+              size={14}
+              fontWeight="400"
               color={$color.gray3d}
               style={[
                 {
@@ -280,7 +292,7 @@ const LlCheckListCard005 = props => {
             <WsInfo
               avatarSize={42}
               labelWidth={68}
-              labelSize={12}
+              labelSize={14}
               style={{
                 flexDirection: 'row',
                 marginTop: 8

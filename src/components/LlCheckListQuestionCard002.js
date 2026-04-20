@@ -204,7 +204,9 @@ const LlCheckListQuestionCard002 = props => {
               }}
             >
               {
-                !answer.updated_user &&
+                // 20260420-task
+                answer.is_completed != 1 &&
+                  // !answer.updated_user &&
                   (currentUser &&
                     checkboxVisible &&
                     answer.question_type_setting?.value === 'single-choice' &&
@@ -294,7 +296,7 @@ const LlCheckListQuestionCard002 = props => {
                     }}
                     onPress={() => {
                       navigation.push('CheckListQuestionShow', {
-                        id: answer.id,
+                        id: answer?.checklist_question?.id,
                         simplifyInfo: true
                       })
                     }}
@@ -353,7 +355,7 @@ const LlCheckListQuestionCard002 = props => {
                     {answer.updated_user?.name}
                   </WsText>
                   {answer.updated_at && (
-                    <WsFlex style={{ paddingLeft: 8 }}>
+                    <WsFlex style={{ paddingLeft: 4 }}>
                       <WsTag>{t('已完成')}</WsTag>
                       <WsDes style={{ padding: 4 }}>
                         {moment(answer.updated_at).format('YYYY-MM-DD HH:mm')}
@@ -382,7 +384,8 @@ const LlCheckListQuestionCard002 = props => {
           </WsFlex>
 
 
-          {hasAnswerLatLng && (
+          {hasAnswerLatLng &&
+            answer?.answer_value && (
               <View
                 style={{
                   marginTop: 8
@@ -395,7 +398,7 @@ const LlCheckListQuestionCard002 = props => {
                   }}
                   type="link"
                   label={t('答題位置')}
-                  value={`${answer?.latLng?.latitude}, ${answer?.latLng?.longitude}`}
+                  value={` ${answer?.latLng?.latitude} ${'\n'} ${answer?.latLng?.longitude} `}
                   onPress={() => {
                     // GOOGLE MAP
                     const url = `https://www.google.com/maps/search/?api=1&query=${answer?.latLng?.latitude},${answer?.latLng?.longitude}`;
@@ -442,7 +445,7 @@ const LlCheckListQuestionCard002 = props => {
             />
             <WsText
               style={{
-                marginLeft: 8,
+                marginLeft: 4,
               }}
               size={14}
               fontWeight="600"
@@ -475,11 +478,10 @@ const LlCheckListQuestionCard002 = props => {
                   style={{
                   }}
                 >
-                  <WsIcon color={$color.danger} name="md-info-outline" />
+                  <WsIcon color={$color.danger} name={"md-info-outline"} size={20} />
                   <WsText
                     style={{
-                      marginTop: 8,
-                      marginLeft: 8,
+                      marginLeft: 4,
                       marginRight: 8
                     }}
                     color={$color.danger}

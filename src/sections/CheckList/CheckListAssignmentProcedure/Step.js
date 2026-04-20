@@ -49,6 +49,7 @@ const CheckListAssignmentStep = props => {
   // Props
   const { title, question_type, onChange, question } = props
 
+
   // Redux
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentUser = useSelector(state => state.data.currentUser)
@@ -264,6 +265,24 @@ const CheckListAssignmentStep = props => {
     setStateModal001(true)
   }
 
+  const $_normalizeSingleChoiceAnswer = (currentAnswer, toggleItems = []) => {
+    if (!currentAnswer || typeof currentAnswer !== 'object' || Array.isArray(currentAnswer)) {
+      return null
+    }
+    let matchedIndex = toggleItems.findIndex(opt => String(opt?.id) === String(currentAnswer?.id))
+    if (matchedIndex < 0 && currentAnswer?.value !== undefined && currentAnswer?.value !== null) {
+      matchedIndex = toggleItems.findIndex(opt => String(opt?.value) === String(currentAnswer?.value))
+    }
+    if (matchedIndex < 0 && currentAnswer?.label) {
+      matchedIndex = toggleItems.findIndex(opt => opt?.label === currentAnswer?.label)
+    }
+    if (matchedIndex < 0) return null
+    return {
+      matchedIndex,
+      matchedItem: toggleItems[matchedIndex]
+    }
+  }
+
   // HELPER
   const checkAvailable = (question) => {
     if (question && question.done_at) {
@@ -313,6 +332,30 @@ const CheckListAssignmentStep = props => {
         });
         setQuestionSettingItems(questionSettingItems)
         setItemToggleBtn(_items);
+
+        // 批次合格或題目改版後，answer_value.id 可能與目前題目選項 id 不一致。
+        // 進答題頁時用 value/label 回推正確預設選項，確保 toggle 有高亮。
+        if (question?.question_type_setting?.value === 'single-choice') {
+          const normalized = $_normalizeSingleChoiceAnswer(question?.answer_value, _items)
+          if (normalized?.matchedItem) {
+            const { matchedIndex, matchedItem } = normalized
+            const hasMinorSelected =
+              question?.minorToggleBtnSelected !== undefined &&
+              question?.minorToggleBtnSelected !== null
+            if (!hasMinorSelected) {
+              setSelectedMainIndex(matchedIndex)
+              if (question?.itemsToggleBtnSelected !== matchedIndex) {
+                onChange(matchedIndex, 'itemsToggleBtnSelected', question, 'question')
+              }
+            }
+            const currentAnswerId = String(question?.answer_value?.id ?? '')
+            const normalizedAnswerId = String(matchedItem?.id ?? '')
+            if (currentAnswerId !== normalizedAnswerId) {
+              onChange(matchedItem, 'answer_value', question, 'question')
+            }
+          }
+        }
+
         setLoading(false)
       }
     } catch (e) {
@@ -590,8 +633,18 @@ const CheckListAssignmentStep = props => {
                   onChange={$event => {
                     onChange($event, 'remark', question, 'question')
                   }}
-                  remind={Number(question?.question_setting_items[0]?.has_remark) === 1 ? t('選答時要求必填備註') : undefined}
-                  remindColor={Number(question?.question_setting_items[0]?.has_remark) === 1 ? $color.danger : undefined}
+                  remind={
+                    (S_CheckListRecordAns.getScoreRemarkColor(question) === '#ce3829' ||
+                      Number(question?.question_setting_items[0]?.has_remark) === 1)
+                      ? t('選答時要求必填備註')
+                      : undefined
+                  }
+                  remindColor={
+                    (S_CheckListRecordAns.getScoreRemarkColor(question) === '#ce3829' ||
+                      Number(question?.question_setting_items[0]?.has_remark) === 1)
+                      ? $color.danger
+                      : undefined
+                  }
                 />
                 <WsState
                   style={{
@@ -875,7 +928,7 @@ const CheckListAssignmentStep = props => {
               setStateModal001(false)
             }}>
             <ViewCheckListAssignmentPassStandard
-              id={question.id}
+              id={question?.checklist_question?.id}
             >
             </ViewCheckListAssignmentPassStandard>
           </WsModal>

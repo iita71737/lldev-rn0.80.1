@@ -766,7 +766,7 @@ const CheckListShow = ({ route }) => {
             disabled={loading}
             borderRadius={30}
             style={{
-              marginBottom: 16,
+              marginBottom: Platform.OS === 'ios' ? 16 : 48,
             }}
             onPress={startCheckOnPress}>
             {t('開始點檢')}
