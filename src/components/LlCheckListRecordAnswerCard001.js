@@ -522,8 +522,9 @@ const LlCheckListRecordAnswerCard001 = props => {
           <WsCollapsible isCollapsed={isCollapsed}>
             <View
               style={{
-              }}>
-              {/* {question &&
+              }}
+            >
+              {question &&
                 question.remark && (
                   <WsInfo
                     style={{
@@ -536,7 +537,7 @@ const LlCheckListRecordAnswerCard001 = props => {
                         : t('無')
                     }
                   />
-                )} */}
+                )}
 
               {/* 250523-issue */}
               {question &&
@@ -581,7 +582,8 @@ const LlCheckListRecordAnswerCard001 = props => {
                   />
                 )}
 
-              {answer.remark && (
+              {/* 260420-issue-remove */}
+              {/* {answer.remark && (
                 <WsInfo
                   style={{
                     marginTop: 8
@@ -589,7 +591,7 @@ const LlCheckListRecordAnswerCard001 = props => {
                   label={t('備註')}
                   value={answer.remark ? answer.remark : t('無')}
                 />
-              )}
+              )} */}
 
               {/* 260420-issue */}
               {answer &&
