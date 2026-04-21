@@ -38,6 +38,7 @@ import S_ChecklistQuestionVersion from '@/services/api/v1/checklist_question_ver
 import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
 import { getLocation } from '@/__reactnative_stone/global/location'
 import { getDistance } from 'geolib';
+import { useFocusEffect } from '@react-navigation/native'
 
 const Introduction = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
@@ -169,7 +170,6 @@ const Introduction = ({ navigation, route }) => {
           }
         }
 
-        setLoading(false)
       }
     } catch (e) {
       Alert.alert(t('伺服器忙碌中，請稍候再試'))
@@ -221,7 +221,6 @@ const Introduction = ({ navigation, route }) => {
     if (!_canContinue) {
       return
     }
-
     $_resetToCheckListAssignment()
   }
 
@@ -304,23 +303,26 @@ const Introduction = ({ navigation, route }) => {
     }
   }
 
-  React.useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      console.log('進入Intro頁');
-      $_getLocation()
-      $_fetchConstantData()
-      $_fetchApi()
-    });
-
-    return unsubscribe;
-  }, [navigation, id]);
-
-  React.useEffect(() => {
-    if (refreshCounter) {
-      $_fetchConstantData()
-      $_fetchApi()
-    }
-  }, [refreshCounter])
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true
+      const run = async () => {
+        setLoading(true)
+        $_getLocation()
+        await Promise.allSettled([
+          $_fetchConstantData(),
+          $_fetchApi()
+        ])
+        if (isActive) {
+          setLoading(false)
+        }
+      }
+      run()
+      return () => {
+        isActive = false
+      }
+    }, [id, refreshCounter, currentLang])
+  )
 
   React.useEffect(() => {
     setRightOnPressIsDisabled(!(remark && remark.trim()))

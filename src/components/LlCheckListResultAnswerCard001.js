@@ -44,6 +44,7 @@ const LlCheckListResultAnswerCard001 = props => {
     testID
   } = props
 
+  
   // Redux
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentUser = useSelector(state => state.data.currentUser)
@@ -124,6 +125,7 @@ const LlCheckListResultAnswerCard001 = props => {
   const fetchQuestion = useCallback(async () => {
     if (answer?.id) {
       try {
+        console.log(answer?.id, 'S_CheckListRecordAns.showV2')
         const res = await S_CheckListRecordAns.showV2({ modelId: answer.id });
         if (res) {
           setQuestion(res);
@@ -161,7 +163,8 @@ const LlCheckListResultAnswerCard001 = props => {
               position: 'absolute',
               right: 4,
               top: 4,
-              zIndex: 999
+              zIndex: 999,
+              // borderWidth:1
             }}
             onPress={() => {
               navigation.push('RoutesCheckList', {
@@ -351,6 +354,7 @@ const LlCheckListResultAnswerCard001 = props => {
                   labelWidth={80}
                   style={{
                     flexDirection: 'row',
+                    // borderWidth:1,
                   }}
                   type="link"
                   label={t('答題位置')}
@@ -648,6 +652,24 @@ const LlCheckListResultAnswerCard001 = props => {
                 </WsFlex>
               )}
 
+              {answer.file_images && answer.file_images.length > 0 && (
+                <WsFlex
+                  style={{
+                    width: width,
+                    marginTop: 8,
+                  }}
+                >
+                  <WsInfo
+                    style={{
+                      marginTop: 8,
+                    }}
+                    label={t('相關圖片')}
+                    type="filesAndImages"
+                    value={answer.file_images}>
+                  </WsInfo>
+                </WsFlex>
+              )}
+
               {question &&
                 question.file_images &&
                 question.file_images.length > 0 && (
@@ -886,4 +908,15 @@ const LlCheckListResultAnswerCard001 = props => {
   )
 }
 
-export default LlCheckListResultAnswerCard001
+export default React.memo(LlCheckListResultAnswerCard001, (prevProps, nextProps) => {
+  return (
+    prevProps.answer === nextProps.answer &&
+    prevProps.no === nextProps.no &&
+    prevProps.mode === nextProps.mode &&
+    prevProps.cardColor === nextProps.cardColor &&
+    prevProps.checkboxVisible === nextProps.checkboxVisible &&
+    prevProps.checked === nextProps.checked &&
+    prevProps.testID === nextProps.testID &&
+    prevProps.onPress === nextProps.onPress
+  )
+})

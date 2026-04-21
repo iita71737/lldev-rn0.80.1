@@ -1443,7 +1443,6 @@ export default {
       _questionType === 'num' && _answer_setting === 'custom-num'
     ) {
       const _score = this.getTypeCustomNumAnsScore(answer, answer.answer_value)
-      console.log(_score, '_score custom-num')
       return _score
     }
     if (
@@ -2654,17 +2653,43 @@ export default {
     return _questions
   },
   async create({ params }) {
+    const _params = {
+      ...params
+    }
+    if (Array.isArray(_params.effects)) {
+      _params.effects = _params.effects
+        .map(item => item && typeof item === 'object' ? item.id : item)
+        .filter(Boolean)
+    }
+    if (Array.isArray(_params.factory_effects)) {
+      _params.factory_effects = _params.factory_effects
+        .map(item => item && typeof item === 'object' ? item.id : item)
+        .filter(Boolean)
+    }
     return base.create({
       modelName: `checklist_record/${params.checklist_record}/checklist_record_answer`,
       data: {
-        ...params
+        ..._params
       }
     })
   },
   async update({ modelId, data }) {
+    const _normalizedData = {
+      ...data
+    }
+    if (Array.isArray(_normalizedData.effects)) {
+      _normalizedData.effects = _normalizedData.effects
+        .map(item => item && typeof item === 'object' ? item.id : item)
+        .filter(Boolean)
+    }
+    if (Array.isArray(_normalizedData.factory_effects)) {
+      _normalizedData.factory_effects = _normalizedData.factory_effects
+        .map(item => item && typeof item === 'object' ? item.id : item)
+        .filter(Boolean)
+    }
     const _data = {
       ...S_Processor.getFactoryData(),
-      ...data
+      ..._normalizedData
     }
     return await base.update({
       modelName: 'checklist_record_answer',

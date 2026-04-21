@@ -543,6 +543,7 @@ const ChecklistPreview = ({ navigation, route }) => {
 
             <WsTabView
               isAutoWidth={true}
+              renderOnlyActiveScene={false}
               items={tabItems}
               index={tabIndex}
               setIndex={settabIndex}

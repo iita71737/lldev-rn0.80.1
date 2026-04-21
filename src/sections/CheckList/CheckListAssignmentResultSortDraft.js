@@ -3,7 +3,6 @@ import {
   ScrollView,
   View,
   StatusBar,
-  SafeAreaView,
   FlatList,
   Alert
 } from 'react-native'
@@ -18,7 +17,6 @@ import {
   WsTabView,
   WsCard,
   LlAuditSortedResultDraftCard001,
-  WsSkeleton,
   WsEmpty,
   LlBtn002,
   WsGradientButton,
@@ -38,8 +36,6 @@ import { useTranslation } from 'react-i18next'
 import CheckBox from '@react-native-community/checkbox'
 import moment from 'moment'
 import { TouchableOpacity } from 'react-native-gesture-handler'
-
-const SKELETON_MIN_SHOW_MS = 180
 
 const CheckListAssignmentResultSortDraft = props => {
   const { t, i18n } = useTranslation()
@@ -64,10 +60,15 @@ const CheckListAssignmentResultSortDraft = props => {
 
   // STATE
   const [checkedQuestions, setCheckedQuestioned] = React.useState([])
-  const [loading, setLoading] = React.useState(true)
-
   const [questionFiltered, setQuestionFiltered] = React.useState(false)
   const [myQuestions, setMyQuestions] = React.useState()
+
+  const $_toIdArray = (items) => {
+    if (!Array.isArray(items)) return []
+    return items
+      .map(item => (item && typeof item === 'object' ? item.id : item))
+      .filter(Boolean)
+  }
 
 
   // HELPER
@@ -157,6 +158,8 @@ const CheckListAssignmentResultSortDraft = props => {
               risk_level: Number.isFinite(_riskLevelNum) ? _riskLevelNum : null,
               remark: item?.remark,
               images: item?.images ? S_CheckListRecordAns.formattedForFileStore(item.images) : [],
+              effects: $_toIdArray(item?.effects),
+              factory_effects: $_toIdArray(item?.factory_effects),
               factory: factory?.id,
               lat: item?.latLng?.latitude,
               lng: item?.latLng?.longitude,
@@ -174,6 +177,8 @@ const CheckListAssignmentResultSortDraft = props => {
                 risk_level: _params.risk_level,
                 remark: _params.remark,
                 images: _params.images,
+                effects: _params.effects,
+                factory_effects: _params.factory_effects,
                 factory: _params.factory,
                 lat: _params.lat,
                 lng: _params.lng,
@@ -236,14 +241,6 @@ const CheckListAssignmentResultSortDraft = props => {
 
   // 我的題目狀態下送批次合格RE-RENDER
   React.useEffect(() => {
-    setLoading(true)
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, SKELETON_MIN_SHOW_MS)
-    return () => clearTimeout(timer)
-  }, [props])
-
-  React.useEffect(() => {
     if (answers && questionFiltered && currentUser) {
       const _answer = S_CheckListQuestion.getFormattedMyQuestionSortedByResult(answers, currentUser.id)
       setMyQuestions(_answer)
@@ -255,13 +252,8 @@ const CheckListAssignmentResultSortDraft = props => {
   return (
     <>
       <StatusBar barStyle={'dark-content'} />
-      {loading ? (
-        <SafeAreaView>
-          <WsSkeleton />
-        </SafeAreaView>
-      ) : (
-        <>
-          {answers && questions && (
+      <>
+        {answers && questions && (
           <>
             <FlatList
               data={questionFiltered ? myQuestions : answers}
@@ -296,6 +288,7 @@ const CheckListAssignmentResultSortDraft = props => {
                             <LlCheckListQuestionCard002
                               done={todayDone}
                               key={item.id}
+                              locationVisible={false}
                               checkboxVisible={todayDone ? false : true}
                               checked={checkedQuestions.includes(item.id)}
                               checkboxOnPress={(answer) => {
@@ -385,9 +378,8 @@ const CheckListAssignmentResultSortDraft = props => {
               }
             />
           </>
-          )}
-        </>
-      )}
+        )}
+      </>
     </>
   )
 }

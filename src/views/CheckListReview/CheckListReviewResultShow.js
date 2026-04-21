@@ -28,7 +28,6 @@ import {
   WsInfo,
   WsIconBtn,
   WsBottomSheet,
-  WsSkeleton,
   WsTag,
   WsSpec
 } from '@/components'
@@ -58,6 +57,7 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
 
   // State
   const [answers, setAnswers] = React.useState()
+  const [questionAnswers, setQuestionAnswers] = React.useState()
   const [stateModal, setStateModal] = React.useState(false)
   const [record, setRecord] = React.useState()
   const [tabIndex, settabIndex] = React.useState(0)
@@ -109,6 +109,9 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
         setSampleContent: setSampleContent,
         setSampleScore: setSampleScore,
         setSampleUploadFileURL: setSampleUploadFileURL,
+        answers: questionAnswers,
+        record: record,
+        passRate: record?.pass_rate
       }
     },
     {
@@ -117,6 +120,7 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
       view: CheckListAssignmentResultSort,
       props: {
         id: id,
+        answers: answers
       }
     },
     {
@@ -124,7 +128,9 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
       label: t('依題目排序'),
       view: CheckListAssignmentQuestionSort,
       props: {
-        id: id
+        id: id,
+        answers: questionAnswers,
+        disableSelfFetch: true
       }
     }
   ])
@@ -144,8 +150,25 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
     }
   }
   const $_fetchSortedQuestionsByResult = async () => {
-    const res = await S_CheckListRecordAns.getSortedByResultV2(id)
-    setAnswers(res)
+    const answersApi = await S_CheckListRecordAns.indexV2({ parentId: id })
+    const _formattedAnswers = S_CheckListRecordAns.getFormatV2(answersApi?.data || [])
+    setAnswers(_formattedAnswers)
+    const _sortedAnswers = [...(answersApi?.data || [])].sort((a, b) => {
+      const seqA = a?.sequence
+      const seqB = b?.sequence
+      const numA = Number(seqA)
+      const numB = Number(seqB)
+      const hasNumA = Number.isFinite(numA)
+      const hasNumB = Number.isFinite(numB)
+      if (hasNumA && hasNumB) return numA - numB
+      if (hasNumA) return -1
+      if (hasNumB) return 1
+      return String(seqA ?? '').localeCompare(String(seqB ?? ''), undefined, {
+        numeric: true,
+        sensitivity: 'base'
+      })
+    })
+    setQuestionAnswers(_sortedAnswers)
   }
 
   const $_setTabItems = () => {
@@ -168,7 +191,10 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
           setSampleScore: setSampleScore,
           setSampleUploadFileURL: setSampleUploadFileURL,
 
+          answers: questionAnswers,
           _records: record,
+          record: record,
+          passRate: record?.pass_rate
         }
       },
       {
@@ -177,7 +203,7 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
         view: CheckListAssignmentResultSort,
         props: {
           id: id,
-          answers, answers
+          answers: answers
         }
       },
       {
@@ -185,7 +211,9 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
         label: t('依題目排序'),
         view: CheckListAssignmentQuestionSort,
         props: {
-          id: id
+          id: id,
+          answers: questionAnswers,
+          disableSelfFetch: true
         }
       }
     ])
@@ -304,7 +332,7 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
 
   React.useEffect(() => {
     $_setTabItems()
-  }, [record, answers])
+  }, [record, answers, questionAnswers])
 
   React.useEffect(() => {
     const isSampleContentInvalid = !sampleContent || sampleContent.trim() === '';
@@ -331,7 +359,7 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
           !record.checklist_review_records) && (
           <WsBtn
             style={{
-              marginBottom: 16,
+              marginBottom: Platform.OS === 'ios' ? 16 : 48,
             }}
             onPress={() => {
               setSelectedId()

@@ -50,6 +50,13 @@ const Procedure = ({ route, navigation }) => {
   const [tabItems, setTabItems] = React.useState([])
   const topBtnSubmitPromiseRef = React.useRef(null)
 
+  const $_toIdArray = (items) => {
+    if (!Array.isArray(items)) return []
+    return items
+      .map(item => (item && typeof item === 'object' ? item.id : item))
+      .filter(Boolean)
+  }
+
   // Services
   const $_findQuestionIndex = (_questions = [], _questionId) => {
     const _targetId = String(_questionId)
@@ -171,6 +178,8 @@ const Procedure = ({ route, navigation }) => {
           risk_level: _riskLevel,
           remark: _question?.remark,
           images: _question?.images ? S_CheckListRecordAns.formattedForFileStore(_question.images) : [],
+          effects: $_toIdArray(_question?.effects),
+          factory_effects: $_toIdArray(_question?.factory_effects),
           factory: currentFactory?.id,
           lat: _question?.latLng?.latitude ?? currentLatLng?.latitude,
           lng: _question?.latLng?.longitude ?? currentLatLng?.longitude,
@@ -201,6 +210,8 @@ const Procedure = ({ route, navigation }) => {
             risk_level: _params.risk_level,
             remark: _params.remark,
             images: _params.images,
+            effects: _params.effects,
+            factory_effects: _params.factory_effects,
             factory: _params.factory,
             lat: _params.lat,
             lng: _params.lng,

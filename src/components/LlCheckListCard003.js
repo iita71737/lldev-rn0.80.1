@@ -67,7 +67,10 @@ const LlCheckListCard003 = (props) => {
           style
         ]}>
         <WsText
-        >{name}</WsText>
+          size={16}
+        >{name}
+        </WsText>
+
         {tagIcon && tagText && (
           <WsTag
             style={{
@@ -78,6 +81,8 @@ const LlCheckListCard003 = (props) => {
         )}
 
         <WsSpec
+          titleSize={14}
+          fontSize={14}
           fontWeight={600}
           labelWidth={108}
           style={{
@@ -92,6 +97,8 @@ const LlCheckListCard003 = (props) => {
           item.assignment_end_time && (
             <>
               <WsSpec
+                titleSize={14}
+                fontSize={14}
                 fontWeight={600}
                 labelWidth={108}
                 style={{
@@ -110,8 +117,9 @@ const LlCheckListCard003 = (props) => {
             marginTop: 8
           }}
         >
-          <WsText size={12}
-            fontWeight="300"
+          <WsText
+            size={14}
+            fontWeight="400"
             color={$color.gray3d}
             style={[
               {
@@ -141,7 +149,7 @@ const LlCheckListCard003 = (props) => {
                           isUri={true}
                           source={item.avatar ? item.avatar : null}
                           style={{
-                             marginRight: 4
+                            marginRight: 4
                           }}
                         />
                         <View
@@ -151,7 +159,7 @@ const LlCheckListCard003 = (props) => {
                         >
                           <WsFlex>
                             <WsText
-                              size={12}
+                              size={14}
                               style={{
                                 marginRight: 4
                               }}
@@ -223,20 +231,17 @@ const LlCheckListCard003 = (props) => {
                 style={{
                   flex: 1,
                   width: Dimensions.get('window').width - 80,
-                  // borderBottomWidth: 2,
-                  // borderBottomColor: $color.white3d,
                   paddingTop: 8,
                   paddingBottom: 8
                 }}>
                 <View
                   style={{
                     flexDirection: 'row',
-                    // alignItems: 'center',
-                    // borderWidth: 1,
                   }}
                 >
-                  <WsText size={12}
-                    fontWeight="300"
+                  <WsText
+                    size={14}
+                    fontWeight="400"
                     color={$color.gray3d}
                     style={[
                       {
@@ -274,20 +279,20 @@ const LlCheckListCard003 = (props) => {
                             >
                               <WsFlex>
                                 <WsText
-                                  size={12}
+                                  size={14}
                                   style={{
                                     marginRight: 4
                                   }}
                                 >
                                   {item.name}
                                 </WsText>
-                                {item.checklist_review_record && item.checklist_review_record.updated_at && (
+                                {item.checklist_record_answer && item.checklist_record_answer.updated_at && (
                                   <WsTag>
                                     {t('已完成')}
                                   </WsTag>
                                 )}
                               </WsFlex>
-                              {item.checklist_review_record && item.checklist_review_record.updated_at &&
+                              {item.checklist_record_answer && item.checklist_record_answer.updated_at &&
                                 (
                                   <WsFlex
                                   >

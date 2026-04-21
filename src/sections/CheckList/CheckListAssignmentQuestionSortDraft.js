@@ -3,7 +3,6 @@ import {
   ScrollView,
   View,
   StatusBar,
-  SafeAreaView,
   FlatList,
   Dimensions,
   Modal,
@@ -24,7 +23,6 @@ import {
   WsTabView,
   WsCard,
   LlAuditSortedResultDraftCard001,
-  WsSkeleton,
   WsGradientButton,
   WsNavCheck,
   WsLoading,
@@ -55,8 +53,6 @@ import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native
 import AndroidOpenSettings from 'react-native-android-open-settings'
 import { getLocation, getGeocode } from '@/__reactnative_stone/global/location'
 
-const SKELETON_MIN_SHOW_MS = 180
-
 const CheckListAssignmentQuestionSortDraft = props => {
   const { width, height } = Dimensions.get('window')
   const { t, i18n } = useTranslation()
@@ -75,7 +71,6 @@ const CheckListAssignmentQuestionSortDraft = props => {
     questionFilteredBtnVisible = true,
     setBatchQualifiedLoading,
   } = props
-
   // 判斷是否為臨時點檢作業
   const hasQuestionSettingEverywhere = questions.every(question => "question_setting" in question);
 
@@ -94,8 +89,14 @@ const CheckListAssignmentQuestionSortDraft = props => {
     questionFilteredBtnVisible && hasQuestionSettingEverywhere ? true : false
   )
   const [myQuestions, setMyQuestions] = React.useState()
-  const [loading, setLoading] = React.useState(true)
   const [questionsCopy, setQuestionsCopy] = React.useState(questions) // 240508-prevent-tab-view-re-render-issue
+
+  const $_toIdArray = (items) => {
+    if (!Array.isArray(items)) return []
+    return items
+      .map(item => (item && typeof item === 'object' ? item.id : item))
+      .filter(Boolean)
+  }
 
   // HELPER
   const $_getScoreTextV5 = (answer) => {
@@ -359,6 +360,8 @@ const CheckListAssignmentQuestionSortDraft = props => {
               risk_level: Number.isFinite(_riskLevelNum) ? _riskLevelNum : null,
               remark: item?.remark,
               images: item?.images ? S_CheckListRecordAns.formattedForFileStore(item.images) : [],
+              effects: $_toIdArray(item?.effects),
+              factory_effects: $_toIdArray(item?.factory_effects),
               factory: currentFactory?.id,
               lat: item?.latLng?.latitude ?? currentLatLng?.latitude,
               lng: item?.latLng?.longitude ?? currentLatLng?.longitude,
@@ -376,6 +379,8 @@ const CheckListAssignmentQuestionSortDraft = props => {
                 risk_level: _params.risk_level,
                 remark: _params.remark,
                 images: _params.images,
+                effects: _params.effects,
+                factory_effects: _params.factory_effects,
                 factory: _params.factory,
                 lat: _params.lat,
                 lng: _params.lng,
@@ -492,15 +497,11 @@ const CheckListAssignmentQuestionSortDraft = props => {
   );
 
   React.useEffect(() => {
-    setLoading(true)
-    if (questionFilteredBtnVisible) {
-      $_filterMyQuestions()
+    if (questionFilteredBtnVisible && questions && currentUser) {
+      const _answer = S_CheckListQuestion.getFormattedMyQuestionSortedBySequence(questions, currentUser.id)
+      setMyQuestions(_answer)
     }
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, SKELETON_MIN_SHOW_MS)
-    return () => clearTimeout(timer)
-  }, [props])
+  }, [questionFilteredBtnVisible, questions, currentUser?.id])
 
   // 我的題目狀態下送批次合格RE-RENDER
   React.useEffect(() => {
@@ -516,165 +517,158 @@ const CheckListAssignmentQuestionSortDraft = props => {
   return (
     <>
       <StatusBar barStyle={'dark-content'} />
-      {loading ? (
-        <>
-          <SafeAreaView>
-            <WsSkeleton />
-          </SafeAreaView>
-        </>
-      ) : (
-        <FlatList
-          testID={'flatList'}
-          data={
-            questionFiltered
-              ? (myQuestions || questionsCopy || [])
-              : (questionsCopy || [])
-          }
-          keyExtractor={(item, index) => item.id}
-          renderItem={({ item, index }) => {
-            return (
-              <LlCheckListQuestionCard002
-                testID={`LlCheckListQuestionCard002-${index}`}
-                key={item.id}
-                done={todayDone}
-                checkboxVisible={todayDone ? false : true}
-                checkboxVisible={true}
-                checked={checkedQuestions.includes(item.id)}
-                checkboxOnPress={(answer) => {
-                  $_addToBatchQualified(answer)
-                }}
-                onPress={() => {
-                  if (
-                    item.last_version &&
-                    item.last_version.updated_at &&
-                    item.updated_at &&
-                    moment.utc(item.last_version.updated_at).isAfter(moment.utc(item.answer_updated_at)) &&
-                    item.isNeedCheckAns
-                  ) {
-                    setSelectedIndex(index)
-                    setSelectedItem(item)
-                    setPopupActive003(true)
-                  } else {
-                    navigation.push('RoutesCheckList', {
-                      screen: 'CheckListAssignmentProcedure',
-                      params: {
-                        id: id,
-                        versionId: versionId,
-                        checklistRecordId: checklistRecordId,
-                        questionId: item?.checklist_question?.id,
-                        // drafts: drafts,
-                        allQuestions: questionsCopy
-                      }
-                    })
-                  }
-                }}
+      <FlatList
+        testID={'flatList'}
+        data={
+          questionFiltered
+            ? (myQuestions || questionsCopy || [])
+            : (questionsCopy || [])
+        }
+        keyExtractor={(item, index) => item.id}
+        renderItem={({ item, index }) => {
+          return (
+            <LlCheckListQuestionCard002
+              testID={`LlCheckListQuestionCard002-${index}`}
+              locationVisible={false}
+              key={item.id}
+              done={todayDone}
+              checkboxVisible={todayDone ? false : true}
+              checkboxVisible={true}
+              checked={checkedQuestions.includes(item.id)}
+              checkboxOnPress={(answer) => {
+                $_addToBatchQualified(answer)
+              }}
+              onPress={() => {
+                if (
+                  item.last_version &&
+                  item.last_version.updated_at &&
+                  item.updated_at &&
+                  moment.utc(item.last_version.updated_at).isAfter(moment.utc(item.answer_updated_at)) &&
+                  item.isNeedCheckAns
+                ) {
+                  setSelectedIndex(index)
+                  setSelectedItem(item)
+                  setPopupActive003(true)
+                } else {
+                  navigation.push('RoutesCheckList', {
+                    screen: 'CheckListAssignmentProcedure',
+                    params: {
+                      id: id,
+                      versionId: versionId,
+                      checklistRecordId: checklistRecordId,
+                      questionId: item?.checklist_question?.id,
+                      // drafts: drafts,
+                      allQuestions: questionsCopy
+                    }
+                  })
+                }
+              }}
+              style={{
+                marginTop: 8,
+                // borderWidth:1,
+              }}
+              no={index + 1}
+              answer={item}
+              title={item.title}
+              score={item.score}
+              cardColor={$_validation(item)}
+            />
+          )
+        }}
+        ListHeaderComponent={() => {
+          return (
+            <>
+              <WsFlex
+                justifyContent="flex-end"
                 style={{
-                  marginTop: 8,
-                  // borderWidth:1,
+                  marginTop: 12
                 }}
-                no={index + 1}
-                answer={item}
-                title={item.title}
-                score={item.score}
-                cardColor={$_validation(item)}
-              />
-            )
-          }}
-          ListHeaderComponent={() => {
-            return (
-              <>
-                <WsFlex
-                  justifyContent="flex-end"
+              >
+                <WsGradientButton
                   style={{
-                    marginTop: 12
+                    marginRight: 16,
+                    alignSelf: 'flex-end',
+                    width: 120,
+                  }}
+                  onPress={() => {
+                    $_addAllToBatchQualified()
                   }}
                 >
-                  <WsGradientButton
-                    style={{
-                      marginRight: 16,
-                      alignSelf: 'flex-end',
-                      width: 120,
-                    }}
-                    onPress={() => {
-                      $_addAllToBatchQualified()
-                    }}
-                  >
-                    {t('全選')}
-                  </WsGradientButton>
-                  <WsGradientButton
-                    style={{
-                      marginRight: 16,
-                      alignSelf: 'flex-end',
-                      width: 120,
-                    }}
-                    onPress={() => {
-                      $_SubmitBatchQualified()
-                    }}
-                  >
-                    {t('批次合格')}
-                  </WsGradientButton>
-                </WsFlex>
-
-                <WsFlex
-                  justifyContent="space-between"
-                  style={{ marginTop: 12 }}
+                  {t('全選')}
+                </WsGradientButton>
+                <WsGradientButton
+                  style={{
+                    marginRight: 16,
+                    alignSelf: 'flex-end',
+                    width: 120,
+                  }}
+                  onPress={() => {
+                    $_SubmitBatchQualified()
+                  }}
                 >
-                  {myQuestions && myQuestions.length > 0 && (
+                  {t('批次合格')}
+                </WsGradientButton>
+              </WsFlex>
+
+              <WsFlex
+                justifyContent="space-between"
+                style={{ marginTop: 12 }}
+              >
+                {myQuestions && myQuestions.length > 0 && (
+                  <WsText
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 16
+                    }}
+                    fontWeight="bold">
+                    {i18next.t('題目')}
+                    {'（ '}
+                    {questionFiltered ? t('共{number}題', { number: myQuestions.length }) : t('共{number}題', { number: questions.length })}
+                    {' ）'}
+                  </WsText>
+                )}
+
+                {questionFilteredBtnVisible && (
+                  <TouchableOpacity
+                    style={{
+                      marginRight: 16,
+                      alignItems: 'flex-start',
+                      paddingHorizontal: 16,
+                      paddingVertical: 8,
+                      backgroundColor: $color.white,
+                      borderColor: $color.primary,
+                      borderWidth: 1,
+                      borderRadius: 25,
+                    }}
+                    disabled={!currentUser || !questions || questions.length === 0}
+                    onPress={() => {
+                      $_filterMyQuestions()
+                    }}>
                     <WsText
-                      style={{
-                        paddingVertical: 8,
-                        paddingHorizontal: 16
-                      }}
-                      fontWeight="bold">
-                      {i18next.t('題目')}
-                      {'（ '}
-                      {questionFiltered ? t('共{number}題', { number: myQuestions.length }) : t('共{number}題', { number: questions.length })}
-                      {' ）'}
+                      color={$color.primary}
+                    >
+                      {questionFiltered ? t('顯示全部題目') : t('只顯示我的題目')}
                     </WsText>
-                  )}
-
-                  {questionFilteredBtnVisible && (
-                    <TouchableOpacity
-                      style={{
-                        marginRight: 16,
-                        alignItems: 'flex-start',
-                        paddingHorizontal: 16,
-                        paddingVertical: 8,
-                        backgroundColor: $color.white,
-                        borderColor: $color.primary,
-                        borderWidth: 1,
-                        borderRadius: 25,
-                      }}
-                      disabled={!currentUser || !questions || questions.length === 0}
-                      onPress={() => {
-                        $_filterMyQuestions()
-                      }}>
-                      <WsText
-                        color={$color.primary}
-                      >
-                        {questionFiltered ? t('顯示全部題目') : t('只顯示我的題目')}
-                      </WsText>
-                    </TouchableOpacity>
-                  )}
-                </WsFlex>
-              </>
+                  </TouchableOpacity>
+                )}
+              </WsFlex>
+            </>
+          )
+        }}
+        ListFooterComponent={
+          () => {
+            return (
+              <View
+                style={{
+                  height: 100,
+                  // borderWidth: 1,
+                }}
+              >
+              </View>
             )
-          }}
-          ListFooterComponent={
-            () => {
-              return (
-                <View
-                  style={{
-                    height: 100,
-                    // borderWidth: 1,
-                  }}
-                >
-                </View>
-              )
-            }
           }
-        />
-      )}
+        }
+      />
 
       <WsPopup
         active={popupActive003}

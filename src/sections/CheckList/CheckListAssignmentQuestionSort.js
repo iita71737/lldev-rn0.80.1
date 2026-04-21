@@ -1,16 +1,16 @@
 import React from 'react'
-import { Pressable, ScrollView, FlatList, View } from 'react-native'
+import { FlatList, View } from 'react-native'
 import {
-  WsBtn,
   WsText,
-  WsStateFormView,
-  LlCheckListResultAnswerCard001
+  LlCheckListResultAnswerCard001,
+  WsSkeleton
 } from '@/components'
 import { useNavigation } from '@react-navigation/native'
 import S_CheckListRecordAns from '@/services/api/v1/checklist_record_answer'
-import S_CheckListRecord from '@/services/api/v1/checklist_record'
 import i18next from 'i18next'
 import { useTranslation } from 'react-i18next'
+
+const CHECKLIST_ASSIGNMENT_QUESTION_SORT_CACHE = new Map()
 
 const CheckListAssignmentQuestionSort = props => {
   const { t, i18n } = useTranslation()
@@ -19,20 +19,24 @@ const CheckListAssignmentQuestionSort = props => {
   // Props
   const {
     id,
-    versionId
+    versionId,
+    answers: inputAnswers,
+    disableSelfFetch = false
   } = props
 
   // State
-  const [record, setRecord] = React.useState()
-  const [answers, setAnswers] = React.useState()
+  const cacheKey = React.useMemo(() => String(id ?? ''), [id])
+  const [answers, setAnswers] = React.useState(() => {
+    if (Array.isArray(inputAnswers)) return inputAnswers
+    return CHECKLIST_ASSIGNMENT_QUESTION_SORT_CACHE.get(cacheKey)
+  })
+  const [loading, setLoading] = React.useState(
+    () => !(Array.isArray(inputAnswers) || CHECKLIST_ASSIGNMENT_QUESTION_SORT_CACHE.has(cacheKey))
+  )
 
   // Services
-  const $_fetchRecord = async () => {
-    const res = await S_CheckListRecord.showV2({ modelId: id })
-    setRecord(res)
-  }
   const $_fetchAnswers = async () => {
-    // console.log(id, 'S_CheckListRecordAns.indexV2-checklist_record_id')
+    console.log(id, 'S_CheckListRecordAns.indexV2 ques-sort')
     const res = await S_CheckListRecordAns.indexV2({
       parentId: id
     })
@@ -52,16 +56,63 @@ const CheckListAssignmentQuestionSort = props => {
       })
     })
     setAnswers(_sortedAnswers)
+    CHECKLIST_ASSIGNMENT_QUESTION_SORT_CACHE.set(cacheKey, _sortedAnswers)
   }
 
   React.useEffect(() => {
-    $_fetchRecord()
-    $_fetchAnswers()
-  }, [])
+    if (Array.isArray(inputAnswers)) {
+      setAnswers(inputAnswers)
+      CHECKLIST_ASSIGNMENT_QUESTION_SORT_CACHE.set(cacheKey, inputAnswers)
+      setLoading(false)
+      return
+    }
+    if (disableSelfFetch) {
+      setLoading(false)
+      return
+    }
+    const cached = CHECKLIST_ASSIGNMENT_QUESTION_SORT_CACHE.get(cacheKey)
+    if (cached) {
+      setAnswers(cached)
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    $_fetchAnswers().finally(() => {
+      setLoading(false)
+    })
+  }, [id, cacheKey, inputAnswers, disableSelfFetch])
+
+  const keyExtractor = React.useCallback((item, index) => item.id || String(index), [])
+
+  const renderItem = React.useCallback(({ item, index }) => {
+    return (
+      <LlCheckListResultAnswerCard001
+        key={item.id}
+        onPress={() => {
+          navigation.navigate({
+            name: 'CheckListAssignmentProcedure',
+            params: {
+              id: id,
+              versionId: versionId
+            }
+          })
+        }}
+        style={{
+          marginTop: 8
+        }}
+        no={index + 1}
+        answer={item}
+        title={item.title}
+        score={item.score}
+      />
+    )
+  }, [id, navigation, versionId])
 
   return (
     <>
-      {answers && (
+      {loading ? (
+        <WsSkeleton />
+      ) : answers ? (
         <>
           <WsText
             style={{
@@ -78,30 +129,12 @@ const CheckListAssignmentQuestionSort = props => {
           <FlatList
             testID='flatList'
             data={answers}
-            keyExtractor={(item, index) => item.id || String(index)}
-            renderItem={({ item, index }) => {
-              return (
-                <LlCheckListResultAnswerCard001
-                  key={item.id}
-                  onPress={() => {
-                    navigation.navigate({
-                      name: 'CheckListAssignmentProcedure',
-                      params: {
-                        id: id,
-                        versionId: versionId
-                      }
-                    })
-                  }}
-                  style={{
-                    marginTop: 8
-                  }}
-                  no={index + 1}
-                  answer={item}
-                  title={item.title}
-                  score={item.score}
-                />
-              )
-            }}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={7}
+            removeClippedSubviews={true}
             ListFooterComponent={
               () => {
                 return (
@@ -117,9 +150,16 @@ const CheckListAssignmentQuestionSort = props => {
             }
           />
         </>
-      )}
+      ) : null}
     </>
   )
 }
 
-export default CheckListAssignmentQuestionSort
+export default React.memo(CheckListAssignmentQuestionSort, (prevProps, nextProps) => {
+  return (
+    prevProps.id === nextProps.id &&
+    prevProps.versionId === nextProps.versionId &&
+    prevProps.disableSelfFetch === nextProps.disableSelfFetch &&
+    prevProps.answers === nextProps.answers
+  )
+})

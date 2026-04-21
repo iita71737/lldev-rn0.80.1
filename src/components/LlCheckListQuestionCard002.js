@@ -52,7 +52,8 @@ const LlCheckListQuestionCard002 = props => {
     checkboxOnPress,
     checked,
     done,
-    testID
+    testID,
+    locationVisible = true
   } = props
 
   // Redux
@@ -176,6 +177,7 @@ const LlCheckListQuestionCard002 = props => {
     canEditByUpdater &&
     canEditByChecker
   )
+  
   const hasAnswerLatLng = (
     answer?.latLng?.latitude !== null &&
     answer?.latLng?.latitude !== undefined &&
@@ -356,7 +358,7 @@ const LlCheckListQuestionCard002 = props => {
                   </WsText>
                   {answer.updated_at && (
                     <WsFlex style={{ paddingLeft: 4 }}>
-                      <WsTag>{t('已完成')}</WsTag>
+                      {/* <WsTag>{t('已完成')}</WsTag> */}
                       <WsDes style={{ padding: 4 }}>
                         {moment(answer.updated_at).format('YYYY-MM-DD HH:mm')}
                       </WsDes>
@@ -384,7 +386,8 @@ const LlCheckListQuestionCard002 = props => {
           </WsFlex>
 
 
-          {hasAnswerLatLng &&
+          {locationVisible &&
+            hasAnswerLatLng &&
             answer?.answer_value && (
               <View
                 style={{

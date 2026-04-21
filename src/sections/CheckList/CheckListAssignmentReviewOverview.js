@@ -20,12 +20,9 @@ import {
   WsTag,
   WsDes,
   WsInfoUsers002,
-  WsSkeleton,
   WsSpec
 } from '@/components'
 import { useTranslation } from 'react-i18next'
-import S_CheckListRecord from '@/services/api/v1/checklist_record'
-import S_CheckListRecordAns from '@/services/api/v1/checklist_record_answer'
 import { useNavigation } from '@react-navigation/native'
 import $color from '@/__reactnative_stone/global/color'
 import { useSelector } from 'react-redux'
@@ -54,7 +51,10 @@ const CheckListAssignmentReviewOverview = (props) => {
     setSampleUploadFileURL,
     setSampleUploadFileURLIds,
 
-    _records
+    _records,
+    answers: inputAnswers,
+    record: inputRecord,
+    passRate: inputPassRate
   } = props
 
   // Redux
@@ -62,13 +62,9 @@ const CheckListAssignmentReviewOverview = (props) => {
   const currentFactory = useSelector(state => state.data.currentFactory)
 
   // State
-  const [loading, setLoading] = React.useState(true)
-  const [record, setRecord] = React.useState()
-  const [answers, setAnswers] = React.useState()
-  const [passRate, setPassRate] = React.useState()
-
-  const [tabIndex, settabIndex] = React.useState(0)
-  const [reviewAt, setReviewAt] = React.useState()
+  const record = inputRecord
+  const answers = inputAnswers
+  const passRate = inputPassRate
 
   // BOTTOM SHEET
   const [selectedReviewed, setSelectedReviewed] = React.useState()
@@ -87,42 +83,6 @@ const CheckListAssignmentReviewOverview = (props) => {
     }
   ])
 
-  // Services
-  const $_fetchAnswers = async () => {
-    try {
-      const res = await S_CheckListRecord.showV2({ modelId: id })
-      setRecord(res)
-      setReviewAt(res.review_at)
-      if (res && res.checklist_review_records && res.checklist_review_records.length > 0) {
-        const _defaultContent = res.checklist_review_records.find(item => {
-          if (!item.recorder) {
-            return
-          }
-          return item.recorder.id == currentUser.id;
-        })
-      }
-      if (res) {
-        setPassRate(res.pass_rate)
-      }
-      console.log('S_CheckListRecordAns.indexV2-2')
-      const res2 = await S_CheckListRecordAns.indexV2({ parentId: id })
-      setAnswers(res2.data)
-      Promise.all([res, res2])
-        .then(res => {
-          setLoading(false)
-        })
-        .catch(error => {
-          console.error(error);
-        })
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  React.useEffect(() => {
-    $_fetchAnswers()
-  }, [_records])
-
   return (
     <>
       <ScrollView
@@ -131,8 +91,7 @@ const CheckListAssignmentReviewOverview = (props) => {
           flex: 1
         }}
       >
-        {!loading ? (
-          <>
+        <>
             {record && (
               <WsPaddingContainer
                 style={{
@@ -204,7 +163,7 @@ const CheckListAssignmentReviewOverview = (props) => {
                 style={{
                 }}
               >
-                {record.checkers && (
+                {record?.checkers && (
                   <WsInfo
                     labelWidth={60}
                     style={{
@@ -213,7 +172,7 @@ const CheckListAssignmentReviewOverview = (props) => {
                     }}
                     type="usersWithTag"
                     label={t('答題者')}
-                    value={record.checkers}
+                    value={record?.checkers}
                     isUri={true}
                   />
                 )}
@@ -231,7 +190,7 @@ const CheckListAssignmentReviewOverview = (props) => {
             >
               <FlatList
                 testID={'flatList'}
-                data={record.checklist_review_records}
+                data={record?.checklist_review_records || []}
                 keyExtractor={(item, index) => item + index}
                 renderItem={({ item, index }) => (
                   <>
@@ -403,7 +362,7 @@ const CheckListAssignmentReviewOverview = (props) => {
               }}
             >
               <FlatList
-                data={record.checklist_sample_records}
+                data={record?.checklist_sample_records || []}
                 keyExtractor={(item, index) => item + index}
                 renderItem={({ item, index }) => (
                   <>
@@ -557,10 +516,7 @@ const CheckListAssignmentReviewOverview = (props) => {
                 }}
               />
             </WsPaddingContainer>
-          </>
-        ) : (
-          <WsSkeleton></WsSkeleton>
-        )}
+        </>
       </ScrollView>
     </>
   )

@@ -50,16 +50,14 @@ const WsInfoLink = props => {
             {
               // borderWidth:1,
             },
-            {
-              style
-            }
+            style
           ]
           }
           onPress={hasExternalLink ? handlePress : onPress}
         >
           <WsFlex
             alignItems="center"
-            flexWrap={style?.flexWrap ? style.flexWrap : 'wrap'}
+            flexWrap={style?.flexWrap ? style.flexWrap : 'nowrap'}
             style={{
             }}
           >

@@ -43,7 +43,7 @@ const CheckListAssignmentHasDraftList = props => {
   const _params = React.useMemo(() => {
     const params = {
       factory_id: factory ? factory.id : null,
-      order_by: 'updated_at',
+      order_by: 'created_at',
       order_way: 'desc',
     }
     return params

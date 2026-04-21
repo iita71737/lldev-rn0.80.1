@@ -39,6 +39,8 @@ import S_GeneralRecord from '@/services/api/v1/general_record'
 import S_ConstantData from '@/services/api/v1/constant_data'
 import { WsSkeleton } from '@/components'
 
+const CHECKLIST_RESULT_OVERVIEW_CACHE = new Map()
+
 const CheckListResultOverview = (props) => {
   const { t, i18n } = useTranslation()
 
@@ -68,12 +70,15 @@ const CheckListResultOverview = (props) => {
   const currentUserScope = useSelector(state => state.data.userScopes)
 
   // State
+  const cacheKey = React.useMemo(() => String(id ?? ''), [id])
+  const [loading, setLoading] = React.useState(
+    () => !CHECKLIST_RESULT_OVERVIEW_CACHE.has(cacheKey)
+  )
   const [answers, setAnswers] = React.useState()
   const [record, setRecord] = React.useState()
 
   // Services
-  const $_fetchRecord = async () => {
-    const res = await S_CheckListRecord.showV2({ modelId: id })
+  const $_applyRecord = (res) => {
     if (!res) {
       return
     }
@@ -92,25 +97,56 @@ const CheckListResultOverview = (props) => {
     }
   }
 
-  const $_fetchAnswers = async () => {
-    console.log('S_CheckListRecordAns.indexV2-3')
-    const res = await S_CheckListRecordAns.indexV2({ parentId: id })
-    if (res.data) {
-      setAnswers(res.data)
+  const $_fetchData = async () => {
+    const [recordRes, answersRes] = await Promise.all([
+      S_CheckListRecord.showV2({ modelId: id }),
+      S_CheckListRecordAns.indexV2({ parentId: id })
+    ])
+    return {
+      record: recordRes,
+      answers: answersRes?.data || []
     }
   }
 
   React.useEffect(() => {
-    $_fetchRecord()
-    $_fetchAnswers()
-  }, [id, refreshCounter])
+    let isActive = true
+    const cached = CHECKLIST_RESULT_OVERVIEW_CACHE.get(cacheKey)
+    if (cached) {
+      $_applyRecord(cached.record)
+      setAnswers(cached.answers)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
+
+    const run = async () => {
+      try {
+        const data = await $_fetchData()
+        if (!isActive) return
+        $_applyRecord(data.record)
+        setAnswers(data.answers)
+        CHECKLIST_RESULT_OVERVIEW_CACHE.set(cacheKey, data)
+      } catch (e) {
+        console.error(e)
+      } finally {
+        if (isActive) {
+          setLoading(false)
+        }
+      }
+    }
+
+    run()
+    return () => {
+      isActive = false
+    }
+  }, [cacheKey, id, refreshCounter])
 
   return (
     <>
       <ScrollView
         testID={'ScrollView'}
       >
-        {record && answers ? (
+        {!loading && record && answers ? (
           <>
             <LlRiskHeaderCalc
               record={record}

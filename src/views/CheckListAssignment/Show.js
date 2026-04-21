@@ -96,6 +96,7 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
   const [refreshCounter, setRefreshCounter] = React.useState(0);
 
   const [answers, setAnswers] = React.useState()
+  const [questionAnswers, setQuestionAnswers] = React.useState()
   const [record, setRecord] = React.useState()
 
   const [stateModal, setStateModal] = React.useState(false)
@@ -115,6 +116,7 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
 
   // Services
   const $_fetchRecord = async () => {
+    console.log(id, 'S_CheckListRecord.showV2 id')
     const res = await S_CheckListRecord.showV2({ modelId: id })
     if (!res) {
       return
@@ -125,6 +127,22 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
     const answersApi = await S_CheckListRecordAns.indexV2({ parentId: id });
     const _formattedAnswers = S_CheckListRecordAns.getFormatV2(answersApi.data);
     setAnswers(_formattedAnswers)
+    const _sortedAnswers = [...(answersApi?.data || [])].sort((a, b) => {
+      const seqA = a?.sequence
+      const seqB = b?.sequence
+      const numA = Number(seqA)
+      const numB = Number(seqB)
+      const hasNumA = Number.isFinite(numA)
+      const hasNumB = Number.isFinite(numB)
+      if (hasNumA && hasNumB) return numA - numB
+      if (hasNumA) return -1
+      if (hasNumB) return 1
+      return String(seqA ?? '').localeCompare(String(seqB ?? ''), undefined, {
+        numeric: true,
+        sensitivity: 'base'
+      })
+    })
+    setQuestionAnswers(_sortedAnswers)
   }
 
 
@@ -193,7 +211,9 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
           view: CheckListAssignmentQuestionSort,
           props: {
             id: id,
-            versionId: versionId
+            versionId: versionId,
+            answers: questionAnswers,
+            disableSelfFetch: true
           }
         }
       ])
@@ -297,7 +317,7 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
     if (record) {
       $_setTabItems()
     }
-  }, [refreshCounter, record, answers])
+  }, [refreshCounter, record, answers, questionAnswers])
 
   React.useEffect(() => {
     const isSampleContentEmpty = !sampleContent || sampleContent.trim() === '';
@@ -309,6 +329,18 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
       setIsDisabled(isReviewContentEmpty || reviewScore === null);
     }
   }, [selectedMode, sampleContent, sampleScore, reviewContent, reviewScore]);
+
+  const hasNoReviewRecords = !!record && (
+    (
+      record.checklist_review_records != undefined &&
+      record.checklist_review_records.length == 0
+    ) ||
+    !record.checklist_review_records
+  )
+  const hasReviewers = (record?.reviewers?.length || 0) > 0
+  const sampleButtonMarginBottom = Platform.OS === 'android'
+    ? (hasNoReviewRecords && hasReviewers ? 16 : 48)
+    : 16
 
   return (
     <>
@@ -475,7 +507,7 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
           <WsGradientButton
             borderRadius={30}
             style={{
-              marginBottom: 16,
+              marginBottom: sampleButtonMarginBottom
             }}
             onPress={() => {
               setSelectedMode('createSample')
@@ -489,15 +521,11 @@ const CheckListReviewResultShow = ({ route, navigation }) => {
           </WsGradientButton>
         )}
 
-      {record &&
-        (record.checklist_review_records != undefined &&
-          record.checklist_review_records.length == 0 ||
-          !record.checklist_review_records) &&
-        (record.reviewers?.length > 0) && (
+      {record && hasNoReviewRecords && hasReviewers && (
           <WsGradientButton
             borderRadius={30}
             style={{
-              marginBottom: 24,
+              marginBottom: Platform.OS === 'ios' ? 16 : 48,
             }}
             onPress={() => {
               setSelectedId()

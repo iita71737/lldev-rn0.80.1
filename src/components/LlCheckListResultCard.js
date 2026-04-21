@@ -351,28 +351,7 @@ const LlCheckListResultCard = prop => {
                                     >
                                       {checkerItem.name}
                                     </WsText>
-                                    {checkerItem.checklist_record_answer && checkerItem.checklist_record_answer.updated_at && (
-                                      <WsTag>
-                                        {t('已完成')}
-                                      </WsTag>
-                                    )}
                                   </WsFlex>
-                                  {checkerItem.checklist_record_answer && checkerItem.checklist_record_answer.updated_at &&
-                                    (
-                                      <WsFlex
-                                      >
-                                        <WsDes
-                                          style={{
-                                          }}
-                                        >
-                                          {checkerItem.checklist_record_answer &&
-                                            checkerItem.checklist_record_answer.updated_at ?
-                                            moment(checkerItem.checklist_record_answer.updated_at).format('YYYY-MM-DD HH:mm') :
-                                            null
-                                          }
-                                        </WsDes>
-                                      </WsFlex>
-                                    )}
 
                                   {item.status == 1 &&
                                     item.record_at &&

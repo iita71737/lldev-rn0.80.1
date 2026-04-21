@@ -62,7 +62,6 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
   const [selectedFiles, setSelectedFiles] = useState<any[]>([]);
   const [selectedRadio, setSelectedRadio] = useState<string>(defaultRadio);
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
-  const [filterValue] = useState<Record<string, any>>({});
   const [filterFields] = React.useState<any>({
     file_path: {
       type: 'search',
@@ -110,7 +109,53 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
         file_type: limitFileExtension ? limitFileExtension.toString() : undefined
       }
     }
-  }, [selectedRadio]);
+  }, [selectedRadio, params, currentFactory?.id, limitFileExtension]);
+
+
+  const filterDefaultValue = React.useMemo(() => {
+    const _startTime = params?.start_time ? moment(params.start_time) : null
+    const _endTime = params?.end_time ? moment(params.end_time) : null
+    const _hasDateRange = _startTime?.isValid() && _endTime?.isValid()
+
+    let _range = 'nolimit'
+    if (_hasDateRange) {
+      const _diffDays = Math.abs(
+        _endTime.startOf('day').diff(_startTime.startOf('day'), 'days')
+      )
+      if (_diffDays >= 28 && _diffDays <= 32) {
+        _range = '1month'
+      } else if (_diffDays >= 88 && _diffDays <= 93) {
+        _range = '3month'
+      } else {
+        _range = 'custom'
+      }
+    }
+
+    return {
+      order_way: {
+        order_way: params?.order_way || 'desc',
+        order_by: params?.order_by || 'created_at'
+      },
+      time_field: params?.time_field || 'created_at',
+      button: _hasDateRange
+        ? {
+          range: _range,
+          start_time: _startTime.format('YYYY-MM-DD'),
+          end_time: _endTime.format('YYYY-MM-DD')
+        }
+        : {
+          range: '3month'
+        }
+    }
+  }, [
+    params?.start_time,
+    params?.end_time,
+    params?.order_way,
+    params?.order_by,
+    params?.time_field
+  ])
+
+  console.log(filterDefaultValue, 'filterDefaultValue')
 
   const _modelName = React.useMemo(() => {
     if (selectedRadio === 'specific') {
@@ -178,7 +223,7 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
             serviceIndexKey={_serviceIndexKey}
             params={_params}
             filterFields={filterFields}
-            defaultFilterValue={filterValue}
+            defaultFilterValue={filterDefaultValue}
             searchLabel={'標題'}
             ListHeaderComponent={() => {
               return (
@@ -225,9 +270,9 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
                       limitFileExtension
                         ? [{ label: t('特定版本'), value: 'specific' }]
                         : [
-                            { label: t(`最新版本\n(將來此檔案有版本更新時，自動關聯至最新版本)`), value: 'latest' },
-                            { label: t('特定版本'), value: 'specific' }
-                          ]
+                          { label: t(`最新版本\n(將來此檔案有版本更新時，自動關聯至最新版本)`), value: 'latest' },
+                          { label: t('特定版本'), value: 'specific' }
+                        ]
                     }
                     rules={'required'}
                     value={selectedRadio}
