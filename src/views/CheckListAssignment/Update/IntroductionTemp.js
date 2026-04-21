@@ -200,6 +200,8 @@ const IntroductionTemp = ({ navigation, route }) => {
         }
         checklistRecordId = _checklistRecord.id
       }
+      // 新作業一律先清空本機暫存，避免沿用上一份 Preview 的草稿陣列
+      store.dispatch(setCurrentChecklistRecordDraft(null))
       // 跳轉總覽頁
       navigation.navigate('CheckListAssignmentPreview', {
         id: id,

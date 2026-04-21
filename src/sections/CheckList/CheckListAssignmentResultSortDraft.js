@@ -36,6 +36,7 @@ import { useTranslation } from 'react-i18next'
 import CheckBox from '@react-native-community/checkbox'
 import moment from 'moment'
 import { TouchableOpacity } from 'react-native-gesture-handler'
+import { getChecklistBatchQualifiedConcurrencyLimit } from './checklistBatchQualifiedConfig'
 
 const CheckListAssignmentResultSortDraft = props => {
   const { t, i18n } = useTranslation()
@@ -62,12 +63,84 @@ const CheckListAssignmentResultSortDraft = props => {
   const [checkedQuestions, setCheckedQuestioned] = React.useState([])
   const [questionFiltered, setQuestionFiltered] = React.useState(false)
   const [myQuestions, setMyQuestions] = React.useState()
+  const $_BATCH_QUALIFIED_COOLDOWN_MS = 15000
+  const _submitBatchQualifiedInFlightRef = React.useRef(false)
+  const _lastSubmitBatchQualifiedAtRef = React.useRef(0)
 
   const $_toIdArray = (items) => {
     if (!Array.isArray(items)) return []
     return items
       .map(item => (item && typeof item === 'object' ? item.id : item))
       .filter(Boolean)
+  }
+  const $_toQuestionValue = (item) => {
+    if (typeof item?.answer_value === 'string') return item.answer_value
+    if (Array.isArray(item?.answer_value)) {
+      return item.answer_value.map(ans => ans?.id).filter(Boolean)
+    }
+    if (item?.answer_value && typeof item.answer_value === 'object') {
+      return [item.answer_value?.id].filter(Boolean)
+    }
+    return item?.answer_value
+  }
+  const $_toImages = (images) => {
+    if (!Array.isArray(images)) return []
+    return S_CheckListRecordAns.formattedForFileStore(images)
+  }
+  const $_compactPayload = (payload = {}) => {
+    return Object.entries(payload).reduce((acc, [key, value]) => {
+      if (value === undefined || value === null || value === '') return acc
+      if (Array.isArray(value) && value.length === 0) return acc
+      acc[key] = value
+      return acc
+    }, {})
+  }
+  const $_toComparablePayload = (item) => {
+    const _riskLevel = S_CheckListRecordAns.getRiskLevelScore(item, item?.answer_value)
+    const _riskLevelNum = Number(_riskLevel)
+    const _payload = {
+      question_value: $_toQuestionValue(item),
+      score: item?.score,
+      risk_level: Number.isFinite(_riskLevelNum) ? _riskLevelNum : null,
+      remark: item?.remark,
+      images: $_toImages(item?.images),
+      effects: $_toIdArray(item?.effects),
+      factory_effects: $_toIdArray(item?.factory_effects),
+      factory: factory?.id,
+      lat: item?.latLng?.latitude,
+      lng: item?.latLng?.longitude,
+      ip: item?.ip,
+      checklist_question_version: item?.checklist_question_version
+        || item?.checklist_question_version_id
+        || item?.id
+        || item?.last_version?.id,
+      checklist_question: item?.checklist_question?.id
+    }
+    return $_compactPayload(_payload)
+  }
+  const $_isSamePayload = (nextItem, prevItem) => {
+    if (!nextItem || !prevItem) return false
+    return JSON.stringify($_toComparablePayload(nextItem)) === JSON.stringify($_toComparablePayload(prevItem))
+  }
+  const $_runWithConcurrencyLimit = async (items = [], worker, limit = 6) => {
+    const _limit = Math.max(1, Number(limit) || 1)
+    const results = new Array(items.length)
+    let cursor = 0
+    const runner = async () => {
+      while (cursor < items.length) {
+        const currentIndex = cursor
+        cursor += 1
+        try {
+          const value = await worker(items[currentIndex], currentIndex)
+          results[currentIndex] = { status: 'fulfilled', value }
+        } catch (reason) {
+          results[currentIndex] = { status: 'rejected', reason }
+        }
+      }
+    }
+    const workers = Array.from({ length: Math.min(_limit, items.length) }, () => runner())
+    await Promise.all(workers)
+    return results
   }
 
 
@@ -113,7 +186,18 @@ const CheckListAssignmentResultSortDraft = props => {
 
   // 提交批次全部合格並整理成要送出的格式
   const $_SubmitBatchQualified = () => {
+    const _now = Date.now()
+    const _inFlight = _submitBatchQualifiedInFlightRef.current
+    const _isInCooldown = (_now - _lastSubmitBatchQualifiedAtRef.current) < $_BATCH_QUALIFIED_COOLDOWN_MS
+    if (_inFlight || _isInCooldown) {
+      Alert.alert('伺服器忙碌中，請稍後再試')
+      return
+    }
+    _submitBatchQualifiedInFlightRef.current = true
+    _lastSubmitBatchQualifiedAtRef.current = _now
+
     const $_submit = async () => {
+      const _submitStartAt = Date.now()
       setBatchQualifiedLoading?.(true)
       try {
         const _myCheckedQuestionIds = checkedQuestions.filter(questionId => {
@@ -137,41 +221,26 @@ const CheckListAssignmentResultSortDraft = props => {
           return
         }
 
-        const _targetQuestions = _questions.filter(item => _myCheckedQuestionIds.includes(item.id))
-        const _results = await Promise.allSettled(
-          _targetQuestions.map(async item => {
-            const _questionValue = typeof item?.answer_value === 'string'
-              ? item.answer_value
-              : Array.isArray(item?.answer_value)
-                ? item.answer_value.map(ans => ans?.id).filter(Boolean)
-                : item?.answer_value && typeof item.answer_value === 'object'
-                  ? [item.answer_value?.id]
-                  : item?.answer_value
-
-            const _riskLevel = S_CheckListRecordAns.getRiskLevelScore(item, item?.answer_value)
-            const _riskLevelNum = Number(_riskLevel)
-
+        const _originalQuestionById = new Map((questions || []).map(item => [item?.id, item]))
+        const _targetQuestions = _questions
+          .filter(item => _myCheckedQuestionIds.includes(item.id))
+          .filter(item => {
+            if (!item?.recordAnsId) return true
+            const _original = _originalQuestionById.get(item.id)
+            return !_original || !$_isSamePayload(item, _original)
+          })
+        const _concurrencyLimit = getChecklistBatchQualifiedConcurrencyLimit(_targetQuestions.length)
+        console.log(`[CheckListAssignmentResultSortDraft] target=${_targetQuestions.length}, concurrency=${_concurrencyLimit}`)
+        const _results = await $_runWithConcurrencyLimit(
+          _targetQuestions,
+          async item => {
+            const _payload = $_toComparablePayload(item)
             const _params = {
               checklist_record: checklistRecordId,
-              question_value: _questionValue,
-              score: item?.score,
-              risk_level: Number.isFinite(_riskLevelNum) ? _riskLevelNum : null,
-              remark: item?.remark,
-              images: item?.images ? S_CheckListRecordAns.formattedForFileStore(item.images) : [],
-              effects: $_toIdArray(item?.effects),
-              factory_effects: $_toIdArray(item?.factory_effects),
-              factory: factory?.id,
-              lat: item?.latLng?.latitude,
-              lng: item?.latLng?.longitude,
-              ip: item?.ip,
-              checklist_question_version: item?.checklist_question_version
-                || item?.checklist_question_version_id
-                || item?.id
-                || item?.last_version?.id,
-              checklist_question: item?.checklist_question?.id
+              ..._payload
             }
             if (item?.recordAnsId) {
-              const _updateData = {
+              const _updateData = $_compactPayload({
                 question_value: _params.question_value,
                 score: _params.score,
                 risk_level: _params.risk_level,
@@ -185,14 +254,15 @@ const CheckListAssignmentResultSortDraft = props => {
                 ip: _params.ip,
                 checklist_question_version: _params.checklist_question_version,
                 checklist_question: _params.checklist_question
-              }
+              })
               return S_CheckListRecordAns.update({
                 modelId: item.recordAnsId,
                 data: _updateData
               })
             }
             return S_CheckListRecordAns.create({ params: _params })
-          })
+          },
+          _concurrencyLimit
         )
 
         const _recordAnsIdByQuestionId = {}
@@ -217,6 +287,9 @@ const CheckListAssignmentResultSortDraft = props => {
           console.log(t('批次合格送出失敗{number}題', { number: _failedCount }))
         }
       } finally {
+        const _durationMs = Date.now() - _submitStartAt
+        console.log(`[CheckListAssignmentResultSortDraft] $_SubmitBatchQualified completed in ${_durationMs}ms`)
+        _submitBatchQualifiedInFlightRef.current = false
         setBatchQualifiedLoading?.(false)
       }
     }

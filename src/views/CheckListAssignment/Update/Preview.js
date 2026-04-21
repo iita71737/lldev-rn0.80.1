@@ -135,6 +135,7 @@ const ChecklistPreview = ({ navigation, route }) => {
       }
     }
   ])
+  const previewSessionKey = `${id || ''}-${versionId || ''}-${checklistRecordId || _draftId || 'no-record'}`
 
   const $_getRefreshCounter = () => Math.floor(Math.random() * (100 - 1 + 1)) + 1
   const $_resetToCheckListAssignment = (_routeParams = {}) => {
@@ -435,6 +436,13 @@ const ChecklistPreview = ({ navigation, route }) => {
       setQuestions(currentChecklistDraft)
     }
   }, [currentChecklistDraft])
+
+  React.useEffect(() => {
+    setReviews(_reviewers ? _reviewers : [])
+    setDraftId(_draftId ? _draftId : null)
+    setQuestions(Array.isArray(_questions) ? _questions : [])
+    store.dispatch(setCurrentChecklistRecordDraft(null))
+  }, [previewSessionKey])
 
   React.useEffect(() => {
     if (answers) {
