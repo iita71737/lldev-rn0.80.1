@@ -74,6 +74,7 @@ const WsStateBelongstoManyModalPicker = props => {
 
   const [modalVisible, setModalVisible] = React.useState(false)
   const [fetchItems, setFetchItems] = React.useState([])
+  const [visibleItems, setVisibleItems] = React.useState([])
   const [text, setText] = React.useState()
   const [search, setSearch] = React.useState()
 
@@ -101,6 +102,7 @@ const WsStateBelongstoManyModalPicker = props => {
     if (search) {
       setSearch($event.search)
     }
+    setVisibleItems([])
     setFiltersValue($event)
     setFilterModalVisible(false)
   }
@@ -126,16 +128,18 @@ const WsStateBelongstoManyModalPicker = props => {
     setModalVisible(false)
   }
   const $_onSelectAll = items => {
-    const _value = value ? [...value] : []
+    const _value = fetchItems ? [...fetchItems] : []
+    const _selectedIds = new Set(_value.map(item => String(item?.id)))
     items.forEach(item => {
-      if (!_value.includes(item.id)) {
+      if (!_selectedIds.has(String(item?.id))) {
         _value.push(item)
+        _selectedIds.add(String(item?.id))
       }
     })
     setFetchItems(_value)
   }
   const $_onClearAll = items => {
-    const _value = value ? [...value] : []
+    const _value = fetchItems ? [...fetchItems] : []
     items.forEach(item => {
       const tarIndex = _value.findIndex(e => {
         return e.id == item.id
@@ -297,10 +301,11 @@ const WsStateBelongstoManyModalPicker = props => {
         }}
         testID={testID}
         onPress={() => {
-          setModalVisible(true)
-          if (value && value.length > 0) {
-            setFetchItems([...defaultValue, ...value])
-          }
+      setModalVisible(true)
+      setVisibleItems([])
+      if (value && value.length > 0) {
+        setFetchItems([...defaultValue, ...value])
+      }
         }}
         placeholder={placeholder}
         badge={value && value.length ? value.length : null}
@@ -394,6 +399,7 @@ const WsStateBelongstoManyModalPicker = props => {
               value={search}
               onChange={e => {
                 setSearch(e)
+                setVisibleItems([])
                 const _params = {
                   search: e
                 }
@@ -412,7 +418,7 @@ const WsStateBelongstoManyModalPicker = props => {
                   <>
                     <TouchableOpacity
                       onPress={() => {
-                        $_onSelectAll(fetchItems)
+                        $_onSelectAll(pagination ? (list || []) : visibleItems)
                       }}>
                       <WsText color={$color.primary} size={14}>
                         {t('全選')}
@@ -432,7 +438,7 @@ const WsStateBelongstoManyModalPicker = props => {
                 {cancelAllVisible && (
                   <TouchableOpacity
                     onPress={() => {
-                      $_onClearAll(fetchItems)
+                      $_onClearAll(pagination ? (list || []) : visibleItems)
                     }}>
                     <WsText color={$color.primary} size="14">
                       {t('全取消')}
@@ -467,6 +473,16 @@ const WsStateBelongstoManyModalPicker = props => {
               service={Services[modelName]}
               serviceIndexKey={serviceIndexKey}
               params={__params}
+              onItemsFetch={items => {
+                setVisibleItems(prev => {
+                  const _map = new Map((prev || []).map(item => [String(item?.id), item]))
+                  const _items = items || []
+                  _items.forEach(item => {
+                    _map.set(String(item?.id), item)
+                  })
+                  return Array.from(_map.values())
+                })
+              }}
               hasFooterBtn={true}
               renderItem={({ item, index }) => {
                 return (

@@ -191,11 +191,11 @@ const CheckListAssignmentResultSortDraft = props => {
     const _inFlight = _submitBatchQualifiedInFlightRef.current
     const _isInCooldown = (_now - _lastSubmitBatchQualifiedAtRef.current) < $_BATCH_QUALIFIED_COOLDOWN_MS
     if (_inFlight || _isInCooldown) {
-      console.log(`${_logPrefix} blocked: inFlight=${_inFlight}, inCooldown=${_isInCooldown}, cooldownMs=${$_BATCH_QUALIFIED_COOLDOWN_MS}`)
+      // console.log(`${_logPrefix} blocked: inFlight=${_inFlight}, inCooldown=${_isInCooldown}, cooldownMs=${$_BATCH_QUALIFIED_COOLDOWN_MS}`)
       Alert.alert('伺服器忙碌中，請稍後再試')
       return
     }
-    console.log(`${_logPrefix} start: checked=${checkedQuestions.length}, questions=${questions?.length || 0}`)
+    // console.log(`${_logPrefix} start: checked=${checkedQuestions.length}, questions=${questions?.length || 0}`)
     _submitBatchQualifiedInFlightRef.current = true
     _lastSubmitBatchQualifiedAtRef.current = _now
 
@@ -215,7 +215,7 @@ const CheckListAssignmentResultSortDraft = props => {
           return Array.isArray(_checkers) && _checkers.some(checker => String(checker?.id) === String(currentUser?.id))
         })
         const _blockedByCheckerCount = checkedQuestions.length - _myCheckedQuestionIds.length
-        console.log(`${_logPrefix} filter(checker): selected=${checkedQuestions.length}, allowed=${_myCheckedQuestionIds.length}, blocked=${_blockedByCheckerCount}`)
+        // console.log(`${_logPrefix} filter(checker): selected=${checkedQuestions.length}, allowed=${_myCheckedQuestionIds.length}, blocked=${_blockedByCheckerCount}`)
 
         const _questions = S_CheckListQuestion.getQualifiedMyQuestions(questions, _myCheckedQuestionIds, currentUser.id, 25)
         setQuestions(_questions)
@@ -238,7 +238,7 @@ const CheckListAssignmentResultSortDraft = props => {
         const _createCount = _targetQuestions.filter(item => !item?.recordAnsId).length
         const _updateCount = _targetQuestions.length - _createCount
         const _concurrencyLimit = getChecklistBatchQualifiedConcurrencyLimit(_targetQuestions.length)
-        console.log(`${_logPrefix} plan: selected=${_selectedQuestions.length}, target=${_targetQuestions.length}, skippedUnchanged=${_skippedUnchangedCount}, create=${_createCount}, update=${_updateCount}, concurrency=${_concurrencyLimit}`)
+        // console.log(`${_logPrefix} plan: selected=${_selectedQuestions.length}, target=${_targetQuestions.length}, skippedUnchanged=${_skippedUnchangedCount}, create=${_createCount}, update=${_updateCount}, concurrency=${_concurrencyLimit}`)
         const _results = await $_runWithConcurrencyLimit(
           _targetQuestions,
           async (item, idx) => {
@@ -249,7 +249,7 @@ const CheckListAssignmentResultSortDraft = props => {
               checklist_record: checklistRecordId,
               ..._payload
             }
-            console.log(`${_logPrefix} [${idx + 1}/${_targetQuestions.length}] ${_action} request: questionId=${item?.id}, recordAnsId=${item?.recordAnsId || 'new'}`)
+            // console.log(`${_logPrefix} [${idx + 1}/${_targetQuestions.length}] ${_action} request: questionId=${item?.id}, recordAnsId=${item?.recordAnsId || 'new'}`)
             try {
               if (item?.recordAnsId) {
                 const _updateData = $_compactPayload({
@@ -271,11 +271,11 @@ const CheckListAssignmentResultSortDraft = props => {
                   modelId: item.recordAnsId,
                   data: _updateData
                 })
-                console.log(`${_logPrefix} [${idx + 1}/${_targetQuestions.length}] ${_action} response: questionId=${item?.id}, took=${Date.now() - _itemStartAt}ms`)
+                // console.log(`${_logPrefix} [${idx + 1}/${_targetQuestions.length}] ${_action} response: questionId=${item?.id}, took=${Date.now() - _itemStartAt}ms`)
                 return _res
               }
               const _res = await S_CheckListRecordAns.create({ params: _params })
-              console.log(`${_logPrefix} [${idx + 1}/${_targetQuestions.length}] ${_action} response: questionId=${item?.id}, took=${Date.now() - _itemStartAt}ms`)
+              // console.log(`${_logPrefix} [${idx + 1}/${_targetQuestions.length}] ${_action} response: questionId=${item?.id}, took=${Date.now() - _itemStartAt}ms`)
               return _res
             } catch (error) {
               console.log(`${_logPrefix} [${idx + 1}/${_targetQuestions.length}] ${_action} failed: questionId=${item?.id}, took=${Date.now() - _itemStartAt}ms`)

@@ -1,8 +1,12 @@
 import React, { useCallback } from 'react'
 import { Pressable, TouchableOpacity, Linking, Button, Dimensions, Platform } from 'react-native'
-import { WsText, WsFlex, WsIcon } from '@/components'
+import { createIconSetFromIcoMoon } from 'react-native-vector-icons'
+import icoMoonConfig from '@/__reactnative_stone/assets/icomoon/selection.json'
+import { WsText } from '@/components'
 import { useTranslation } from 'react-i18next'
 import $color from '@/__reactnative_stone/global/color'
+
+const LinkInlineIcon = createIconSetFromIcoMoon(icoMoonConfig, 'icomoon', 'icomoon.ttf')
 
 const WsInfoLink = props => {
   const { width, height } = Dimensions.get('window')
@@ -55,23 +59,23 @@ const WsInfoLink = props => {
           }
           onPress={hasExternalLink ? handlePress : onPress}
         >
-          <WsFlex
-            alignItems="center"
-            flexWrap={style?.flexWrap ? style.flexWrap : 'nowrap'}
+          <WsText
+            size={size}
+            color={color}
             style={{
+              // borderWidth:1,
             }}
           >
-            <WsText size={size} color={color}>
-              {value}
-            </WsText>
+            {value}
             {iconVisible && (
-              <WsIcon
+              <LinkInlineIcon
                 size={iconSize}
                 name={icon}
-                style={{ marginLeft: 4 }}
+                color={color}
+                style={{ marginLeft: 0 }}
               />
             )}
-          </WsFlex>
+          </WsText>
         </TouchableOpacity>
       )}
     </>

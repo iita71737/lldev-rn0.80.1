@@ -358,7 +358,7 @@ const LlCheckListResultAnswerCard001 = props => {
                   }}
                   type="link"
                   label={t('答題位置')}
-                  value={`${answer?.lat}, ${answer?.lng}`}
+                  value={`${answer?.lat}, ${answer?.lng} `}
                   onPress={() => {
                     if (currentFactory?.map_url) {
                       if (currentFactory?.map_url === 'google') {
