@@ -9,7 +9,6 @@ import {
   Dimensions
 } from 'react-native'
 import {
-  WsPage,
   WsInfiniteScroll,
   WsPaddingContainer,
   WsFilter,

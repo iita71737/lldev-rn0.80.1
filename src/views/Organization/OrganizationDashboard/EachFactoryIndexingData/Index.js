@@ -6,7 +6,6 @@ import {
   WsTag,
   WsFlex,
   WsPaddingContainer,
-  WsPage,
   WsSkeleton,
   LlInfoContainer001,
   LlIconCard001,

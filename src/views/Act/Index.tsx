@@ -5,7 +5,6 @@ import {
   WsTabView,
   WsIconBtn,
   WsState,
-  WsPage
 } from '@/components'
 import ActListing from '@/sections/Act/ActListing'
 import ActCollection from '@/sections/Act/ActCollection'

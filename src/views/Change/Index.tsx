@@ -11,7 +11,6 @@ import {
   WsIconBtn,
   WsState,
   WsSkeleton,
-  WsPage,
   WsFilter,
   WsLoading
 } from '@/components'

@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import {
-  WsPage,
   WsTabView
 } from '@/components'
 import i18next from 'i18next'

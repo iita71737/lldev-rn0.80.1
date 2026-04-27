@@ -1,7 +1,6 @@
 import React from 'react'
 import { Pressable, ScrollView, View, TouchableOpacity } from 'react-native'
 import {
-  WsPage,
   WsInfiniteScroll,
   WsPaddingContainer,
   WsFilter,
@@ -99,8 +98,6 @@ const BroadCast: React.FC<BroadCastProps> = ({ navigation, route }) => {
         }}
       >
       </WsPageIndex>
-
-      {/* </WsPage> */}
     </>
   )
 }
