@@ -128,7 +128,8 @@ const Act = ({ route, navigation }) => {
           items={tabItems}
           scrollEnabled={true}
           isAutoWidth={true}
-          fixedTabWidth={128}
+          tabLabelFullText={true}
+          pointerVisible={true}
         />
       )}
     </>

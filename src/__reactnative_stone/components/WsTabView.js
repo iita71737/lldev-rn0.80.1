@@ -9,7 +9,6 @@ import {
   ScrollView,
   Platform,
   StyleSheet,
-  PixelRatio
 } from 'react-native'
 import { TabView, TabBar, SceneMap } from 'react-native-tab-view'
 import { WsIcon, WsText, WsFlex, WsBtn, WsIconBtn } from '@/components'
@@ -21,13 +20,13 @@ const WsTabView = props => {
   const { t, i18n } = useTranslation()
   // Dimension
   const { width, height } = Dimensions.get('window')
-  const fontScale = PixelRatio.getFontScale();
 
   // Props
   const {
     fixedTabWidth,
     fixedContainerHeight,
     isAutoWidth = false,
+    tabMinWidth,
     items,
     TabBarRender = true,
     index = 0,
@@ -39,6 +38,7 @@ const WsTabView = props => {
     itemsState = [],
     itemsViews,
     textSize = 14,
+    tabLabelFullText = false,
     lazy = false,
     swipeEnabled = true,
     animationEnabled = false,
@@ -218,9 +218,22 @@ const WsTabView = props => {
         icon: item.icon,
         tabNum: item.tabNum,
         width: item.tabWidth,
+        minWidth: item.tabMinWidth,
       })
     })
     setRoutes(_routes)
+  }
+
+  const getRouteMinWidth = route => {
+    if (typeof route?.minWidth === 'number') {
+      return route.minWidth
+    }
+    if (typeof tabMinWidth === 'number') {
+      return tabMinWidth
+    }
+    const visibleTabCount = Math.max(1, routes?.length || items?.length || 1)
+    const screenWidth = layout?.width || width
+    return screenWidth / visibleTabCount + 12
   }
 
   // Effect
@@ -292,7 +305,18 @@ const WsTabView = props => {
           commonOptions={{
             label: ({ route, labelText, focused, color }) => (
               <WsFlex style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <WsText style={{ color }} size={textSize}>
+                <WsText
+                  style={{
+                    color,
+                    flexWrap: 'nowrap',
+                    flexShrink: tabLabelFullText ? 0 : 1,
+                    minWidth: getRouteMinWidth(route),
+                    textAlign: 'center',
+                  }}
+                  size={textSize}
+                  numberOfLines={tabLabelFullText ? undefined : 1}
+                  ellipsizeMode={tabLabelFullText ? undefined : 'tail'}
+                >
                   {t(labelText ?? route.title)}
                 </WsText>
 
@@ -330,127 +354,141 @@ const WsTabView = props => {
             const { routes, index } = props.navigationState
             return (
               <>
-                {pointerVisible && (
-                  <TouchableOpacity
-                    style={{
-                      position: 'absolute',
-                      left: -4,
-                      zIndex: !isAtStart ? 999 : -999,
-                      // borderWidth: 1,
-                    }}
-                    onPress={() =>
-                      scrollViewRef.current.scrollTo({ x: 0, animated: true })
-                    }
-                  >
-                    <View
-                      style={{
-                        paddingVertical: fixedTabWidth ? 12 : PixelRatio.getFontScale() !== 1 ? 24 : 12,
-                      }}
-                    >
-                      <WsIcon
-                        name={"md-chevron-left"}
-                        size={24}
-                        style={{
-                        }}
-                      >
-                      </WsIcon>
-                    </View>
-                  </TouchableOpacity>
-                )}
                 {TabBarRender ? (
-                  <ScrollView
-                    contentContainerStyle={{ flexGrow: 1 }}
-                    testID="TabBarScrollView"
-                    horizontal
-                    ref={scrollViewRef}
-                    onScroll={handleScroll}
-                    scrollEventThrottle={16}
-                    showsHorizontalScrollIndicator={false}
-                    style={[
-                      TabBarRender ? {
-                        flexGrow: 0
-                      } : {
-                        flex: 1
-                      },
-                      {
-                        // borderWidth:1,
-                        backgroundColor: $color.white
-                      }
-                    ]}
+                  <View
+                    style={{
+                      position: 'relative',
+                    }}
                   >
-                    <TabBar
-                      {...props}
-                      inactiveColor={inactiveColor}
-                      activeColor={activeColor}
-                      pressColor={$color.primary11l}
-                      tabStyle={[
-                        fixedTabWidth
-                          ? {
-                            width: fixedTabWidth
-                          }
-                          : isAutoWidth
-                            ? {
-                              width: width / items.length,
-                            }
-                            : {
-                              width: 'auto',
-                            }
-                      ]}
-                      indicatorStyle={{
-                        backgroundColor: $color.primary5l
-                      }}
+                    {pointerVisible && (
+                      <TouchableOpacity
+                        style={{
+                          position: 'absolute',
+                          left: -4,
+                          top: 0,
+                          bottom: 0,
+                          justifyContent: 'center',
+                          zIndex: !isAtStart ? 999 : -999,
+                        }}
+                        onPress={() =>
+                          scrollViewRef.current.scrollTo({ x: 0, animated: true })
+                        }
+                      >
+                        <View
+                          style={{
+                            paddingVertical: 8,
+                          }}
+                        >
+                          <WsIcon
+                            name={"md-chevron-left"}
+                            size={24}
+                            style={{
+                            }}
+                          >
+                          </WsIcon>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                    <ScrollView
+                      contentContainerStyle={{ flexGrow: 1 }}
+                      testID="TabBarScrollView"
+                      horizontal
+                      ref={scrollViewRef}
+                      onScroll={handleScroll}
+                      scrollEventThrottle={16}
+                      showsHorizontalScrollIndicator={false}
                       style={[
+                        TabBarRender ? {
+                          flexGrow: 0
+                        } : {
+                          flex: 1
+                        },
                         {
-                          backgroundColor: $color.white,
+                          // borderWidth:1,
+                          backgroundColor: $color.white
                         }
                       ]}
-                      renderTabBar={(props) => (
-                        <TabBar
-                          {...props}
-                          inactiveColor={inactiveColor}
-                          activeColor={activeColor}
-                          pressColor={$color.primary11l}
-                          tabStyle={[/* 你原本的 tabStyle */]}
-                          indicatorStyle={{ backgroundColor: $color.primary5l }}
-                          style={{ backgroundColor: $color.white }}
-                        // ❌ 不要再放 renderLabel
-                        />
-                      )}
-                    />
-                  </ScrollView>
+                    >
+                      <TabBar
+                        {...props}
+                        inactiveColor={inactiveColor}
+                        activeColor={activeColor}
+                        pressColor={$color.primary11l}
+                        tabStyle={[
+                          tabLabelFullText
+                            ? {
+                              width: 'auto',
+                            }
+                            : fixedTabWidth
+                            ? {
+                              width: fixedTabWidth
+                            }
+                            : isAutoWidth
+                              ? {
+                                width: width / items.length,
+                              }
+                              : {
+                                width: 'auto',
+                              }
+                        ]}
+                        indicatorStyle={{
+                          backgroundColor: $color.primary5l
+                        }}
+                        style={[
+                          {
+                            backgroundColor: $color.white,
+                          }
+                        ]}
+                        renderTabBar={(props) => (
+                          <TabBar
+                            {...props}
+                            inactiveColor={inactiveColor}
+                            activeColor={activeColor}
+                            pressColor={$color.primary11l}
+                            tabStyle={[/* 你原本的 tabStyle */]}
+                            indicatorStyle={{ backgroundColor: $color.primary5l }}
+                            style={{ backgroundColor: $color.white }}
+                          // ❌ 不要再放 renderLabel
+                          />
+                        )}
+                      />
+                    </ScrollView>
+                    {pointerVisible && (
+                      <TouchableOpacity
+                        testID={'right_pointer'}
+                        style={[
+                          {
+                            position: 'absolute',
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            justifyContent: 'center',
+                            zIndex: !isAtEnd ? 999 : -999,
+                          },
+                        ]}
+                        onPress={() =>
+                          scrollViewRef.current.scrollToEnd({ animated: true })
+                        }>
+                        <View
+                          style={{
+                            paddingVertical: 8,
+                          }}
+                        >
+                          <WsIcon
+                            name={"md-chevron-right"}
+                            size={24}
+                            style={{
+                            }}
+                          >
+                          </WsIcon>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 ) : (
                   <>
                     <CustomTabBar {...props} />
                   </>
-                )}
-
-                {pointerVisible && (
-                  <TouchableOpacity
-                    testID={'right_pointer'}
-                    style={[
-                      {
-                        position: 'absolute',
-                        right: 0,
-                        zIndex: !isAtEnd ? 999 : -999,
-                      },
-                    ]}
-                    onPress={() =>
-                      scrollViewRef.current.scrollToEnd({ animated: true })
-                    }>
-                    <View
-                      style={{
-                        paddingVertical: fixedTabWidth ? 12 : PixelRatio.getFontScale() !== 1 ? 24 : 12,
-                      }}
-                    >
-                      <WsIcon
-                        name={"md-chevron-right"}
-                        size={24}
-                        style={{
-                        }}
-                      >
-                      </WsIcon>
-                    </View>
-                  </TouchableOpacity>
                 )}
               </>
             )

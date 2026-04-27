@@ -14,6 +14,7 @@ const WsTabView = props => {
   const {
     fixedTabWidth,
     isAutoWidth = false,
+    tabMinWidth,
     items,
     TabBarRender = true,
     index = 0,
@@ -24,7 +25,8 @@ const WsTabView = props => {
     onChange,
     itemsState = [],
     itemsViews,
-    textSize = 14
+    textSize = 14,
+    tabLabelFullText = false
   } = props
 
   // State
@@ -46,6 +48,7 @@ const WsTabView = props => {
         icon: item.icon,
         tabNum: item.tabNum,
         tabAlertBadge: item.tabAlertBadge,
+        minWidth: item.tabMinWidth,
         view: item.view,
         props: { ...item.props }
       })
@@ -56,6 +59,18 @@ const WsTabView = props => {
     })
     setRoutes(_routes)
     setScene(_scene)
+  }
+
+  const getRouteMinWidth = route => {
+    if (typeof route?.minWidth === 'number') {
+      return route.minWidth
+    }
+    if (typeof tabMinWidth === 'number') {
+      return tabMinWidth
+    }
+    const visibleTabCount = Math.max(1, routes?.length || items?.length || 1)
+    const screenWidth = layout?.width || width
+    return screenWidth / visibleTabCount + 24
   }
 
   // Effect
@@ -89,7 +104,9 @@ const WsTabView = props => {
                     activeColor={activeColor}
                     pressColor={$color.primary11l}
                     tabStyle={[
-                      isAutoWidth && fixedTabWidth
+                      tabLabelFullText
+                        ? { width: 'auto' }
+                        : isAutoWidth && fixedTabWidth
                         ? { width: fixedTabWidth }
                         : isAutoWidth
                           ? { width: width / items.length }
@@ -111,15 +128,22 @@ const WsTabView = props => {
                         marginBottom: 8
                       }
                     ]}
-                    scrollEnabled={scrollEnabled}
+                    scrollEnabled={scrollEnabled || tabLabelFullText}
                     renderLabel={({ route, focused, color }) => (
                       <WsFlex>
                         <WsText
                           testID={route.key}
                           style={{
-                            color: color
+                            color: color,
+                            flexWrap: 'nowrap',
+                            flexShrink: tabLabelFullText ? 0 : 1,
+                            minWidth: getRouteMinWidth(route),
+                            textAlign: 'center'
                           }}
-                          size={textSize}>
+                          size={textSize}
+                          numberOfLines={tabLabelFullText ? undefined : 1}
+                          ellipsizeMode={tabLabelFullText ? undefined : 'tail'}
+                        >
                           {t(route.title)}
                         </WsText>
                         {route.icon && (

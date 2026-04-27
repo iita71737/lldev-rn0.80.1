@@ -500,6 +500,22 @@ const CheckListAssignmentQuestionSortDraft = props => {
           ...item,
           recordAnsId: _recordAnsIdByQuestionId[item.id] || item.recordAnsId
         }))
+        // const _batchQualifiedPayloadPreview = _questionsWithRecordAnsId.map(item => {
+        //   const _payload = $_toComparablePayload(item)
+        //   return {
+        //     question_value: _payload?.question_value,
+        //     score: _payload?.score,
+        //     risk_level: _payload?.risk_level,
+        //     remark: _payload?.remark,
+        //     factory: String(_payload?.factory ?? 1),
+        //     lat: _payload?.lat,
+        //     lng: _payload?.lng,
+        //     ip: _payload?.ip,
+        //     checklist_question_version: _payload?.checklist_question_version,
+        //     checklist_question: _payload?.checklist_question
+        //   }
+        // })
+        // console.log(`${_logPrefix} batchQualifiedQuestionsPayload=${JSON.stringify(_batchQualifiedPayloadPreview)}`)
         setQuestions(_questionsWithRecordAnsId)
         setQuestionsCopy(_questionsWithRecordAnsId)
         store.dispatch(setCurrentChecklistRecordDraft(_questionsWithRecordAnsId))

@@ -1,6 +1,10 @@
 ---
 name: ws-ui-kit
-description: Apply the project's Ws* component system with strong defaults: WsFlex for row layout, WsText for text, WsIconBtn for clickable icons, WsState for form inputs, WsInfo for read-only display, and WsModal/WsPopup/WsBottomSheet for modal patterns. Use tokens only; avoid raw RN primitives and hardcoded colors.
+description: >
+  Apply the project's Ws* component system with strong defaults: WsFlex for row
+  layout, WsText for text, WsIconBtn for clickable icons, WsState for form
+  inputs, WsInfo for read-only display, and WsModal/WsPopup/WsBottomSheet for
+  modal patterns. Use tokens only; avoid raw RN primitives and hardcoded colors.
 ---
 
 ## Rules (must)
