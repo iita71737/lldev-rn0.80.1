@@ -108,26 +108,26 @@ const Procedure = ({ route, navigation }) => {
   }
 
   const $_canEditQuestion = (question) => {
-    const checkboxVisible = true
-    const isNotCompleted = question?.is_completed !== 1
     const hasUpdatedUser = !!question?.updated_user
     const isUpdatedByCurrentUser = question?.updated_user?.id === currentUser?.id
-    const canEditWhenNoUpdatedUser =
-      !!currentUser &&
-      checkboxVisible &&
-      question?.question_type_setting?.value === 'single-choice' &&
-      (
-        question?.question_setting == null ||
-        !question?.question_setting?.checkers?.length ||
-        question?.question_setting?.checkers?.some(checker => checker.id === currentUser.id)
-      )
-    const canEdit =
-      isNotCompleted &&
-      (
-        (hasUpdatedUser && isUpdatedByCurrentUser) ||
-        (!hasUpdatedUser && canEditWhenNoUpdatedUser)
-      )
-    return canEdit
+    if (hasUpdatedUser) {
+      return isUpdatedByCurrentUser
+    }
+    if (question && question.done_at) {
+      return false
+    }
+    if (
+      question &&
+      question.question_setting &&
+      question.question_setting.checkers &&
+      question.question_setting.checkers.length > 0
+    ) {
+      return question.question_setting.checkers.some(checker => checker.id == currentUser.id)
+    } else if (question && question.question_setting == null) {
+      return true
+    } else {
+      return true
+    }
   }
 
   const $_fetchQuestions = async () => {
