@@ -177,7 +177,7 @@ const LlCheckListQuestionCard002 = props => {
     canEditByUpdater &&
     canEditByChecker
   )
-  
+
   const hasAnswerLatLng = (
     answer?.latLng?.latitude !== null &&
     answer?.latLng?.latitude !== undefined &&
@@ -186,6 +186,25 @@ const LlCheckListQuestionCard002 = props => {
     answer?.latLng?.longitude !== undefined &&
     answer?.latLng?.longitude !== ''
   )
+
+  const isNotCompleted = answer?.is_completed !== 1
+  const hasUpdatedUser = !!answer?.updated_user
+  const isUpdatedByCurrentUser = answer?.updated_user?.id === currentUser?.id
+  const canEditWhenNoUpdatedUser =
+    !!currentUser &&
+    checkboxVisible &&
+    answer?.question_type_setting?.value === 'single-choice' &&
+    (
+      answer?.question_setting == null ||
+      !answer?.question_setting?.checkers?.length ||
+      answer?.question_setting?.checkers?.some(checker => checker.id === currentUser.id)
+    )
+  const canEdit =
+    isNotCompleted &&
+    (
+      (hasUpdatedUser && isUpdatedByCurrentUser) ||
+      (!hasUpdatedUser && canEditWhenNoUpdatedUser)
+    )
 
   return (
     <>
@@ -205,20 +224,7 @@ const LlCheckListQuestionCard002 = props => {
               style={{
               }}
             >
-              {
-                // 20260420-task
-                answer.is_completed != 1 &&
-                  // !answer.updated_user &&
-                  (currentUser &&
-                    checkboxVisible &&
-                    answer.question_type_setting?.value === 'single-choice' &&
-                    (answer.question_setting == null ||
-                      answer.question_setting && answer.question_setting?.checkers && answer.question_setting?.checkers.length === 0 ||
-                      answer &&
-                      currentUser &&
-                      answer.question_setting &&
-                      answer.question_setting?.checkers.some(checker => checker.id === currentUser.id))) ?
-                  (
+              {canEdit ? (
                     <CheckBox
                       boxType={'square'}
                       animationDuration={0}

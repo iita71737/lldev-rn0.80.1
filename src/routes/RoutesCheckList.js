@@ -226,7 +226,7 @@ const RoutesCheckList = () => {
           title: t('編輯填表設定'),
           ...$option.headerOption
         })}></StackSetting.Screen> */}
-        
+
       <StackSetting.Screen
         name="CheckListQuestionShow"
         component={scopeFilterScreen(
@@ -445,7 +445,7 @@ const RoutesCheckList = () => {
 
       <StackSetting.Screen
         name="CheckListAssignmentProcedure"
-        component={scopeFilterScreen('checklist-record-manager', ViewCheckListAssignmentProcedure)}
+        component={scopeFilterScreen(['checklist-record-checker', 'checklist-record-manager'], ViewCheckListAssignmentProcedure)}
         options={({ navigation, route }) => ({
           headerShown: false,
           gestureEnabled: false,
@@ -473,7 +473,7 @@ const RoutesCheckList = () => {
       <StackSetting.Screen
         name="CheckListAssignment"
         component={scopeFilterScreen(
-          'checklist-record-manager',
+          ['checklist-record-checker', 'checklist-record-manager'],
           ViewCheckListAssignment
         )}
         options={({ navigation, route }) => ({

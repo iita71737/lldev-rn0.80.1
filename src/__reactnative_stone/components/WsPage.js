@@ -3,7 +3,6 @@ import {
   View,
   // SafeAreaView
   StatusBar,
-  Platform
 } from 'react-native'
 import { WsHeader, WsHeaderSearch } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
@@ -23,8 +22,16 @@ const WsPage = props => {
     setSearchValue,
     borderRadius,
     hideLeftBtn,
+    showLeftBtn,
     showRightBtn,
-    btnTextRight
+    btnTextRight,
+    onSearchFocus,
+    onSearchBlur,
+    showSearchSuggestions,
+    searchSuggestions,
+    searchSuggestionLoading,
+    onPressSearchSuggestion,
+    searchTriggerOnRight
   } = props
 
   // Render
@@ -42,7 +49,6 @@ const WsPage = props => {
         edges={['top']}
         style={{
           backgroundColor: $color.primary,
-          paddingVertical: Platform.OS === 'android' ? 8 : 0
         }}
       />
       {!mode && (
@@ -62,12 +68,19 @@ const WsPage = props => {
           iconRight={iconRight}
           iconLeft={iconLeft}
           leftOnPress={leftOnPress}
-          hideLeftBtn={hideLeftBtn}
+          showLeftBtn={showLeftBtn != undefined ? showLeftBtn : !hideLeftBtn}
           rightOnPress={rightOnPress}
           showRightBtn={showRightBtn}
           setSearchValue={setSearchValue}
           searchValue={searchValue}
           borderRadius={borderRadius}
+          onSearchFocus={onSearchFocus}
+          onSearchBlur={onSearchBlur}
+          showSearchSuggestions={showSearchSuggestions}
+          searchSuggestions={searchSuggestions}
+          searchSuggestionLoading={searchSuggestionLoading}
+          onPressSearchSuggestion={onPressSearchSuggestion}
+          searchTriggerOnRight={searchTriggerOnRight}
         />
       )}
       <View style={{ flex: 1 }}>{children}</View>

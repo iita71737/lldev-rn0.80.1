@@ -2172,6 +2172,14 @@ export default {
       }
     })
   },
+  async batch({ params }) {
+    return base.create({
+      modelName: `checklist_record/${params.checklist_record_id}/checklist_record_answer/batch`,
+      data: {
+        ...params
+      }
+    })
+  },
   getResultRiskStyle(risk, status, constantData) {
     let riskList = [
       {

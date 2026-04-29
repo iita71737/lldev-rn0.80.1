@@ -5,14 +5,17 @@ import { WsGradientButton, WsIcon } from '@/components'
 import { useTranslation } from 'react-i18next'
 import $color from '@/__reactnative_stone/global/color'
 
-interface WsPageIndexFloatingActionsProps {
-  canShowFloatingAction: boolean;
-  useFabGroup: boolean;
-  FABItems?: WsPageIndexFloatingActionItem[];
-  onFilterPress: () => void;
+interface WsFABGroupProps {
+  canShowFloatingAction?: boolean;
+  useFabGroup?: boolean;
+  FABItems?: WsFABGroupItem[];
+  onFilterPress?: () => void;
+  showDefaultFilterAction?: boolean;
+  fabAnchorStyle?: any;
+  customActionsContainerStyle?: any;
 }
 
-export interface WsPageIndexFloatingActionItem {
+export interface WsFABGroupItem {
   icon?: any;
   label?: string;
   onPress?: () => void;
@@ -24,28 +27,31 @@ export interface WsPageIndexFloatingActionItem {
   testID?: string;
 }
 
-export interface WsPageIndexFloatingActionConfig {
+export interface WsFABGroupConfig {
   hideActionIcon?: boolean;
   fabGroupColor?: string;
   fabGroupStyle?: any;
   backdropColor?: string;
 }
 
-const WsPageIndexFloatingActions: React.FC<WsPageIndexFloatingActionsProps> = ({
-  canShowFloatingAction,
-  useFabGroup,
+const WsFABGroup: React.FC<WsFABGroupProps> = ({
+  canShowFloatingAction = true,
+  useFabGroup = true,
   FABItems,
-  onFilterPress
+  onFilterPress = () => { },
+  showDefaultFilterAction = false,
+  fabAnchorStyle,
+  customActionsContainerStyle,
 }) => {
   const { t } = useTranslation()
   const [fabGroupOpen, setFabGroupOpen] = React.useState(false)
-  const floatingActionConfig: WsPageIndexFloatingActionConfig = React.useMemo(() => ({
+  const floatingActionConfig: WsFABGroupConfig = React.useMemo(() => ({
     hideActionIcon: false,
     fabGroupColor: $color.white,
     fabGroupStyle: undefined,
     backdropColor: 'rgba(0,0,0,0.24)'
   }), [])
-  const defaultFloatingActionItem: WsPageIndexFloatingActionItem = React.useMemo(() => ({
+  const defaultFloatingActionItem: WsFABGroupItem = React.useMemo(() => ({
     icon: undefined,
     label: t('操作'),
     onPress: () => { },
@@ -75,10 +81,10 @@ const WsPageIndexFloatingActions: React.FC<WsPageIndexFloatingActionsProps> = ({
     const extraActions = Array.isArray(FABItems)
       ? FABItems
       : []
-    return [
-      defaultFilterFabAction,
-      ...extraActions
-    ].map(action => ({
+    const baseActions = showDefaultFilterAction
+      ? [defaultFilterFabAction, ...extraActions]
+      : extraActions
+    return baseActions.map(action => ({
       ...defaultFloatingActionItem,
       ...action,
       onPress: () => {
@@ -86,7 +92,7 @@ const WsPageIndexFloatingActions: React.FC<WsPageIndexFloatingActionsProps> = ({
         action?.onPress?.()
       }
     }))
-  }, [FABItems, defaultFilterFabAction, defaultFloatingActionItem])
+  }, [FABItems, defaultFilterFabAction, defaultFloatingActionItem, showDefaultFilterAction])
 
   const customGradientActions = React.useMemo(
     () => fabGroupActions.filter(action => floatingActionConfig?.hideActionIcon || !action?.icon),
@@ -133,12 +139,15 @@ const WsPageIndexFloatingActions: React.FC<WsPageIndexFloatingActionsProps> = ({
       )}
       {fabGroupOpen && customGradientActions.length > 0 && (
         <View
-          style={{
-            position: 'absolute',
-            right: 24,
-            bottom: 160,
-            alignItems: 'flex-end'
-          }}
+          style={[
+            {
+              position: 'absolute',
+              right: 24,
+              bottom: 120,
+              alignItems: 'flex-end'
+            },
+            customActionsContainerStyle
+          ]}
         >
           {customGradientActions.map((action, index) => (
             <WsGradientButton
@@ -175,7 +184,8 @@ const WsPageIndexFloatingActions: React.FC<WsPageIndexFloatingActionsProps> = ({
           style={{
             position: 'absolute',
             bottom: Platform.select({ ios: 80, android: 96 }),
-            right: 24
+            right: 24,
+            ...(fabAnchorStyle || {})
           }}
           fabStyle={[
             {
@@ -201,12 +211,13 @@ const WsPageIndexFloatingActions: React.FC<WsPageIndexFloatingActionsProps> = ({
           style={[
             {
               position: 'absolute',
-              bottom: Platform.select({ ios: 90, android: 96 }),
-              right: 24,
+              bottom: Platform.select({ ios: 48, android: 48 }),
+              right: 32,
               backgroundColor: $color.primary,
               zIndex: 999,
               elevation: 10
             },
+            fabAnchorStyle,
             floatingActionConfig?.fabGroupStyle
           ]}
         />
@@ -215,4 +226,4 @@ const WsPageIndexFloatingActions: React.FC<WsPageIndexFloatingActionsProps> = ({
   )
 }
 
-export default WsPageIndexFloatingActions
+export default WsFABGroup

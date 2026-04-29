@@ -18,7 +18,8 @@ import {
   WsTag,
   WsSkeleton,
   WsPaddingContainer,
-  WsInfiniteScroll
+  WsInfiniteScroll,
+  WsAvatar
 } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import { useTranslation } from 'react-i18next'
@@ -26,12 +27,11 @@ import moment from 'moment'
 import S_GeneralSchedule from '@/services/api/v1/general_schedule_setting'
 import S_CheckListQuestion from '@/services/api/v1/checklist_question'
 import H_time from '@/helpers/time';
+import S_ChecklistQuestionVersion from '@/services/api/v1/checklist_question_version'
 
 const GeneralScheduleSettingShow = ({ route }) => {
   const { width, height } = Dimensions.get('window')
   const { t, i18n } = useTranslation()
-
-  console.log('GeneralScheduleSettingShow')
 
   // Params
   const { id, checklistVersionId } = route.params
@@ -40,10 +40,10 @@ const GeneralScheduleSettingShow = ({ route }) => {
   const [schedule, setSchedule] = useState()
   const [params, setParams] = React.useState({
     checklist_version_id: checklistVersionId,
-    schedule_setting_id: id,
+    // schedule_setting_id: id,
+    general_schedule_setting: id,
+    get_all: 1
   })
-
-  console.log(params,'params')
 
   // Services
   const $_fetchSchedule = async () => {
@@ -62,7 +62,7 @@ const GeneralScheduleSettingShow = ({ route }) => {
   const $_helperFunc = (item) => {
     const _text = H_time.setShow(item);
     return _text.repeatInterval
-}
+  }
   const removeLeadingZeros = (str) => {
     return str.replace(/^0+/, '');
   }
@@ -76,15 +76,17 @@ const GeneralScheduleSettingShow = ({ route }) => {
   React.useEffect(() => {
     setParams({
       checklist_version_id: checklistVersionId,
-      schedule_setting_id: id,
+      general_schedule_setting: id,
     })
   }, [id, checklistVersionId])
+
+  console.log(params, 'paramsparamsparams')
 
   return (
     <>
       <WsInfiniteScroll
-        service={S_CheckListQuestion}
-        serviceIndexKey={'IndexByScheduleSettingV2'}
+        service={S_ChecklistQuestionVersion}
+        serviceIndexKey={'indexByChecklistVersion'}
         params={params}
         renderItem={({ item, index }) => {
           return (
@@ -109,19 +111,24 @@ const GeneralScheduleSettingShow = ({ route }) => {
                   >{item.title ? item.title : null}</WsText>
                 </WsFlex>
                 {item && item.question_setting && item.question_setting.checkers && item.question_setting.checkers.length > 0 && (
-                  <WsInfo
-                    // labelWidth={100}
+                  <View
                     style={{
-                      marginTop: 16,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginRight: 16,
+                      marginTop: 8,
                     }}
-                    label={t('答題者')}
-                    labelColor={$color.gray}
-                    type='users'
-                    value={item.question_setting.checkers ? item.question_setting.checkers : []}
-                  />
+                  >
+                    <WsInfo
+                      labelWidth={100}
+                      style={{
+                        marginTop: 16,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginRight: 16,
+                      }}
+                      label={t('答題者')}
+                      type='users'
+                      value={item.question_setting.checkers ? item.question_setting.checkers : []}
+                    />
+                  </View>
                 )}
 
               </WsPaddingContainer>
@@ -129,6 +136,9 @@ const GeneralScheduleSettingShow = ({ route }) => {
           )
         }}
         ListHeaderComponent={() => {
+          if (!schedule) {
+            return null
+          }
           return (
             <WsPaddingContainer
               style={{
@@ -140,101 +150,154 @@ const GeneralScheduleSettingShow = ({ route }) => {
                 shadowRadius: 4,
                 elevation: 1.5
               }}>
-              {schedule && schedule.created_user && (
-                <WsInfo
-                  labelWidth={100}
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'flex-start',
+                  alignItems: 'center',
+                  marginVertical: 8
+                }}>
+                <WsAvatar size={36} source={schedule.updated_user?.avatar} />
+                <View
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginRight: 16,
+                    marginLeft: 8
+                  }}>
+                  <WsText color={$color.black} size={14}>{t(schedule.updated_user?.name)}</WsText>
+                  <WsText color={$color.gray} size={14}>
+                    {t('編輯時間')} {moment(schedule.updated_at).format('YYYY-MM-DD HH:mm:ss')}
+                  </WsText>
+                </View>
+              </View>
+
+              {schedule.created_user && (
+                <View
+                  style={{
                   }}
-                  label={t('設定者')}
-                  labelColor={$color.gray}
-                  type='user'
-                  value={schedule.created_user ? schedule.created_user : t('無')}
-                />
+                >
+                  <WsInfo
+                    labelWidth={100}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginRight: 16,
+                    }}
+                    label={t('設定者')}
+                    type='user'
+                    value={schedule.created_user ? schedule.created_user : t('無')}
+                  />
+                </View>
               )}
-              {schedule && schedule.reviewers && schedule.reviewers.length > 0 && (
-                <WsInfo
-                  labelWidth={100}
+              {schedule.reviewers && (
+                <View
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginRight: 16,
+                    marginTop: 8,
                   }}
-                  label={t('覆核者')}
-                  labelColor={$color.gray}
-                  type='users'
-                  value={schedule.reviewers ? schedule.reviewers : t('無')}
-                />
+                >
+                  <WsInfo
+                    labelWidth={100}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                    label={t('覆核者')}
+                    labelFontWeight={'400'}
+                    type='users'
+                    value={schedule.reviewers ? schedule.reviewers : t('無')}
+                  />
+                </View>
               )}
-              {schedule && schedule.checkers && schedule.checkers.length > 0 && (
-                <WsInfo
-                  labelWidth={100}
+              {schedule.checkers && schedule.checkers.length > 0 && (
+                <View
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginRight: 16,
+                    marginTop: 8,
                   }}
-                  label={t('答題者')}
-                  labelColor={$color.gray}
-                  type='users'
-                  value={schedule.checkers ? schedule.checkers : t('無')}
-                />
+                >
+                  <WsInfo
+                    labelWidth={100}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginRight: 16,
+                    }}
+                    label={t('答題者')}
+                    type='users'
+                    value={schedule.checkers ? schedule.checkers : t('無')}
+                  />
+                </View>
               )}
-              {schedule && schedule.type && (
-                <WsInfo
-                  labelWidth={100}
+              {schedule.type && (
+                <View
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginRight: 16,
+                    marginTop: 8,
                   }}
-                  label={t('排程種類')}
-                  labelColor={$color.gray}
-                  value={schedule.type == 'regular' ? t('定期') : schedule.type == 'one_time' ? t('單次') : t('無')}
-                />
+                >
+                  <WsInfo
+                    labelWidth={100}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginRight: 16,
+                    }}
+                    label={t('排程種類')}
+                    value={schedule.type == 'regular' ? t('定期') : schedule.type == 'one_time' ? t('單次排程') : t('無')}
+                  />
+                </View>
               )}
-              {schedule && schedule.start_at && (
-                <WsInfo
-                  labelWidth={100}
+              {schedule.start_at && (
+                <View
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginRight: 16,
+                    marginTop: 8,
                   }}
-                  label={t('排程日期')}
-                  labelColor={$color.gray}
-                  value={`${schedule.start_at ? moment(schedule.start_at).format('YYYY-MM-DD') : t('無')} ~ ${schedule.end_at ? moment(schedule.end_at).format('YYYY-MM-DD') : t('永不結束')}`}
-                />
+                >
+                  <WsInfo
+                    labelWidth={100}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginRight: 16,
+                    }}
+                    label={t('排程日期')}
+                    value={`${schedule.start_at ? moment(schedule.start_at).format('YYYY-MM-DD') : t('無')} ~ ${schedule.end_at ? moment(schedule.end_at).format('YYYY-MM-DD') : t('永不結束')}`}
+                  />
+                </View>
               )}
-              {schedule && schedule.frequency && (
-                <WsInfo
-                  labelWidth={100}
+              {schedule.frequency && (
+                <View
                   style={{
-                    flexDirection: 'row',
-                    // alignItems: 'center',
-                    marginRight: 16,
+                    marginTop: 8,
                   }}
-                  label={t('重複設定')}
-                  labelColor={$color.gray}
-                  value={schedule.frequency ? $_helperFunc(schedule) : '-'}
-                />
+                >
+                  <WsInfo
+                    labelWidth={100}
+                    style={{
+                      flexDirection: 'row',
+                      marginRight: 16,
+                    }}
+                    label={t('重複設定')}
+                    value={schedule.frequency ? $_helperFunc(schedule) : '-'}
+                  />
+                </View>
               )}
 
-              {schedule && schedule.created_at && (
-                <WsInfo
-                  labelWidth={100}
+              {schedule.created_at && (
+                <View
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginRight: 16,
+                    marginTop: 8,
                   }}
-                  label={t('建立日期')}
-                  labelColor={$color.gray}
-                  type='dateTime'
-                  value={schedule.created_at ? schedule.created_at : t('無')}
-                />
+                >
+                  <WsInfo
+                    labelWidth={100}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginRight: 16,
+                    }}
+                    label={t('建立日期')}
+                    type='dateTime'
+                    value={schedule.created_at ? schedule.created_at : t('無')}
+                  />
+                </View>
               )}
             </WsPaddingContainer>
           )

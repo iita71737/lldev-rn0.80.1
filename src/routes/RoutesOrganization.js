@@ -409,6 +409,7 @@ const RoutesOrganization = () => {
               ? undefined
               : () => null,
             headerBackTitleVisible: false,
+            headerShown: false,
             tabBarLabel: t('法規'),
             tabBarIcon: ({ focused, color, size }) => (
               <WsIcon

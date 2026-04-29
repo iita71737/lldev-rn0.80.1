@@ -1265,15 +1265,28 @@ export default {
     })
   },
   async complete({ params }) {
-    const res = await base.patch({
-      modelName: `checklist_record/${params.checklist_record_id}/complete`,
-      data: {
-        ...params,
-        ...S_Processor.getFactoryParams(),
-        ...S_Processor.getLocaleParams()
+    try {
+      const res = await base.patch({
+        modelName: `checklist_record/${params.checklist_record_id}/complete`,
+        data: {
+          ...params,
+          ...S_Processor.getFactoryParams(),
+          ...S_Processor.getLocaleParams()
+        },
+        rejectOnError: true
+      })
+      const _message = res?.message || res?.data?.message
+      if (_message === 'Record is already completed') {
+        console.log(`[S_CheckListRecord.complete] ${_message}`)
       }
-    })
-    return res
+      return res
+    } catch (error) {
+      const _message = error?.response?.data?.message || error?.message
+      if (_message === 'Record is already completed') {
+        console.log(`[S_CheckListRecord.complete] ${_message}`)
+      }
+      throw error
+    }
   },
   async delete({ modelId }) {
     return base.delete({

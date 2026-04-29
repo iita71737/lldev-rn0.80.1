@@ -55,55 +55,55 @@ const CheckListAssignmentListTabToday = props => {
   }, [currentRefreshCounter, checklistId, currentConnectionState, navigation]);
 
 
-  // 已下載的離線作業
-  const renderEmptyList = () => {
-    return (
-      <FlatList
-        data={currentPreloadChecklistAssignment}
-        keyExtractor={(item) => item}
-        renderItem={({ item, index }) => {
-          return (
-            <View key={item.assignment?.id}>
-              <LlCheckListCard005
-                key={item.assignment?.id}
-                item={item.assignment}
-                style={[
-                  index == 0
-                    ? null
-                    : {
-                      marginTop: 12
-                    }
-                ]}
-                name={item.assignment?.checklist ? item.assignment?.checklist.name : ''}
-                tagIcon={item.assignment?.tagIcon}
-                tagText={item.assignment?.tagText}
-                checkers={item.assignment?.checkers ? item.assignment?.checkers : ''}
-                reviewers={item.assignment?.reviewers ? item.assignment?.reviewers : t('無')}
-                deadline={
-                  item.assignment?.record_at ? moment(item.assignment?.record_at).format('YYYY-MM-DD') : '無期限'
-                }
-                disabled={item.assignment?.record_at && moment().isSameOrAfter(moment(item.assignment?.record_at), 'day') ? false : true}
-                onPress={() => {
-                  navigation.push('RoutesCheckList', {
-                    screen: 'CheckListAssignmentIntroduction',
-                    params: {
-                      id: item.assignment.id,
-                      index: index
-                    }
-                  })
-                }}
-              />
-            </View>
-          )
-        }}
-      />
-    )
-  }
+  // 已下載的離線作業（暫時註解）
+  // const renderEmptyList = () => {
+  //   return (
+  //     <FlatList
+  //       data={currentPreloadChecklistAssignment}
+  //       keyExtractor={(item) => item}
+  //       renderItem={({ item, index }) => {
+  //         return (
+  //           <View key={item.assignment?.id}>
+  //             <LlCheckListCard005
+  //               key={item.assignment?.id}
+  //               item={item.assignment}
+  //               style={[
+  //                 index == 0
+  //                   ? null
+  //                   : {
+  //                     marginTop: 12
+  //                   }
+  //               ]}
+  //               name={item.assignment?.checklist ? item.assignment?.checklist.name : ''}
+  //               tagIcon={item.assignment?.tagIcon}
+  //               tagText={item.assignment?.tagText}
+  //               checkers={item.assignment?.checkers ? item.assignment?.checkers : ''}
+  //               reviewers={item.assignment?.reviewers ? item.assignment?.reviewers : t('無')}
+  //               deadline={
+  //                 item.assignment?.record_at ? moment(item.assignment?.record_at).format('YYYY-MM-DD') : '無期限'
+  //               }
+  //               disabled={item.assignment?.record_at && moment().isSameOrAfter(moment(item.assignment?.record_at), 'day') ? false : true}
+  //               onPress={() => {
+  //                 navigation.push('RoutesCheckList', {
+  //                   screen: 'CheckListAssignmentIntroduction',
+  //                   params: {
+  //                     id: item.assignment.id,
+  //                     index: index
+  //                   }
+  //                 })
+  //               }}
+  //             />
+  //           </View>
+  //         )
+  //       }}
+  //     />
+  //   )
+  // }
 
   return (
     <>
       {currentConnectionState === false
-        ? renderEmptyList()
+        ? null // renderEmptyList()
         : (
           <WsInfiniteScroll
             service={S_ChecklistAssignment}

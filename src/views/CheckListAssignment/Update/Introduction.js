@@ -60,6 +60,8 @@ const Introduction = ({ navigation, route }) => {
     refreshCounter
   } = route.params
 
+  console.log(draftId,'draftId')
+
   // State
   const [RightOnPressIsDisabled, setRightOnPressIsDisabled] = React.useState(true)
   const [constantData, setConstantData] = React.useState()

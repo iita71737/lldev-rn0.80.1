@@ -162,6 +162,7 @@ const My = ({ route }) => {
     }
   }
 
+
   // INIT
   const $_initManageList = () => {
     const _menu = [

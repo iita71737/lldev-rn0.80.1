@@ -445,8 +445,7 @@ const RoutesFactory = ({ navigation, route }) => {
                 ? undefined
                 : () => null,
               tabBarTestID: 'Act',
-              headerShown: true,
-              headerTitle: t('法規'),
+              headerShown: false,
               ...gOption.headerOption,
               tabBarIcon: ({ focused, color, size }) => (
                 <WsIcon

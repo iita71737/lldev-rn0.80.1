@@ -2,8 +2,11 @@ import React from 'react'
 import { WsFlex, WsInfoUser, WsText } from '@/components'
 import $color from '@/__reactnative_stone/global/color'
 import { View, Modal, TouchableOpacity, Dimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 const WsInfoUsers = props => {
+    const { t, i18n } = useTranslation()
+
   // Props
   const {
     value = [],
@@ -46,7 +49,7 @@ const WsInfoUsers = props => {
             />
           ))
         ) : (
-          <WsText color={$color.gray}>無</WsText>
+          <WsText color={$color.black}>{t('無')}</WsText>
         )}
       </View>
     </>

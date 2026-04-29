@@ -44,7 +44,8 @@ const ActChangeReport: React.FC<ActChangeReportProps> = props => {
 
   // Props
   const {
-    _alliance
+    _alliance,
+    searchValue
   } = props
 
   // 1) 把當前的 allianceAreaId 算出來（物件或純 id 都支援）
@@ -147,6 +148,9 @@ const ActChangeReport: React.FC<ActChangeReportProps> = props => {
     <>
       <WsPageIndex
         mode={'system_classes'}
+        params={{
+          search: searchValue ? searchValue : undefined
+        }}
         filterFields={filterFields}
         defaultFilterValue={defaultFilterValue}
         renderItem={({ item, index, __params }) => {

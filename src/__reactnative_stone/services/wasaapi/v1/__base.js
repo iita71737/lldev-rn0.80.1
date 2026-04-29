@@ -270,7 +270,8 @@ export default {
     modelId,
     data,
     endpoint = axios.defaults.baseURL,
-    preUrl
+    preUrl,
+    rejectOnError = false
   }) {
     let url = ''
     if (parentName) {
@@ -284,7 +285,7 @@ export default {
     } else if (modelName) {
       url = `${endpoint}/${modelName}`
     }
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       axios
         .patch(url, data)
         .then(res => {
@@ -292,6 +293,9 @@ export default {
         })
         .catch(err => {
           console.error(`${modelName} update error`)
+          if (rejectOnError) {
+            reject(err)
+          }
         })
     })
   },

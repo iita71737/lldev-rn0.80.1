@@ -83,6 +83,8 @@ const ChecklistRecordAnalytics: React.FC<ChecklistRecordAnalyticsProps> = props 
           index={tabIndex}
           setIndex={settabIndex}
           isAutoWidth={true}
+          tabLabelFullText={true}
+          pointerVisible={true}
         />
       )}
     </>

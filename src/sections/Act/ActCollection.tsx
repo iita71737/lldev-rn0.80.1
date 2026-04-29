@@ -57,7 +57,8 @@ const ActCollection: React.FC<ActCollectionProps> = props => {
   const {
     navigation,
     currentTabIndex,
-    _alliance
+    _alliance,
+    searchValue
   } = props
 
   const allianceAreaId = _alliance?.area?.id ?? undefined;
@@ -152,9 +153,10 @@ const ActCollection: React.FC<ActCollectionProps> = props => {
       order_by: 'announce_at',
       order_way: 'desc',
       time_field: 'announce_at',
+      search: searchValue ? searchValue : undefined
     }
     return params
-  }, [refreshCounter, currentRefreshCounter]);
+  }, [refreshCounter, currentRefreshCounter, searchValue]);
 
   // defaultFilterValue
   const [defaultFilterValue] = React.useState(() => {

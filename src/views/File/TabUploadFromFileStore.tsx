@@ -155,8 +155,6 @@ const TabUploadFromFileStore: React.FC<TabUploadFromFileStoreProps> = (props) =>
     params?.time_field
   ])
 
-  console.log(filterDefaultValue, 'filterDefaultValue')
-
   const _modelName = React.useMemo(() => {
     if (selectedRadio === 'specific') {
       return 'file_version'

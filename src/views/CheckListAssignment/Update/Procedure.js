@@ -39,6 +39,7 @@ const Procedure = ({ route, navigation }) => {
   const currentChecklistDraft = useSelector(
     state => state.data.currentChecklistRecordDraft
   )
+  const currentUser = useSelector(state => state.data.currentUser)
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentLatLng = useSelector(state => state.data.currentLatLng)
 
@@ -68,10 +69,97 @@ const Procedure = ({ route, navigation }) => {
     return _idx >= 0 ? _idx : 0
   }
 
+  const $_getAnswerChecklistQuestionId = (answer) => {
+    return answer?.checklist_question?.id
+      || answer?.checklist_question_id
+      || answer?.checklist_question
+  }
+
+  const $_getAnswerChecklistQuestionVersionId = (answer) => {
+    return answer?.checklist_question_version?.id
+      || answer?.checklist_question_version_id
+      || answer?.checklist_question_version
+  }
+
+  const $_extractAnswers = (answersRes) => {
+    if (Array.isArray(answersRes)) return answersRes
+    if (Array.isArray(answersRes?.data)) return answersRes.data
+    if (Array.isArray(answersRes?.data?.data)) return answersRes.data.data
+    return []
+  }
+
+  const $_findMatchedAnswer = (question, answers = []) => {
+    const _questionId = question?.checklist_question?.id || question?.checklist_question || question?.id
+    const _questionVersionId =
+      question?.checklist_question_version
+      || question?.checklist_question_version_id
+      || question?.last_version?.id
+      || question?.id
+
+    let _matchedAnswer = answers.find(answer => (
+      String($_getAnswerChecklistQuestionId(answer) || '') === String(_questionId || '')
+    ))
+    if (!_matchedAnswer && _questionVersionId) {
+      _matchedAnswer = answers.find(answer => (
+        String($_getAnswerChecklistQuestionVersionId(answer) || '') === String(_questionVersionId || '')
+      ))
+    }
+    return _matchedAnswer
+  }
+
+  const $_canEditQuestion = (question) => {
+    const checkboxVisible = true
+    const isNotCompleted = question?.is_completed !== 1
+    const hasUpdatedUser = !!question?.updated_user
+    const isUpdatedByCurrentUser = question?.updated_user?.id === currentUser?.id
+    const canEditWhenNoUpdatedUser =
+      !!currentUser &&
+      checkboxVisible &&
+      question?.question_type_setting?.value === 'single-choice' &&
+      (
+        question?.question_setting == null ||
+        !question?.question_setting?.checkers?.length ||
+        question?.question_setting?.checkers?.some(checker => checker.id === currentUser.id)
+      )
+    const canEdit =
+      isNotCompleted &&
+      (
+        (hasUpdatedUser && isUpdatedByCurrentUser) ||
+        (!hasUpdatedUser && canEditWhenNoUpdatedUser)
+      )
+    return canEdit
+  }
+
   const $_fetchQuestions = async () => {
-    const _sourceQuestions = currentChecklistDraft || allQuestions || []
-    setQuestions(_sourceQuestions)
-    setCurrentTabIndex($_findQuestionIndex(_sourceQuestions, questionId))
+    const _routeQuestions = Array.isArray(allQuestions) ? allQuestions : []
+    const _draftQuestions = Array.isArray(currentChecklistDraft) ? currentChecklistDraft : []
+    const _sourceQuestions = _routeQuestions.length > 0 ? _routeQuestions : _draftQuestions
+    const _checklistRecord = checklistRecordId || route.params?.checklistRecordId
+    let _nextQuestions = _sourceQuestions
+
+    if (_checklistRecord && Array.isArray(_sourceQuestions) && _sourceQuestions.length > 0) {
+      try {
+        const _answersRes = await S_CheckListRecordAns.indexV2({
+          parentId: _checklistRecord
+        })
+        const _latestAnswers = $_extractAnswers(_answersRes)
+        _nextQuestions = _sourceQuestions.map(question => {
+          const _matchedAnswer = $_findMatchedAnswer(question, _latestAnswers)
+          if (!_matchedAnswer) return question
+
+          return {
+            ...question,
+            recordAnsId: _matchedAnswer?.id || question?.recordAnsId,
+            checklist_record_answer_id: _matchedAnswer?.id || question?.checklist_record_answer_id
+          }
+        })
+      } catch (error) {
+        console.log('Procedure sync recordAnsId failed', error)
+      }
+    }
+
+    setQuestions(_nextQuestions)
+    setCurrentTabIndex($_findQuestionIndex(_nextQuestions, questionId))
     setLoading(false)
   }
 
@@ -150,6 +238,9 @@ const Procedure = ({ route, navigation }) => {
       try {
         const _question = questions?.[currentTabIndex]
         if (!_question) return _currentQuestions
+        if (!$_canEditQuestion(_question)) {
+          return _currentQuestions
+        }
 
         const _checklistRecord = route.params?.checklistRecordId
           || _question?.checklist_record_id
@@ -186,8 +277,9 @@ const Procedure = ({ route, navigation }) => {
           ip: _question?.ip,
           checklist_question_version: _question?.checklist_question_version
             || _question?.checklist_question_version_id
-            || _question?.last_version?.id,
-          checklist_question: _question?.checklist_question?.id || _question?.id
+            || _question?.last_version?.id
+            || _question?.id,
+          checklist_question: _question?.checklist_question?.id || _question?.checklist_question || _question?.id
         }
         if (Array.isArray(_params.question_value)) {
           _params.question_value = _params.question_value.filter(value => {
@@ -201,7 +293,35 @@ const Procedure = ({ route, navigation }) => {
         if (!_hasQuestionValue) {
           return _currentQuestions
         }
-        const _recordAnsId = _question?.recordAnsId
+        let _recordAnsId = _question?.recordAnsId
+          || _question?.checklist_record_answer_id
+          || _question?.checklist_record_answer?.id
+        if (!_recordAnsId) {
+          try {
+            const _latestAnswersRes = await S_CheckListRecordAns.indexV2({
+              parentId: _checklistRecord
+            })
+            const _latestAnswers = $_extractAnswers(_latestAnswersRes)
+            const _matchedAnswer = $_findMatchedAnswer(_question, _latestAnswers)
+            _recordAnsId = _matchedAnswer?.id
+            if (_recordAnsId) {
+              const _syncedQuestions = _currentQuestions.map((question, questionIndex) => {
+                if (questionIndex === currentTabIndex) {
+                  return {
+                    ...question,
+                    recordAnsId: _recordAnsId,
+                    checklist_record_answer_id: _recordAnsId
+                  }
+                }
+                return question
+              })
+              setQuestions(_syncedQuestions)
+              store.dispatch(setCurrentChecklistRecordDraft(_syncedQuestions))
+            }
+          } catch (error) {
+            console.log('Procedure single save prefetch recordAnsId failed', error)
+          }
+        }
         let _res
         if (_recordAnsId) {
           const _updateData = {

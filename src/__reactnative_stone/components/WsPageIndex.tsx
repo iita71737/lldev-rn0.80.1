@@ -16,7 +16,7 @@ import {
   WsFlex,
   WsInfiniteScrollPagination
 } from '@/components'
-import WsPageIndexFloatingActions, { WsPageIndexFloatingActionItem } from '@/__reactnative_stone/components/WsPageIndexFloatingActions'
+import WsFABGroup, { WsFABGroupItem } from '@/__reactnative_stone/components/WsFABGroup'
 import i18next from 'i18next'
 import Services from '@/services/api/v1/index'
 import S_Processor from '@/services/app/processor'
@@ -45,7 +45,7 @@ interface WsPageIndexProps {
   onRefresh: ($event: any) => void;
   searchLabel: string;
   filterMode?: 'FAB';
-  FABItems?: WsPageIndexFloatingActionItem[];
+  FABItems?: WsFABGroupItem[];
 }
 
 const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
@@ -196,9 +196,10 @@ const WsPageIndex: React.FC<WsPageIndexProps> = (props) => {
           }}
         />
       )}
-      <WsPageIndexFloatingActions
+      <WsFABGroup
         canShowFloatingAction={canShowFloatingAction}
         useFabGroup={useFabGroup}
+        showDefaultFilterAction={true}
         FABItems={FABItems}
         onFilterPress={() => {
           setModalVisible(true)

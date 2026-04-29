@@ -3,10 +3,10 @@ import {
   ScrollView,
   View,
   TouchableOpacity,
-  Text,
   StyleSheet,
 } from 'react-native'
-import { WsNavCheck } from '@/components'
+import { WsNavCheck, WsFlex, WsText } from '@/components'
+import $color from '@/__reactnative_stone/global/color'
 
 const WsStateCheckboxes = props => {
   const {
@@ -99,23 +99,33 @@ const WsStateCheckboxes = props => {
   return (
     <View style={style}>
       {showActions && (
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={handleSelectAll}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.actionText}>{selectAllLabel}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={handleClearAll}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.actionText}>{clearAllLabel}</Text>
-          </TouchableOpacity>
-        </View>
+        <WsFlex style={styles.actionRow}>
+          <WsFlex>
+            <TouchableOpacity
+              onPress={handleSelectAll}
+              activeOpacity={0.8}
+            >
+              <WsText color={$color.primary} size={14}>
+                {selectAllLabel}
+              </WsText>
+            </TouchableOpacity>
+            <WsText
+              color={$color.primary}
+              size={14}
+              style={styles.actionDivider}
+            >
+              |
+            </WsText>
+            <TouchableOpacity
+              onPress={handleClearAll}
+              activeOpacity={0.8}
+            >
+              <WsText color={$color.primary} size={14}>
+                {clearAllLabel}
+              </WsText>
+            </TouchableOpacity>
+          </WsFlex>
+        </WsFlex>
       )}
 
       <ScrollView>{renderItems(items, 0)}</ScrollView>
@@ -125,23 +135,13 @@ const WsStateCheckboxes = props => {
 
 const styles = StyleSheet.create({
   actionRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-    paddingTop: 16,
+    paddingBottom: 8,
+    paddingTop: 8,
     paddingHorizontal: 16,
   },
-  actionBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#000',
-    marginRight: 8,
-    backgroundColor: '#fff',
-  },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '500',
+  actionDivider: {
+    paddingLeft: 16,
+    paddingRight: 16,
   },
 })
 

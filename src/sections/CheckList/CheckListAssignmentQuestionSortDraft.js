@@ -52,7 +52,6 @@ import Geolocation from '@react-native-community/geolocation';
 import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
 import AndroidOpenSettings from 'react-native-android-open-settings'
 import { getLocation, getGeocode } from '@/__reactnative_stone/global/location'
-import { getChecklistBatchQualifiedConcurrencyLimit } from './checklistBatchQualifiedConfig'
 
 const CheckListAssignmentQuestionSortDraft = props => {
   const { width, height } = Dimensions.get('window')
@@ -79,6 +78,7 @@ const CheckListAssignmentQuestionSortDraft = props => {
   const currentFactory = useSelector(state => state.data.currentFactory)
   const currentUser = useSelector(state => state.data.currentUser)
   const currentLatLng = useSelector(state => state.data.currentLatLng)
+  const currentFactoryId = currentFactory?.id
 
   // States
   const [selectedIndex, setSelectedIndex] = React.useState()
@@ -98,22 +98,56 @@ const CheckListAssignmentQuestionSortDraft = props => {
   const $_toIdArray = (items) => {
     if (!Array.isArray(items)) return []
     return items
-      .map(item => (item && typeof item === 'object' ? item.id : item))
+      .map(item => {
+        if (item && typeof item === 'object') {
+          return item.id ?? item.value ?? item.factory_effect_id
+        }
+        return item
+      })
       .filter(Boolean)
+  }
+  const $_toIdValue = (value) => {
+    if (value === null || value === undefined) return undefined
+    if (value && typeof value === 'object') {
+      return value.id ?? value.value ?? value.factory_effect_id
+    }
+    return value
   }
   const $_toQuestionValue = (item) => {
     if (typeof item?.answer_value === 'string') return item.answer_value
     if (Array.isArray(item?.answer_value)) {
-      return item.answer_value.map(ans => ans?.id).filter(Boolean)
+      return item.answer_value
+        .map(ans => $_toIdValue(ans))
+        .filter(ans => ans !== undefined && ans !== null && ans !== '')
     }
     if (item?.answer_value && typeof item.answer_value === 'object') {
-      return [item.answer_value?.id].filter(Boolean)
+      const _value = $_toIdValue(item.answer_value)
+      return _value !== undefined && _value !== null && _value !== '' ? [_value] : []
     }
     return item?.answer_value
   }
   const $_toImages = (images) => {
     if (!Array.isArray(images)) return []
     return S_CheckListRecordAns.formattedForFileStore(images)
+  }
+  const $_toFactoryEffectsPayload = (items) => {
+    if (!Array.isArray(items)) return []
+    return items
+      .map(item => {
+        if (item && typeof item === 'object') {
+          const _factoryEffectId = item.factory_effect_id || item.id
+          if (!_factoryEffectId) return null
+          return {
+            factory_effect_id: _factoryEffectId,
+            model: item.model || 'checklist_record_answer'
+          }
+        }
+        return {
+          factory_effect_id: item,
+          model: 'checklist_record_answer'
+        }
+      })
+      .filter(Boolean)
   }
   const $_compactPayload = (payload = {}) => {
     return Object.entries(payload).reduce((acc, [key, value]) => {
@@ -126,6 +160,14 @@ const CheckListAssignmentQuestionSortDraft = props => {
   const $_toComparablePayload = (item) => {
     const _riskLevel = S_CheckListRecordAns.getRiskLevelScore(item, item?.answer_value)
     const _riskLevelNum = Number(_riskLevel)
+    const _checklistQuestionVersionId =
+      $_toIdValue(item?.checklist_question_version)
+      || $_toIdValue(item?.checklist_question_version_id)
+      || $_toIdValue(item?.id)
+      || $_toIdValue(item?.last_version?.id)
+    const _checklistQuestionId =
+      $_toIdValue(item?.checklist_question)
+      || $_toIdValue(item?.checklist_question_id)
     const _payload = {
       question_value: $_toQuestionValue(item),
       score: item?.score,
@@ -138,11 +180,8 @@ const CheckListAssignmentQuestionSortDraft = props => {
       lat: item?.latLng?.latitude ?? currentLatLng?.latitude,
       lng: item?.latLng?.longitude ?? currentLatLng?.longitude,
       ip: item?.ip,
-      checklist_question_version: item?.checklist_question_version
-        || item?.checklist_question_version_id
-        || item?.id
-        || item?.last_version?.id,
-      checklist_question: item?.checklist_question?.id
+      checklist_question_version: _checklistQuestionVersionId,
+      checklist_question: _checklistQuestionId
     }
     return $_compactPayload(_payload)
   }
@@ -150,27 +189,6 @@ const CheckListAssignmentQuestionSortDraft = props => {
     if (!nextItem || !prevItem) return false
     return JSON.stringify($_toComparablePayload(nextItem)) === JSON.stringify($_toComparablePayload(prevItem))
   }
-  const $_runWithConcurrencyLimit = async (items = [], worker, limit = 6) => {
-    const _limit = Math.max(1, Number(limit) || 1)
-    const results = new Array(items.length)
-    let cursor = 0
-    const runner = async () => {
-      while (cursor < items.length) {
-        const currentIndex = cursor
-        cursor += 1
-        try {
-          const value = await worker(items[currentIndex], currentIndex)
-          results[currentIndex] = { status: 'fulfilled', value }
-        } catch (reason) {
-          results[currentIndex] = { status: 'rejected', reason }
-        }
-      }
-    }
-    const workers = Array.from({ length: Math.min(_limit, items.length) }, () => runner())
-    await Promise.all(workers)
-    return results
-  }
-
   // HELPER
   const $_getScoreTextV5 = (answer) => {
     const _questionType = answer.question_type_setting?.value
@@ -376,18 +394,135 @@ const CheckListAssignmentQuestionSortDraft = props => {
     setQuestionFiltered(!questionFiltered)
     setMyQuestions(_answer)
   }
-  // FORMATTED
+  // 同步題目到本地 state 與 Redux draft，避免來源不一致。
+  const $_syncQuestionsDraft = (_nextQuestions) => {
+    setQuestions(_nextQuestions)
+    setQuestionsCopy(_nextQuestions)
+    store.dispatch(setCurrentChecklistRecordDraft(_nextQuestions))
+  }
+
+  // 依 checker 權限，取得目前使用者可批次送出的勾選題目 id。
+  const $_getMyCheckedQuestionIds = () => {
+    return checkedQuestions.filter(questionId => {
+      const _question = questions.find(item => item?.id === questionId)
+      const _checkers = _question?.question_setting?.checkers
+      if (!_question?.question_setting) return true
+      if (Array.isArray(_checkers) && _checkers.length === 0) return true
+      return Array.isArray(_checkers) && _checkers.some(checker => String(checker?.id) === String(currentUser?.id))
+    })
+  }
+
+  // 先將可送出題目統一套用「合格」結果，並補上目前定位資訊。
+  const $_getQualifiedQuestions = (_myCheckedQuestionIds = []) => {
+    return S_CheckListQuestion.getQualifiedMyQuestions(
+      questions,
+      _myCheckedQuestionIds,
+      currentUser.id,
+      25
+    ).map(item => ({
+      ...item,
+      latLng: {
+        latitude: currentLatLng?.latitude,
+        longitude: currentLatLng?.longitude
+      }
+    }))
+  }
+
+  // 從可送出題目中再篩出「真正需要送 API」的題目（新建或內容有變更）。
+  const $_getTargetQuestions = (_qualifiedQuestions = [], _myCheckedQuestionIds = []) => {
+    const _originalQuestionById = new Map((questions || []).map(item => [item?.id, item]))
+    const _selectedQuestions = _qualifiedQuestions.filter(item => _myCheckedQuestionIds.includes(item.id))
+    return _selectedQuestions.filter(item => {
+      if (!item?.recordAnsId) return true
+      const _original = _originalQuestionById.get(item.id)
+      return !_original || !$_isSamePayload(item, _original)
+    })
+  }
+
+  // 將 target 題目整理為 batch API 所需 payload 格式（含欄位正規化）。
+  const $_buildBatchParams = (_targetQuestions = []) => {
+    const _batchAnswers = _targetQuestions.map(item => {
+      const _payload = $_toComparablePayload(item)
+      const _questionValue = Array.isArray(_payload?.question_value)
+        ? _payload.question_value
+          .map(value => $_toIdValue(value))
+          .filter(value => value !== undefined && value !== null && value !== '')
+        : $_toIdValue(_payload?.question_value)
+      const _effects = $_toIdArray(item?.effects)
+      const _answerPayload = {
+        question_value: _questionValue,
+        score: _payload?.score,
+        risk_level: _payload?.risk_level,
+        remark: _payload?.remark,
+        images: $_toImages(item?.images),
+        checklist_question: $_toIdValue(_payload?.checklist_question),
+        checklist_question_version: $_toIdValue(_payload?.checklist_question_version),
+        effects: _effects,
+        factory_effects: $_toFactoryEffectsPayload(item?.factory_effects),
+        factory: currentFactoryId ?? 1,
+        lat: _payload?.lat,
+        lng: _payload?.lng,
+        ip: _payload?.ip,
+      }
+      if (item?.recordAnsId) {
+        _answerPayload.id = item.recordAnsId
+      }
+      return _answerPayload
+    })
+    const _firstBatchAnswer = _batchAnswers[0] || {}
+    return {
+      checklist_record_id: checklistRecordId,
+      factory: String(currentFactoryId ?? 1),
+      checklist_assignment: id,
+      lat: _firstBatchAnswer?.lat,
+      lng: _firstBatchAnswer?.lng,
+      ip: _firstBatchAnswer?.ip,
+      checklist_record_answers: _batchAnswers
+    }
+  }
+
+  // 從 answer 物件取出 checklist_question id（支援不同資料結構）。
+  const $_getAnsChecklistQuestionId = (ans) => {
+    return ans?.checklist_question?.id || ans?.checklist_question_id || ans?.checklist_question
+  }
+
+  // 從 answer 物件取出 checklist_question_version id（支援不同資料結構）。
+  const $_getAnsChecklistQuestionVersionId = (ans) => {
+    return ans?.checklist_question_version?.id || ans?.checklist_question_version_id || ans?.checklist_question_version
+  }
+
+  // 用 indexV2 最新結果回填 { questionId -> recordAnsId } 映射。
+  const $_getRecordAnsIdByQuestionId = (_targetQuestions = [], _latestAnswers = []) => {
+    const _recordAnsIdByQuestionId = {}
+    _targetQuestions.forEach((item) => {
+      const _questionId = item?.checklist_question?.id || item?.checklist_question
+      const _questionVersionId = item?.checklist_question_version || item?.checklist_question_version_id || item?.last_version?.id
+
+      let _responseAnswer = _latestAnswers.find(ans => (
+        String($_getAnsChecklistQuestionId(ans) || '') === String(_questionId || '')
+      ))
+      if (!_responseAnswer && _questionVersionId) {
+        _responseAnswer = _latestAnswers.find(ans => (
+          String($_getAnsChecklistQuestionVersionId(ans) || '') === String(_questionVersionId || '')
+        ))
+      }
+      const _recordAnsId = _responseAnswer?.id || item?.recordAnsId
+      if (item?.id && _recordAnsId) {
+        _recordAnsIdByQuestionId[item.id] = _recordAnsId
+      }
+    })
+    return _recordAnsIdByQuestionId
+  }
+
+  // 批次合格主流程：節流檢查 -> 整理資料 -> batch 送出 -> indexV2 回填 recordAnsId。
   const $_SubmitBatchQualified = () => {
     const _logPrefix = '[CheckListAssignmentQuestionSortDraft]'
     const _now = Date.now()
-    const _inFlight = _submitBatchQualifiedInFlightRef.current
     const _isInCooldown = (_now - _lastSubmitBatchQualifiedAtRef.current) < $_BATCH_QUALIFIED_COOLDOWN_MS
-    if (_inFlight || _isInCooldown) {
-      // console.log(`${_logPrefix} blocked: inFlight=${_inFlight}, inCooldown=${_isInCooldown}, cooldownMs=${$_BATCH_QUALIFIED_COOLDOWN_MS}`)
+    if (_submitBatchQualifiedInFlightRef.current || _isInCooldown) {
       Alert.alert('伺服器忙碌中，請稍後再試')
       return
     }
-    // console.log(`${_logPrefix} start: checked=${checkedQuestions.length}, questions=${questions?.length || 0}`)
     _submitBatchQualifiedInFlightRef.current = true
     _lastSubmitBatchQualifiedAtRef.current = _now
 
@@ -395,137 +530,52 @@ const CheckListAssignmentQuestionSortDraft = props => {
       const _submitStartAt = Date.now()
       setBatchQualifiedLoading?.(true)
       try {
-        const _myCheckedQuestionIds = checkedQuestions.filter(questionId => {
-          const _question = questions.find(item => item?.id === questionId)
-          const _checkers = _question?.question_setting?.checkers
-          if (!_question?.question_setting) {
-            return true
-          }
-          if (Array.isArray(_checkers) && _checkers.length === 0) {
-            return true
-          }
-          return Array.isArray(_checkers) && _checkers.some(checker => String(checker?.id) === String(currentUser?.id))
-        })
-        const _blockedByCheckerCount = checkedQuestions.length - _myCheckedQuestionIds.length
-        // console.log(`${_logPrefix} filter(checker): selected=${checkedQuestions.length}, allowed=${_myCheckedQuestionIds.length}, blocked=${_blockedByCheckerCount}`)
-
-        const _questions = S_CheckListQuestion.getQualifiedMyQuestions(questions, _myCheckedQuestionIds, currentUser.id, 25).map(item => {
-          return {
-            ...item,
-            latLng: {
-              latitude: currentLatLng?.latitude,
-              longitude: currentLatLng?.longitude
-            }
-          };
-        })
-        setQuestions(_questions)
-        setQuestionsCopy(_questions)
-        store.dispatch(setCurrentChecklistRecordDraft(_questions))
+        const _myCheckedQuestionIds = $_getMyCheckedQuestionIds()
+        const _qualifiedQuestions = $_getQualifiedQuestions(_myCheckedQuestionIds)
+        $_syncQuestionsDraft(_qualifiedQuestions)
 
         if (!checklistRecordId) {
           console.log(t('缺少點檢記錄ID，無法送出批次合格'))
           return
         }
 
-        const _originalQuestionById = new Map((questions || []).map(item => [item?.id, item]))
-        const _selectedQuestions = _questions.filter(item => _myCheckedQuestionIds.includes(item.id))
-        const _targetQuestions = _selectedQuestions
-          .filter(item => {
-            if (!item?.recordAnsId) return true
-            const _original = _originalQuestionById.get(item.id)
-            return !_original || !$_isSamePayload(item, _original)
-          })
-        const _skippedUnchangedCount = _selectedQuestions.length - _targetQuestions.length
-        const _createCount = _targetQuestions.filter(item => !item?.recordAnsId).length
-        const _updateCount = _targetQuestions.length - _createCount
-        const _concurrencyLimit = getChecklistBatchQualifiedConcurrencyLimit(_targetQuestions.length)
-        // console.log(`${_logPrefix} plan: selected=${_selectedQuestions.length}, target=${_targetQuestions.length}, skippedUnchanged=${_skippedUnchangedCount}, create=${_createCount}, update=${_updateCount}, concurrency=${_concurrencyLimit}`)
-        const _results = await $_runWithConcurrencyLimit(
-          _targetQuestions,
-          async (item, idx) => {
-            const _itemStartAt = Date.now()
-            const _action = item?.recordAnsId ? 'update' : 'create'
-            const _payload = $_toComparablePayload(item)
-            const _params = {
-              checklist_record: checklistRecordId,
-              ..._payload
-            }
-            // console.log(`${_logPrefix} [${idx + 1}/${_targetQuestions.length}] ${_action} request: questionId=${item?.id}, recordAnsId=${item?.recordAnsId || 'new'}`)
-            try {
-              if (item?.recordAnsId) {
-                const _updateData = $_compactPayload({
-                  question_value: _params.question_value,
-                  score: _params.score,
-                  risk_level: _params.risk_level,
-                  remark: _params.remark,
-                  images: _params.images,
-                  effects: _params.effects,
-                  factory_effects: _params.factory_effects,
-                  factory: _params.factory,
-                  lat: _params.lat,
-                  lng: _params.lng,
-                  ip: _params.ip,
-                  checklist_question_version: _params.checklist_question_version,
-                  checklist_question: _params.checklist_question
-                })
-                const _res = await S_CheckListRecordAns.update({
-                  modelId: item.recordAnsId,
-                  data: _updateData
-                })
-                // console.log(`${_logPrefix} [${idx + 1}/${_targetQuestions.length}] ${_action} response: questionId=${item?.id}, took=${Date.now() - _itemStartAt}ms`)
-                return _res
-              }
-              const _res = await S_CheckListRecordAns.create({ params: _params })
-              console.log(`${_logPrefix} [${idx + 1}/${_targetQuestions.length}] ${_action} response: questionId=${item?.id}, took=${Date.now() - _itemStartAt}ms`)
-              return _res
-            } catch (error) {
-              console.log(`${_logPrefix} [${idx + 1}/${_targetQuestions.length}] ${_action} failed: questionId=${item?.id}, took=${Date.now() - _itemStartAt}ms`)
-              throw error
-            }
-          },
-          _concurrencyLimit
-        )
+        const _targetQuestions = $_getTargetQuestions(_qualifiedQuestions, _myCheckedQuestionIds)
+        if (_targetQuestions.length === 0) {
+          console.log(`${_logPrefix} result: success=0, failed=0`)
+          return
+        }
 
-        const _recordAnsIdByQuestionId = {}
-        _results.forEach((result, idx) => {
-          if (result.status === 'fulfilled') {
-            const _questionId = _targetQuestions[idx]?.id
-            const _recordAnsId = result.value?.id || result.value?.data?.id || _targetQuestions[idx]?.recordAnsId
-            if (_questionId && _recordAnsId) {
-              _recordAnsIdByQuestionId[_questionId] = _recordAnsId
-            }
-          }
-        })
-        const _questionsWithRecordAnsId = _questions.map(item => ({
+        const _batchParams = $_buildBatchParams(_targetQuestions)
+        console.log(JSON.stringify(_batchParams, null, 2))
+        const _batchRes = await S_CheckListRecordAns.batch({ params: _batchParams })
+        console.log(JSON.stringify(_batchRes), '_batchRes_batchRes')
+        const _batchMessage = _batchRes?.message || _batchRes?.data?.message
+        if (_batchMessage === 'This record has been completed.') {
+          console.log(`${_logPrefix} ${_batchMessage}`)
+        }
+
+        const _latestAnswersRes = await S_CheckListRecordAns.indexV2({ parentId: checklistRecordId })
+        const _latestAnswers = Array.isArray(_latestAnswersRes?.data) ? _latestAnswersRes.data : []
+        const _recordAnsIdByQuestionId = $_getRecordAnsIdByQuestionId(_targetQuestions, _latestAnswers)
+        const _mappedCount = Object.keys(_recordAnsIdByQuestionId).length
+        const _unmappedCount = _targetQuestions.length - _mappedCount
+        console.log(`${_logPrefix} batch recordAnsId mapped=${_mappedCount}, unmapped=${_unmappedCount}`)
+
+        const _questionsWithRecordAnsId = _qualifiedQuestions.map(item => ({
           ...item,
           recordAnsId: _recordAnsIdByQuestionId[item.id] || item.recordAnsId
         }))
-        // const _batchQualifiedPayloadPreview = _questionsWithRecordAnsId.map(item => {
-        //   const _payload = $_toComparablePayload(item)
-        //   return {
-        //     question_value: _payload?.question_value,
-        //     score: _payload?.score,
-        //     risk_level: _payload?.risk_level,
-        //     remark: _payload?.remark,
-        //     factory: String(_payload?.factory ?? 1),
-        //     lat: _payload?.lat,
-        //     lng: _payload?.lng,
-        //     ip: _payload?.ip,
-        //     checklist_question_version: _payload?.checklist_question_version,
-        //     checklist_question: _payload?.checklist_question
-        //   }
-        // })
-        // console.log(`${_logPrefix} batchQualifiedQuestionsPayload=${JSON.stringify(_batchQualifiedPayloadPreview)}`)
-        setQuestions(_questionsWithRecordAnsId)
-        setQuestionsCopy(_questionsWithRecordAnsId)
-        store.dispatch(setCurrentChecklistRecordDraft(_questionsWithRecordAnsId))
+        $_syncQuestionsDraft(_questionsWithRecordAnsId)
 
-        const _failedCount = _results.filter(result => result.status === 'rejected').length
-        const _successCount = _results.length - _failedCount
-        console.log(`${_logPrefix} result: success=${_successCount}, failed=${_failedCount}`)
-        if (_failedCount > 0) {
-          console.log(t('批次合格送出失敗{number}題', { number: _failedCount }))
+        const _successCount = _targetQuestions.length
+        console.log(`${_logPrefix} result: success=${_successCount}, failed=0`)
+      } catch (error) {
+        const _batchErrorMessage = error?.response?.data?.message || error?.message
+        if (_batchErrorMessage === 'This record has been completed.') {
+          console.log(`${_logPrefix} ${_batchErrorMessage}`)
         }
+        console.error(`${_logPrefix} S_CheckListRecordAns.batch failed`, error)
+        console.log(`${_logPrefix} result: success=0, failed=${checkedQuestions?.length || 0}`)
       } finally {
         const _durationMs = Date.now() - _submitStartAt
         console.log(`${_logPrefix} $_SubmitBatchQualified completed in ${_durationMs}ms`)
@@ -548,8 +598,32 @@ const CheckListAssignmentQuestionSortDraft = props => {
 
   // 全選
   const $_addAllToBatchQualified = () => {
-    const _checkedAllQuestions = S_CheckListQuestion.checkedAllMyQuestions(questions, currentUser?.id)
-    setCheckedQuestioned(_checkedAllQuestions)
+    const _checkboxVisible = !todayDone
+    const _checkedQuestionIds = (questions || [])
+      .filter(answer => {
+        const isNotCompleted = answer?.is_completed !== 1
+        const hasUpdatedUser = !!answer?.updated_user
+        const isUpdatedByCurrentUser = answer?.updated_user?.id === currentUser?.id
+        const canEditWhenNoUpdatedUser =
+          !!currentUser &&
+          _checkboxVisible &&
+          answer?.question_type_setting?.value === 'single-choice' &&
+          (
+            answer?.question_setting == null ||
+            !answer?.question_setting?.checkers?.length ||
+            answer?.question_setting?.checkers?.some(checker => checker.id === currentUser?.id)
+          )
+        const canEdit =
+          isNotCompleted &&
+          (
+            (hasUpdatedUser && isUpdatedByCurrentUser) ||
+            (!hasUpdatedUser && canEditWhenNoUpdatedUser)
+          )
+        return canEdit
+      })
+      .map(item => item?.id)
+      .filter(Boolean)
+    setCheckedQuestioned(_checkedQuestionIds)
   }
 
   const $_requestLocationPermission = async () => {

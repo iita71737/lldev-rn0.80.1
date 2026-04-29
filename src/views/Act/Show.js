@@ -77,6 +77,7 @@ import S_GuidelineArticleVersion from '@/services/api/v1/guideline_article_versi
 import S_GuidelineVersion from '@/services/api/v1/guideline_version'
 import S_TaskFactoryTemplate from '@/services/api/v1/task_factory_template'
 import { scopeSubscriptions, scopePermission } from '@/__reactnative_stone/global/permission'
+import WsFABGroup from '@/__reactnative_stone/components/WsFABGroup'
 
 const ActShow = ({ navigation, route }) => {
   const { t, i18n } = useTranslation()
@@ -154,7 +155,6 @@ const ActShow = ({ navigation, route }) => {
       ...params
     }
   }, [params, actRelatedTaskCollapsed, actRelatedTemplateCollapsed, actRelatedDocsCollapsed, actRelatedFileStoreFilesCollapsed, actVersionRelatedGuidelineCollapsed, actVersionRelatedGuidelineArticles]);
-  console.log(_params,'_params_params')
 
   const [actTags, setActTags] = React.useState([])
   const [collectionIcon, setCollectionIcon] = React.useState()
@@ -612,6 +612,71 @@ const ActShow = ({ navigation, route }) => {
   };
   const areaNames = namesFrom(act?.areas ?? act?.area);
   const areaSectionNames = namesFrom(act?.area_sections);
+  const $_openTagModalFromFAB = React.useCallback(() => {
+    setPopupActive(false)
+    setPopupActiveForEdit(false)
+    setPopupActiveForDelete(false)
+    setPopupType('')
+    setTimeout(() => {
+      setStateModal(true)
+    }, 180)
+  }, [])
+  const canAddTag = !!(act?.last_version?.id && pickValue?.id && act.last_version.id === pickValue.id)
+  const actShowFABItems = React.useMemo(() => {
+    const _items = [
+      // {
+      //   label: t('篇章節'),
+      //   onPress: () => {
+      //     console.log('[ActShow] 篇章節')
+      //   }
+      // },
+      // {
+      //   label: t('相關法規'),
+      //   onPress: () => {
+      //     console.log('[ActShow] 相關法規')
+      //     setActVersionRelatedGuidelineCollapsed(false)
+      //   }
+      // },
+      // {
+      //   label: t('法規沿革'),
+      //   onPress: () => {
+      //     console.log('[ActShow] 法規沿革')
+      //   }
+      // }
+    ]
+    if (canAddTag) {
+      _items.push({
+        label: t('新增標籤'),
+        onPress: () => {
+          $_openTagModalFromFAB()
+        }
+      })
+    }
+    const canCreateTaskFromFAB = !!(
+      act &&
+      act.last_version &&
+      !act.last_version.task &&
+      act.last_version.id === pickValue?.id &&
+      scopeSubscriptions(currentFactory, 'task')
+    )
+    if (canCreateTaskFromFAB) {
+      _items.push({
+        label: t('建立任務'),
+        onPress: async () => {
+          if (canReadTaskTemplate) {
+            setTaskCreateArticleVersionId(undefined)
+            setStateTaskCreateModeModal(true)
+            return
+          }
+          await $_setStorage()
+          navigation.push('RoutesTask', {
+            screen: 'TaskCreate'
+          })
+        }
+      })
+    }
+    return _items
+  }, [t, canAddTag, $_openTagModalFromFAB, act, pickValue?.id, currentFactory, canReadTaskTemplate, navigation]);
 
   return (
     <>
@@ -1377,14 +1442,19 @@ const ActShow = ({ navigation, route }) => {
           >
             <KeyboardAvoidingView
               style={{
+                flex: 1,
                 padding: 16,
               }}
               behavior={Platform.OS === 'ios' ? 'padding' : null}
               keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
               enabled
             >
-              <TouchableWithoutFeedback onPress={Keyboard.dismiss} disabled={true}>
-                <View>
+              <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View
+                  style={{
+                    flex: 1,
+                  }}
+                >
                   <WsState
                     testID={'搜尋'}
                     style={{
@@ -1399,7 +1469,8 @@ const ActShow = ({ navigation, route }) => {
                   </WsState>
                   <WsState
                     style={{
-                      height: 450,
+                      flex: 1,
+                      minHeight: 280,
                     }}
                     label={t('標籤')}
                     type="checkboxes"
@@ -1420,58 +1491,65 @@ const ActShow = ({ navigation, route }) => {
                       elevation: 5,
                     }}>
                   </View>
-                  <TouchableOpacity
-                    testID={'Modal新增標籤'}
+                  <View
                     style={{
                       borderTopWidth: 0.3,
-                      paddingTop: 16,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-
-                    }}
-                    onPress={() => {
-                      setPopupType('add')
-                      setTagAddName('')
-                      setPopupActive(true)
+                      borderTopColor: $color.gray5l,
+                      paddingTop: 12,
+                      paddingBottom: 8,
                     }}
                   >
-                    <WsIcon
-                      name={'md-add-circle'}
-                      size={24}
-                    ></WsIcon>
-                    <WsText
+                    <TouchableOpacity
+                      testID={'Modal新增標籤'}
                       style={{
-                        marginLeft: 8,
+                        paddingTop: 8,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                      }}
+                      onPress={() => {
+                        setPopupType('add')
+                        setTagAddName('')
+                        setPopupActive(true)
                       }}
                     >
-                      {t('新增標籤')}
-                    </WsText>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    testID={'Modal管理標籤'}
-                    style={{
-                      paddingTop: 16,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      zIndex: 999
-                    }}
-                    onPress={() => {
-                      setPopupType('edit')
-                      setPopupActive(true)
-                    }}
-                  >
-                    <WsIcon
-                      name={'ws-outline-edit'}
-                      size={24}
-                    ></WsIcon>
-                    <WsText
+                      <WsIcon
+                        name={'md-add-circle'}
+                        size={24}
+                      ></WsIcon>
+                      <WsText
+                        style={{
+                          marginLeft: 8,
+                        }}
+                      >
+                        {t('新增標籤')}
+                      </WsText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      testID={'Modal管理標籤'}
                       style={{
-                        marginLeft: 8
+                        paddingTop: 16,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        zIndex: 999
+                      }}
+                      onPress={() => {
+                        setPopupType('edit')
+                        setPopupActive(true)
                       }}
                     >
-                      {t('管理標籤')}
-                    </WsText>
-                  </TouchableOpacity>
+                      <WsIcon
+                        name={'ws-outline-edit'}
+                        size={24}
+                      ></WsIcon>
+                      <WsText
+                        style={{
+                          marginLeft: 8
+                        }}
+                      >
+                        {t('管理標籤')}
+                      </WsText>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
@@ -1900,40 +1978,6 @@ const ActShow = ({ navigation, route }) => {
             </WsPopup>
 
           </WsModal>
-          {act &&
-            act.last_version &&
-            !act.last_version.task &&
-            (act.last_version.id === pickValue.id) &&
-            scopeSubscriptions(currentFactory, 'task') && (
-              <WsGradientButton
-                borderRadius={25}
-                style={{
-                  marginBottom: 8,
-                }}
-                onPress={async () => {
-                  if (canReadTaskTemplate) {
-                    setTaskCreateArticleVersionId(undefined)
-                    setStateTaskCreateModeModal(true)
-                    return
-                  }
-                  await $_setStorage()
-                  navigation.push('RoutesTask', {
-                    screen: 'TaskCreate'
-                  })
-                }}
-                renderLeadingIcon={() => (
-                  <WsIcon
-                    color={$color.white}
-                    name={'ll-nav-assignment-filled'}
-                    size={24}
-                    style={{ marginRight: 8 }}
-                  />
-                )}
-              >
-                {t('建立任務')}
-            </WsGradientButton>
-          )}
-
           <WsModal
             animationType={'none'}
             visible={stateTaskCreateModeModal}
@@ -2056,30 +2100,10 @@ const ActShow = ({ navigation, route }) => {
             }}
           />
 
-          {(act.last_version.id === pickValue.id) && (
-            <WsGradientButton
-              testID={'新增標籤'}
-              borderRadius={25}
-              style={{
-                marginBottom: Platform.OS === 'ios' ? 16 : 36
-              }}
-              onPress={() => {
-                setStateModal(true)
-              }}
-              renderLeadingIcon={() => (
-                <WsIcon
-                  color={$color.white}
-                  name={'ws-outline-edit-pencil'}
-                  size={24}
-                  style={{
-                    marginRight: 8,
-                  }}
-                />
-              )}
-            >
-              {t('新增標籤')}
-            </WsGradientButton>
-          )}
+          <WsFABGroup
+            showDefaultFilterAction={false}
+            FABItems={actShowFABItems}
+          />
 
         </>
       ) : (

@@ -17,7 +17,6 @@ import {
 } from '@/components'
 import S_Keychain from '@/__reactnative_stone/services/app/keychain'
 import axios from 'axios'
-
 import {
   BottomSheetFlatList,
 } from '@gorhom/bottom-sheet';
@@ -188,7 +187,7 @@ const WsInfiniteScroll = React.forwardRef((props, ref) => {
             setLastPage(res.meta[lastPageKey])
             setCurrentPage(parseInt(res.meta[currentPageKey]))
           } else {
-            console.error('缺少 meta 資料：', res)
+            // console.error('缺少 meta 資料：', res)
             if (res.message === 'Too Many Attempts.')
               Alert.alert(t('請求次數過多，請稍候再試'))
           }

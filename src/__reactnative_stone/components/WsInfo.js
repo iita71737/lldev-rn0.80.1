@@ -40,7 +40,7 @@ const WsInfo = props => {
     label,
     labelColor,
     labelSize = 14,
-    labelFontWeight = "600",
+    labelFontWeight = "400",
     labelDisabled = true,
     style,
     value,

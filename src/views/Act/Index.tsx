@@ -1,25 +1,17 @@
-import React, { useEffect, useState } from 'react'
-import { StyleSheet, View, Dimensions, Text } from 'react-native'
-import {
-  WsToggleTabBar,
-  WsTabView,
-  WsIconBtn,
-  WsState,
-} from '@/components'
+import React from 'react'
+import { WsPage, WsTabView } from '@/components'
 import ActListing from '@/sections/Act/ActListing'
 import ActCollection from '@/sections/Act/ActCollection'
 import ActChangeReport from '@/sections/Act/ActChangeReport'
 import ActLibrary from '@/sections/Act/ActLibrary'
 import { useTranslation } from 'react-i18next'
-import $color from '@/__reactnative_stone/global/color'
 import { useSelector } from 'react-redux'
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import store from '@/store'
-import { setIdleCounter } from '@/store/data';
+import { setIdleCounter } from '@/store/data'
+import S_Act from '@/services/api/v1/act'
 
 const Act = ({ route, navigation }) => {
-  const { width, height } = Dimensions.get('window')
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
 
   const reRouteTabIndex = route.params?.tabIndex
   const _alliance = route?.params?.alliance
@@ -32,6 +24,12 @@ const Act = ({ route, navigation }) => {
   // States
   const [tabIndex, settabIndex] = React.useState(0)
   const [tabItems, setTabItems] = React.useState()
+  const [searchValue, setSearchValue] = React.useState('')
+  const [searchKeyword, setSearchKeyword] = React.useState('')
+  const [isSearchFocused, setIsSearchFocused] = React.useState(false)
+  const [searchSuggestionLoading, setSearchSuggestionLoading] = React.useState(false)
+  const [searchSuggestions, setSearchSuggestions] = React.useState([])
+  const _blurTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Function
   const $_setTabItems = () => {
@@ -42,7 +40,8 @@ const Act = ({ route, navigation }) => {
         view: ActListing,
         props: {
           navigation: navigation,
-          _alliance: _alliance
+          _alliance: _alliance,
+          searchValue: searchKeyword
         }
       },
       {
@@ -52,7 +51,8 @@ const Act = ({ route, navigation }) => {
         props: {
           navigation: navigation,
           currentTabIndex: tabIndex,
-          _alliance: _alliance
+          _alliance: _alliance,
+          searchValue: searchKeyword
         }
       },
       {
@@ -62,7 +62,8 @@ const Act = ({ route, navigation }) => {
         props: {
           navigation: navigation,
           currentTabIndex: tabIndex,
-          _alliance: _alliance
+          _alliance: _alliance,
+          searchValue: searchKeyword
         }
       },
       {
@@ -72,7 +73,8 @@ const Act = ({ route, navigation }) => {
         props: {
           navigation: navigation,
           currentTabIndex: tabIndex,
-          _alliance: _alliance
+          _alliance: _alliance,
+          searchValue: searchKeyword
         }
       }
     ])
@@ -80,7 +82,7 @@ const Act = ({ route, navigation }) => {
 
   React.useEffect(() => {
     $_setTabItems()
-  }, [factory, systemClasses, tabIndex, _alliance])
+  }, [factory, systemClasses, tabIndex, _alliance, searchKeyword])
 
   React.useEffect(() => {
     if (reRouteTabIndex != undefined) {
@@ -94,32 +96,113 @@ const Act = ({ route, navigation }) => {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
-      // 想顯示自訂返回鍵的情況
-      headerLeft:
-        navigation.canGoBack() && tabIndex !== 2 && tabIndex !== 3
-          ? () => (
-            <WsIconBtn
-              testID="backButton"
-              name="md-chevron-left"
-              color={$color.white}
-              size={24}
-              onPress={() => navigation.goBack()}
-            />
-          )
-          // 想還原成「預設」行為用 undefined；想完全隱藏用 null
-          : undefined,
-    });
-  }, [navigation, tabIndex]);
+      headerShown: false,
+    })
+  }, [navigation])
 
   React.useEffect(() => {
     const unsub = navigation.addListener('blur', () => {
-      settabIndex(0);
-    });
-    return unsub;
-  }, [navigation]);
+      settabIndex(0)
+      setIsSearchFocused(false)
+      if (_blurTimerRef.current) {
+        clearTimeout(_blurTimerRef.current)
+      }
+    })
+    return unsub
+  }, [navigation])
+
+  React.useEffect(() => {
+    const _timer = setTimeout(() => {
+      setSearchKeyword((searchValue || '').trim())
+    }, 250)
+    return () => clearTimeout(_timer)
+  }, [searchValue])
+
+  React.useEffect(() => {
+    if (!isSearchFocused || !searchKeyword) {
+      setSearchSuggestions([])
+      setSearchSuggestionLoading(false)
+      return
+    }
+
+    let _active = true
+    const $_loadSearchSuggestions = async () => {
+      setSearchSuggestionLoading(true)
+      try {
+        const _res = await S_Act.index({
+          params: {
+            search: searchKeyword,
+            order_by: 'announce_at',
+            order_way: 'desc',
+            time_field: 'announce_at',
+            page: 1
+          }
+        })
+        if (!_active) return
+        const _list = Array.isArray(_res?.data) ? _res.data : []
+        const _dedupe = new Set()
+        const _items = _list
+          .map(item => {
+            const _name = item?.last_version?.name || item?.name || ''
+            if (!_name || _dedupe.has(item?.id)) return null
+            _dedupe.add(item?.id)
+            return {
+              id: item?.id,
+              label: _name,
+              subtitle: item?.act_status?.name || ''
+            }
+          })
+          .filter(Boolean)
+          .slice(0, 6)
+        setSearchSuggestions(_items)
+      } finally {
+        if (_active) {
+          setSearchSuggestionLoading(false)
+        }
+      }
+    }
+    $_loadSearchSuggestions()
+    return () => {
+      _active = false
+    }
+  }, [searchKeyword, isSearchFocused])
 
   return (
-    <>
+    <WsPage
+      mode="search"
+      title={t('法規')}
+      iconLeft="md-chevron-left"
+      leftOnPress={() => navigation.goBack()}
+      iconRight="ws-outline-search"
+      showRightBtn={true}
+      searchValue={searchValue}
+      setSearchValue={setSearchValue}
+      showLeftBtn={true}
+      searchTriggerOnRight={true}
+      showSearchSuggestions={isSearchFocused}
+      searchSuggestionLoading={searchSuggestionLoading}
+      searchSuggestions={searchSuggestions}
+      onSearchFocus={() => {
+        if (_blurTimerRef.current) {
+          clearTimeout(_blurTimerRef.current)
+        }
+        setIsSearchFocused(true)
+      }}
+      onSearchBlur={() => {
+        _blurTimerRef.current = setTimeout(() => {
+          setIsSearchFocused(false)
+        }, 150)
+      }}
+      onPressSearchSuggestion={item => {
+        if (_blurTimerRef.current) {
+          clearTimeout(_blurTimerRef.current)
+        }
+        const _nextKeyword = item?.label || ''
+        setSearchValue(_nextKeyword)
+        setSearchKeyword(_nextKeyword)
+        setIsSearchFocused(false)
+      }}
+    >
       {tabItems && (
         <WsTabView
           index={tabIndex}
@@ -131,7 +214,7 @@ const Act = ({ route, navigation }) => {
           pointerVisible={true}
         />
       )}
-    </>
+    </WsPage>
   )
 }
 

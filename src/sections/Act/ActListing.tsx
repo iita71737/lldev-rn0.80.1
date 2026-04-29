@@ -36,7 +36,8 @@ const ActListing: React.FC<ActListingProps> = props => {
   // Props
   const {
     navigation,
-    _alliance
+    _alliance,
+    searchValue
   } = props
 
   // 1) 把當前的 allianceAreaId 算出來（物件或純 id 都支援）
@@ -62,8 +63,9 @@ const ActListing: React.FC<ActListingProps> = props => {
     order_by: 'announce_at',
     order_way: 'desc',
     time_field: 'announce_at',
-    areas: currentSelectedArea ? currentSelectedArea : allianceAreaId
-  }), [allianceAreaId]);
+    areas: currentSelectedArea ? currentSelectedArea : allianceAreaId,
+    search: searchValue ? searchValue : undefined
+  }), [allianceAreaId, currentSelectedArea, searchValue]);
 
   const [isSnackBarVisible, setIsSnackBarVisible] = React.useState(false)
   const [snackBarText, setSnackBarText] = React.useState(

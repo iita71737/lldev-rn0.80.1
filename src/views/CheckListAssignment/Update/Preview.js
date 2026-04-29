@@ -136,6 +136,10 @@ const ChecklistPreview = ({ navigation, route }) => {
     }
   ])
   const previewSessionKey = `${id || ''}-${versionId || ''}-${checklistRecordId || _draftId || 'no-record'}`
+  const hasDraftQuestions = Array.isArray(currentChecklistDraft) && currentChecklistDraft.length > 0
+  const submitTargetQuestions = hasDraftQuestions ? currentChecklistDraft : questions
+  const submitValidation = S_CheckListRecordAns.validationQuestionSubmitV2(submitTargetQuestions, currentUser)
+  const isSubmitDisabled = !submitValidation
 
   const $_getRefreshCounter = () => Math.floor(Math.random() * (100 - 1 + 1)) + 1
   const $_resetToCheckListAssignment = (_routeParams = {}) => {
@@ -302,8 +306,9 @@ const ChecklistPreview = ({ navigation, route }) => {
       return
     }
     // console.log(JSON.stringify(currentChecklistDraft ? currentChecklistDraft : questions), 'currentChecklistDraft--');
-    const _validation = S_CheckListRecordAns.validationQuestionSubmitV2(currentChecklistDraft ? currentChecklistDraft : questions, currentUser)
-    // console.log(_validation, '_validation')
+    const _submitQuestions = hasDraftQuestions ? currentChecklistDraft : questions
+    const _validation = S_CheckListRecordAns.validationQuestionSubmitV2(_submitQuestions, currentUser)
+    console.log(_validation, '_validation')
     if (_validation === false) {
       Alert.alert(t(`所有題目都必須答題，才能送出結果`))
       return
@@ -322,7 +327,6 @@ const ChecklistPreview = ({ navigation, route }) => {
   // 送出點檢答題結果
   const $_putApi = async () => {
     setSubmitLoading(true)
-    console.log('$_putApi')
     let _shouldNavigate = false
     try {
       const COMPLETE_TIMEOUT_MS = 15000
@@ -520,7 +524,7 @@ const ChecklistPreview = ({ navigation, route }) => {
               <WsPaddingContainer
                 backgroundColor={$color.white}
                 style={{
-                  paddingTop:8,
+                  paddingTop: 8,
                   paddingBottom: 0,
                 }}
               >
@@ -569,6 +573,8 @@ const ChecklistPreview = ({ navigation, route }) => {
                 btnLeftOnPress={() => {
                   setStateModal(true)
                 }}
+                btnRightDisable={isSubmitDisabled}
+                btnRightColors={isSubmitDisabled ? [$color.gray, $color.white5d] : [$color.primary5l, $color.primary]}
                 btnRightText={_todayDone ? t('關閉') : t('完成')}
                 btnRightOnPress={() => {
                   _todayDone ? $_goBack() : $_onHeaderRightPress()
